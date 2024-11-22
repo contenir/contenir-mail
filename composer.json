@@ -21,6 +21,7 @@
             "dealerdirect/phpcodesniffer-composer-installer": true
         }
     },
+    "abandoned": "symfony/mime",
     "require": {
         "php": "~8.0.0 || ~8.1.0 || ~8.2.0 || ~8.3.0",
         "laminas/laminas-stdlib": "^2.7 || ^3.0"

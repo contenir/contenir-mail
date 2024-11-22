@@ -6,7 +6,7 @@ nav:
     - Reference:
         - Messages: message.md
         - Parts: part.md
-site_name: laminas-mime
+site_name: laminas-mime (Abandoned)
 site_description: "Create and parse MIME messages and parts"
 repo_url: 'https://github.com/laminas/laminas-mime'
 extra:
