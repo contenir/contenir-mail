@@ -16,7 +16,7 @@ nav:
                 - Authentication: transport/smtp-authentication.md
             - "File Transport Options": transport/file-options.md
         - "Reading and Storing Mail": read.md
-site_name: laminas-mail
+site_name: laminas-mail (Abandoned)
 site_description: 'Parse, create, store, and send email messages, using a variety of storage and transport protocols.'
 repo_url: 'https://github.com/laminas/laminas-mail'
 extra:
