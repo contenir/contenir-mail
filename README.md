@@ -120,12 +120,17 @@ Behaviour changes:
 
 The QA toolchain comes from
 [contenir/contenir-qa-tools](https://github.com/contenir/contenir-qa-tools):
-Mago for formatting, linting and static analysis, and PHPUnit 11.
+Mago for formatting, linting and static analysis, PHPUnit 11, and Infection for
+mutation testing.
 
 ```bash
 composer check            # cs-check, static-analysis and test
 composer cs-fix           # mago format + mago lint --fix
+composer mutation-test    # Infection; needs a coverage driver such as pcov or Xdebug
 ```
+
+CI fails if any mutant of covered code survives. Infection does not mutate code the
+tests never reach.
 
 Findings inherited from laminas-mail and laminas-mime are recorded in
 `mago-lint-baseline.toml` and `mago-analyze-baseline.toml`. Many can only be fixed

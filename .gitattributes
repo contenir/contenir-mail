@@ -4,6 +4,7 @@
 /.gitignore                   export-ignore
 /composer.lock                export-ignore
 /docs                         export-ignore
+/infection.json5.dist         export-ignore
 /mago.toml                    export-ignore
 /mago-analyze-baseline.toml   export-ignore
 /mago-lint-baseline.toml      export-ignore
