@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
-use Contenir\Mail\Mime\Mime;
 use Override;
 
 use function array_key_last;
@@ -15,7 +14,6 @@ use function in_array;
 use function sprintf;
 use function strlen;
 use function strtolower;
-use function trim;
 
 /**
  * How a part is presented, inline or as an attachment, with its parameters (RFC 2183).
@@ -25,7 +23,7 @@ use function trim;
 final readonly class ContentDisposition implements HeaderInterface
 {
     /** Longest parameter line before RFC 2231 continuation splits it */
-    public const int MAX_PARAMETER_LENGTH = 76;
+    public const int MAX_PARAMETER_LENGTH = MimeParameters::MAX_SEGMENT_LENGTH;
 
     private string $disposition;
 
@@ -34,16 +32,20 @@ final readonly class ContentDisposition implements HeaderInterface
 
     /**
      * @param array<string, string> $parameters
-     * @throws Exception\InvalidArgumentException When a parameter name is invalid or too long.
+     * @throws Exception\InvalidArgumentException When the disposition is not a token, or a parameter name or value is invalid.
      */
     public function __construct(string $disposition = 'inline', array $parameters = [])
     {
+        if (! MimeParameters::isToken($disposition)) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'Content-Disposition expects a token such as "inline" or "attachment"; received "%s"',
+                $disposition,
+            ));
+        }
+
         $normalised = [];
         foreach ($parameters as $name => $value) {
-            $name = strtolower($name);
-            if (! HeaderValue::isValid($name)) {
-                throw new Exception\InvalidArgumentException('Invalid content-disposition parameter name detected');
-            }
+            $name = MimeParameters::name($name, 'content-disposition');
 
             // 5 covers the quotes and equals sign of name="value", and the space and semicolon of folding
             if ((strlen($name) + 5) >= self::MAX_PARAMETER_LENGTH) {
@@ -52,7 +54,7 @@ final readonly class ContentDisposition implements HeaderInterface
                 );
             }
 
-            $normalised[$name] = $value;
+            $normalised[$name] = MimeParameters::value($value);
         }
 
         $this->disposition = strtolower($disposition);
@@ -60,7 +62,8 @@ final readonly class ContentDisposition implements HeaderInterface
     }
 
     /**
-     * Reassembles parameters split with RFC 2231 continuations (filename*0=, filename*1=).
+     * Reassembles parameters split with RFC 2231 continuations (filename*0=, filename*1=)
+     * and decodes extended values (filename*=UTF-8''...) and encoded words.
      */
     #[Override]
     public static function fromString(string $headerLine): static
@@ -71,11 +74,30 @@ final readonly class ContentDisposition implements HeaderInterface
             throw new Exception\InvalidArgumentException('Invalid header line for Content-Disposition string');
         }
 
-        $value      = HeaderWrap::mimeDecodeValue($value);
-        $parts      = explode(';', $value, limit: 2);
-        $parameters = HeaderParameters::parse($parts[1] ?? '');
+        [$disposition, $parameters] = MimeParameterParser::parse($value, $headerLine, 'Content-Disposition');
 
-        return new self(trim($parts[0]), ParameterContinuation::join($parameters, $headerLine));
+        return new self($disposition, $parameters);
+    }
+
+    /**
+     * The filename parameter as the sender wrote it.
+     *
+     * This is untrusted input: it may hold path separators, "..", control or
+     * bidirectional characters. Use getSafeFilename() to store or display it.
+     */
+    public function getFilename(): ?string
+    {
+        return $this->parameters['filename'] ?? null;
+    }
+
+    /**
+     * The filename reduced to a safe base name, see SafeText::filename(); null when there is none.
+     */
+    public function getSafeFilename(): ?string
+    {
+        $filename = $this->getFilename();
+
+        return null === $filename ? null : SafeText::filename($filename);
     }
 
     public function getDisposition(): string
@@ -120,24 +142,38 @@ final readonly class ContentDisposition implements HeaderInterface
         return 'Content-Disposition';
     }
 
+    /**
+     * The disposition and its parameters on one line, as a reader would see them.
+     */
     #[Override]
     public function getFieldValue(): string
     {
         $result = $this->disposition;
         foreach ($this->parameters as $attribute => $value) {
-            $result .= self::appendParameter($result, $attribute, $value, encoded: null);
+            $result .= sprintf('; %s="%s"', $attribute, $value);
         }
 
         return $result;
     }
 
+    /**
+     * Parameters share a line while they fit; one too long for any line is
+     * split into RFC 2231 continuation sections, each on its own line.
+     */
     #[Override]
     public function getEncodedFieldValue(): string
     {
         $result = $this->disposition;
         foreach ($this->parameters as $attribute => $value) {
-            $encoded = Mime::isPrintable($value) ? null : HeaderWrap::fold('Content-Disposition', $value);
-            $result  .= self::appendParameter($result, $attribute, $value, $encoded);
+            $segments = MimeParameters::segments($attribute, $value);
+            if (1 === count($segments) && self::fitsOnCurrentLine($result, $segments[0])) {
+                $result .= "; {$segments[0]}";
+                continue;
+            }
+
+            foreach ($segments as $segment) {
+                $result .= ';' . Headers::FOLDING . $segment;
+            }
         }
 
         return $result;
@@ -147,25 +183,6 @@ final readonly class ContentDisposition implements HeaderInterface
     public function toString(): string
     {
         return "Content-Disposition: {$this->getEncodedFieldValue()}";
-    }
-
-    /**
-     * One parameter, on the current line when it fits, on a folded line when
-     * it does not, or split into RFC 2231 continuations when it is too long
-     * for any line.
-     *
-     * @param string|null $encoded The RFC 2047 encoded value, when the value is not ASCII.
-     */
-    private static function appendParameter(string $result, string $attribute, string $value, ?string $encoded): string
-    {
-        $line = sprintf('%s="%s"', $attribute, $encoded ?? $value);
-        if (strlen($line) >= self::MAX_PARAMETER_LENGTH) {
-            return null === $encoded
-                ? ParameterContinuation::split($attribute, $value)
-                : ParameterContinuation::splitEncoded($attribute, $value);
-        }
-
-        return self::fitsOnCurrentLine($result, $line) ? "; {$line}" : ';' . Headers::FOLDING . $line;
     }
 
     private static function fitsOnCurrentLine(string $result, string $line): bool
