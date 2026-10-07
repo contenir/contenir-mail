@@ -25,20 +25,26 @@ final class ConnectionConfigTest extends TestCase
     }
 
     #[Test]
+    public function requiresStartTlsByDefault(): void
+    {
+        static::assertSame(Security::StartTls, (new ConnectionConfig())->security);
+    }
+
+    #[Test]
     public function readsEverySetting(): void
     {
         static::assertEquals(
             new ConnectionConfig(
                 host: 'mail.example.com',
                 port: 587,
-                security: Security::StartTls,
+                security: Security::None,
                 verifyPeer: false,
                 timeout: 10,
             ),
             ConnectionConfig::fromIterable([
                 'host'        => 'mail.example.com',
                 'port'        => '587',
-                'security'    => 'starttls',
+                'security'    => 'none',
                 'verify_peer' => 'false',
                 'timeout'     => '10',
             ]),
