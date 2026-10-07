@@ -98,7 +98,12 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
             throw new Exception\RuntimeException('No folder is selected');
         }
 
-        return count($this->protocol->search(ImapFlags::toSearch($flags, $this->escape(...))));
+        $ids = $this->protocol->search(ImapFlags::toSearch($flags, $this->escape(...)));
+        if (false === $ids) {
+            throw new Exception\RuntimeException('The server refused the search');
+        }
+
+        return count($ids);
     }
 
     /**
@@ -184,11 +189,12 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
     /**
      * @throws Exception\RuntimeException When the server does not answer.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
     public function noop(): void
     {
-        if (! $this->protocol->noop()) {
+        if (false === $this->protocol->noop()) {
             throw new Exception\RuntimeException('The server did not answer NOOP');
         }
     }
@@ -202,11 +208,11 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     #[Override]
     public function removeMessage(int $id): void
     {
-        if (! $this->protocol->store([Flag::Deleted->value], self::checkNumber($id), null, '+')) {
+        if (false === $this->protocol->store([Flag::Deleted->value], self::checkNumber($id), null, '+')) {
             throw new Exception\RuntimeException('Cannot set the Deleted flag');
         }
 
-        if (! $this->protocol->expunge()) {
+        if (false === $this->protocol->expunge()) {
             throw new Exception\RuntimeException('The message is flagged deleted, but could not be expunged');
         }
     }
@@ -273,7 +279,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     {
         $name                = RemoteFolder::check((string) $globalName);
         $this->currentFolder = '';
-        if (! $this->protocol->select($name)) {
+        if (false === $this->protocol->select($name)) {
             throw new Exception\RuntimeException('Cannot select the folder; it may not exist');
         }
 
@@ -375,7 +381,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     #[Override]
     public function setFlags(int $id, iterable $flags): void
     {
-        if (! $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id))) {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id))) {
             throw new Exception\RuntimeException('Cannot set the flags');
         }
     }
@@ -413,8 +419,6 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      *
      * @return array<int, string>
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
-     *
-     * @mago-expect analysis:possibly-invalid-argument Protocol\Imap::fetch() takes INF for "up to the last message".
      */
     private function fetchAll(string $item): array
     {

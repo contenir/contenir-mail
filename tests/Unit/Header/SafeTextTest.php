@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Header\Subject;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -91,18 +92,35 @@ final class SafeTextTest extends TestCase
         static::assertSame($expected, SafeText::display($text));
     }
 
+    /**
+     * Spoofing: an encoded word in a received header can carry a bidirectional override.
+     */
+    #[Test]
+    public function makesDecodedHeaderTextSafeToDisplay(): void
+    {
+        $subject = Subject::fromString('Subject: =?UTF-8?Q?Bank=E2=80=AEmoc.evil?=');
+
+        static::assertSame('Bank moc.evil', SafeText::display($subject->getFieldValue()));
+    }
+
+    /**
+     * Address keeps the right-to-left mark, which right-to-left names can need, so display removes it.
+     */
     #[Test]
     public function makesDisplayNamesOfAddressesSafe(): void
     {
-        $addresses = new AddressList(new Address('a@example.com', "Bank\u{202E}moc.evil"));
+        $addresses = new AddressList(new Address('a@example.com', "Bank\u{200F}moc.evil"));
 
         static::assertSame('Bank moc.evil', SafeText::addressList($addresses)->first()?->getName());
     }
 
+    /**
+     * Address allows tabs and letter marks in a comment; display turns them into single spaces.
+     */
     #[Test]
     public function makesCommentsOfAddressesSafe(): void
     {
-        $addresses = new AddressList(new Address('a@example.com', null, "x\u{2066}y"));
+        $addresses = new AddressList(new Address('a@example.com', null, "x\t\u{061C}y"));
 
         static::assertSame('x y', SafeText::addressList($addresses)->first()?->getComment());
     }
