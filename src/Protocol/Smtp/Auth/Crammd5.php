@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp;
+use SensitiveParameter;
 
 use function array_replace_recursive;
 use function base64_decode;
@@ -31,7 +32,7 @@ class Crammd5 extends Smtp
      * @param  null|int     $port   (Default: null)
      * @param  null|array   $config Auth-specific parameters
      */
-    public function __construct($host = '127.0.0.1', $port = null, $config = null)
+    public function __construct($host = '127.0.0.1', $port = null, #[SensitiveParameter] $config = null)
     {
         // Did we receive a configuration array?
         $config     ??= [];
@@ -97,7 +98,7 @@ class Crammd5 extends Smtp
      * @param non-empty-string $password
      * @return Crammd5
      */
-    public function setPassword($password)
+    public function setPassword(#[SensitiveParameter] $password)
     {
         $this->password = $password;
         return $this;

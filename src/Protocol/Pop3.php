@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Protocol\Pop3\Response;
 use Laminas\Stdlib\ErrorHandler;
+use SensitiveParameter;
 
 use function explode;
 use function fclose;
@@ -252,7 +253,7 @@ class Pop3
      * @param  string $password password
      * @param  bool   $tryApop  should APOP be tried?
      */
-    public function login($user, $password, $tryApop = true)
+    public function login($user, #[SensitiveParameter] $password, $tryApop = true)
     {
         if ($tryApop && $this->timestamp) {
             try {

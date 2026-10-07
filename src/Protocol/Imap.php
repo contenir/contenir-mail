@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Protocol\Exception\ExceptionInterface;
+use SensitiveParameter;
 
 use function array_merge;
 use function array_pop;
@@ -430,7 +431,7 @@ class Imap
      * @param  string $password  password
      * @return bool success
      */
-    public function login($user, $password)
+    public function login($user, #[SensitiveParameter] $password)
     {
         return $this->requestAndResponse('LOGIN', $this->escapeString($user, $password), true);
     }

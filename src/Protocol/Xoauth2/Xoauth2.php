@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol\Xoauth2;
 
+use SensitiveParameter;
+
 use function base64_encode;
 use function chr;
 use function sprintf;
@@ -16,7 +18,7 @@ final class Xoauth2
     /**
      * encodes accessToken and target mailbox to Xoauth2 SASL base64 encoded string
      */
-    public static function encodeXoauth2Sasl(string $targetMailbox, string $accessToken): string
+    public static function encodeXoauth2Sasl(string $targetMailbox, #[SensitiveParameter] string $accessToken): string
     {
         return base64_encode(
             sprintf(

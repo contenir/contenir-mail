@@ -1394,12 +1394,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Imap.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Imap.php"
 code = "strict-behavior"
 message = "Call to `array_search` must enforce strict comparison."
 count = 1
@@ -1508,12 +1502,6 @@ count = 2
 
 [[issues]]
 file = "src/Protocol/Pop3.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Pop3.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -1528,12 +1516,6 @@ count = 1
 file = "src/Protocol/Pop3/Xoauth2/Microsoft.php"
 code = "identity-comparison"
 message = "Use identity inequality `!==` instead of inequality comparison `!=`."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Pop3/Xoauth2/Microsoft.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
 count = 1
 
 [[issues]]
@@ -1646,12 +1628,6 @@ count = 2
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Crammd5.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Crammd5.php"
 code = "strict-behavior"
 message = "Call to `base64_decode` must enforce strict comparison."
 count = 1
@@ -1676,12 +1652,6 @@ count = 2
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Login.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Login.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -1700,12 +1670,6 @@ count = 2
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Plain.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Plain.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -1721,12 +1685,6 @@ file = "src/Protocol/Smtp/Auth/Xoauth2.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 2
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Xoauth2.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
-count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Xoauth2.php"
@@ -1750,12 +1708,6 @@ count = 2
 file = "src/Protocol/SmtpPluginManagerFactory.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Xoauth2/Xoauth2.php"
-code = "sensitive-parameter"
-message = "Parameters that may contain sensitive information should be marked with the `#[SensitiveParameter]` attribute."
 count = 1
 
 [[issues]]

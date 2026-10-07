@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use SensitiveParameter;
 
 use function array_combine;
 use function array_key_exists;
@@ -130,7 +131,7 @@ class Pop3 extends AbstractStorage
      * @throws InvalidArgumentException
      * @throws RuntimeException
      */
-    public function __construct($params)
+    public function __construct(#[SensitiveParameter] $params)
     {
         $this->has['fetchPart'] = false;
         $this->has['top']       = null;
