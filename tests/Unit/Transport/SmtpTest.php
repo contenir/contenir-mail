@@ -26,6 +26,7 @@ use Contenir\Mail\Transport\HeaderGuard;
 use Contenir\Mail\Transport\Smtp;
 use Contenir\Mail\Transport\SmtpConfig;
 use DateTimeImmutable;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -36,6 +37,8 @@ use function array_filter;
 use function array_values;
 use function fclose;
 use function implode;
+use function serialize;
+use function sprintf;
 use function str_repeat;
 use function str_starts_with;
 use function stream_socket_get_name;
@@ -43,6 +46,7 @@ use function stream_socket_server;
 use function strlen;
 use function strrpos;
 use function substr;
+use function unserialize;
 
 #[CoversClass(Smtp::class)]
 #[CoversClass(HeaderGuard::class)]
@@ -794,5 +798,23 @@ final class SmtpTest extends TestCase
                 [$alternative, Attachment::fromString('abc', 'a.txt', 'text/plain')],
                 'mixed',
             ));
+    }
+
+    #[Test]
+    public function cannotBeSerializedWithItsCredentials(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(Smtp::class . ' cannot be serialized');
+
+        serialize(new Smtp(['host' => 'mail.example.com']));
+    }
+
+    #[Test]
+    public function refusesToUnserializeSoACraftedPayloadNeverReachesTheDestructor(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(Smtp::class . ' cannot be unserialized');
+
+        unserialize(sprintf('O:%d:"%s":0:{}', strlen(Smtp::class), Smtp::class));
     }
 }
