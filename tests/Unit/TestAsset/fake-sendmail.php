@@ -8,7 +8,8 @@
  * Writes the sendmail arguments and standard input as JSON to the file RECORD, then acts as
  * MODE says: "ok" exits 0, "warn" writes to standard error and exits 0, "fail" writes to
  * standard error and exits 75, "fail-stdout" writes only whitespace to standard error and
- * text to standard output and exits 1, and "fail-silent" exits 1 without output.
+ * text to standard output and exits 1, "fail-silent" exits 1 without output, and "hang" sleeps
+ * for 30 seconds, for the timeout tests.
  *
  * RECORD must be a .json file in the temporary directory, so that a mutant passing other
  * arguments in its place cannot leave files anywhere else.
@@ -32,6 +33,10 @@ file_put_contents($record, json_encode([
 
 if ('warn' === $mode || 'fail' === $mode) {
     fwrite(STDERR, data: "sendmail: cannot write the queue file\n");
+}
+
+if ('hang' === $mode) {
+    sleep(30);
 }
 
 if ('fail-stdout' === $mode) {

@@ -73,7 +73,9 @@ as `path [parameters] -oi -f sender -- recipients`, with the message on standard
 input. The recipients are the To, Cc and Bcc addresses, and the Bcc header is
 left out of the message. A sender starting with `-` is refused, and a non-zero
 exit status throws `Transport\Exception\RuntimeException` with what the program
-wrote to standard error. This is the recommended way to use sendmail.
+wrote to standard error. A program still running after `timeout` seconds
+(60 by default) is stopped, and the send throws. This is the recommended way to
+use sendmail.
 
 **Without a `path`**, PHP's `mail()` is used. The envelope sender is passed to
 sendmail as `-f` and taken from the message's Sender, or else its first From

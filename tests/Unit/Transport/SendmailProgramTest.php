@@ -201,6 +201,19 @@ final class SendmailProgramTest extends TestCase
     }
 
     #[Test]
+    #[Group('slow')]
+    public function stopsProgramAfterTheConfiguredTimeout(): void
+    {
+        $script    = dirname(__DIR__) . '/TestAsset/fake-sendmail.php';
+        $transport = new Sendmail(new SendmailConfig([$script, $this->record, 'hang'], PHP_BINARY, timeout: 1));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('did not finish within 1 seconds and was stopped');
+
+        $transport->send(self::message());
+    }
+
+    #[Test]
     public function reportsFailureOfProgram(): void
     {
         $this->expectException(RuntimeException::class);

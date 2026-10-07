@@ -81,6 +81,33 @@ final class SendmailConfigTest extends TestCase
     }
 
     #[Test]
+    public function waitsSixtySecondsByDefault(): void
+    {
+        static::assertSame(60, (new SendmailConfig())->timeout);
+    }
+
+    #[Test]
+    public function readsTimeoutFromSettings(): void
+    {
+        static::assertSame(5, SendmailConfig::fromIterable(['timeout' => '5'])->timeout);
+    }
+
+    #[Test]
+    public function acceptsOneSecondTimeout(): void
+    {
+        static::assertSame(1, (new SendmailConfig(timeout: 1))->timeout);
+    }
+
+    #[Test]
+    public function rejectsTimeoutUnderOneSecond(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sendmail timeout 0 must be at least one second');
+
+        new SendmailConfig(timeout: 0);
+    }
+
+    #[Test]
     public function rejectsUnknownSetting(): void
     {
         $this->expectException(InvalidArgumentException::class);
