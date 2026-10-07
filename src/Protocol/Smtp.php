@@ -1,524 +1,848 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Protocol;
 
-use Contenir\Mail\Headers;
-use Generator;
+use Contenir\Mail\ConfigReader;
+use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
+use Contenir\Mail\Protocol\Smtp\Auth\CallbackChannel;
 use Override;
+use SensitiveParameter;
 
 use function array_key_exists;
-use function array_replace_recursive;
-use function chunk_split;
-use function fclose;
-use function fgets;
-use function fopen;
-use function fwrite;
+use function array_replace;
+use function array_slice;
+use function count;
+use function explode;
 use function implode;
-use function ini_get;
+use function in_array;
 use function is_array;
-use function rewind;
+use function is_resource;
+use function ltrim;
+use function preg_match;
+use function preg_replace;
+use function restore_error_handler;
 use function rtrim;
+use function set_error_handler;
+use function sprintf;
+use function str_ends_with;
+use function str_replace;
+use function str_starts_with;
+use function stream_get_meta_data;
 use function stream_socket_enable_crypto;
 use function strlen;
 use function strtolower;
+use function strtoupper;
 use function substr;
 
+use const STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+use const STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+
 /**
- * SMTP implementation of Contenir\Mail\Protocol\AbstractProtocol
+ * An SMTP client session (RFC 5321): EHLO, STARTTLS, AUTH, MAIL, RCPT, DATA, RSET, NOOP, VRFY and QUIT.
  *
- * Minimum implementation according to RFC2821: EHLO, MAIL FROM, RCPT TO, DATA,
- * RSET, NOOP, QUIT
+ * ```php
+ * $smtp = new Smtp(new ConnectionConfig('mail.example.com'), authenticator: new Login('user', $password));
+ * $smtp = new Smtp('mail.example.com', 587, ['ssl' => 'tls']);
+ * ```
+ *
+ * STARTTLS is required unless the connection is TLS from the start or Security::None is
+ * chosen explicitly; a server that does not offer it is refused. Credentials are only sent
+ * over TLS unless "allow_insecure_auth" is set.
+ *
+ * Every command argument is checked for CR, LF and NUL before it is sent, and message
+ * lines are normalised to CRLF with leading dots doubled, so neither can start a command
+ * of its own.
+ *
+ * @mago-expect lint:too-many-methods The SMTP command set, kept as one class as in laminas-mail.
+ * @mago-expect lint:cyclomatic-complexity The SMTP command set, kept as one class as in laminas-mail.
+ * @mago-expect lint:kan-defect The SMTP command set, kept as one class as in laminas-mail.
+ * @mago-expect lint:too-many-properties Session state from laminas-mail plus the EHLO capabilities.
+ * @mago-expect lint:no-boolean-flag-parameter MAIL's ESMTP parameters SMTPUTF8 and BODY=8BITMIME are on or off.
+ * @mago-expect analysis:class-must-be-final Tests replace the socket methods in a subclass until the Connection interface lands.
+ * @mago-expect lint:method-name The underscored methods override AbstractProtocol's, kept from laminas-mail.
  */
 class Smtp extends AbstractProtocol
 {
     use ProtocolTrait;
 
     /**
-     * RFC 5322 section-2.2.3 specifies maximum of 998 bytes per line.
-     * This may not be exceeded.
+     * RFC 5322 section 2.2.3 limits a line to 998 bytes, excluding the CRLF.
      *
      * @see https://tools.ietf.org/html/rfc5322#section-2.2.3
      */
-    public const SMTP_LINE_LIMIT = 998;
+    public const int SMTP_LINE_LIMIT = 998;
+
+    /** The most lines read for one reply, so a hostile server cannot keep a client reading forever */
+    public const int MAX_REPLY_LINES = 100;
+
+    /** Written to the session log in place of a line that carries credentials */
+    public const string HIDDEN_LINE = '[credentials hidden]';
+
+    /** Keys of the $config array when a ConnectionConfig is given */
+    private const array KEYS = ['use_complete_quit', 'allow_insecure_auth'];
+
+    /** Further keys of the laminas-mail $config array */
+    private const array LEGACY_KEYS = ['ssl', 'novalidatecert'];
+
+    private const array LEGACY_SSL = ['', 'none', 'ssl', 'tls'];
+
+    private ConnectionConfig $connection;
+
+    private ?AuthenticatorInterface $authenticator;
+
+    private bool $useCompleteQuit;
+
+    private bool $allowInsecureAuth;
 
     /**
-     * The transport method for the socket
+     * EHLO keywords in upper case, mapped to their parameters.
      *
-     * @var string
+     * @var array<string, string>
      */
-    protected $transport = 'tcp';
+    private array $capabilities = [];
 
     /**
-     * Indicates that a session is requested to be secure
+     * The text of each line of the last reply, after the code.
      *
-     * @var string
+     * @var list<string>
      */
-    protected $secure;
+    private array $replyTexts = [];
+
+    /** Whether the socket is encrypted */
+    private bool $encrypted = false;
+
+    /** Whether EHLO or HELO has been accepted */
+    private bool $sess = false;
+
+    /** Whether AUTH has succeeded in this session */
+    private bool $auth = false;
+
+    /** Whether MAIL has been accepted for the current transaction */
+    private bool $mail = false;
+
+    /** Whether the current transaction was opened with SMTPUTF8 */
+    private bool $utf8 = false;
+
+    /** Whether at least one RCPT has been accepted for the current transaction */
+    private bool $rcpt = false;
+
+    /** Whether the line being sent carries credentials */
+    private bool $secretLine = false;
 
     /**
-     * Indicates an smtp session has been started by the HELO command
+     * Pass a ConnectionConfig, with an optional $config of "use_complete_quit" and
+     * "allow_insecure_auth"; or the laminas-mail arguments: a host name, a port and an array
+     * that may also hold "ssl" ("ssl" for TLS from the start, "tls" for STARTTLS, "none" or
+     * false for a plain connection) and "novalidatecert", or the ConnectionConfig keys. The
+     * array may also be given first, with "host" and "port" in it. Without "ssl" or
+     * "security", STARTTLS is required.
      *
-     * @var bool
+     * @param ConnectionConfig|string|array<array-key, mixed> $host
+     * @param array<array-key, mixed>|null $config
+     * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
+     * @throws Exception\RuntimeException When the host name is invalid.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected $sess = false;
+    public function __construct(
+        ConnectionConfig|string|array $host = '127.0.0.1',
+        ?int $port = null,
+        ?array $config = null,
+        ?AuthenticatorInterface $authenticator = null,
+    ) {
+        [$reader, $connection] = $host instanceof ConnectionConfig
+            ? self::readSettings($host, $port, $config)
+            : self::readLegacySettings($host, $port, $config);
 
-    /**
-     * Indicates an smtp AUTH has been issued and authenticated
-     *
-     * @var bool
-     */
-    protected $auth = false;
+        $this->connection        = $connection;
+        $this->authenticator     = $authenticator;
+        $this->useCompleteQuit   = $reader->bool('use_complete_quit', default: true);
+        $this->allowInsecureAuth = $reader->bool('allow_insecure_auth', default: false);
+        $this->setNoValidateCert(! $connection->verifyPeer);
 
-    /**
-     * Indicates a MAIL command has been issued
-     *
-     * @var bool
-     */
-    protected $mail = false;
+        parent::__construct($connection->host, $connection->portOr(25, 465));
+    }
 
-    /**
-     * Indicates one or more RCTP commands have been issued
-     *
-     * @var bool
-     */
-    protected $rcpt = false;
-
-    /**
-     * Indicates that DATA has been issued and sent
-     *
-     * @var bool
-     */
-    protected $data;
-
-    /**
-     * Whether or not send QUIT command
-     *
-     * @var bool
-     */
-    protected $useCompleteQuit = true;
-
-    /**
-     * The first argument may be an array of all options. If so, it must include
-     * the 'host' and 'port' keys in order to ensure that all required values
-     * are present.
-     *
-     * @param  string|array $host
-     * @param  null|int $port
-     * @param  null|array   $config
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct($host = '127.0.0.1', $port = null, ?array $config = null)
+    public function getConnectionConfig(): ConnectionConfig
     {
-        // Did we receive a configuration array?
-        if (is_array($host)) {
-            // Merge config array with principal array, if provided
-            if (is_array($config)) {
-                $config = array_replace_recursive($host, $config);
-            } else {
-                $config = $host;
-            }
+        return $this->connection;
+    }
 
-            // Look for a host key; if none found, use default value
-            if (isset($config['host'])) {
-                $host = $config['host'];
-            } else {
-                $host = '127.0.0.1';
-            }
-
-            // Look for a port key; if none found, use default value
-            if (isset($config['port'])) {
-                $port = $config['port'];
-            } else {
-                $port = null;
-            }
-        }
-
-        // If we don't have a config array, initialize it
-        if (null === $config) {
-            $config = [];
-        }
-
-        if (isset($config['ssl'])) {
-            switch (strtolower($config['ssl'])) {
-                case 'tls':
-                    $this->secure = 'tls';
-                    break;
-
-                case 'ssl':
-                    $this->transport = 'ssl';
-                    $this->secure    = 'ssl';
-                    if (null === $port) {
-                        $port = 465;
-                    }
-                    break;
-
-                case '':
-                // fall-through
-                case 'none':
-                    break;
-
-                default:
-                    throw new Exception\InvalidArgumentException("{$config['ssl']} is unsupported SSL type");
-            }
-        }
-
-        if (array_key_exists('use_complete_quit', $config)) {
-            $this->setUseCompleteQuit($config['use_complete_quit']);
-        }
-
-        // If no port has been specified then check the master PHP ini file. Defaults to 25 if the ini setting is null.
-        if (null === $port) {
-            if (($port = ini_get('smtp_port')) == '') {
-                $port = 25;
-            }
-        }
-
-        if (array_key_exists('novalidatecert', $config)) {
-            $this->setNoValidateCert($config['novalidatecert']);
-        }
-
-        parent::__construct($host, $port);
+    public function getAuthenticator(): ?AuthenticatorInterface
+    {
+        return $this->authenticator;
     }
 
     /**
-     * Set whether or not send QUIT command
-     *
-     * @param bool $useCompleteQuit use complete quit
-     * @return bool
+     * Whether credentials may be sent over an unencrypted connection ("allow_insecure_auth").
      */
-    public function setUseCompleteQuit($useCompleteQuit)
+    public function allowsInsecureAuth(): bool
     {
-        return $this->useCompleteQuit = (bool) $useCompleteQuit;
+        return $this->allowInsecureAuth;
     }
 
     /**
-     * Read $data as lines terminated by "\n"
-     *
-     * @return Generator|string[]
+     * Whether quit() sends QUIT; turn it off to keep a connection a server would otherwise close.
      */
-    private static function chunkedReader(string $data, int $chunkSize = 4096): Generator
+    public function setUseCompleteQuit(bool $useCompleteQuit): void
     {
-        if (($fp = fopen('php://temp', 'r+')) === false) {
-            throw new Exception\RuntimeException('cannot fopen');
-        }
-        if (fwrite($fp, $data) === false) {
-            throw new Exception\RuntimeException('cannot fwrite');
-        }
-        rewind($fp);
-
-        $line = null;
-        while (($buffer = fgets($fp, $chunkSize)) !== false) {
-            $line .= $buffer;
-
-            // This is optimization to avoid calling length() in a loop.
-            // We need to match a condition that is when:
-            // 1. maximum was read from fgets, which is $chunkSize-1
-            // 2. last byte of the buffer is not \n
-            //
-            // to access last byte of buffer, we can do
-            // - $buffer[strlen($buffer)-1]
-            // and when maximum is read from fgets, then:
-            // - strlen($buffer) === $chunkSize-1
-            // - strlen($buffer)-1 === $chunkSize-2
-            // which means this is also true:
-            // - $buffer[strlen($buffer)-1] === $buffer[$chunkSize-2]
-            //
-            // the null coalesce works, as string offset can never be null
-            $lastByte = $buffer[$chunkSize - 2] ?? null;
-
-            // partial read, continue loop to read again to complete the line
-            // compare \n first as that's usually false
-            if ("\n" !== $lastByte && null !== $lastByte) {
-                continue;
-            }
-
-            yield $line;
-            $line = null;
-        }
-
-        if (null !== $line) {
-            yield $line;
-        }
-
-        fclose($fp);
+        $this->useCompleteQuit = $useCompleteQuit;
     }
 
-    /**
-     * Whether or not send QUIT command
-     *
-     * @return bool
-     */
-    public function useCompleteQuit()
+    public function useCompleteQuit(): bool
     {
         return $this->useCompleteQuit;
     }
 
     /**
-     * Connect to the server with the parameters given in the constructor.
+     * Open the socket: TLS from the start for Security::Tls, otherwise plain until STARTTLS.
      *
-     * @return bool
+     * @throws Exception\RuntimeException When the connection fails.
      */
     #[Override]
-    public function connect()
+    public function connect(): bool
     {
-        $this->socket = $this->setupSocket(
-            $this->transport,
-            $this->host,
-            $this->port,
-            self::TIMEOUT_CONNECTION,
-        );
+        $tls = Security::Tls === $this->connection->security;
+        $this->openSocket($tls ? 'ssl' : 'tcp');
+        $this->encrypted = $tls;
+
         return true;
     }
 
     /**
-     * Initiate HELO/EHLO sequence and set flag to indicate valid smtp session
+     * Read the greeting, send EHLO, upgrade with STARTTLS when configured, and authenticate.
      *
-     * @param  string $host The client hostname or IP address (default: 127.0.0.1)
-     * @throws Exception\RuntimeException
+     * @param string $host The client's own host name or address literal.
+     * @throws Exception\ExceptionInterface When a session exists, the name is invalid, or the server
+     *     refuses a step. With Security::StartTls a server that does not offer or refuses STARTTLS
+     *     is refused: the session never continues unencrypted.
      */
-    public function helo($host = '127.0.0.1')
+    public function helo(string $host = '127.0.0.1'): void
     {
-        // Respect RFC 2821 and disallow HELO attempts if session is already initiated.
-        if (true === $this->sess) {
+        if ($this->sess) {
             throw new Exception\RuntimeException('Cannot issue HELO to existing session');
         }
 
-        // Validate client hostname
         if (! $this->validHost->isValid($host)) {
             throw new Exception\RuntimeException(implode(', ', $this->validHost->getMessages()));
         }
 
-        // Initiate helo sequence
-        $this->_expect(220, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
+        $this->_expect(220, 300);
         $this->ehlo($host);
 
-        // If a TLS session is required, commence negotiation
-        if ('tls' == $this->secure) {
-            $this->_send('STARTTLS');
-            $this->_expect(220, 180);
-            if (! stream_socket_enable_crypto($this->socket, true, $this->getCryptoMethod())) {
-                throw new Exception\RuntimeException('Unable to connect via TLS');
-            }
-            $this->ehlo($host);
+        if (Security::StartTls === $this->connection->security) {
+            $this->startTls($host);
         }
 
-        $this->startSession();
+        $this->sess = true;
         $this->auth();
     }
 
-    /**
-     * Returns the perceived session status
-     *
-     * @return bool
-     */
-    public function hasSession()
+    public function hasSession(): bool
     {
         return $this->sess;
     }
 
     /**
-     * Send EHLO or HELO depending on capabilities of smtp host
-     *
-     * @param  string $host The client hostname or IP address (default: 127.0.0.1)
-     * @throws Exception\ExceptionInterface
+     * Whether the server listed the EHLO keyword, such as "SIZE" or "SMTPUTF8".
      */
-    protected function ehlo($host)
+    public function hasCapability(string $keyword): bool
     {
-        // Support for older, less-compliant remote servers. Tries multiple attempts of EHLO or HELO.
-        try {
-            $this->_send("EHLO {$host}");
-            $this->_expect(250, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
-        } catch (Exception\ExceptionInterface) {
-            $this->_send("HELO {$host}");
-            $this->_expect(250, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
-        }
+        return array_key_exists(strtoupper($keyword), $this->capabilities);
     }
 
     /**
-     * Issues MAIL command
+     * The EHLO keywords the server listed, in upper case, mapped to their parameters.
      *
-     * @param  string $from Sender mailbox
-     * @throws Exception\RuntimeException
+     * @return array<string, string>
      */
-    public function mail($from)
+    public function getCapabilities(): array
     {
-        if (true !== $this->sess) {
+        return $this->capabilities;
+    }
+
+    /**
+     * Whether the socket is encrypted, from the start or after STARTTLS.
+     */
+    public function isEncrypted(): bool
+    {
+        return $this->encrypted;
+    }
+
+    /**
+     * Start a transaction with the envelope sender; an empty string sends the null reverse-path "<>".
+     *
+     * @param int|null $size The message size in bytes, declared when the server supports SIZE (RFC 1870).
+     * @param bool $smtpUtf8 Whether any envelope address is not ASCII (RFC 6531).
+     * @param bool $eightBit Whether the message has 8-bit content, declared when the server supports 8BITMIME.
+     * @throws Exception\ExceptionInterface When there is no session, the address is unsafe, the message is
+     *     larger than the server accepts, SMTPUTF8 is needed but not offered, or the server refuses.
+     */
+    public function mail(string $from, ?int $size = null, bool $smtpUtf8 = false, bool $eightBit = false): void
+    {
+        if (! $this->sess) {
             throw new Exception\RuntimeException('A valid session has not been started');
         }
 
-        $this->_send("MAIL FROM:<{$from}>");
-        $this->_expect(250, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
+        $utf8 = $smtpUtf8 || self::isUtf8($from);
+        if ($utf8 && ! $this->hasCapability('SMTPUTF8')) {
+            throw new Exception\RuntimeException(
+                'The server does not offer SMTPUTF8, which addresses that are not ASCII need',
+            );
+        }
 
-        // Set mail to true, clear recipients and any existing data flags as per 4.1.1.2 of RFC 2821
+        $command   = 'MAIL FROM:<' . self::path($from) . '>';
+        $sizeLimit = $this->capabilities['SIZE'] ?? null;
+        if (null !== $size && null !== $sizeLimit) {
+            $limit = (int) $sizeLimit;
+            if ($limit > 0 && $size > $limit) {
+                throw new Exception\RuntimeException(sprintf(
+                    'The message is %d bytes; the server accepts at most %d',
+                    $size,
+                    $limit,
+                ));
+            }
+
+            $command .= " SIZE={$size}";
+        }
+
+        if ($eightBit && $this->hasCapability('8BITMIME')) {
+            $command .= ' BODY=8BITMIME';
+        }
+
+        if ($utf8) {
+            $command .= ' SMTPUTF8';
+        }
+
+        $this->command($command);
+        $this->_expect(250, 300);
+
         $this->mail = true;
+        $this->utf8 = $utf8;
         $this->rcpt = false;
-        $this->data = false;
     }
 
     /**
-     * Issues RCPT command
-     *
-     * @param  string $to Receiver(s) mailbox
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When MAIL has not been sent, the address is unsafe or not
+     *     ASCII outside an SMTPUTF8 transaction, or the server refuses it.
      */
-    public function rcpt($to)
+    public function rcpt(string $to): void
     {
-        if (true !== $this->mail) {
+        if (! $this->mail) {
             throw new Exception\RuntimeException('No sender reverse path has been supplied');
         }
 
-        // Set rcpt to true, as per 4.1.1.3 of RFC 2821
-        $this->_send("RCPT TO:<{$to}>");
-        $this->_expect([250, 251], 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
+        if (! $this->utf8 && self::isUtf8($to)) {
+            throw new Exception\RuntimeException(
+                'A recipient that is not ASCII needs a transaction started with SMTPUTF8',
+            );
+        }
+
+        $this->command('RCPT TO:<' . self::path($to) . '>');
+        $this->_expect([250, 251], 300);
         $this->rcpt = true;
     }
 
     /**
-     * Issues DATA command
+     * Send the message. Bare CR and LF become CRLF and a leading "." is doubled after that;
+     * nothing else in the message is changed.
      *
-     * @param  string $data
-     * @throws Exception\RuntimeException
+     * @throws Exception\InvalidArgumentException When a line is longer than SMTP_LINE_LIMIT, which
+     *     the message's encoding should have prevented; nothing is sent in that case.
+     * @throws Exception\ExceptionInterface When no recipient was accepted or the server refuses the message.
      */
-    public function data($data)
+    public function data(string $data): void
     {
-        // Ensure recipients have been set
-        if (true !== $this->rcpt) { // Per RFC 2821 3.3 (page 18)
+        if (! $this->rcpt) {
             throw new Exception\RuntimeException('No recipient forward path has been supplied');
         }
 
-        $this->_send('DATA');
-        $this->_expect(354, 120); // Timeout set for 2 minutes as per RFC 2821 4.5.3.2
-
-        $reader = self::chunkedReader($data);
-        foreach ($reader as $line) {
-            $line = rtrim($line, "\r\n");
-            if (isset($line[0]) && '.' === $line[0]) {
-                // Escape lines prefixed with a '.'
-                $line = ".{$line}";
-            }
-
+        $lines = self::lines($data);
+        foreach ($lines as $number => $line) {
             if (strlen($line) > self::SMTP_LINE_LIMIT) {
-                // Long lines are "folded" by inserting "<CR><LF><SPACE>"
-                // https://tools.ietf.org/html/rfc5322#section-2.2.3
-                // Add "-1" to stay within limits,
-                // because Headers::FOLDING includes a byte for space character after \r\n
-                $chunks = chunk_split($line, self::SMTP_LINE_LIMIT - 1, Headers::FOLDING);
-                $line   = substr($chunks, 0, -strlen(Headers::FOLDING));
+                throw new Exception\InvalidArgumentException(sprintf(
+                    'Line %d of the message is %d bytes; SMTP allows at most %d. Encode the content '
+                        . '(quoted-printable or base64) instead of sending it as is.',
+                    $number + 1,
+                    strlen($line),
+                    self::SMTP_LINE_LIMIT,
+                ));
             }
+        }
 
-            $this->_send($line);
+        $this->_send('DATA');
+        $this->_expect(354, 120);
+
+        foreach ($lines as $line) {
+            $this->_send(str_starts_with($line, '.') ? ".{$line}" : $line);
         }
 
         $this->_send('.');
-        $this->_expect(250, 600); // Timeout set for 10 minutes as per RFC 2821 4.5.3.2
-        $this->data = true;
+        $this->_expect(250, 600);
+        $this->mail = false;
+        $this->rcpt = false;
     }
 
     /**
-     * Issues the RSET command end validates answer
+     * Abandon the current transaction, so a new one can start on the same session.
      *
-     * Can be used to restore a clean smtp communication state when a
-     * transaction has been cancelled or commencing a new transaction.
+     * @throws Exception\ExceptionInterface When the server refuses.
      */
-    public function rset()
+    public function rset(): void
     {
         $this->_send('RSET');
-        // MS ESMTP doesn't follow RFC, see https://zendframework.com/issues/browse/ZF-1377
         $this->_expect([250, 220]);
 
         $this->mail = false;
         $this->rcpt = false;
-        $this->data = false;
     }
 
     /**
-     * Issues the NOOP command end validates answer
-     *
-     * Not used by Contenir\Mail, could be used to keep a connection alive or check if it is still open.
+     * @throws Exception\ExceptionInterface When the server refuses.
      */
-    public function noop()
+    public function noop(): void
     {
         $this->_send('NOOP');
-        $this->_expect(250, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
+        $this->_expect(250, 300);
     }
 
     /**
-     * Issues the VRFY command end validates answer
-     *
-     * Not used by Contenir\Mail.
-     *
-     * @param  string $user User Name or eMail to verify
+     * @throws Exception\ExceptionInterface When the name contains CR, LF or NUL, or the server refuses.
      */
-    public function vrfy($user)
+    public function vrfy(string $user): void
     {
-        $this->_send("VRFY {$user}");
-        $this->_expect([250, 251, 252], 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
+        $this->command("VRFY {$user}");
+        $this->_expect([250, 251, 252], 300);
     }
 
     /**
-     * Issues the QUIT command and clears the current session
+     * End the session, sending QUIT unless setUseCompleteQuit(false) was called.
+     *
+     * @throws Exception\ExceptionInterface When the server refuses QUIT.
      */
-    public function quit()
+    public function quit(): void
     {
-        if ($this->sess) {
-            $this->auth = false;
+        if (! $this->sess) {
+            return;
+        }
 
-            if ($this->useCompleteQuit()) {
-                $this->_send('QUIT');
-                $this->_expect(221, 300); // Timeout set for 5 minutes as per RFC 2821 4.5.3.2
-            }
-
-            $this->stopSession();
+        $this->auth = false;
+        $this->sess = false;
+        $this->mail = false;
+        $this->rcpt = false;
+        if ($this->useCompleteQuit) {
+            $this->_send('QUIT');
+            $this->_expect(221, 300);
         }
     }
 
     /**
-     * Default authentication method
+     * Authenticate with the configured authenticator, if any. helo() calls this.
      *
-     * This default method is implemented by AUTH adapters to properly authenticate to a remote host.
-     *
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When already authenticated, the connection is not
+     *     encrypted and "allow_insecure_auth" is off, the server does not offer the mechanism,
+     *     or the server rejects the credentials.
      */
-    public function auth()
+    public function auth(): void
     {
-        if (true === $this->auth) {
+        if ($this->auth) {
             throw new Exception\RuntimeException('Already authenticated for this session');
         }
+
+        $authenticator = $this->authenticator;
+        if (null === $authenticator) {
+            return;
+        }
+
+        if (! $this->encrypted && ! $this->allowInsecureAuth) {
+            throw new Exception\RuntimeException(
+                'Refusing to send credentials over an unencrypted connection; use TLS or STARTTLS',
+            );
+        }
+
+        $mechanism = strtoupper($authenticator->mechanism());
+        $offered   = explode(' ', $this->capabilities['AUTH'] ?? '');
+        if (! in_array($mechanism, $offered, strict: true)) {
+            throw new Exception\RuntimeException(sprintf(
+                'The server does not offer AUTH %s; it offers "%s"',
+                $mechanism,
+                $this->capabilities['AUTH'] ?? '',
+            ));
+        }
+
+        $authenticator->authenticate(new CallbackChannel($this->exchange(...), $this->exchangeSecret(...)));
+        $this->auth = true;
     }
 
     /**
-     * Closes connection
+     * Whether AUTH has succeeded in this session.
      */
-    public function disconnect()
+    public function isAuthenticated(): bool
+    {
+        return $this->auth;
+    }
+
+    /**
+     * Send QUIT (unless turned off) and close the socket.
+     */
+    public function disconnect(): void
     {
         $this->_disconnect();
     }
 
     /**
-     * Disconnect from remote host and free resource
+     * Send EHLO, falling back to HELO for servers that do not support it, and record the
+     * keywords the server lists.
+     *
+     * @throws Exception\ExceptionInterface When the server refuses both.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
+    private function ehlo(string $host): void
+    {
+        $this->capabilities = [];
+        try {
+            $this->command("EHLO {$host}");
+            $this->_expect(250, 300);
+            $this->capabilities = self::capabilities(array_slice($this->replyTexts, offset: 1));
+        } catch (Exception\RuntimeException) {
+            $this->command("HELO {$host}");
+            $this->_expect(250, 300);
+        }
+    }
+
+    /**
+     * Open the socket with the stream transport "ssl" or "tcp".
+     *
+     * @throws Exception\RuntimeException When the connection fails.
+     */
+    protected function openSocket(string $transport): void
+    {
+        $this->socket = $this->setupSocket($transport, $this->host, $this->port, $this->connection->timeout);
+    }
+
+    /**
+     * Switch the open socket to TLS 1.2 or later after the server has agreed to STARTTLS.
+     *
+     * The peer is verified unless ConnectionConfig::$verifyPeer is false.
+     *
+     * @throws Exception\RuntimeException When the handshake fails, or the server sent more data
+     *     after agreeing, which an attacker could have injected into the plain-text stream.
+     */
+    protected function enableCrypto(): void
+    {
+        $socket = $this->socket;
+        if (! is_resource($socket)) {
+            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
+        }
+
+        if (stream_get_meta_data($socket)['unread_bytes'] > 0) {
+            throw new Exception\RuntimeException('The server sent data after agreeing to STARTTLS; not starting TLS');
+        }
+
+        $error = '';
+        set_error_handler(static function (int $_number, string $message) use (&$error): bool {
+            $error = $message;
+            return true;
+        });
+        $enabled = stream_socket_enable_crypto(
+            $socket,
+            enable: true,
+            crypto_method: STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT,
+        );
+        restore_error_handler();
+
+        if (true !== $enabled) {
+            throw new Exception\RuntimeException("Unable to start TLS: {$error}");
+        }
+    }
+
+    /**
+     * Read a reply of at most MAX_REPLY_LINES lines and check the code of its last line.
+     *
+     * @param int|string|array<array-key, mixed> $code One or more codes that mean success.
+     * @param int|null $timeout Seconds to wait for each line.
+     * @return string The text of the last line, after the code.
+     * @throws Exception\RuntimeException When the code is unexpected or the reply is too long.
+     *
+     * @mago-expect analysis:possibly-null-argument AbstractProtocol::_receive() takes null for its default timeout.
+     */
     #[Override]
-    protected function _disconnect()
+    protected function _expect($code, $timeout = null) // phpcs:ignore
     {
-        // Make sure the session gets closed
-        $this->quit();
+        $codes            = is_array($code) ? $code : [$code];
+        $this->response   = [];
+        $this->replyTexts = [];
+        do {
+            if (count($this->response) === self::MAX_REPLY_LINES) {
+                throw new Exception\RuntimeException(sprintf(
+                    'The server reply is longer than %d lines',
+                    self::MAX_REPLY_LINES,
+                ));
+            }
+
+            $line             = rtrim($this->_receive($timeout), characters: "\r\n");
+            $this->response[] = $line;
+            if (1 !== preg_match('/^\d{3}(?:[ -]|$)/', $line)) {
+                throw new Exception\RuntimeException('The server sent a malformed reply line');
+            }
+
+            $reply              = (int) $line;
+            $text               = substr($line, offset: 4);
+            $this->replyTexts[] = $text;
+        } while ('-' === substr($line, offset: 3, length: 1));
+
+        if (! in_array($reply, $codes, strict: true)) {
+            throw new Exception\RuntimeException(implode(' ', $this->replyTexts), $reply);
+        }
+
+        return $text;
+    }
+
+    /**
+     * Keep lines that carry credentials out of the session log.
+     *
+     * @param string $value
+     */
+    #[Override]
+    protected function _addLog($value) // phpcs:ignore
+    {
+        parent::_addLog($this->secretLine ? self::HIDDEN_LINE . self::EOL : $value);
+    }
+
+    /**
+     * Close the session before closing the socket. A server that has already gone cannot be
+     * asked to QUIT, so its failure to answer is ignored and the socket closed anyway.
+     *
+     * @mago-expect lint:no-empty-catch-clause The socket is closed next, which is all that is left to do.
+     */
+    #[Override]
+    protected function _disconnect() // phpcs:ignore
+    {
+        try {
+            $this->quit();
+        } catch (Exception\ExceptionInterface) {
+        }
+
         parent::_disconnect();
+        $this->encrypted = false;
     }
 
     /**
-     * Start mail session
+     * Read EHLO keyword lines such as "SIZE 1000" or the old "AUTH=LOGIN PLAIN".
+     *
+     * @param list<string> $lines
+     * @return array<string, string> Keywords in upper case, mapped to their parameters.
      */
-    protected function startSession()
+    private static function capabilities(array $lines): array
     {
-        $this->sess = true;
+        $capabilities = [];
+        foreach ($lines as $line) {
+            $pair = explode(
+                ' ',
+                str_replace(
+                    search: '=',
+                    replace: ' ',
+                    subject: $line,
+                ),
+                limit: 2,
+            );
+            if ('' !== $pair[0]) {
+                $capabilities[strtoupper($pair[0])] = strtoupper(ltrim($pair[1] ?? ''));
+            }
+        }
+
+        return $capabilities;
     }
 
     /**
-     * Stop mail session
+     * @param array<array-key, mixed>|null $config
+     * @return array{ConfigReader, ConnectionConfig}
+     * @throws Exception\InvalidArgumentException When a port is given besides the ConnectionConfig.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected function stopSession()
+    private static function readSettings(ConnectionConfig $connection, ?int $port, ?array $config): array
     {
-        $this->sess = false;
+        if (null !== $port) {
+            throw new Exception\InvalidArgumentException('Give the port in the ConnectionConfig');
+        }
+
+        return [ConfigReader::read(self::class, $config ?? [], self::KEYS), $connection];
+    }
+
+    /**
+     * @param string|array<array-key, mixed> $host
+     * @param array<array-key, mixed>|null $config
+     * @return array{ConfigReader, ConnectionConfig}
+     * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
+     */
+    private static function readLegacySettings(string|array $host, ?int $port, ?array $config): array
+    {
+        $values = is_array($host)
+            ? array_replace($host, $config ?? [])
+            : array_replace($config ?? [], ['host' => $host, 'port' => $port]);
+        if (array_key_exists('ssl', $values) && false === $values['ssl']) {
+            $values['ssl'] = 'none';
+        }
+
+        $reader = ConfigReader::read(
+            self::class,
+            $values,
+            [
+                ...ConnectionConfig::KEYS,
+                ...self::KEYS,
+                ...self::LEGACY_KEYS,
+            ],
+        );
+
+        return [$reader, self::legacyConnection($reader)];
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting has the wrong type.
+     */
+    private static function legacyConnection(ConfigReader $reader): ConnectionConfig
+    {
+        $connection = ConnectionConfig::fromReader($reader);
+        $ssl        = $reader->nullableString('ssl');
+        if (null !== $ssl && $reader->has('security')) {
+            throw new Exception\InvalidArgumentException('Give either "ssl" or "security", not both');
+        }
+
+        if ($reader->has('novalidatecert') && $reader->has('verify_peer')) {
+            throw new Exception\InvalidArgumentException('Give either "novalidatecert" or "verify_peer", not both');
+        }
+
+        if (null !== $ssl && ! in_array(strtolower($ssl), self::LEGACY_SSL, strict: true)) {
+            throw new Exception\InvalidArgumentException("{$ssl} is unsupported SSL type");
+        }
+
+        return new ConnectionConfig(
+            host: $connection->host,
+            port: $connection->port,
+            security: null === $ssl ? $connection->security : Security::fromLegacy($ssl),
+            verifyPeer: $reader->has('verify_peer')
+                ? $connection->verifyPeer
+                : ! $reader->bool('novalidatecert', default: false),
+            timeout: $connection->timeout,
+        );
+    }
+
+    /**
+     * Check an envelope address: no control characters or angle brackets, and no spaces
+     * outside a quoted local part.
+     *
+     * @throws Exception\InvalidArgumentException When the address could end the path or the command.
+     */
+    private static function path(string $address): string
+    {
+        $unquoted = (string) preg_replace('/^"(?:[^"\\\\]|\\\\.)*"/', replacement: '""', subject: $address);
+        if (1 === preg_match('/[\x00-\x1F\x7F<>]/', $address) || 1 === preg_match('/\s/', $unquoted)) {
+            throw new Exception\InvalidArgumentException(
+                'An envelope address must not contain control characters, angle brackets or unquoted spaces',
+            );
+        }
+
+        return $address;
+    }
+
+    private static function isUtf8(string $address): bool
+    {
+        return 1 === preg_match('/[\x80-\xFF]/', $address);
+    }
+
+    /**
+     * Split text on CRLF, bare CR and bare LF, without a final empty line for a trailing break.
+     *
+     * @return list<string>
+     */
+    private static function lines(string $data): array
+    {
+        $data = str_replace(
+            search: ["\r\n", "\r"],
+            replace: "\n",
+            subject: $data,
+        );
+        if (str_ends_with($data, "\n")) {
+            $data = substr($data, offset: 0, length: -1);
+        }
+
+        return '' === $data ? [] : explode("\n", $data);
+    }
+
+    /**
+     * Ask for STARTTLS, upgrade the socket and repeat EHLO, as RFC 3207 requires.
+     *
+     * @throws Exception\ExceptionInterface When the server does not offer or refuses STARTTLS, or TLS fails.
+     */
+    private function startTls(string $host): void
+    {
+        if (! $this->hasCapability('STARTTLS')) {
+            throw new Exception\RuntimeException(
+                'The server does not offer STARTTLS; set security to "tls" for TLS from the start, '
+                    . 'or to "none" explicitly to send without encryption',
+            );
+        }
+
+        $this->_send('STARTTLS');
+        try {
+            $this->_expect(220, 180);
+        } catch (Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException(
+                "The server refused STARTTLS: {$e->getMessage()}",
+                (int) $e->getCode(),
+                $e,
+            );
+        }
+
+        $this->enableCrypto();
+        $this->encrypted = true;
+        $this->ehlo($host);
+    }
+
+    /**
+     * Send a command line, refusing CR, LF and NUL so it cannot carry a second command.
+     *
+     * @throws Exception\InvalidArgumentException When the line contains CR, LF or NUL.
+     * @throws Exception\RuntimeException When there is no connection.
+     */
+    private function command(#[SensitiveParameter] string $line): void
+    {
+        if (1 === preg_match('/[\r\n\0]/', $line)) {
+            throw new Exception\InvalidArgumentException('An SMTP command must not contain CR, LF or NUL');
+        }
+
+        $this->_send($line);
+    }
+
+    /**
+     * A plain step of the authenticator's Channel.
+     *
+     * @throws Exception\ExceptionInterface When the line is unsafe or the server replies with another code.
+     */
+    private function exchange(string $line, int $expect): string
+    {
+        $this->command($line);
+
+        return $this->_expect($expect, 300);
+    }
+
+    /**
+     * A step of the authenticator's Channel that carries credentials, kept out of the log and getRequest().
+     *
+     * @throws Exception\ExceptionInterface When the line is unsafe or the server replies with another code.
+     */
+    private function exchangeSecret(#[SensitiveParameter] string $line, int $expect): string
+    {
+        $this->secretLine = true;
+        try {
+            $this->command($line);
+        } finally {
+            $this->secretLine = false;
+            $this->request    = self::HIDDEN_LINE;
+        }
+
+        return $this->_expect($expect, 300);
     }
 }
