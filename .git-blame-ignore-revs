@@ -6,3 +6,6 @@
 
 # Mechanical "Use static assertions and #[Test] attributes in tests"
 7a4aaeb92e74c830ffcb79cfebe048e1cf937946
+
+# Mechanical "Apply mago's safe syntax fixes"
+03ef1dd5d3878980905a950abcb5dc7cd4ca5952
