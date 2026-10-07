@@ -183,12 +183,12 @@ After you fetch a message, you can:
 - fetch individual parts of multipart messages
 
 All headers can be accessed as message instance properties or via the method
-`getHeader()`; use the latter for messages with compound names.  Header names
-are normalized to lowercase internally, but may be fetched using any case
-structure; dash-separated headers may be fetched using camelCase notation. If no
-header matching the name is found, an exception is thrown; use the
-`headerExists()` method (or `isset($message->headerName)`) to test for header
-existence prior to retrieval.
+`getHeader()`; use the latter for messages with compound names. Header names
+are matched without regard to case, and dash-separated headers may be fetched
+using camelCase notation. Property access returns the decoded header value as
+a string. If no header matching the name is found, an exception is thrown; use
+`isset($message->headerName)` (or `$message->getHeaders()->has('header-name')`)
+to test for header existence prior to retrieval.
 
 ```php
 // get the message object
@@ -201,13 +201,13 @@ echo $message->subject . "\n";
 $type = $message->contentType;
 
 // check if CC isset:
-if (isset($message->cc)) { // or $message->headerExists('cc');
+if (isset($message->cc)) { // or $message->getHeaders()->has('cc')
     $cc = $message->cc;
 }
 ```
 
-If you have multiple headers with the same name &mdash; e.g. the `Received`
-headers &mdash; you will want an array of values. Property access always returns
+If you have multiple headers with the same name, such as the `Received`
+headers, you will want an array of values. Property access always returns
 a string, so use `getHeader()` instead for these situations:
 
 ```php
@@ -224,29 +224,28 @@ foreach ($received as $line) {
     // do stuff
 }
 
-// If you don't define a format you'll get the internal representation
-// (string for single headers, array for multiple):
+// If you don't define a format you'll get the header objects: a
+// Contenir\Mail\Header\HeaderInterface for a single header, or an
+// ArrayIterator of them when the header appears more than once:
 $received = $message->getHeader('received');
-if (is_string($received)) {
+if ($received instanceof Contenir\Mail\Header\HeaderInterface) {
     // only one received header found in message
 }
 ```
 
-The method `getHeaders()` returns all headers as an array with the lower-cased
-name as the key and the value as an array for multiple headers or as string for
-single headers.
+The method `getHeaders()` returns all headers as an immutable
+`Contenir\Mail\Headers` collection. Iterating it yields each header object in
+the order it appears in the message; `get()` returns the first header with a
+given name (or `null`), and `all()` returns every header with that name.
 
 ```php
 // dump all headers
-foreach ($message->getHeaders() as $name => $value) {
-    if (is_string($value)) {
-        echo "$name: $value\n";
-        continue;
-    }
-    foreach ($value as $entry) {
-        echo "$name: $entry\n";
-    }
+foreach ($message->getHeaders() as $header) {
+    printf("%s: %s\n", $header->getFieldName(), $header->getFieldValue());
 }
+
+// all Received headers, as a list of header objects
+$received = $message->getHeaders()->all('Received');
 ```
 
 If you don't have a multipart message, fetch the content via `getContent()`.
@@ -271,7 +270,7 @@ nested parts.
 // get the first non-multipart part
 $part = $message;
 while ($part->isMultipart()) {
-    $part = $message->getPart(1);
+    $part = $part->getPart(1);
 }
 echo 'Type of this part is ' . strtok($part->contentType, ';') . "\n";
 echo "Content:\n";
@@ -284,7 +283,7 @@ method `__toString()`, which returns the content.
 
 ```php
 use RecursiveIteratorIterator;
-use Contenir\Mail\Exception;
+use Contenir\Mail\Exception\ExceptionInterface;
 
 // output first text/plain part
 $foundPart = null;
@@ -294,8 +293,8 @@ foreach (new RecursiveIteratorIterator($mail->getMessage(1)) as $part) {
             $foundPart = $part;
             break;
         }
-    } catch (Exception $e) {
-        // ignore
+    } catch (ExceptionInterface $e) {
+        // this part has no Content-Type header
     }
 }
 if (! $foundPart) {
@@ -717,7 +716,7 @@ class Maildir extends BaseMaildir
     public function getQuota($fromStorage = false) {
         try {
             return parent::getQuota($fromStorage);
-        } catch (Exception $e) {
+        } catch (Exception\ExceptionInterface $e) {
             if (! $fromStorage) {
                 // unknown error:
                 throw $e;
