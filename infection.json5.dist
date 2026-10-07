@@ -1,0 +1,26 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["src"]
+    },
+    "timeout": 10,
+    "threads": "max",
+    "logs": {
+        "text": "infection.log",
+        "summary": "summary.log",
+        "stryker": {
+            "badge": "/^(main|master)$/"
+        }
+    },
+    "mutators": {
+        "@default": true,
+        "DecrementInteger": {
+            "ignoreSourceCodeByRegex": [
+                // HeaderValue::isValid() has just checked the character after the CRLF is a
+                // space or tab, so stepping onto it again only re-validates a valid character.
+                "\\$i \\+= 2;"
+            ]
+        }
+    },
+    "staticAnalysisTool": "mago"
+}
