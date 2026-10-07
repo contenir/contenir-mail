@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use ArrayIterator;
 use Countable;
 use ErrorException;
@@ -21,9 +23,7 @@ use function set_error_handler;
 
 use const E_USER_DEPRECATED;
 
-/**
- * @covers \Contenir\Mail\Headers<extended>
- */
+#[CoversClass(\Contenir\Mail\Headers::class)]
 class HeadersTest extends TestCase
 {
     /** @var null|callable */
@@ -92,9 +92,7 @@ class HeadersTest extends TestCase
         $this->assertEquals('foo-bar', $header->getFieldValue());
     }
 
-    /**
-     * @group 6657
-     */
+    #[Group('6657')]
     public function testHeadersFromStringFactoryCreatesSingleObjectWithContinuationLine(): void
     {
         $headers = Mail\Headers::fromString("Fake: foo-bar,\r\n      blah-blah");
@@ -454,18 +452,14 @@ class HeadersTest extends TestCase
         $this->assertFalse($headers2->has('Bcc'));
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackFromString(): void
     {
         $this->expectException(Mail\Exception\RuntimeException::class);
         Mail\Headers::fromString("Fake: foo-bar\r\n\r\nevilContent");
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeaderLineSingle(): void
     {
         $headers = new Mail\Headers();
@@ -473,9 +467,7 @@ class HeadersTest extends TestCase
         $headers->addHeaderLine("Fake: foo-bar\r\n\r\nevilContent");
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeaderLineWithValue(): void
     {
         $headers = new Mail\Headers();
@@ -483,9 +475,7 @@ class HeadersTest extends TestCase
         $headers->addHeaderLine('Fake', "foo-bar\r\n\r\nevilContent");
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeaderLineMultiple(): void
     {
         $headers = new Mail\Headers();
@@ -494,9 +484,7 @@ class HeadersTest extends TestCase
         $headers->forceLoading();
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeadersSingle(): void
     {
         $headers = new Mail\Headers();
@@ -504,9 +492,7 @@ class HeadersTest extends TestCase
         $headers->addHeaders(["Fake: foo-bar\r\n\r\nevilContent"]);
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeadersWithValue(): void
     {
         $headers = new Mail\Headers();
@@ -514,9 +500,7 @@ class HeadersTest extends TestCase
         $headers->addHeaders(['Fake' => "foo-bar\r\n\r\nevilContent"]);
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testHeaderCrLfAttackAddHeadersMultiple(): void
     {
         $headers = new Mail\Headers();
@@ -657,7 +641,7 @@ class HeadersTest extends TestCase
         $this->assertFalse($headers->get('0'));
     }
 
-    /** @group issue-175 */
+    #[Group('issue-175')]
     public function testUndefinedDefineMissingIntlExtensionConstants(): void
     {
         $headers = Mail\Headers::fromString('To: foo@example.com')->setEncoding('UTF-8');

@@ -2,13 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers Contenir\Mail\Header\Date<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\Date::class)]
 class DateTest extends TestCase
 {
     public static function headerLines(): array
@@ -21,19 +22,15 @@ class DateTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider headerLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
     public function testFromStringRaisesExceptionOnCrlfInjectionAttempt(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         Header\Date::fromString($header);
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testPreventsCRLFInjectionViaConstructor(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);

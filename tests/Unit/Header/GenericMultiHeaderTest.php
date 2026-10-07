@@ -2,15 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericMultiHeader;
 use PHPUnit\Framework\TestCase;
 
 use function count;
 
-/**
- * @covers Contenir\Mail\Header\GenericMultiHeader<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\GenericMultiHeader::class)]
 class GenericMultiHeaderTest extends TestCase
 {
     public function testFromStringSingle(): void

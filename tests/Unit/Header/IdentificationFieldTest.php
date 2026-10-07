@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\IdentificationField;
 use Contenir\Mail\Header\InReplyTo;
@@ -49,11 +50,11 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider stringHeadersProvider
      * @param string $className
      * @param string $headerString
      * @param string[] $ids
      */
+    #[DataProvider('stringHeadersProvider')]
     public function testDeserializationFromString($className, $headerString, $ids): void
     {
         /** @var IdentificationField $header */
@@ -62,11 +63,11 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider reversibleStringHeadersProvider
      * @param string $className
      * @param string $headerString
      * @param string[] $ids
      */
+        #[DataProvider('reversibleStringHeadersProvider')]
     public function testSerializationToString($className, $headerString, $ids): void
     {
         /** @var IdentificationField $header */
@@ -76,11 +77,11 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider stringHeadersProvider
      * @param string $className
      * @param string $headerString
      * @param string[] $ids
      */
+        #[DataProvider('stringHeadersProvider')]
     public function testDefaultEncoding($className, $headerString, array $ids): void
     {
         /** @var IdentificationField $header */
@@ -89,11 +90,11 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider stringHeadersProvider
      * @param string $className
      * @param string $headerString
      * @param string[] $ids
      */
+        #[DataProvider('stringHeadersProvider')]
     public function testSetEncodingHasNoEffect($className, $headerString, array $ids): void
     {
         /** @var IdentificationField $header */
@@ -103,10 +104,10 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidIds
      * @param string $className
      * @param string[] $ids
      */
+        #[DataProvider('invalidIds')]
     public function testSetIdsThrowsOnInvalidInput($className, $ids): void
     {
         /** @var IdentificationField $header */
@@ -117,10 +118,10 @@ class IdentificationFieldTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidIds
      * @param string $className
      * @param string[] $ids
      */
+        #[DataProvider('invalidIds')]
     public function testFromStringRaisesExceptionOnInvalidHeader($className, $ids): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);

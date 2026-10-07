@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Exception as GeneralException;
 use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\Exception as MailException;
@@ -22,11 +24,8 @@ use function implode;
 use function substr;
 use function var_export;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Storage\Message<extended>
- * @covers Contenir\Mail\Headers<extended>
- */
+#[CoversClass(\Contenir\Mail\Storage\Message::class)]
+#[CoversClass(\Contenir\Mail\Headers::class)]
 class MessageTest extends TestCase
 {
     /** @var string */
@@ -47,26 +46,22 @@ class MessageTest extends TestCase
     }
 
     /**
-     * @dataProvider filesProvider
      */
+    #[DataProvider('filesProvider')]
     public function testIsMultipart(array $params): void
     {
         $message = new Message($params);
         $this->assertTrue($message->isMultipart());
     }
 
-    /**
-     * @dataProvider filesProvider
-     */
+    #[DataProvider('filesProvider')]
     public function testGetHeader(array $params): void
     {
         $message = new Message($params);
         $this->assertEquals($message->subject, 'multipart');
     }
 
-    /**
-     * @dataProvider filesProvider
-     */
+    #[DataProvider('filesProvider')]
     public function testGetToHeader(array $params): void
     {
         $message = new Message($params);
@@ -76,17 +71,15 @@ class MessageTest extends TestCase
     }
 
     /**
-     * @dataProvider filesProvider
      */
+        #[DataProvider('filesProvider')]
     public function testGetDecodedHeader(array $params): void
     {
         $message = new Message($params);
         $this->assertEquals('Peter Müller <peter-mueller@example.com>', $message->from);
     }
 
-    /**
-     * @dataProvider filesProvider
-     */
+    #[DataProvider('filesProvider')]
     public function testGetHeaderAsArray(array $params): void
     {
         $message = new Message($params);
@@ -304,7 +297,7 @@ class MessageTest extends TestCase
     {
         // @codingStandardsIgnoreStart
         $badMessage = unserialize(
-            "O:28:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
+            "O:29:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
         );
         // @codingStandardsIgnoreEnd
 

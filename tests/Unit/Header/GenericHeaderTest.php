@@ -2,6 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
@@ -10,9 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 use function chr;
 
-/**
- * @covers Contenir\Mail\Header\GenericHeader<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\GenericHeader::class)]
 class GenericHeaderTest extends TestCase
 {
     /** @return array<string, array{0: string, 1: string}> */
@@ -34,10 +35,8 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidHeaderLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('invalidHeaderLines')]
+    #[Group('ZF2015-04')]
     public function testSplitHeaderLineRaisesExceptionOnInvalidHeader(string $line, string $message): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -55,10 +54,8 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider fieldNames
-     * @group ZF2015-04
-     */
+    #[DataProvider('fieldNames')]
+    #[Group('ZF2015-04')]
     public function testConstructorRaisesExceptionOnInvalidFieldName(?string $fieldName): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -68,9 +65,9 @@ class GenericHeaderTest extends TestCase
     }
 
     /**
-     * @dataProvider fieldNames
-     * @group ZF2015-04
      */
+        #[DataProvider('fieldNames')]
+        #[Group('ZF2015-04')]
     public function testSetFieldNameRaisesExceptionOnInvalidFieldName(?string $fieldName): void
     {
         $header = new GenericHeader('Subject');
@@ -95,10 +92,8 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider fieldValues
-     * @group ZF2015-04
-     */
+    #[DataProvider('fieldValues')]
+    #[Group('ZF2015-04')]
     public function testCRLFsequencesAreEncodedOnToString(string $fieldValue): void
     {
         $header = new GenericHeader('Foo');
@@ -109,10 +104,8 @@ class GenericHeaderTest extends TestCase
         $this->assertStringNotContainsString("\r", $serialized);
     }
 
-    /**
-     * @dataProvider validFieldValuesProvider
-     * @group ZF2015-04
-     */
+    #[DataProvider('validFieldValuesProvider')]
+    #[Group('ZF2015-04')]
     public function testParseValidSubjectHeader(string $decodedValue, string $encodedValue, string $encoding): void
     {
         $header = GenericHeader::fromString('Foo:' . $encodedValue);
@@ -121,10 +114,8 @@ class GenericHeaderTest extends TestCase
         $this->assertEquals($encoding, $header->getEncoding());
     }
 
-    /**
-     * @dataProvider validFieldValuesProvider
-     * @group ZF2015-04
-     */
+    #[DataProvider('validFieldValuesProvider')]
+    #[Group('ZF2015-04')]
     public function testSetFieldValueValidValue(string $decodedValue, string $encodedValue, string $encoding): void
     {
         $header = new GenericHeader('Foo');
@@ -154,9 +145,7 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testCastingToStringHandlesContinuationsProperly(): void
     {
         $encoded = '=?UTF-8?Q?foo=0D=0A=20bar?=';

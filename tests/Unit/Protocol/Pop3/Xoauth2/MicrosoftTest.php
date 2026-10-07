@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Pop3\Xoauth2;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3\Response;
 use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
@@ -15,9 +16,7 @@ use function rewind;
 use function str_replace;
 use function stream_get_contents;
 
-/**
- * @covers Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft
- */
+#[CoversClass(\Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft::class)]
 class MicrosoftTest extends TestCase
 {
     /** @psalm-suppress InternalClass */

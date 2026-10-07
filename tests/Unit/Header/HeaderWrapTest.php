@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\UnstructuredInterface;
@@ -17,10 +19,7 @@ use function wordwrap;
 
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\HeaderWrap<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\HeaderWrap::class)]
 class HeaderWrapTest extends TestCase
 {
     public function testWrapUnstructuredHeaderAscii(): void
@@ -127,9 +126,7 @@ class HeaderWrapTest extends TestCase
         $this->assertTrue($res);
     }
 
-    /**
-     * @requires extension imap
-     */
+    #[RequiresPhpExtension('imap')]
     public function testMultilineWithMultibyteSplitAcrossCharacter(): void
     {
         $originalValue = 'аф';

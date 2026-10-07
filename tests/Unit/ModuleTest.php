@@ -2,15 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Module;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
 
-/**
- * @group      Contenir_Mail
- * @covers \Contenir\Mail\Module<extended>
- */
+#[CoversClass(\Contenir\Mail\Module::class)]
 class ModuleTest extends TestCase
 {
     public function testInvoke(): void

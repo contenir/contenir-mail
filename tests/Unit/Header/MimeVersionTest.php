@@ -2,14 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\MimeVersion<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\MimeVersion::class)]
 class MimeVersionTest extends TestCase
 {
     public function testSettingManually(): void
@@ -37,10 +37,8 @@ class MimeVersionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider headerLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
     public function testFromStringRaisesExceptionOnDetectionOfCrlfInjection(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -57,10 +55,8 @@ class MimeVersionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidVersions
-     * @group ZF2015-04
-     */
+    #[DataProvider('invalidVersions')]
+    #[Group('ZF2015-04')]
     public function testRaisesExceptionOnInvalidVersionFromSetVersion(string $value): void
     {
         $header = new Header\MimeVersion();
@@ -97,9 +93,7 @@ class MimeVersionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider unconventionalHeaderLinesProvider
-     */
+    #[DataProvider('unconventionalHeaderLinesProvider')]
     public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = Header\MimeVersion::fromString($headerLine);

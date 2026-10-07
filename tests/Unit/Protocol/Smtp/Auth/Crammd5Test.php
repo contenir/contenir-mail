@@ -2,15 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp\Auth\Crammd5;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Protocol\Smtp\Auth\Crammd5<extended>
- */
+#[CoversClass(\Contenir\Mail\Protocol\Smtp\Auth\Crammd5::class)]
 class Crammd5Test extends TestCase
 {
     /** @var Crammd5 */

@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
@@ -24,10 +25,7 @@ use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Storage\Pop3<extended>
- */
+#[CoversClass(\Contenir\Mail\Storage\Pop3::class)]
 class Pop3Test extends TestCase
 {
     /** @var array */

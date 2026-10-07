@@ -2,16 +2,16 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\UnstructuredInterface;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\ContentType<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\ContentType::class)]
 class ContentTypeTest extends TestCase
 {
     public function testImplementsHeaderInterface(): void
@@ -22,9 +22,7 @@ class ContentTypeTest extends TestCase
         $this->assertInstanceOf(HeaderInterface::class, $header);
     }
 
-    /**
-     * @group 6491
-     */
+    #[Group('6491')]
     public function testTrailingSemiColonFromString(): void
     {
         $contentTypeHeader = ContentType::fromString(
@@ -54,18 +52,14 @@ class ContentTypeTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getLiteralData
-     */
+    #[DataProvider('getLiteralData')]
     public function testHandlesLiterals(array $expected, string $header): void
     {
         $header = ContentType::fromString('Content-Type: ' . $header);
         $this->assertEquals($expected, $header->getParameters());
     }
 
-    /**
-     * @dataProvider setTypeProvider
-     */
+    #[DataProvider('setTypeProvider')]
     public function testFromString(string $type, array $parameters, string $fieldValue, string $expectedToString): void
     {
         $header = ContentType::fromString($expectedToString);
@@ -78,9 +72,7 @@ class ContentTypeTest extends TestCase
         $this->assertEquals($expectedToString, $header->toString(), 'toString() value not match');
     }
 
-    /**
-     * @dataProvider setTypeProvider
-     */
+    #[DataProvider('setTypeProvider')]
     public function testSetType(string $type, array $parameters, string $fieldValue, string $expectedToString): void
     {
         $header = new ContentType();
@@ -99,8 +91,8 @@ class ContentTypeTest extends TestCase
 
     /**
      * @param class-string $expectedException
-     * @dataProvider invalidHeaderLinesProvider
      */
+    #[DataProvider('invalidHeaderLinesProvider')]
     public function testFromStringThrowException(
         string $headerLine,
         string $expectedException,
@@ -111,9 +103,7 @@ class ContentTypeTest extends TestCase
         ContentType::fromString($headerLine);
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testFromStringHandlesContinuations(): void
     {
         $header = ContentType::fromString("Content-Type: text/html;\r\n level=1");
@@ -125,9 +115,8 @@ class ContentTypeTest extends TestCase
      * Should not throw if the optional count is missing
      *
      * @see https://tools.ietf.org/html/rfc2231
-     *
-     * @dataProvider parameterWrappingProvider
      */
+    #[DataProvider('parameterWrappingProvider')]
     public function testParameterWrapping(string $input, array $parameters): void
     {
         $header = ContentType::fromString($input);
@@ -137,8 +126,8 @@ class ContentTypeTest extends TestCase
 
     /**
      * @param class-string $expectedException
-     * @dataProvider invalidParametersProvider
      */
+    #[DataProvider('invalidParametersProvider')]
     public function testAddParameterThrowException(
         string $paramName,
         string $paramValue,
@@ -280,9 +269,7 @@ class ContentTypeTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider unconventionalHeaderLinesProvider
-     */
+    #[DataProvider('unconventionalHeaderLinesProvider')]
     public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = ContentType::fromString($headerLine);

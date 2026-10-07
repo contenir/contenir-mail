@@ -2,6 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Header;
@@ -13,10 +16,7 @@ use function array_map;
 use function array_merge;
 use function array_slice;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\Sender<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\Sender::class)]
 class SenderTest extends TestCase
 {
     public function testFromStringCreatesValidReceivedHeader(): void
@@ -32,10 +32,8 @@ class SenderTest extends TestCase
         $this->assertEquals('Sender', $sender->getFieldName());
     }
 
-    /**
-     * @dataProvider validSenderHeaderDataProvider
-     * @group ZF2015-04
-     */
+    #[DataProvider('validSenderHeaderDataProvider')]
+    #[Group('ZF2015-04')]
     public function testParseValidSenderHeader(string $expectedFieldValue, string $encodedValue, string $encoding): void
     {
         $header = Header\Sender::fromString('Sender:' . $encodedValue);
@@ -45,11 +43,11 @@ class SenderTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidSenderEncodedDataProvider
-     * @group ZF2015-04
      * @param string $decodedValue
      * @param string $expectedException
      */
+    #[DataProvider('invalidSenderEncodedDataProvider')]
+    #[Group('ZF2015-04')]
     public function testParseInvalidSenderHeaderThrowException(
         $decodedValue,
         $expectedException
@@ -59,14 +57,14 @@ class SenderTest extends TestCase
     }
 
     /**
-     * @dataProvider validSenderDataProvider
-     * @group ZF2015-04
      * @param string $email
      * @param null|string $name
      * @param string $encodedValue
      * @param string $expectedFieldValue,
      * @param string $encoding
      */
+    #[DataProvider('validSenderDataProvider')]
+    #[Group('ZF2015-04')]
     public function testSetAddressValidValue($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
     {
         $header = new Header\Sender();
@@ -78,11 +76,11 @@ class SenderTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidSenderDataProvider
-     * @group ZF2015-04
      * @param string $email
      * @param null|string $name
      */
+    #[DataProvider('invalidSenderDataProvider')]
+    #[Group('ZF2015-04')]
     public function testSetAddressInvalidValue($email, $name): void
     {
         $header = new Header\Sender();
@@ -91,14 +89,14 @@ class SenderTest extends TestCase
     }
 
     /**
-     * @dataProvider validSenderDataProvider
-     * @group ZF2015-04
      * @param string $email
      * @param null|string $name
      * @param string $expectedFieldValue,
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[DataProvider('validSenderDataProvider')]
+    #[Group('ZF2015-04')]
     public function testSetAddressValidAddressObject($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
     {
         $address = new Address($email, $name);
@@ -203,8 +201,8 @@ class SenderTest extends TestCase
      * @param string $headerString
      * @param string $expectedName
      * @param string $expectedEmail
-     * @dataProvider validHeaderLinesProvider
      */
+    #[DataProvider('validHeaderLinesProvider')]
     public function testFromStringWithValidInput($headerString, $expectedName, $expectedEmail): void
     {
         $header = Header\Sender::fromString($headerString);
@@ -233,8 +231,8 @@ class SenderTest extends TestCase
      * @param string $headerString
      * @param string $expectedException
      * @param string $expectedMessagePart
-     * @dataProvider invalidHeaderLinesProvider
      */
+    #[DataProvider('invalidHeaderLinesProvider')]
     public function testFromStringWithInvalidInput($headerString, $expectedException, $expectedMessagePart = ''): void
     {
         $this->expectException($expectedException);

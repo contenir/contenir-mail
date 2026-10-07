@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
 // phpcs:ignore WebimpressCodingStandard.PHP.CorrectClassNameCase.Invalid
+use PHPUnit\Framework\Attributes\Depends;
 use Interop\Container\ContainerInterface;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\SmtpPluginManager;
@@ -35,9 +36,7 @@ class SmtpPluginManagerFactoryTest extends TestCase
         }
     }
 
-    /**
-     * @depends testFactoryReturnsPluginManager
-     */
+    #[Depends('testFactoryReturnsPluginManager')]
     public function testFactoryConfiguresPluginManagerUnderContainerInterop(): void
     {
         $container = $this->createMock(ContainerInterface::class);
@@ -52,9 +51,7 @@ class SmtpPluginManagerFactoryTest extends TestCase
         $this->assertSame($smtp, $plugins->get('test'));
     }
 
-    /**
-     * @depends testFactoryReturnsPluginManager
-     */
+    #[Depends('testFactoryReturnsPluginManager')]
     public function testFactoryConfiguresPluginManagerUnderServiceManagerV2(): void
     {
         $container = $this->createMock(ServiceLocatorInterface::class);

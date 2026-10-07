@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\FileOptions;
@@ -15,10 +16,7 @@ use function rmdir;
 use function sys_get_temp_dir;
 use function unlink;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Transport\File<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\File::class)]
 class FileTest extends TestCase
 {
     private string $tempDir;

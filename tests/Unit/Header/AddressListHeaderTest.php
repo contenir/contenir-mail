@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Header\AbstractAddressList;
@@ -15,9 +17,6 @@ use PHPUnit\Framework\TestCase;
 use function count;
 use function sprintf;
 
-/**
- * @group      Contenir_Mail
- */
 class AddressListHeaderTest extends TestCase
 {
     public static function getHeaderInstances(): array
@@ -31,25 +30,19 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getHeaderInstances
-     */
+    #[DataProvider('getHeaderInstances')]
     public function testConcreteHeadersExtendAbstractAddressListHeader(AbstractAddressList $header): void
     {
         $this->assertInstanceOf(AbstractAddressList::class, $header);
     }
 
-    /**
-     * @dataProvider getHeaderInstances
-     */
+    #[DataProvider('getHeaderInstances')]
     public function testConcreteHeaderFieldNamesAreDiscrete(AbstractAddressList $header, string $type): void
     {
         $this->assertEquals($type, $header->getFieldName());
     }
 
-    /**
-     * @dataProvider getHeaderInstances
-     */
+    #[DataProvider('getHeaderInstances')]
     public function testConcreteHeadersComposeAddressLists(AbstractAddressList $header): void
     {
         $list = $header->getAddressList();
@@ -87,9 +80,7 @@ class AddressListHeaderTest extends TestCase
         // @codingStandardsIgnoreEnd
     }
 
-    /**
-     * @dataProvider getHeaderInstances
-     */
+    #[DataProvider('getHeaderInstances')]
     public function testStringRepresentationIncludesHeaderAndFieldValue(AbstractAddressList $header, string $type): void
     {
         $this->populateAddressList($header->getAddressList());
@@ -111,8 +102,8 @@ class AddressListHeaderTest extends TestCase
 
     /**
      * @param class-string $class
-     * @dataProvider getStringHeaders
      */
+    #[DataProvider('getStringHeaders')]
     public function testDeserializationFromString(string $headerLine, string $class): void
     {
         $callback = sprintf('%s::fromString', $class);
@@ -146,9 +137,7 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getHeadersWithComments
-     */
+    #[DataProvider('getHeadersWithComments')]
     public function testDeserializationFromStringWithComments(string $value): void
     {
         $header = From::fromString($value);
@@ -166,9 +155,7 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getHeadersWithSurroundingSingleQuotes
-     */
+    #[DataProvider('getHeadersWithSurroundingSingleQuotes')]
     public function testTrimSurroundingSingleQuotes(string $value): void
     {
         $header = To::fromString($value);
@@ -191,9 +178,9 @@ class AddressListHeaderTest extends TestCase
 
     /**
      * @param class-string $class
-     * @group 3789
-     * @dataProvider getStringHeadersWithNoWhitespaceSeparator
      */
+    #[Group('3789')]
+    #[DataProvider('getStringHeadersWithNoWhitespaceSeparator')]
     public function testAllowsNoWhitespaceBetweenHeaderAndValue(string $headerLine, string $class): void
     {
         $callback = sprintf('%s::fromString', $class);
@@ -217,8 +204,8 @@ class AddressListHeaderTest extends TestCase
 
     /**
      * @param null|string $sample
-     * @dataProvider getAddressListsWithGroup
      */
+    #[DataProvider('getAddressListsWithGroup')]
     public function testAddressListWithGroup(string $input, int $count, $sample): void
     {
         $header = To::fromString($input);
@@ -253,9 +240,7 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider specialCharHeaderProvider
-     */
+    #[DataProvider('specialCharHeaderProvider')]
     public function testDeserializationFromSpecialCharString(
         string $headerLine,
         array $expected,
@@ -285,8 +270,8 @@ class AddressListHeaderTest extends TestCase
 
     /**
      * @param class-string $class
-     * @dataProvider unconventionalHeaderLinesProvider
      */
+    #[DataProvider('unconventionalHeaderLinesProvider')]
     public function testFromStringHandlesUnconventionalNames(string $headerLine, string $class, string $expected): void
     {
         $callback = sprintf('%s::fromString', $class);

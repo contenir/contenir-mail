@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
@@ -21,10 +22,7 @@ use function strlen;
 use function substr;
 use function time;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Transport\Smtp<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\Smtp::class)]
 class SmtpTest extends TestCase
 {
     /** @var Smtp */

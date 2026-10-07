@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Mime\Message;
 use PHPUnit\Framework\TestCase;
@@ -13,9 +14,6 @@ use function current;
 use function strlen;
 use function strpos;
 
-/**
- * @group      Laminas_Mime
- */
 class MessageTest extends TestCase
 {
     public function testMultiPart()
@@ -180,9 +178,7 @@ EOD;
         $this->assertSame($part, $test);
     }
 
-    /**
-     * @group Laminas-5962
-     */
+    #[Group('Laminas-5962')]
     public function testPassEmptyArrayIntoSetPartsShouldReturnEmptyString()
     {
         $mimeMessage = new Mime\Message();

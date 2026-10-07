@@ -2,13 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\Exception;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers Contenir\Mail\Address<extended>
- */
+#[CoversClass(\Contenir\Mail\Address::class)]
 class AddressTest extends TestCase
 {
     public function testDoesNotRequireNameForInstantiation(): void
@@ -32,11 +33,11 @@ class AddressTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidSenderDataProvider
-     * @group ZF2015-04
      * @param string $email
      * @param null|string $name
      */
+    #[DataProvider('invalidSenderDataProvider')]
+    #[Group('ZF2015-04')]
     public function testSetAddressInvalidAddressObject($email, $name): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -64,10 +65,10 @@ class AddressTest extends TestCase
     }
 
     /**
-     * @dataProvider validSenderDataProvider
      * @param string $email
      * @param null|string $name
      */
+    #[DataProvider('validSenderDataProvider')]
     public function testSetAddressValidAddressObject($email, $name): void
     {
         $address = new Address($email, $name);

@@ -2,16 +2,16 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\Received;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\Received<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\Received::class)]
 class ReceivedTest extends TestCase
 {
     public function testFromStringCreatesValidReceivedHeader(): void
@@ -57,10 +57,8 @@ class ReceivedTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider headerLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
     public function testRaisesExceptionViaFromStringOnDetectionOfCrlfInjection(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -77,10 +75,8 @@ class ReceivedTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidValues
-     * @group ZF2015-04
-     */
+    #[DataProvider('invalidValues')]
+    #[Group('ZF2015-04')]
     public function testConstructorRaisesExceptionOnValueWithCRLFInjectionAttempt(string $value): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);

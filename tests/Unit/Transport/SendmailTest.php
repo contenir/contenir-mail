@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Message;
@@ -19,9 +21,7 @@ use function trim;
 use const PHP_OS;
 use const PHP_VERSION_ID;
 
-/**
- * @covers Contenir\Mail\Transport\Sendmail<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\Sendmail::class)]
 class SendmailTest extends TestCase
 {
     /** @var Sendmail */
@@ -331,9 +331,7 @@ class SendmailTest extends TestCase
         yield 'not-leading' => ['-bs -f\'foo@example.com\''];
     }
 
-    /**
-     * @dataProvider additionalParametersContainingFromSwitch
-     */
+    #[DataProvider('additionalParametersContainingFromSwitch')]
     public function testDoesNotInjectFromParameterFromSenderWhenFromOptionPresentInParameters(string $parameters): void
     {
         if ($this->operatingSystem == 'WIN') {

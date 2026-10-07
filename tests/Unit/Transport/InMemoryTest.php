@@ -2,14 +2,12 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\InMemory;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Transport\InMemory<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\InMemory::class)]
 class InMemoryTest extends TestCase
 {
     public function getMessage(): Message

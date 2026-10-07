@@ -2,6 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
@@ -22,10 +25,7 @@ use function file_get_contents;
 use function implode;
 use function substr;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Message<extended>
- */
+#[CoversClass(\Contenir\Mail\Message::class)]
 class MessageTest extends TestCase
 {
     /** @var Message */
@@ -538,8 +538,8 @@ class MessageTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidBodyValues
      */
+    #[DataProvider('invalidBodyValues')]
     public function testSettingNonScalarNonMimeNonStringSerializableValueForBodyRaisesException(mixed $body): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -712,9 +712,7 @@ class MessageTest extends TestCase
         $this->assertEquals($serialized, $restoredMessage->toString());
     }
 
-    /**
-     * @group 45
-     */
+    #[Group('45')]
     public function testCanRestoreFromSerializedStringWhenBodyContainsMultipleNewlines(): void
     {
         $this->message->addTo('test@example.com', 'Example Test');
@@ -755,10 +753,8 @@ class MessageTest extends TestCase
         ];
     }
 
-    /**
-     * @group ZF2015-04
-     * @dataProvider messageRecipients
-     */
+    #[Group('ZF2015-04')]
+    #[DataProvider('messageRecipients')]
     public function testExceptionWhenAttemptingToSerializeMessageWithCRLFInjectionViaHeader(
         string $recipientMethod
     ): void {
@@ -772,9 +768,7 @@ class MessageTest extends TestCase
         $this->message->{$recipientMethod}(implode(Headers::EOL, $subject));
     }
 
-    /**
-     * @group ZF2015-04
-     */
+    #[Group('ZF2015-04')]
     public function testDetectsCRLFInjectionViaSubject(): void
     {
         $subject = [
@@ -825,9 +819,7 @@ class MessageTest extends TestCase
         $this->assertStringContainsString($multipartContent->getMime()->boundary(), $contentType->getFieldValue());
     }
 
-    /**
-     * @group 19
-     */
+    #[Group('19')]
     public function testCanParseMultipartReport(): void
     {
         $raw     = file_get_contents(__DIR__ . '/_files/laminas-mail-19.eml');

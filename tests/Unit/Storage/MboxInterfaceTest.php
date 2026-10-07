@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Message\MessageInterface;
@@ -10,10 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 use function count;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Storage\Mbox<extended>
- */
+#[CoversClass(\Contenir\Mail\Storage\Mbox::class)]
 class MboxInterfaceTest extends TestCase
 {
     /** @var string  */

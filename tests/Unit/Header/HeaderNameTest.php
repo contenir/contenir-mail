@@ -2,15 +2,16 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderName;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
 
-/**
- * @covers Contenir\Mail\Header\HeaderName<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\HeaderName::class)]
 class HeaderNameTest extends TestCase
 {
     /**
@@ -29,10 +30,8 @@ class HeaderNameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getFilterNames
-     * @group ZF2015-04
-     */
+    #[DataProvider('getFilterNames')]
+    #[Group('ZF2015-04')]
     public function testFilterName(string $name, string $expected): void
     {
         HeaderName::assertValid($expected);
@@ -52,10 +51,8 @@ class HeaderNameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider validateNames
-     * @group ZF2015-04
-     */
+    #[DataProvider('validateNames')]
+    #[Group('ZF2015-04')]
     public function testValidateName(string $name, string $assertion): void
     {
         $this->{$assertion}(HeaderName::isValid($name));
@@ -71,10 +68,8 @@ class HeaderNameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider assertNames
-     * @group ZF2015-04
-     */
+    #[DataProvider('assertNames')]
+    #[Group('ZF2015-04')]
     public function testAssertValidRaisesExceptionForInvalidNames(string $name): void
     {
         $this->expectException(Exception\RuntimeException::class);

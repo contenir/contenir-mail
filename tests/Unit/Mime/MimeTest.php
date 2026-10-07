@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Mime;
 use PHPUnit\Framework\TestCase;
 
@@ -17,9 +19,6 @@ use function quoted_printable_decode;
 use function str_repeat;
 use function strlen;
 
-/**
- * @group      Laminas_Mime
- */
 class MimeTest extends TestCase
 {
     /**
@@ -127,10 +126,8 @@ class MimeTest extends TestCase
         $this->assertStringContainsString("my body\r\n\r\n...after two newlines", $result, $result);
     }
 
-    /**
-     * @group        Laminas-1688
-     * @dataProvider dataTestEncodeMailHeaderQuotedPrintable
-     */
+    #[Group('Laminas-1688')]
+    #[DataProvider('dataTestEncodeMailHeaderQuotedPrintable')]
     public function testEncodeMailHeaderQuotedPrintable(string $str, string $charset, string $result): void
     {
         $this->assertEquals($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
@@ -154,9 +151,7 @@ class MimeTest extends TestCase
         // phpcs:enable
     }
 
-    /**
-     * @dataProvider dataTestEncodeMailHeaderQuotedPrintableWithHeaderName
-     */
+    #[DataProvider('dataTestEncodeMailHeaderQuotedPrintableWithHeaderName')]
     public function testEncodeMailHeaderQuotedPrintableWithHeaderName(
         string $str,
         string $charset,
@@ -201,10 +196,8 @@ class MimeTest extends TestCase
         ];
     }
 
-    /**
-     * @group        Laminas-1688
-     * @dataProvider dataTestEncodeMailHeaderBase64
-     */
+    #[Group('Laminas-1688')]
+    #[DataProvider('dataTestEncodeMailHeaderBase64')]
     public function testEncodeMailHeaderBase64(string $str, string $charset, string $result): void
     {
         $this->assertEquals($result, Mime\Mime::encodeBase64Header($str, $charset));
@@ -228,9 +221,8 @@ class MimeTest extends TestCase
     /**
      * base64 chunk are 4 chars long
      * try to encode/decode with 4 line length
-     *
-     * @dataProvider dataTestEncodeMailHeaderBase64wrap
      */
+    #[DataProvider('dataTestEncodeMailHeaderBase64wrap')]
     public function testEncodeMailHeaderBase64wrap(string $str): void
     {
         $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 20)));
@@ -298,9 +290,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         // phpcs:enable
     }
 
-    /**
-     * @dataProvider dataTestFromMessageDecode
-     */
+    #[DataProvider('dataTestFromMessageDecode')]
     public function testFromMessageDecode(string $input, string $encoding, string $result): void
     {
         $parts = Mime\Message::createFromMessage(
@@ -315,9 +305,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         $this->assertSame($input . "\n", $parts[0]->getRawContent());
     }
 
-    /**
-     * @group Laminas-1688
-     */
+    #[Group('Laminas-1688')]
     public function testLineLengthInQuotedPrintableHeaderEncoding()
     {
         $subject = "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, "
@@ -341,7 +329,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string}> */
-    public function dataTestCharsetDetection(): array
+    public static function dataTestCharsetDetection(): array
     {
         return [
             ["ASCII", "test"],
@@ -352,9 +340,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         ];
     }
 
-    /**
-     * @dataProvider dataTestCharsetDetection
-     */
+    #[DataProvider('dataTestCharsetDetection')]
     public function testCharsetDetection(string $expected, string $string): void
     {
         $this->assertEquals($expected, Mime\Mime::mimeDetectCharset($string));

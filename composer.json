@@ -1,60 +1,48 @@
 {
-    "name": "laminas/laminas-mail",
-    "description": "Provides generalized functionality to compose and send both text and MIME-compliant multipart e-mail messages",
-    "keywords": [
-        "laminas",
-        "mail"
-    ],
-    "homepage": "https://laminas.dev",
-    "abandoned": "symfony/mailer",
+    "name": "contenir/contenir-mail",
+    "description": "Compose, parse, store and send text and MIME-compliant multipart e-mail messages. A maintained continuation of laminas/laminas-mail and laminas/laminas-mime.",
     "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "contenir",
+        "mail",
+        "mime",
+        "smtp",
+        "imap",
+        "pop3"
+    ],
+    "homepage": "https://github.com/contenir/contenir-mail",
+    "support": {
+        "issues": "https://github.com/contenir/contenir-mail/issues",
+        "source": "https://github.com/contenir/contenir-mail"
+    },
     "require": {
-        "php": "~8.1.0 || ~8.2.0 || ~8.3.0",
+        "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
         "ext-iconv": "*",
-        "laminas/laminas-loader": "^2.9.0",
-        "laminas/laminas-mime": "^2.11.0",
-        "laminas/laminas-stdlib": "^3.17.0",
-        "laminas/laminas-validator": "^2.31.0",
+        "laminas/laminas-loader": "^2.11.1",
+        "laminas/laminas-stdlib": "^3.21",
+        "laminas/laminas-validator": "^2.65",
+        "symfony/polyfill-intl-idn": "^1.27.0",
         "symfony/polyfill-mbstring": "^1.27.0",
-        "webmozart/assert": "^1.11.0",
-        "symfony/polyfill-intl-idn": "^1.27.0"
+        "webmozart/assert": "^1.11.0"
     },
     "require-dev": {
-        "laminas/laminas-coding-standard": "~2.5.0",
-        "laminas/laminas-db": "^2.18",
-        "laminas/laminas-servicemanager": "^3.22.1",
-        "phpunit/phpunit": "^10.4.2",
-        "psalm/plugin-phpunit": "^0.18.4",
-        "symfony/process": "^6.3.4 || ^7.0.0",
-        "vimeo/psalm": "^5.15"
+        "contenir/contenir-qa-tools": "0.1.x-dev",
+        "laminas/laminas-servicemanager": "^3.24",
+        "phpunit/phpunit": "^11.5.42",
+        "symfony/process": "^7.3"
     },
     "suggest": {
-        "laminas/laminas-servicemanager": "^3.21 when using SMTP to deliver messages"
-    },
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "composer/package-versions-deprecated": true,
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        },
-        "platform": {
-            "php": "8.1.99"
-        }
-    },
-    "extra": {
-        "laminas": {
-            "component": "Laminas\\Mail",
-            "config-provider": "Laminas\\Mail\\ConfigProvider"
-        }
+        "laminas/laminas-servicemanager": "^3.24 when using SMTP to deliver messages"
     },
     "autoload": {
         "psr-4": {
-            "Laminas\\Mail\\": "src/"
+            "Contenir\\Mail\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "LaminasTest\\Mail\\": "test/"
+            "Contenir\\Mail\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -63,18 +51,33 @@
             "@static-analysis",
             "@test"
         ],
-        "cs-check": "phpcs",
-        "cs-fix": "phpcbf",
-        "static-analysis": "psalm --shepherd --stats",
-        "test": "phpunit --colors=always",
+        "cs-check": [
+            "mago format --check",
+            "mago lint"
+        ],
+        "cs-fix": [
+            "mago format",
+            "mago lint --fix"
+        ],
+        "static-analysis": "mago analyze",
+        "test": "phpunit --colors=always --testsuite unit",
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
     },
-    "support": {
-        "issues": "https://github.com/laminas/laminas-mail/issues",
-        "forum": "https://discourse.laminas.dev",
-        "chat": "https://laminas.dev/chat",
-        "source": "https://github.com/laminas/laminas-mail",
-        "docs": "https://docs.laminas.dev/laminas-mail/",
-        "rss": "https://github.com/laminas/laminas-mail/releases.atom"
-    }
+    "config": {
+        "platform": {
+            "php": "8.3.99"
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        },
+        "laminas": {
+            "component": "Contenir\\Mail",
+            "config-provider": "Contenir\\Mail\\ConfigProvider"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

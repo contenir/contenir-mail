@@ -30,9 +30,6 @@ use function unlink;
 use const DIRECTORY_SEPARATOR;
 use const PHP_OS;
 
-/**
- * @group      Contenir_Mail
- */
 class MaildirWritableTest extends TestCase
 {
     /** @var array */

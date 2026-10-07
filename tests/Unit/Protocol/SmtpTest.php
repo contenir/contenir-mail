@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Exception;
@@ -9,10 +10,7 @@ use Contenir\Mail\Transport\Smtp;
 use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Protocol\Smtp<extended>
- */
+#[CoversClass(\Contenir\Mail\Protocol\Smtp::class)]
 class SmtpTest extends TestCase
 {
     /** @var Smtp */
