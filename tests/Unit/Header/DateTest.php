@@ -141,9 +141,13 @@ final class DateTest extends TestCase
     public static function unparseableDateProvider(): array
     {
         return [
-            'words'        => ['Date: xxx yyy', 'Invalid Date header value "xxx yyy"'],
-            'empty'        => ['Date: ', 'Invalid Date header value ""'],
-            'comment only' => ['Date: (CEST)', 'Invalid Date header value ""'],
+            'words'          => ['Date: xxx yyy', 'Invalid Date header value "xxx yyy"'],
+            'empty'          => ['Date: ', 'Invalid Date header value ""'],
+            'comment only'   => ['Date: (CEST)', 'Invalid Date header value ""'],
+            'trailing space' => ["Date: xxx yyy \t", 'Invalid Date header value "xxx yyy"'],
+            'time only'      => ['Date: 10:00:00 +0000', 'Invalid Date header value "10:00:00 +0000"'],
+            'no year'        => ['Date: 1 Jan 10:00:00 +0000', 'Invalid Date header value "1 Jan 10:00:00 +0000"'],
+            'month and day'  => ['Date: Jan 1', 'Invalid Date header value "Jan 1"'],
         ];
     }
 

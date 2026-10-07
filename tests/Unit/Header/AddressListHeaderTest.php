@@ -540,4 +540,41 @@ final class AddressListHeaderTest extends TestCase
             ],
         );
     }
+
+    /**
+     * @param array{string|null, string, string|null} $expected
+     */
+    #[DataProvider('foldedAddressProvider')]
+    #[Test]
+    public function unfoldsNameAndCommentAcrossFolds(string $headerLine, array $expected): void
+    {
+        $address = To::fromString($headerLine)->getAddressList()->first();
+
+        static::assertSame($expected, [$address?->getName(), $address?->getEmail(), $address?->getComment()]);
+    }
+
+    /**
+     * @return array<string, array{string, array{string|null, string, string|null}}>
+     */
+    public static function foldedAddressProvider(): array
+    {
+        return [
+            'comment folded with space' => [
+                "To: a@example.com (work\r\n place)",
+                [null, 'a@example.com', 'work place'],
+            ],
+            'comment folded with tab'   => [
+                "To: a@example.com (work\r\n\tplace)",
+                [null, 'a@example.com', 'work place'],
+            ],
+            'name folded with tab'      => [
+                "To: \"John\r\n\tSmith\" <j@example.com>",
+                ['John Smith', 'j@example.com', null],
+            ],
+            'fold before address'       => [
+                "To: John Smith\r\n <j@example.com>",
+                ['John Smith', 'j@example.com', null],
+            ],
+        ];
+    }
 }
