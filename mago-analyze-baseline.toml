@@ -11578,7 +11578,7 @@ count = 2
 file = "src/Storage/Writable/Maildir.php"
 code = "mixed-assignment"
 message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
-count = 17
+count = 15
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
@@ -11621,12 +11621,6 @@ file = "src/Storage/Writable/Maildir.php"
 code = "mixed-operand"
 message = "Left operand in `>` comparison has `mixed` type."
 count = 4
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "mixed-operand"
-message = "Left operand in binary operation has type `mixed`."
-count = 2
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
@@ -11729,18 +11723,6 @@ file = "src/Storage/Writable/Maildir.php"
 code = "possibly-null-argument"
 message = 'Argument #1 of method `Contenir\Mail\Storage\Folder\Maildir::getFolders` is possibly `null`, but parameter type `string` does not accept it.'
 count = 2
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "possibly-null-operand"
-message = "Right operand in arithmetic operation might be `null` (type `null|string`)."
-count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array index accessed on `non-empty-list<string>`."
-count = 1
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"

@@ -2932,13 +2932,7 @@ count = 1
 file = "src/Storage/Writable/Maildir.php"
 code = "halstead"
 message = "Method has a high halstead effort"
-count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "halstead"
-message = "Method has a high halstead volume and effort"
-count = 1
+count = 2
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
@@ -7300,7 +7294,7 @@ count = 2
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "assertion-style"
 message = "Inconsistent assertions style."
-count = 29
+count = 18
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7358,21 +7352,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 4
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "no-redundant-variable"
-message = "Variable `$mail` is assigned but never used."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7948,7 +7930,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "assertion-style"
 message = "Inconsistent assertions style."
-count = 55
+count = 44
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -8045,12 +8027,6 @@ file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "no-redundant-variable"
 message = "Variable `$e` is assigned but never used."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "no-redundant-variable"
-message = "Variable `$mail` is assigned but never used."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
