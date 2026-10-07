@@ -1,6 +1,6 @@
 # Reading and Storing Mail
 
-laminas-mail can read mail messages from several local or remote mail storage
+contenir-mail can read mail messages from several local or remote mail storage
 types. Storage adapters share the same API for counting and fetching messages,
 and some of them implement additional interfaces for less common features. For a
 feature overview of the implemented storages, see the following table.

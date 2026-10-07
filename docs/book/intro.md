@@ -1,7 +1,7 @@
 # Introduction
 
-laminas-mail provides generalized functionality to compose and send both text and
-MIME-compliant multipart email messages. Mail can be sent with laminas-mail via any
+contenir-mail provides generalized functionality to compose and send both text and
+MIME-compliant multipart email messages. Mail can be sent with contenir-mail via any
 of the Sendmail, SMTP, or file-based transports it defines.  You can also
 implement your own transport by implementing the
 `Contenir\Mail\Transport\TransportInterface`.
@@ -27,7 +27,7 @@ $transport->send($mail);
 
 > ### Minimum definitions
 >
-> In order to send an email using laminas-mail you have to specify at least one
+> In order to send an email using contenir-mail you have to specify at least one
 > recipient as well as a message body. Please note that each transport may
 > require additional parameters to be set.
 

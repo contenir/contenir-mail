@@ -1,40 +1,115 @@
-# laminas-mail
+# contenir/contenir-mail
 
-[![Build Status](https://github.com/laminas/laminas-mail/workflows/Continuous%20Integration/badge.svg)](https://github.com/laminas/laminas-mail/actions?query=workflow%3A"Continuous+Integration")
+[![Continuous Integration](https://github.com/contenir/contenir-mail/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/contenir/contenir-mail/actions/workflows/continuous-integration.yml)
+[![codecov](https://codecov.io/gh/contenir/contenir-mail/graph/badge.svg)](https://codecov.io/gh/contenir/contenir-mail)
 
-> ## Abandoned
->
-> This package is **abandoned** and will receive no further development!
->
-> It is suggested to use
->
-> - [ddeboer/imap](https://github.com/ddeboer/imap) for interacting with IMAP
-> - [zbateson/mail-mime-parser](https://github.com/zbateson/mail-mime-parser) for parsing MIME messages
-> - [symfony/mailer](https://github.com/symfony/mailer) for sending mail
->
-> See the Technical Steering Committee [meeting minutes](https://github.com/laminas/technical-steering-committee/blob/main/meetings/minutes/2023-12-04-TSC-Minutes.md).
+Compose, parse, store and send text and MIME-compliant multipart e-mail messages.
 
-> ## 🇷🇺 Русским гражданам
->
-> Мы, участники Laminas, родились и живем в разных странах. У многих из нас есть друзья, родственники и коллеги как в России, так и в Украине. Некоторые из нас родились в России. Некоторые из нас живут в России. У некоторых бабушки и дедушки сражались с фашистами во Второй мировой войне. Здесь никто не поддерживает фашизм.
->
-> У одного из нас есть украинская родственница, которая спаслась из дома вместе с сыном. Поезд задержался из-за бомбежки на дороге впереди. У нас есть друзья, которые прячутся в бомбоубежищах. Мы с тревогой ждем весточки от них после воздушных налетов, которые беспорядочно наносят удары и попадают по больницам, школам, детским садам и домам. Мы не берем это из каких-либо СМИ. Мы наблюдаем это напрямую.
->
-> Вы доверяете нам достаточно, чтоб использовать наши программы, и мы просим вас довериться нам вновь. Мы нуждаемся в помощи. Выходите и протестуйте против этой бесполезной войны. Остановите кровопролитие. Скажите "Нет войне!"
->
-> ## 🇺🇸 To Citizens of Russia
->
-> We at Laminas come from all over the world. Many of us have friends, family and colleagues in both Russia and Ukraine. Some of us were born in Russia. Some of us currently live in Russia. Some have grandparents who fought Nazis in World War II. Nobody here supports fascism.
->
-> One team member has a Ukrainian relative who fled her home with her son. The train was delayed due to bombing on the road ahead. We have friends who are hiding in bomb shelters. We anxiously follow up on them after the air raids, which indiscriminately fire at hospitals, schools, kindergartens and houses. We're not taking this from any media. These are our actual experiences.
->
-> You trust us enough to use our software. We ask that you trust us to say the truth on this. We need your help. Go out and protest this unnecessary war. Stop the bloodshed. Say "stop the war!"
+`contenir/contenir-mail` is a maintained continuation of the abandoned
+[laminas/laminas-mail](https://github.com/laminas/laminas-mail) and
+[laminas/laminas-mime](https://github.com/laminas/laminas-mime) components, which
+were themselves the successors of Zend Framework's `Zend\Mail` and `Zend\Mime`.
+The complete history of both repositories, back to 2009, is preserved here, so
+every contributor keeps their authorship in `git log` and `git blame`.
 
-`Laminas\Mail` provides generalized functionality to compose and send both text and
-MIME-compliant multipart email messages. Mail can be sent with `Laminas\Mail` via
-the `Mail\Transport\Sendmail`, `Mail\Transport\Smtp` or the `Mail\Transport\File`
-transport. Of course, you can also implement your own transport by implementing
-the `Mail\Transport\TransportInterface`.
+- **Messages:** `Message`, `Headers` and the `Header\*` classes, `Address` and `AddressList`.
+- **MIME:** `Mime\Message`, `Mime\Part`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
+- **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`.
+- **Storage:** read and write `Mbox` and `Maildir`, and read over `Imap` and `Pop3`.
 
-- File issues at https://github.com/laminas/laminas-mail/issues
-- Documentation is at https://docs.laminas.dev/laminas-mail/
+## Requirements
+
+- PHP 8.3, 8.4 or 8.5
+- `ext-iconv`
+- `laminas/laminas-servicemanager` 3.24 or later when sending through SMTP
+
+## Install
+
+```bash
+composer require contenir/contenir-mail
+```
+
+## Usage
+
+```php
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\Sendmail;
+
+$message = new Message();
+$message->setEncoding('UTF-8');
+$message->addFrom('sender@example.org', 'Sender');
+$message->addTo('recipient@example.com', 'Recipient');
+$message->setSubject('Hello');
+$message->setBody('This is the text of the e-mail.');
+
+(new Sendmail())->send($message);
+```
+
+See the [documentation](docs/book/index.md) for transports, attachments,
+character sets and reading mail.
+
+## Migrating from laminas-mail and laminas-mime
+
+The public API is kept as close to laminas-mail 2.25 and laminas-mime 2.12 as
+possible: classes, methods and options keep their names and signatures, and only
+the namespace changes.
+
+| laminas                                         | contenir-mail            |
+| ----------------------------------------------- | ------------------------ |
+| `Laminas\Mail\*`                                | `Contenir\Mail\*`        |
+| `Laminas\Mime\*`                                | `Contenir\Mail\Mime\*`   |
+| `laminas/laminas-mail` + `laminas/laminas-mime` | `contenir/contenir-mail` |
+
+1. Replace both packages:
+
+   ```bash
+   composer remove laminas/laminas-mail laminas/laminas-mime
+   composer require contenir/contenir-mail
+   ```
+
+2. Rewrite the namespaces. `Laminas\Mime` must be rewritten before `Laminas\Mail`:
+
+   ```bash
+   grep -rlE 'Laminas\\+(Mail|Mime)' src config test \
+     | xargs perl -pi -e 's/Laminas(\\+)Mime/Contenir${1}Mail${1}Mime/g; s/Laminas(\\+)Mail/Contenir${1}Mail/g'
+   ```
+
+3. Register `Contenir\Mail\ConfigProvider` (Mezzio) or the `Contenir\Mail` module
+   (laminas-mvc) in place of the Laminas ones.
+
+There are no `Laminas\*` class aliases. The following were also removed:
+
+- The legacy `Zend\Mail\*` service names, and the normalised `zendmail*` and
+  `laminasmail*` aliases of `SmtpPluginManager`. Use the class names or the short
+  names (`smtp`, `login`, `plain`, `crammd5`, `xoauth2`).
+- The `TESTS_LAMINAS_MAIL_*` test environment variables, now `TESTS_CONTENIR_MAIL_*`.
+
+Behaviour changes:
+
+- `HeaderWrap::mimeDecodeValue()` no longer uses ext-imap, which left PHP core in
+  8.4. A built-in RFC 2047 decoder handles multibyte characters split across
+  encoded words on every PHP version.
+- A failed `AbstractProtocol::_connect()` no longer leaves its temporary error
+  handler installed.
+
+## Development
+
+The QA toolchain comes from
+[contenir/contenir-qa-tools](https://github.com/contenir/contenir-qa-tools):
+Mago for formatting, linting and static analysis, and PHPUnit 11.
+
+```bash
+composer check            # cs-check, static-analysis and test
+composer cs-fix           # mago format + mago lint --fix
+```
+
+Findings inherited from laminas-mail and laminas-mime are recorded in
+`mago-lint-baseline.toml` and `mago-analyze-baseline.toml`. Many can only be fixed
+by breaking the public API. New code is held to the full standard.
+
+Tests that need a live IMAP, POP3 or SMTP server are skipped unless enabled through
+the `TESTS_CONTENIR_MAIL_*` variables documented in `phpunit.xml.dist`.
+
+## License
+
+BSD-3-Clause. See [LICENSE.md](LICENSE.md) and [COPYRIGHT.md](COPYRIGHT.md).

@@ -1,3 +1,4 @@
+Copyright (c) 2026 Contenir.
 Copyright (c) 2020 Laminas Project a Series of LF Projects, LLC.
 
 Redistribution and use in source and binary forms, with or without

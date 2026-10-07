@@ -1,8 +1,8 @@
 # Adding Attachments
 
-laminas-mail does not directly provide the ability to create and use mail
+contenir-mail does not directly provide the ability to create and use mail
 attachments. However, it allows using `Contenir\Mail\Mime\Message` instances, from the
-[laminas-mime](https://github.com/laminas/laminas-mime) component, for message
+bundled `Contenir\Mail\Mime` component, for message
 bodies, allowing you to create multipart emails.
 
 ## Basic multipart content
@@ -38,8 +38,8 @@ $contentTypeHeader->setType('multipart/related');
 ```
 
 Note that the above code requires us to manually specify the message content
-type; laminas-mime does not automatically select the multipart type for us, nor
-does laminas-mail populate it by default.
+type; `Contenir\Mail\Mime` does not automatically select the multipart type for us, nor
+does contenir-mail populate it by default.
 
 ## multipart/alternative content
 

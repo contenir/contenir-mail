@@ -3,7 +3,7 @@
 Transports take care of the actual delivery of mail. Typically, you only need to
 worry about two possibilities: using PHP's native `mail()` functionality, which
 uses system resources to deliver mail, or using the SMTP protocol for delivering
-mail via a remote server. Laminas also includes a "File" transport, which
+mail via a remote server. contenir-mail also includes a "File" transport, which
 creates a mail file for each message sent; these can later be introspected as
 logs or consumed for the purposes of sending via an alternate transport
 mechanism later.
@@ -76,7 +76,6 @@ $transport->send($message);
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\File as FileTransport;
 use Contenir\Mail\Transport\FileOptions;
-use Laminas\Math\Rand;
 
 $message = new Message();
 $message->addTo('matthew@example.org');
@@ -92,7 +91,7 @@ $options   = new FileOptions([
         return sprintf(
             'Message_%f_%s.txt',
             microtime(true),
-            Rand::getString(8)
+            bin2hex(random_bytes(4))
         );
     },
 ]);
