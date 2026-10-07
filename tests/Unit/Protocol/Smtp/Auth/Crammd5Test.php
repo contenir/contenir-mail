@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Exception\InvalidArgumentException;
