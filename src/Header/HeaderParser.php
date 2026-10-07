@@ -41,19 +41,30 @@ final readonly class HeaderParser
     }
 
     /**
+     * Build headers from header objects, lines and name-value pairs. Unlike
+     * a parsed block, these are built here, so a name may be at most
+     * HeaderName::MAX_LENGTH long.
+     *
      * @param iterable<int|string, HeaderInterface|string|array{string, string}> $headers
      * @return list<HeaderInterface>
+     * @throws Exception\InvalidArgumentException When a line is malformed or a name is too long.
      */
     public function parseIterable(iterable $headers): array
     {
         $parsed = [];
         foreach ($headers as $name => $value) {
-            $parsed[] = match (true) {
-                $value instanceof HeaderInterface => $value,
-                is_array($value) => $this->parseLine("{$value[0]}: {$value[1]}"),
-                is_int($name)    => $this->parseLine($value),
-                default          => $this->parseLine("{$name}: {$value}"),
+            if ($value instanceof HeaderInterface) {
+                $parsed[] = $value;
+                continue;
+            }
+
+            $line = match (true) {
+                is_array($value) => "{$value[0]}: {$value[1]}",
+                is_int($name)    => $value,
+                default          => "{$name}: {$value}",
             };
+            HeaderName::assertLength(GenericHeader::splitHeaderLine($line)[0]);
+            $parsed[] = $this->parseLine($line);
         }
 
         return $parsed;

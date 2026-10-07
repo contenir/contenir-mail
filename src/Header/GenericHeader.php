@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Override;
+use ReflectionClass;
 
 use function count;
 use function explode;
@@ -23,42 +24,28 @@ final readonly class GenericHeader implements HeaderInterface
     private string $fieldValue;
 
     /**
-     * @throws Exception\InvalidArgumentException When the name or value is invalid.
+     * @throws Exception\InvalidArgumentException When the name or value is invalid, or the name is longer than HeaderName::MAX_LENGTH.
      */
     public function __construct(string $fieldName, string $fieldValue = '')
     {
-        // Normalise "content_type" and "content type" to "Content-Type"
-        $fieldName = str_replace(
-            search: ' ',
-            replace: '-',
-            subject: ucwords(str_replace(
-                search: ['_', '-'],
-                replace: ' ',
-                subject: $fieldName,
-            )),
-        );
-        if (! HeaderName::isValid($fieldName)) {
-            throw new Exception\InvalidArgumentException(
-                'Header name must be composed of printable US-ASCII characters, except colon.',
-            );
-        }
-
-        if (! HeaderWrap::canBeEncoded($fieldValue)) {
-            throw new Exception\InvalidArgumentException(
-                'Header value must be composed of printable US-ASCII characters and valid folding sequences.',
-            );
-        }
-
-        $this->fieldName  = $fieldName;
-        $this->fieldValue = $fieldValue;
+        HeaderName::assertLength($fieldName);
+        $this->initialise($fieldName, $fieldValue);
     }
 
+    /**
+     * A received line may hold a name longer than HeaderName::MAX_LENGTH and
+     * still fit in 998 characters, so a parsed name is not limited in length.
+     * A parsed message writes such a line back as it was received.
+     */
     #[Override]
     public static function fromString(string $headerLine): static
     {
         [$name, $value] = self::splitHeaderLine($headerLine);
+        /** @mago-expect analysis:unhandled-thrown-type A user-defined final class can always be instantiated this way. */
+        $header = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $header->initialise($name, HeaderWrap::mimeDecodeValue($value));
 
-        return new self($name, HeaderWrap::mimeDecodeValue($value));
+        return $header;
     }
 
     /**
@@ -109,5 +96,36 @@ final readonly class GenericHeader implements HeaderInterface
     public function toString(): string
     {
         return "{$this->fieldName}: {$this->getEncodedFieldValue()}";
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When the name or value is invalid.
+     */
+    private function initialise(string $fieldName, string $fieldValue): void
+    {
+        /** Normalise "content_type" and "content type" to "Content-Type" */
+        $fieldName = str_replace(
+            search: ' ',
+            replace: '-',
+            subject: ucwords(str_replace(
+                search: ['_', '-'],
+                replace: ' ',
+                subject: $fieldName,
+            )),
+        );
+        if (! HeaderName::isValid($fieldName)) {
+            throw new Exception\InvalidArgumentException(
+                'Header name must be composed of printable US-ASCII characters, except colon.',
+            );
+        }
+
+        if (! HeaderWrap::canBeEncoded($fieldValue)) {
+            throw new Exception\InvalidArgumentException(
+                'Header value must be composed of printable US-ASCII characters and valid folding sequences.',
+            );
+        }
+
+        $this->fieldName  = $fieldName;
+        $this->fieldValue = $fieldValue;
     }
 }

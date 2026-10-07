@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Header\EncodedWordDecoder;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderWrap;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -14,8 +15,12 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function chr;
+use function explode;
+use function max;
 use function str_repeat;
+use function strlen;
 
 #[CoversClass(GenericHeader::class)]
 #[CoversClass(HeaderWrap::class)]
@@ -302,5 +307,49 @@ final class GenericHeaderTest extends TestCase
             'double cr-lf' => ["xxx yyy\r\n\r\n", '=?UTF-8?Q?xxx=20yyy=0D=0A=0D=0A?='],
             'multiline'    => ["xxx\r\ny\r\nyy", '=?UTF-8?Q?xxx=0D=0Ay=0D=0Ayy?='],
         ];
+    }
+
+    #[Test]
+    public function rejectsNameLongerThanMaximumLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 981 characters');
+
+        new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH + 1), 'value');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function valueAfterLongestNameProvider(): array
+    {
+        return [
+            'empty'                  => [''],
+            'one character'          => ['x'],
+            'words'                  => ['hello world'],
+            'long word'              => [str_repeat('a', times: 2000)],
+            'many words'             => [str_repeat('ab ', times: 400)],
+            'two-byte character'     => ["h\u{E9}llo"],
+            'four-byte characters'   => [str_repeat("\u{1F600}", times: 40)],
+            'leading space'          => [' lead'],
+            'encoded-word lookalike' => ['=?x?='],
+        ];
+    }
+
+    #[DataProvider('valueAfterLongestNameProvider')]
+    #[Test]
+    public function writesNoLineLongerThan998WithNameOfMaximumLength(string $value): void
+    {
+        $header = new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH), $value);
+
+        static::assertLessThanOrEqual(998, max(array_map(strlen(...), explode("\r\n", $header->toString()))));
+    }
+
+    #[Test]
+    public function fromStringKeepsReceivedNameLongerThanMaximumLength(): void
+    {
+        $name = str_repeat('X', times: 990);
+
+        static::assertSame($name, GenericHeader::fromString("{$name}: value")->getFieldName());
     }
 }
