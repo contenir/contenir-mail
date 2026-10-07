@@ -2725,39 +2725,9 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ConfigProviderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/ContentDispositionTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -2779,63 +2749,15 @@ message = "Variable `$contentTransferEncodingHeader` is assigned but never used.
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/ContentTypeTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/DateTest.php"
 code = "no-redundant-variable"
 message = "Variable `$address` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -2875,12 +2797,6 @@ message = "Literal argument `78` should be passed as a named argument for clarit
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/IdentificationFieldTest.php"
 code = "no-redundant-variable"
 message = "Variable `$header` is assigned but never used."
@@ -2893,21 +2809,9 @@ message = "Use the array spread operator instead of `array_merge()`."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/MessageIdTest.php"
 code = "no-redundant-variable"
 message = "Variable `$messageid` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -2917,21 +2821,9 @@ message = "Variable `$mime` is assigned but never used."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/ReceivedTest.php"
 code = "no-redundant-variable"
 message = "Variable `$received` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -2947,45 +2839,15 @@ message = "Use the array spread operator instead of `array_merge()`."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Header/SubjectTest.php"
 code = "literal-named-argument"
 message = "Literal argument `10` should be passed as a named argument for clarity."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/HeadersTest.php"
 code = "no-redundant-variable"
 message = "Variable `$f` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3004,12 +2866,6 @@ count = 4
 file = "tests/Unit/MessageTest.php"
 code = "no-redundant-variable"
 message = "Variable `$sender` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3067,27 +2923,9 @@ message = "Call to `base64_decode` must enforce strict comparison."
 count = 2
 
 [[issues]]
-file = "tests/Unit/ModuleTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Protocol/HttpStatusService/index.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/HttpStatusService/index.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3115,27 +2953,9 @@ message = "Ambiguous constant access detected."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Protocol/ProtocolTraitTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Protocol/SmtpPluginManagerCompatibilityTest.php"
 code = "prefer-test-attribute"
 message = "Use `#[Test]` attribute instead of `test` prefix on method `testPluginAliasesResolve`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerCompatibilityTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3145,27 +2965,9 @@ message = "Avoid `else` clauses."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Protocol/SmtpTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/TestAsset/ErroneousSmtp.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3295,12 +3097,6 @@ message = "Use of the `isset` construct."
 count = 4
 
 [[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "identity-comparison"
 message = "Use identity comparison `===` instead of equality comparison `==`."
@@ -3347,12 +3143,6 @@ file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
@@ -3419,12 +3209,6 @@ file = "tests/Unit/Storage/MaildirTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -3523,12 +3307,6 @@ message = "Variable `$e` is assigned but never used."
 count = 2
 
 [[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MboxFolderTest.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
@@ -3583,12 +3361,6 @@ message = "Variable `$mail` is assigned but never used."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MboxInterfaceTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
@@ -3599,12 +3371,6 @@ file = "tests/Unit/Storage/MboxInterfaceTest.php"
 code = "no-redundant-variable"
 message = "Variable `$message` is assigned but never used."
 count = 4
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MboxMessageOldTest.php"
@@ -3640,12 +3406,6 @@ count = 1
 file = "tests/Unit/Storage/MboxMessageOldTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3727,12 +3487,6 @@ message = "Variable `$mail` is assigned but never used."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
@@ -3799,18 +3553,6 @@ message = "Variable `$message` is assigned but never used."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/Pop3Test.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
@@ -3859,18 +3601,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/TestAsset/MaildirOldMessage.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/TestAsset/MboxOldMessage.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/TestAsset/SmtpProtocolSpy.php"
 code = "method-name"
 message = "Method name `_expect` should be in camel case."
@@ -3895,27 +3625,9 @@ message = "Avoid `else` clauses."
 count = 1
 
 [[issues]]
-file = "tests/Unit/TestAsset/SmtpProtocolSpy.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/TestAsset/StringSerializableObject.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Transport/FactoryTest.php"
 code = "literal-named-argument"
 message = "Literal argument `'3.3.0'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3925,27 +3637,9 @@ message = "Ambiguous function call detected."
 count = 2
 
 [[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Transport/FileTest.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/InMemoryTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3973,12 +3667,6 @@ message = "Avoid `else` clauses."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Transport/SmtpTest.php"
 code = "literal-named-argument"
 message = "Literal argument `0` should be passed as a named argument for clarity."
@@ -3994,10 +3682,4 @@ count = 1
 file = "tests/Unit/Transport/SmtpTest.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
