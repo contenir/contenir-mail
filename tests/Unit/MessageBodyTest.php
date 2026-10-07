@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
@@ -551,7 +552,7 @@ final class MessageBodyTest extends TestCase
 
     private function makeMessage(): Message
     {
-        return new Message(clock: new TestAsset\FixedClock(new DateTimeImmutable('2024-01-01T00:00:00Z')));
+        return new Message(new Headers(new Date(new DateTimeImmutable('2024-01-01T00:00:00Z'))));
     }
 
     /**
