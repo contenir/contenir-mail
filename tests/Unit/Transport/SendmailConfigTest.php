@@ -48,7 +48,7 @@ final class SendmailConfigTest extends TestCase
     public function rejectsParameterListOfNonStrings(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('option "parameters" must be a list of strings, got int');
+        $this->expectExceptionMessage('option "parameters" must be a string or a list of strings, got int');
 
         SendmailConfig::fromIterable(['parameters' => [1]]);
     }

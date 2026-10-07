@@ -457,7 +457,7 @@ final class MboxTest extends TestCase
     #[Test]
     public function requiresFilename(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('Contenir\Mail\Storage\MboxConfig: option "filename" is required');
 
         MboxConfig::fromIterable([]);

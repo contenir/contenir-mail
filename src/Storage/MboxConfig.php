@@ -40,7 +40,7 @@ final readonly class MboxConfig
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
         return new self(
-            filename: LocalPath::required($reader, 'filename', self::class),
+            filename: $reader->requiredString('filename'),
             format: $reader->enum('format', default: MboxFormat::Mboxo),
         );
     }

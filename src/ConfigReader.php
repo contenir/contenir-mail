@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail;
 
 use BackedEnum;
+use Closure;
 
 use function array_key_exists;
 use function array_keys;
@@ -12,14 +13,18 @@ use function get_debug_type;
 use function implode;
 use function in_array;
 use function is_bool;
+use function is_callable;
 use function is_int;
 use function is_iterable;
 use function is_string;
 use function preg_match;
 use function preg_replace;
+use function preg_split;
 use function sprintf;
 use function str_replace;
 use function strtolower;
+
+use const PREG_SPLIT_NO_EMPTY;
 
 /**
  * Reads an array or iterable of settings into typed values for a *Config object.
@@ -135,6 +140,16 @@ final readonly class ConfigReader
     }
 
     /**
+     * A setting that cannot be left out.
+     *
+     * @throws Exception\InvalidArgumentException When the value is missing or not a string.
+     */
+    public function requiredString(string $key): string
+    {
+        return $this->nullableString($key) ?? throw $this->missing($key);
+    }
+
+    /**
      * @throws Exception\InvalidArgumentException When the value is not an integer or a string of digits.
      */
     public function int(string $key, int $default): int
@@ -160,6 +175,16 @@ final readonly class ConfigReader
     }
 
     /**
+     * A setting that cannot be left out.
+     *
+     * @throws Exception\InvalidArgumentException When the value is missing, or not an integer or a string of digits.
+     */
+    public function requiredInt(string $key): int
+    {
+        return $this->nullableInt($key) ?? throw $this->missing($key);
+    }
+
+    /**
      * @throws Exception\InvalidArgumentException When the value is not a bool or a recognised bool string.
      */
     public function bool(string $key, bool $default): bool
@@ -169,22 +194,43 @@ final readonly class ConfigReader
             return $default;
         }
 
-        if (is_bool($value)) {
+        return self::toBool($value) ?? throw $this->invalid($key, 'a bool', $value);
+    }
+
+    /**
+     * A setting that is either a string or a bool, such as the laminas-mail "ssl" setting.
+     *
+     * A string is returned as it is; anything else is read as bool() reads it.
+     *
+     * @throws Exception\InvalidArgumentException When the value is neither a string nor a bool.
+     */
+    public function stringOrBool(string $key): string|bool|null
+    {
+        $value = $this->values[$key] ?? null;
+        if (null === $value || is_string($value)) {
             return $value;
         }
 
-        if (is_int($value) || is_string($value)) {
-            $text = strtolower((string) $value);
-            if (in_array($text, self::TRUE_STRINGS, strict: true)) {
-                return true;
-            }
+        return self::toBool($value) ?? throw $this->invalid($key, 'a string or a bool', $value);
+    }
 
-            if (in_array($text, self::FALSE_STRINGS, strict: true)) {
-                return false;
-            }
+    /**
+     * A callable, as a Closure.
+     *
+     * @throws Exception\InvalidArgumentException When the value is not callable.
+     */
+    public function callable(string $key): ?Closure
+    {
+        $value = $this->values[$key] ?? null;
+        if (null === $value) {
+            return null;
         }
 
-        throw $this->invalid($key, 'a bool', $value);
+        if (! is_callable($value)) {
+            throw $this->invalid($key, 'a callable', $value);
+        }
+
+        return Closure::fromCallable($value);
     }
 
     /**
@@ -250,8 +296,8 @@ final readonly class ConfigReader
     }
 
     /**
-     * @return list<string>
      * @param list<string> $default
+     * @return list<string>
      * @throws Exception\InvalidArgumentException When the value is not an iterable of strings.
      */
     public function stringList(string $key, array $default): array
@@ -261,20 +307,30 @@ final readonly class ConfigReader
             return $default;
         }
 
-        if (! is_iterable($value)) {
-            throw $this->invalid($key, 'a list of strings', $value);
+        return $this->list($key, $value, 'a list of strings');
+    }
+
+    /**
+     * A list of words, given as a list of strings or as one string split on whitespace.
+     *
+     * @param list<string> $default
+     * @return list<string>
+     * @throws Exception\InvalidArgumentException When the value is neither a string nor an iterable of strings.
+     */
+    public function stringOrList(string $key, array $default): array
+    {
+        $value = $this->values[$key] ?? null;
+        if (null === $value) {
+            return $default;
         }
 
-        $list = [];
-        foreach ($value as $item) {
-            if (! is_string($item)) {
-                throw $this->invalid($key, 'a list of strings', $item);
-            }
+        if (is_string($value)) {
+            $words = preg_split('/\s+/', $value, flags: PREG_SPLIT_NO_EMPTY);
 
-            $list[] = $item;
+            return false === $words ? [] : $words;
         }
 
-        return $list;
+        return $this->list($key, $value, 'a string or a list of strings');
     }
 
     private static function normalise(string $key): string
@@ -288,6 +344,55 @@ final readonly class ConfigReader
                 subject: $key,
             ),
         ));
+    }
+
+    /**
+     * @return list<string>
+     * @throws Exception\InvalidArgumentException When the value is not an iterable of strings.
+     */
+    private function list(string $key, mixed $value, string $expected): array
+    {
+        if (! is_iterable($value)) {
+            throw $this->invalid($key, $expected, $value);
+        }
+
+        $list = [];
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                throw $this->invalid($key, $expected, $item);
+            }
+
+            $list[] = $item;
+        }
+
+        return $list;
+    }
+
+    /**
+     * A bool, or one of the integers and strings that stand for one; null for anything else.
+     */
+    private static function toBool(mixed $value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (! is_int($value) && ! is_string($value)) {
+            return null;
+        }
+
+        $text = strtolower((string) $value);
+
+        return match (true) {
+            in_array($text, self::TRUE_STRINGS, strict: true) => true,
+            in_array($text, self::FALSE_STRINGS, strict: true) => false,
+            default => null,
+        };
+    }
+
+    private function missing(string $key): Exception\InvalidArgumentException
+    {
+        return new Exception\InvalidArgumentException(sprintf('%s: option "%s" is required', $this->context, $key));
     }
 
     private function invalid(string $key, string $expected, mixed $value): Exception\InvalidArgumentException

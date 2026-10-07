@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage\Folder;
 
+use Contenir\Mail\Exception\InvalidArgumentException as ConfigException;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\FileSystem;
@@ -267,7 +268,7 @@ final class MaildirTest extends TestCase
     #[Test]
     public function requiresDirname(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('Contenir\Mail\Storage\Folder\MaildirConfig: option "dirname" is required');
 
         MaildirConfig::fromIterable([]);

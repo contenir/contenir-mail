@@ -72,7 +72,7 @@ final class RemoteConfigTest extends TestCase
     public function refusesSslOfTheWrongType(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('option "ssl" must be a bool, got array');
+        $this->expectExceptionMessage('option "ssl" must be a string or a bool, got array');
 
         ImapConfig::fromIterable(['user' => 'u', 'ssl' => []]);
     }

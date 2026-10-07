@@ -8,8 +8,6 @@ use Closure;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 
-use function get_debug_type;
-use function is_callable;
 use function is_dir;
 use function is_link;
 use function is_writable;
@@ -25,7 +23,6 @@ use function sys_get_temp_dir;
  * FileConfig::fromIterable(['path' => '/var/mail-out']);
  * ```
  *
- * @mago-expect analysis:mixed-assignment Settings arrive untyped; ConfigReader reads them into types.
  */
 final readonly class FileConfig
 {
@@ -69,27 +66,8 @@ final readonly class FileConfig
      */
     public static function fromIterable(iterable $config): self
     {
-        $values   = [];
-        $callback = null;
-        foreach ($config as $key => $value) {
-            if ('callback' === $key) {
-                $callback = $value;
-                continue;
-            }
+        $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
-            $values[$key] = $value;
-        }
-
-        if (null !== $callback && ! is_callable($callback)) {
-            throw new InvalidArgumentException(sprintf(
-                '%s: option "callback" must be a callable, got %s',
-                self::class,
-                get_debug_type($callback),
-            ));
-        }
-
-        $reader = ConfigReader::read(self::class, $values, self::KEYS);
-
-        return new self($reader->nullableString('path'), $callback);
+        return new self($reader->nullableString('path'), $reader->callable('callback'));
     }
 }

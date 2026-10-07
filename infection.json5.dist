@@ -36,11 +36,6 @@
                 "\\$i \\+= 2;"
             ]
         },
-        "FalseValue": {
-            // RemoteConnection reads "ssl" as a bool only once has('ssl') is true, so the default
-            // is never used.
-            "ignore": ["Contenir\\Mail\\Storage\\RemoteConnection::legacySecurity"]
-        },
         "IncrementInteger": {
             // Any read size gives the same output, as unencoded bytes carry over to the next read.
             "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
