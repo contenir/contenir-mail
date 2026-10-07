@@ -6,6 +6,7 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Exception\RuntimeException;
 
+use function count;
 use function preg_match;
 use function sprintf;
 use function trim;
@@ -17,6 +18,9 @@ use function trim;
  */
 final class HeaderBlock
 {
+    /** Most headers one block may hold */
+    public const int MAX_HEADERS = 1000;
+
     /**
      * Split a header block into fields: each header's unfolded line, and its
      * text as it was written, folded lines joined by CRLF.
@@ -26,7 +30,7 @@ final class HeaderBlock
      * when a line of only whitespace was dropped from the field.
      *
      * @return list<array{string, string|null}>
-     * @throws RuntimeException When a line is neither a header nor a continuation.
+     * @throws RuntimeException When a line is neither a header nor a continuation, or the block is too large.
      */
     public static function fields(string $block, string $eol): array
     {
@@ -61,6 +65,10 @@ final class HeaderBlock
             }
 
             $result[] = [$complete[0], $complete[2] ? HeaderLines::join($complete[1]) : null];
+        }
+
+        if (count($result) > self::MAX_HEADERS) {
+            throw new RuntimeException(sprintf('A header block may hold at most %d headers', self::MAX_HEADERS));
         }
 
         return $result;

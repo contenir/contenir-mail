@@ -9,7 +9,9 @@ use Contenir\Mail\Headers;
 
 use function explode;
 use function implode;
+use function sprintf;
 use function str_replace;
+use function strlen;
 use function trim;
 
 /**
@@ -19,6 +21,12 @@ use function trim;
  */
 final class HeaderLines
 {
+    /** Largest header block read, in bytes */
+    public const int MAX_BLOCK_BYTES = 1_048_576;
+
+    /** Longest line written back as it was read, without its CRLF (RFC 5322, section 2.1.1) */
+    public const int MAX_LINE_LENGTH = 998;
+
     /**
      * The lines that carry text, and lines of only whitespace. A blank line
      * ends the headers, so text after more than one blank line, or more than
@@ -27,10 +35,14 @@ final class HeaderLines
      * A CR before the line break is dropped when CRLF text is split on LF.
      *
      * @return list<string>
-     * @throws RuntimeException
+     * @throws RuntimeException When the block is malformed or larger than MAX_BLOCK_BYTES.
      */
     public static function split(string $block, string $eol): array
     {
+        if (strlen($block) > self::MAX_BLOCK_BYTES) {
+            throw new RuntimeException(sprintf('A header block may be at most %d bytes', self::MAX_BLOCK_BYTES));
+        }
+
         $lines      = [];
         $emptyLines = 0;
         if (Headers::EOL !== $eol) {
@@ -54,15 +66,15 @@ final class HeaderLines
 
     /**
      * The written lines of one header joined by CRLF, or null when a line
-     * cannot be written back as it is: one holding a bare CR or LF, or a byte
-     * outside US-ASCII.
+     * cannot be written back as it is: one holding a bare CR or LF or a byte
+     * outside US-ASCII, or one longer than RFC 5322 allows.
      *
      * @param list<string> $lines
      */
     public static function join(array $lines): ?string
     {
         foreach ($lines as $line) {
-            if (! HeaderValue::isValid($line)) {
+            if (strlen($line) > self::MAX_LINE_LENGTH || ! HeaderValue::isValid($line)) {
                 return null;
             }
         }
