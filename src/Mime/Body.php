@@ -76,8 +76,12 @@ final readonly class Body
     private function content(): ?PartInterface
     {
         $html = $this->relatedHtml();
-        if (null === $this->text || null === $html) {
-            return $html ?? $this->text;
+        if (null === $html) {
+            return $this->text;
+        }
+
+        if (null === $this->text) {
+            return $html;
         }
 
         return new Multipart(MultipartType::Alternative, [$this->text, $html]);
