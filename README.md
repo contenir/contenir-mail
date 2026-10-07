@@ -27,8 +27,9 @@ every contributor keeps their authorship in `git log` and `git blame`.
 - `ext-iconv`
 - `ext-openssl` for TLS connections, and `ext-fileinfo` to detect attachment types
 
-The only other dependencies are the PSR clock and container interfaces and the
-Symfony mbstring and IDN polyfills.
+ext-mbstring is not needed. The only other dependencies are the PSR clock and
+container interfaces and the Symfony IDN polyfill; install ext-intl for faster
+and stricter handling of internationalised domain names.
 
 ## Install
 
@@ -290,6 +291,16 @@ message unreadable.
 - `XOAuth2` accepts a Closure that returns a fresh access token at each AUTH.
 - A header word too long to fold within 998 characters is written as encoded
   words, so no header line ever exceeds the RFC 5322 limit.
+- Encoded words always hold whole characters (RFC 2047, section 5). A header name
+  may be up to 997 characters; when nothing of the value fits after the name, the
+  value starts on the next line. A received header name longer than 997
+  characters can only come from a line already over 998 octets, so parsing such a
+  block throws `Contenir\Mail\Header\Exception\RuntimeException`.
+- A header that its class cannot parse, including an address header holding an
+  invalid address, is kept as a `GenericHeader` with its original text, so one
+  bad header no longer stops a message being read.
+- Invalid UTF-8 in received header text is replaced with U+FFFD; laminas-mail
+  replaced it with `?`.
 - Raw UTF-8 header values (RFC 6532) in stored or received mail are read into
   their header classes. Header values refuse control characters other than tab.
 - A missing required storage setting (`dirname`, `filename`, `user`) throws
