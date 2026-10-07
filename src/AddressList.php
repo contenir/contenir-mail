@@ -5,6 +5,7 @@ namespace Contenir\Mail;
 use Contenir\Mail\Address\AddressInterface;
 use Countable;
 use Iterator;
+use Override;
 use ReturnTypeWillChange;
 
 use function count;
@@ -176,6 +177,7 @@ class AddressList implements Countable, Iterator
      *
      * @return int
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function count()
     {
@@ -190,6 +192,7 @@ class AddressList implements Countable, Iterator
      * @return false|AddressInterface the value of the first addresses element, or false if the addresses is
      * empty.
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function rewind()
     {
@@ -201,6 +204,7 @@ class AddressList implements Countable, Iterator
      *
      * @return AddressInterface
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function current()
     {
@@ -212,6 +216,7 @@ class AddressList implements Countable, Iterator
      *
      * @return string
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function key()
     {
@@ -226,6 +231,7 @@ class AddressList implements Countable, Iterator
      * @return false|AddressInterface the addresses value in the next place that's pointed to by the
      * internal array pointer, or false if there are no more elements.
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function next()
     {
@@ -237,6 +243,7 @@ class AddressList implements Countable, Iterator
      *
      * @return bool
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function valid()
     {

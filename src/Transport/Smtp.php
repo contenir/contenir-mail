@@ -8,6 +8,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\Exception as ProtocolException;
 use Laminas\ServiceManager\ServiceManager;
+use Override;
 
 use function array_unique;
 use function count;
@@ -226,6 +227,7 @@ class Smtp implements TransportInterface
      *
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function send(Message $message)
     {
         // If sending multiple messages per session use existing adapter

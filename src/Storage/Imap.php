@@ -4,6 +4,7 @@ namespace Contenir\Mail\Storage;
 
 use Contenir\Mail;
 use Contenir\Mail\Protocol;
+use Override;
 use SensitiveParameter;
 
 use function array_key_exists;
@@ -84,6 +85,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Protocol\Exception\RuntimeException
      * @return int number of messages
      */
+    #[Override]
     public function countMessages($flags = null)
     {
         if (! $this->currentFolder) {
@@ -113,6 +115,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @return int|array size of given message of list with all messages as [num => size]
      * @throws Protocol\Exception\RuntimeException
      */
+    #[Override]
     public function getSize($id = 0)
     {
         if ($id) {
@@ -128,6 +131,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @return Message
      * @throws Protocol\Exception\RuntimeException
      */
+    #[Override]
     public function getMessage($id)
     {
         $data   = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], $id);
@@ -151,6 +155,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Exception\RuntimeException
      * @throws Protocol\Exception\RuntimeException
      */
+    #[Override]
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
         if (null !== $part) {
@@ -171,6 +176,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Protocol\Exception\RuntimeException
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function getRawContent($id, $part = null)
     {
         if (null !== $part) {
@@ -252,6 +258,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * If you need to control, when the resource is closed. Otherwise the
      * destructor would call this.
      */
+    #[Override]
     public function close()
     {
         $this->currentFolder = '';
@@ -263,6 +270,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      *
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function noop()
     {
         if (! $this->protocol->noop()) {
@@ -279,6 +287,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param  int $id number of message
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function removeMessage($id)
     {
         if (! $this->protocol->store([Mail\Storage::FLAG_DELETED], $id, null, '+')) {
@@ -300,6 +309,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @return array|string message number for given message or all messages as array
      * @throws Protocol\Exception\RuntimeException
      */
+    #[Override]
     public function getUniqueId($id = null)
     {
         if ($id) {
@@ -320,6 +330,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Exception\InvalidArgumentException
      * @return int message number
      */
+    #[Override]
     public function getNumberByUniqueId($id)
     {
         // TODO: use search to find number directly
@@ -342,6 +353,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Protocol\Exception\RuntimeException
      * @return Folder root or wanted folder
      */
+    #[Override]
     public function getFolders($rootFolder = null)
     {
         $folders = $this->protocol->listMailbox((string) $rootFolder);
@@ -399,6 +411,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Exception\RuntimeException
      * @throws Protocol\Exception\RuntimeException
      */
+    #[Override]
     public function selectFolder($globalName)
     {
         $this->currentFolder = (string) $globalName;
@@ -413,6 +426,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      *
      * @return string instance of current folder
      */
+    #[Override]
     public function getCurrentFolder()
     {
         return $this->currentFolder;
@@ -431,6 +445,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      *     root folder is parent
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function createFolder($name, $parentFolder = null)
     {
         // TODO: we assume / as the hierarchy delim - need to get that from the folder class!
@@ -453,6 +468,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param  string|Folder $name name or instance of folder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function removeFolder($name)
     {
         if ($name instanceof Folder) {
@@ -473,6 +489,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param  string $newName new global name of folder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function renameFolder($oldName, $newName)
     {
         if ($oldName instanceof Folder) {
@@ -494,6 +511,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      *     is used
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function appendMessage($message, $folder = null, $flags = null)
     {
         if (null === $folder) {
@@ -519,6 +537,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param string|Folder $folder name or instance of target folder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function copyMessage($id, $folder)
     {
         if (! $this->protocol->copy($folder, $id)) {
@@ -535,6 +554,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param string|Folder $folder name or instance of target folder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function moveMessage($id, $folder)
     {
         $this->copyMessage($id, $folder);
@@ -550,6 +570,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @param array $flags new flags for message
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function setFlags($id, $flags)
     {
         if (! $this->protocol->store($flags, $id)) {

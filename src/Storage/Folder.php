@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Storage;
 
+use Override;
 use RecursiveIterator;
 use ReturnTypeWillChange;
 use Stringable;
@@ -44,6 +45,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return bool current element has children
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function hasChildren()
     {
@@ -56,6 +58,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return Folder same as self::current()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function getChildren()
     {
@@ -67,6 +70,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return bool check if there's a current element
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function valid()
     {
@@ -76,6 +80,7 @@ class Folder implements RecursiveIterator, Stringable
     /**
      * implements Iterator::next()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function next()
     {
@@ -87,6 +92,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return string key/local name of current element
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function key()
     {
@@ -98,6 +104,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return Folder current folder
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function current()
     {
@@ -107,6 +114,7 @@ class Folder implements RecursiveIterator, Stringable
     /**
      * implements Iterator::rewind()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function rewind()
     {
@@ -155,6 +163,7 @@ class Folder implements RecursiveIterator, Stringable
      *
      * @return string global name of folder
      */
+    #[Override]
     public function __toString(): string
     {
         return (string) $this->getGlobalName();

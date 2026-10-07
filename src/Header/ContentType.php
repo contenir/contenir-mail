@@ -4,6 +4,7 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
+use Override;
 
 use function count;
 use function explode;
@@ -34,6 +35,7 @@ class ContentType implements UnstructuredInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -67,6 +69,7 @@ class ContentType implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Content-Type';
@@ -75,6 +78,7 @@ class ContentType implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         $prepared = $this->type;
@@ -100,6 +104,7 @@ class ContentType implements UnstructuredInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         $this->encoding = $encoding;
@@ -109,6 +114,7 @@ class ContentType implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return $this->encoding;
@@ -117,6 +123,7 @@ class ContentType implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Content-Type: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";

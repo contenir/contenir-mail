@@ -6,6 +6,7 @@ use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Message\File;
 use Contenir\Mail\Storage\Message\MessageInterface;
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 
 use function array_combine;
 use function count;
@@ -78,6 +79,7 @@ class Mbox extends AbstractStorage
      * @return int number of messages
      * @throws ExceptionInterface
      */
+    #[Override]
     public function countMessages()
     {
         return count($this->positions);
@@ -89,6 +91,7 @@ class Mbox extends AbstractStorage
      * @param  int|null $id  number of message or null for all messages
      * @return int|array size of given message of list with all messages as array(num => size)
      */
+    #[Override]
     public function getSize($id = 0)
     {
         if ($id) {
@@ -127,6 +130,7 @@ class Mbox extends AbstractStorage
      * @return File
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getMessage($id)
     {
         // TODO that's ugly, would be better to let the message class decide
@@ -179,6 +183,7 @@ class Mbox extends AbstractStorage
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
         if (null !== $part) {
@@ -199,6 +204,7 @@ class Mbox extends AbstractStorage
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getRawContent($id, $part = null)
     {
         if (null !== $part) {
@@ -331,6 +337,7 @@ class Mbox extends AbstractStorage
      * Close resource for mail lib. If you need to control, when the resource
      * is closed. Otherwise the destructor would call this.
      */
+    #[Override]
     public function close()
     {
         if (is_resource($this->fh)) {
@@ -344,6 +351,7 @@ class Mbox extends AbstractStorage
      *
      * @return bool always return true
      */
+    #[Override]
     public function noop()
     {
         return true;
@@ -355,6 +363,7 @@ class Mbox extends AbstractStorage
      * @param int $id message number
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function removeMessage($id)
     {
         throw new Exception\RuntimeException('mbox is read-only');
@@ -371,6 +380,7 @@ class Mbox extends AbstractStorage
      * @return array|string message number for given message or all messages as array
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getUniqueId($id = null)
     {
         if ($id) {
@@ -393,6 +403,7 @@ class Mbox extends AbstractStorage
      * @return int message number
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getNumberByUniqueId($id)
     {
         // check if id exists

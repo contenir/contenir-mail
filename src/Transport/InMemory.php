@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail\Message;
+use Override;
 
 /**
  * InMemory transport
@@ -19,6 +20,7 @@ class InMemory implements TransportInterface
     /**
      * Takes the last message and saves it for testing.
      */
+    #[Override]
     public function send(Message $message)
     {
         $this->lastMessage = $message;

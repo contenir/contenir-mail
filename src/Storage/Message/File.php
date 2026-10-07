@@ -4,6 +4,7 @@ namespace Contenir\Mail\Storage\Message;
 
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Part;
+use Override;
 
 use function array_combine;
 
@@ -40,6 +41,7 @@ class File extends Part\File implements MessageInterface
      *
      * @return string toplines
      */
+    #[Override]
     public function getTopLines()
     {
         return $this->topLines;
@@ -51,6 +53,7 @@ class File extends Part\File implements MessageInterface
      * @param mixed $flag a flag name, use constants defined in \Contenir\Mail\Storage
      * @return bool true if set, otherwise false
      */
+    #[Override]
     public function hasFlag($flag)
     {
         return isset($this->flags[$flag]);
@@ -61,6 +64,7 @@ class File extends Part\File implements MessageInterface
      *
      * @return array array with flags, key and value are the same for easy lookup
      */
+    #[Override]
     public function getFlags()
     {
         return $this->flags;

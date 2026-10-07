@@ -7,6 +7,7 @@ use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Mime\Exception\RuntimeException;
+use Override;
 use RecursiveIterator;
 use ReturnTypeWillChange;
 use Stringable;
@@ -143,6 +144,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return bool if part is multipart
      */
+    #[Override]
     public function isMultipart()
     {
         try {
@@ -160,6 +162,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @throws Exception\RuntimeException
      * @return string body
      */
+    #[Override]
     public function getContent()
     {
         if (null !== $this->content) {
@@ -180,6 +183,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return int size
      */
+    #[Override]
     public function getSize()
     {
         return strlen($this->getContent());
@@ -224,6 +228,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @throws Exception\RuntimeException
      * @return Part wanted part
      */
+    #[Override]
     public function getPart($num)
     {
         if (isset($this->parts[$num])) {
@@ -253,6 +258,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return int number of sub-parts
      */
+    #[Override]
     public function countParts()
     {
         if ($this->countParts) {
@@ -283,6 +289,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @return Headers
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function getHeaders()
     {
         if (null === $this->headers) {
@@ -313,6 +320,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @throws Exception\InvalidArgumentException
      * @return string|array|HeaderInterface|ArrayIterator value of header in wanted or internal format
      */
+    #[Override]
     public function getHeader($name, $format = null)
     {
         $header = $this->getHeaders()->get($name);
@@ -375,6 +383,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @return string|array wanted part or all parts as array($firstName => firstPart, partname => value)
      * @throws RuntimeException
      */
+    #[Override]
     public function getHeaderField($name, $wantedPart = '0', $firstName = '0')
     {
         return Mime\Decode::splitHeaderField(current($this->getHeader($name, 'array')), $wantedPart, $firstName);
@@ -391,6 +400,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      * @return string value of header
      * @throws Exception\ExceptionInterface
      */
+    #[Override]
     public function __get($name)
     {
         return $this->getHeader($name, 'string');
@@ -416,6 +426,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return string content
      */
+    #[Override]
     public function __toString(): string
     {
         return $this->getContent();
@@ -426,6 +437,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return bool current element has children/is multipart
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function hasChildren()
     {
@@ -438,6 +450,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return Part same as self::current()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function getChildren()
     {
@@ -449,6 +462,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return bool check if there's a current element
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function valid()
     {
@@ -461,6 +475,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     /**
      * implements Iterator::next()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function next()
     {
@@ -472,6 +487,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return string key/number of current part
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function key()
     {
@@ -483,6 +499,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      *
      * @return Part current part
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function current()
     {
@@ -492,6 +509,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     /**
      * implements Iterator::rewind()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function rewind()
     {

@@ -4,6 +4,7 @@ namespace Contenir\Mail\Storage;
 
 use ArrayAccess;
 use Countable;
+use Override;
 use ReturnTypeWillChange;
 use SeekableIterator;
 
@@ -188,6 +189,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      *
      * @return   int
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function count()
     {
@@ -200,6 +202,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      * @param  int  $id
      * @return bool
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function offsetExists($id)
     {
@@ -219,6 +222,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      * @param    int $id
      * @return Message message object
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function offsetGet($id)
     {
@@ -230,6 +234,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      *
      * @throws Exception\RuntimeException
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function offsetSet(mixed $id, mixed $value)
     {
@@ -242,6 +247,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      * @param    int   $id
      * @return   bool success
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function offsetUnset($id)
     {
@@ -255,6 +261,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      * the interfaces and your scripts take long you should use reset()
      * from time to time.
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function rewind()
     {
@@ -267,6 +274,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      *
      * @return Message current message
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function current()
     {
@@ -278,6 +286,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      *
      * @return   int id of current position
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function key()
     {
@@ -287,6 +296,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
     /**
      * Iterator::next()
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function next()
     {
@@ -298,6 +308,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      *
      * @return bool
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function valid()
     {
@@ -313,6 +324,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
      * @param  int $pos
      * @throws Exception\OutOfBoundsException
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function seek($pos)
     {

@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Headers;
 use Generator;
+use Override;
 
 use function array_key_exists;
 use function array_replace_recursive;
@@ -257,6 +258,7 @@ class Smtp extends AbstractProtocol
      *
      * @return bool
      */
+    #[Override]
     public function connect()
     {
         $this->socket = $this->setupSocket(
@@ -496,6 +498,7 @@ class Smtp extends AbstractProtocol
      * Disconnect from remote host and free resource
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
+    #[Override]
     protected function _disconnect()
     {
         // Make sure the session gets closed

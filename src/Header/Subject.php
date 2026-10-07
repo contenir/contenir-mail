@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Mime\Mime;
+use Override;
 
 use function strtolower;
 use function strtoupper;
@@ -29,6 +30,7 @@ class Subject implements UnstructuredInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -48,6 +50,7 @@ class Subject implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Subject';
@@ -56,6 +59,7 @@ class Subject implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         if (HeaderInterface::FORMAT_ENCODED === $format) {
@@ -69,6 +73,7 @@ class Subject implements UnstructuredInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         if ($encoding === $this->encoding) {
@@ -99,6 +104,7 @@ class Subject implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         if (! $this->encoding) {
@@ -131,6 +137,7 @@ class Subject implements UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Subject: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";

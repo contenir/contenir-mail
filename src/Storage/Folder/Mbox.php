@@ -6,6 +6,7 @@ use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\ParamsNormalizer;
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 
 use function array_merge;
 use function closedir;
@@ -140,6 +141,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
      * @return Storage\Folder root or wanted folder
      * @throws Exception\InvalidArgumentException
      */
+    #[Override]
     public function getFolders($rootFolder = null)
     {
         if (! $rootFolder) {
@@ -178,6 +180,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
      *     instance for subfolder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function selectFolder($globalName)
     {
         $this->currentFolder = (string) $globalName;
@@ -209,6 +212,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
      * @return string instance of current folder
      * @throws Exception\ExceptionInterface
      */
+    #[Override]
     public function getCurrentFolder()
     {
         return $this->currentFolder;
@@ -221,6 +225,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
      *
      * @return array name of variables
      */
+    #[Override]
     public function __sleep()
     {
         return array_merge(parent::__sleep(), ['currentFolder', 'rootFolder', 'rootdir']);
@@ -229,6 +234,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
     /**
      * magic method for unserialize(), with this method you can cache the mbox class
      */
+    #[Override]
     public function __wakeup()
     {
         // if cache is stall selectFolder() rebuilds the tree on error

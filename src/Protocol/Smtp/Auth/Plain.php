@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Protocol\Smtp;
+use Override;
 use SensitiveParameter;
 
 use function array_replace_recursive;
@@ -62,6 +63,7 @@ class Plain extends Smtp
     /**
      * Perform PLAIN authentication with supplied credentials
      */
+    #[Override]
     public function auth()
     {
         // Ensure AUTH has not already been initiated.

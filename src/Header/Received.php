@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
+use Override;
 
 use function implode;
 use function strtolower;
@@ -19,6 +20,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -46,6 +48,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Received';
@@ -54,6 +57,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         return $this->value;
@@ -63,6 +67,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         // This header must be always in US-ASCII
@@ -72,6 +77,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return 'ASCII';
@@ -80,6 +86,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Received: {$this->getFieldValue()}";
@@ -92,6 +99,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
      * @throws Exception\RuntimeException
      * @return string
      */
+    #[Override]
     public function toStringMultipleHeaders(array $headers)
     {
         $strings = [$this->toString()];

@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Header;
 
+use Override;
+
 use function strtolower;
 
 /**
@@ -16,6 +18,7 @@ class Date implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -43,6 +46,7 @@ class Date implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Date';
@@ -51,6 +55,7 @@ class Date implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         return $this->value;
@@ -60,6 +65,7 @@ class Date implements HeaderInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         // This header must be always in US-ASCII
@@ -69,6 +75,7 @@ class Date implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return 'ASCII';
@@ -77,6 +84,7 @@ class Date implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Date: {$this->getFieldValue()}";

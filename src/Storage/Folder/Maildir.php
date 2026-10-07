@@ -8,6 +8,7 @@ use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Folder;
 use Contenir\Mail\Storage\ParamsNormalizer;
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 
 use function array_pop;
 use function array_push;
@@ -169,6 +170,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
      * @throws InvalidArgumentException
      * @return Folder root or wanted folder
      */
+    #[Override]
     public function getFolders($rootFolder = null)
     {
         if (! $rootFolder || 'INBOX' == $rootFolder) {
@@ -212,6 +214,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
      *     instance for subfolder
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function selectFolder($globalName)
     {
         $this->currentFolder = (string) $globalName;
@@ -242,6 +245,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
      *
      * @return string instance of current folder
      */
+    #[Override]
     public function getCurrentFolder()
     {
         return $this->currentFolder;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use Override;
+
 use function strtolower;
 
 /**
@@ -41,22 +43,26 @@ final class HeaderLocator implements HeaderLocatorInterface
         'to'                        => To::class,
     ];
 
+    #[Override]
     public function get(string $name, ?string $default = null): ?string
     {
         $name = $this->normalizeName($name);
         return $this->plugins[$name] ?? $default;
     }
 
+    #[Override]
     public function has(string $name): bool
     {
         return isset($this->plugins[$this->normalizeName($name)]);
     }
 
+    #[Override]
     public function add(string $name, string $class): void
     {
         $this->plugins[$this->normalizeName($name)] = $class;
     }
 
+    #[Override]
     public function remove(string $name): void
     {
         unset($this->plugins[$this->normalizeName($name)]);

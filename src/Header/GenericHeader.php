@@ -4,6 +4,7 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Mime\Mime;
+use Override;
 
 use function count;
 use function explode;
@@ -32,6 +33,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
      * @param string $headerLine
      * @return GenericHeader
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = self::splitHeaderLine($headerLine);
@@ -114,6 +116,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return $this->fieldName;
@@ -145,6 +148,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         if (HeaderInterface::FORMAT_ENCODED === $format) {
@@ -158,6 +162,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         if ($encoding === $this->encoding) {
@@ -188,6 +193,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         if (! $this->encoding) {
@@ -200,6 +206,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         $name = $this->getFieldName();

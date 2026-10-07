@@ -4,6 +4,7 @@ namespace Contenir\Mail\Storage\Part;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Storage\Part;
+use Override;
 
 use function count;
 use function feof;
@@ -126,6 +127,7 @@ class File extends Part
      * @param resource $stream Optional
      * @return string body
      */
+    #[Override]
     public function getContent($stream = null)
     {
         fseek($this->fh, $this->contentPos[0]);
@@ -143,6 +145,7 @@ class File extends Part
      *
      * @return int size
      */
+    #[Override]
     public function getSize()
     {
         return $this->contentPos[1] - $this->contentPos[0];
@@ -155,6 +158,7 @@ class File extends Part
      * @throws Exception\RuntimeException
      * @return Part wanted part
      */
+    #[Override]
     public function getPart($num)
     {
         --$num;

@@ -6,6 +6,7 @@ use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Storage\Exception\RuntimeException;
+use Override;
 
 use function addcslashes;
 use function array_filter;
@@ -95,6 +96,7 @@ abstract class AbstractAddressList implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$fieldName, $fieldValue] = GenericHeader::splitHeaderLine($headerLine);
@@ -161,6 +163,7 @@ abstract class AbstractAddressList implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return $this->fieldName;
@@ -201,6 +204,7 @@ abstract class AbstractAddressList implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         $emails   = [];
@@ -250,6 +254,7 @@ abstract class AbstractAddressList implements HeaderInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         $this->encoding = $encoding;
@@ -259,6 +264,7 @@ abstract class AbstractAddressList implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return $this->encoding;
@@ -288,6 +294,7 @@ abstract class AbstractAddressList implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         $name  = $this->getFieldName();

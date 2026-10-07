@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail\Message;
+use Override;
 
 use function file_put_contents;
 use function sprintf;
@@ -60,6 +61,7 @@ class File implements TransportInterface
      *
      * @throws Exception\RuntimeException On not writable target directory or on file_put_contents() failure.
      */
+    #[Override]
     public function send(Message $message)
     {
         $options  = $this->options;

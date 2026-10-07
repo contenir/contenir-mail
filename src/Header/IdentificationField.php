@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
+use Override;
 
 use function array_map;
 use function explode;
@@ -31,6 +32,7 @@ abstract class IdentificationField implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -66,6 +68,7 @@ abstract class IdentificationField implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return $this->fieldName;
@@ -74,6 +77,7 @@ abstract class IdentificationField implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         return implode(Headers::FOLDING, array_map(static fn($id) => sprintf('<%s>', $id), $this->messageIds));
@@ -84,6 +88,7 @@ abstract class IdentificationField implements HeaderInterface
      *     ASCII.
      * @return static This method is a no-op, and implements a fluent interface.
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         return $this;
@@ -92,6 +97,7 @@ abstract class IdentificationField implements HeaderInterface
     /**
      * @return string Always returns ASCII
      */
+    #[Override]
     public function getEncoding()
     {
         return 'ASCII';
@@ -100,6 +106,7 @@ abstract class IdentificationField implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return sprintf('%s: %s', $this->getFieldName(), $this->getFieldValue());

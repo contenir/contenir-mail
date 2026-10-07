@@ -6,6 +6,7 @@ use Contenir\Mail;
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Message\File;
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 
 use function array_flip;
 use function closedir;
@@ -75,6 +76,7 @@ class Maildir extends AbstractStorage
      * @param mixed $flags
      * @return int number of messages
      */
+    #[Override]
     public function countMessages($flags = null)
     {
         if (null === $flags) {
@@ -136,6 +138,7 @@ class Maildir extends AbstractStorage
      * @param  int|null $id number of message or null for all messages
      * @return int|array size of given message of list with all messages as array(num => size)
      */
+    #[Override]
     public function getSize($id = null)
     {
         if (null !== $id) {
@@ -158,6 +161,7 @@ class Maildir extends AbstractStorage
      * @return File
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getMessage($id)
     {
         // TODO that's ugly, would be better to let the message class decide
@@ -188,6 +192,7 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException
      * @return string raw header
      */
+    #[Override]
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
         if (null !== $part) {
@@ -218,6 +223,7 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException
      * @return string raw content
      */
+    #[Override]
     public function getRawContent($id, $part = null)
     {
         if (null !== $part) {
@@ -397,6 +403,7 @@ class Maildir extends AbstractStorage
      * Close resource for mail lib. If you need to control, when the resource
      * is closed. Otherwise the destructor would call this.
      */
+    #[Override]
     public function close()
     {
         $this->files = [];
@@ -407,6 +414,7 @@ class Maildir extends AbstractStorage
      *
      * @return bool always return true
      */
+    #[Override]
     public function noop()
     {
         return true;
@@ -418,6 +426,7 @@ class Maildir extends AbstractStorage
      * @param int $id
      * @throws Exception\RuntimeException
      */
+    #[Override]
     public function removeMessage($id)
     {
         throw new Exception\RuntimeException('maildir is (currently) read-only');
@@ -431,6 +440,7 @@ class Maildir extends AbstractStorage
      * @param int|null $id message number
      * @return array|string message number for given message or all messages as array
      */
+    #[Override]
     public function getUniqueId($id = null)
     {
         if ($id) {
@@ -454,6 +464,7 @@ class Maildir extends AbstractStorage
      * @throws Exception\InvalidArgumentException
      * @return int message number
      */
+    #[Override]
     public function getNumberByUniqueId($id)
     {
         foreach ($this->files as $num => $file) {

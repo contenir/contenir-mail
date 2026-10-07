@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Xoauth2AuthEncoder;
+use Override;
 use SensitiveParameter;
 
 use function array_replace_recursive;
@@ -66,6 +67,7 @@ final class Xoauth2 extends Smtp
      *
      * @return void
      */
+    #[Override]
     public function auth()
     {
         // Ensure AUTH has not already been initiated.

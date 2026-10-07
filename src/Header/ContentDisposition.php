@@ -4,6 +4,7 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
+use Override;
 
 use function count;
 use function explode;
@@ -45,6 +46,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -118,6 +120,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Content-Disposition';
@@ -126,6 +129,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         $result = $this->disposition;
@@ -209,6 +213,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         $this->encoding = $encoding;
@@ -218,6 +223,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getEncoding()
     {
         return $this->encoding;
@@ -226,6 +232,7 @@ class ContentDisposition implements UnstructuredInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function toString()
     {
         return "Content-Disposition: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";

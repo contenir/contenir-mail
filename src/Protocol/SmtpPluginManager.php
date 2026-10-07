@@ -6,6 +6,7 @@ use Laminas\ServiceManager\AbstractPluginManager;
 use Laminas\ServiceManager\ConfigInterface;
 use Laminas\ServiceManager\Exception\InvalidServiceException;
 use Laminas\ServiceManager\Factory\InvokableFactory;
+use Override;
 
 use function gettype;
 use function is_object;
@@ -73,6 +74,7 @@ class SmtpPluginManager extends AbstractPluginManager
      *
      * {@inheritDoc}
      */
+    #[Override]
     public function validate(mixed $instance)
     {
         if (! $instance instanceof $this->instanceOf) {
