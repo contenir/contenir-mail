@@ -80,7 +80,7 @@ final readonly class GenericHeader implements HeaderInterface
             throw new Exception\InvalidArgumentException('Invalid header name detected');
         }
 
-        if (! HeaderValue::isValid($value)) {
+        if (! HeaderValue::isValidUtf8($value)) {
             throw new Exception\InvalidArgumentException('Invalid header value detected');
         }
 

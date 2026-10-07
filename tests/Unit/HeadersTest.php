@@ -127,6 +127,40 @@ final class HeadersTest extends TestCase
         static::assertInstanceOf($class, Headers::fromString($line)->get($name));
     }
 
+    /**
+     * RFC 6532 lets stored and received mail carry header values in raw UTF-8.
+     *
+     * @param class-string $class
+     */
+    #[DataProvider('rawUtf8HeaderProvider')]
+    #[Test]
+    public function parsesRawUtf8IntoHeaderClass(string $line, string $class, string $value): void
+    {
+        $header = iterator_to_array(Headers::fromString($line))[0];
+
+        static::assertSame([$class, $value], [$header::class, $header->getFieldValue()]);
+    }
+
+    /**
+     * @param class-string $class
+     */
+    #[DataProvider('rawUtf8HeaderProvider')]
+    #[Test]
+    public function writesRawUtf8AsEncodedWords(string $line, string $class, string $value, string $written): void
+    {
+        static::assertSame($written . Headers::EOL, Headers::fromString($line)->toString());
+    }
+
+    #[DataProvider('invalidRawHeaderProvider')]
+    #[Test]
+    public function rejectsHeaderValueThatIsNotValidUtf8OrHasControls(string $block): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid header value detected');
+
+        Headers::fromString($block);
+    }
+
     #[Test]
     public function fallsBackToGenericHeaderWhenHeaderClassRejectsValue(): void
     {
@@ -564,6 +598,46 @@ final class HeadersTest extends TestCase
             'same-named headers'           => ["Foo: one\r\nFoo: two", ['Foo' => ['one', 'two']]],
             'empty block'                  => ['', []],
             'whitespace-only line ignored' => ["Foo: bar\r\n   \r\nBaz: baz", ['Foo' => 'bar', 'Baz' => 'baz']],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, class-string, string, string}>
+     */
+    public static function rawUtf8HeaderProvider(): array
+    {
+        return [
+            'Subject' => ['Subject: Grüße', Header\Subject::class, 'Grüße', 'Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?='],
+            'From'    => [
+                'From: Jösé <jose@example.com>',
+                Header\From::class,
+                'Jösé <jose@example.com>',
+                'From: =?UTF-8?Q?J=C3=B6s=C3=A9?= <jose@example.com>',
+            ],
+            'Sender'  => [
+                'Sender: Zoë <zoe@example.com>',
+                Header\Sender::class,
+                'Zoë <zoe@example.com>',
+                'Sender: =?UTF-8?Q?Zo=C3=AB?= <zoe@example.com>',
+            ],
+            'generic' => ['X: bär', GenericHeader::class, 'bär', 'X: =?UTF-8?Q?b=C3=A4r?='],
+            'folded'  => ["X: b\r\n är", GenericHeader::class, 'b är', 'X: =?UTF-8?Q?b=20=C3=A4r?='],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidRawHeaderProvider(): array
+    {
+        return [
+            'Latin-1 byte'       => ["Subject: Gr\xFC\xDFe\r\n"],
+            'truncated sequence' => ["Subject: Gr\xC3\r\n"],
+            'overlong encoding'  => ["Subject: \xC0\xAF\r\n"],
+            'NUL'                => ["Subject: a\x00b\r\n"],
+            'escape'             => ["Subject: a\x1Bb\r\n"],
+            'DEL'                => ["Subject: a\x7Fb\r\n"],
+            'C1 control'         => ["Subject: a\xC2\x9Bb\r\n"],
         ];
     }
 

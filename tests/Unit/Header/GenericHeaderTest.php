@@ -220,7 +220,9 @@ final class GenericHeaderTest extends TestCase
             'empty line after value'   => ["Fake: foo-bar\r\n\r\nevilContent", 'Invalid header value detected'],
             'carriage return in value' => ["Fake: foo-bar\revilContent", 'Invalid header value detected'],
             'trailing carriage return' => ["Fake: foo-bar\r", 'Invalid header value detected'],
-            'non-ASCII byte in value'  => ["Fake: foo-bar\xC3\xA4", 'Invalid header value detected'],
+            'invalid UTF-8 in value'   => ["Fake: foo-bar\xE4", 'Invalid header value detected'],
+            'control in value'         => ["Fake: foo\x00bar", 'Invalid header value detected'],
+            'C1 control in value'      => ["Fake: foo\xC2\x85bar", 'Invalid header value detected'],
             'line feed without fold'   => ["Fake: foo-bar\r\nevilContent", 'Invalid header value detected'],
         ];
     }

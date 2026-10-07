@@ -37,6 +37,8 @@ final class HeaderValueTest extends TestCase
             ["a\x7Fb",                    'ab'],
             ["a\r\n ",                    "a\r\n "],
             ["a\rb",                      'ab'],
+            ["a\x00\x1Bb\tc",             "ab\tc"],
+            ["a\xC3\xA4b",                'ab'],
         ];
     }
 
@@ -114,6 +116,84 @@ final class HeaderValueTest extends TestCase
     public function rejectsDelete(): void
     {
         static::assertFalse(HeaderValue::isValid("a\x7Fb"));
+    }
+
+    #[DataProvider('controlProvider')]
+    #[Test]
+    public function rejectsControlCharacter(string $value): void
+    {
+        static::assertFalse(HeaderValue::isValid($value));
+    }
+
+    #[Test]
+    public function rejectsRawUtf8ForWritingAsItIs(): void
+    {
+        static::assertFalse(HeaderValue::isValid('Grüße'));
+    }
+
+    #[DataProvider('validUtf8Provider')]
+    #[Test]
+    public function acceptsRawUtf8WhenReading(string $value): void
+    {
+        static::assertTrue(HeaderValue::isValidUtf8($value));
+    }
+
+    #[DataProvider('invalidUtf8Provider')]
+    #[Test]
+    public function rejectsInvalidUtf8OrControlWhenReading(string $value): void
+    {
+        static::assertFalse(HeaderValue::isValidUtf8($value));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function controlProvider(): array
+    {
+        return [
+            'NUL'    => ["a\x00b"],
+            'escape' => ["a\x1Bb"],
+            'US'     => ["a\x1Fb"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function validUtf8Provider(): array
+    {
+        return [
+            'ASCII'          => ['Hello, world'],
+            'empty'          => [''],
+            'tab'            => ["a\tb"],
+            'Latin'          => ['Grüße'],
+            'CJK'            => ['日本語'],
+            'emoji'          => ["\u{1F600}"],
+            'after C1 range' => ["\u{A0}"],
+            'folded'         => ["Grüße\r\n aus\r\n\tBerlin"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidUtf8Provider(): array
+    {
+        return [
+            'Latin-1'            => ["Gr\xFC\xDFe"],
+            'truncated'          => ["a\xC3"],
+            'overlong'           => ["\xC0\xAF"],
+            'surrogate'          => ["\xED\xA0\x80"],
+            'NUL'                => ["a\x00b"],
+            'DEL'                => ["a\x7Fb"],
+            'first C1 control'   => ["a\u{80}b"],
+            'last C1 control'    => ["a\u{9F}b"],
+            'bare LF'            => ["a\nb"],
+            'bare CR'            => ["a\rb"],
+            'CRLF without space' => ["a\r\nBcc: evil@example.com"],
+            'trailing CRLF'      => ["a\r\n"],
+            'trailing LF'        => ["a\n"],
+        ];
     }
 
     #[Test]

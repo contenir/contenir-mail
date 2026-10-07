@@ -66,7 +66,7 @@ final class HeaderLines
 
     /**
      * The written lines of one header joined by CRLF, or null when a line
-     * cannot be written back as it is: one holding a bare CR or LF or a byte
+     * cannot be written back as it is: one holding a bare CR or LF, a control character or a byte
      * outside US-ASCII, or one longer than RFC 5322 allows.
      *
      * @param list<string> $lines
