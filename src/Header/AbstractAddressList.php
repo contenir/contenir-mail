@@ -7,6 +7,7 @@ use Contenir\Mail\AddressList;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 
+use function addcslashes;
 use function array_filter;
 use function array_map;
 use function assert;
@@ -18,10 +19,11 @@ use function is_string;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
+use function preg_replace_callback;
 use function sprintf;
-use function str_contains;
-use function str_replace;
+use function strpbrk;
 use function strtolower;
+use function strtr;
 use function trim;
 
 use const IDNA_DEFAULT;
@@ -61,6 +63,15 @@ abstract class AbstractAddressList implements HeaderInterface
         IDNA_ERROR_CONTEXTJ               => 'one or more characters fail CONTEXTJ rule',
     ];
 
+    /**
+     * RFC 5322 specials that force a display name into a quoted-string.
+     *
+     * "." is left out: unquoted in a display name it is accepted obsolete
+     * syntax, and quoting it would change the output for names such as
+     * "John Q. Public".
+     */
+    private const string NAME_SPECIALS = '()<>[]:;@\\,"';
+
     /** @var AddressList */
     protected $addressList;
 
@@ -95,8 +106,7 @@ abstract class AbstractAddressList implements HeaderInterface
         }
 
         // split value on ","
-        $fieldValue = str_replace(Headers::FOLDING, ' ', $fieldValue);
-        $fieldValue = preg_replace('/[^:]+:([^;]*);/', '$1,', $fieldValue);
+        $fieldValue = self::flattenGroups(strtr((string) $fieldValue, [Headers::FOLDING => ' ']));
         $values     = ListParser::parse($fieldValue);
 
         $wasEncoded = false;
@@ -188,10 +198,8 @@ abstract class AbstractAddressList implements HeaderInterface
             $email = $address->getEmail();
             $name  = $address->getName();
 
-            // quote $name if value requires so
-            if (! empty($name) && (str_contains($name, ',') || str_contains($name, ';'))) {
-                // FIXME: what if name contains double quote?
-                $name = sprintf('"%s"', $name);
+            if (! empty($name) && strpbrk($name, self::NAME_SPECIALS) !== false) {
+                $name = sprintf('"%s"', addcslashes($name, characters: '\\"'));
             }
 
             if (
@@ -273,6 +281,28 @@ abstract class AbstractAddressList implements HeaderInterface
         $name  = $this->getFieldName();
         $value = $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
         return empty($value) ? '' : sprintf('%s: %s', $name, $value);
+    }
+
+    /**
+     * Replace each RFC 5322 group ("name: a@b, c@d;") with its member list.
+     *
+     * Quoted strings are matched first and kept as they are, so a quoted
+     * display name containing ":" or ";" is never read as group syntax.
+     */
+    private static function flattenGroups(string $value): string
+    {
+        $quoted = '"(?:\\\\.|[^"\\\\])*"';
+
+        return (string) preg_replace_callback(
+            "/{$quoted}|[^:\";,]+:(?<members>(?:{$quoted}|[^;\"])*);/",
+            /** @param array<array-key, string> $matches */
+            static function (array $matches): string {
+                $members = $matches['members'] ?? null;
+
+                return null === $members ? $matches[0] ?? '' : "{$members},";
+            },
+            $value,
+        );
     }
 
     /**

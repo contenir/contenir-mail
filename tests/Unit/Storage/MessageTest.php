@@ -15,6 +15,7 @@ use Contenir\Mail\Storage\Message;
 use Exception as GeneralException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -452,7 +453,8 @@ class MessageTest extends TestCase
      *
      * @see https://github.com/laminas/laminas-mail/pull/93
      */
-    public function testHeadersLosesNameQuoting(): void
+    #[Test]
+    public function headersKeepQuotingOfNamesWithSpecials(): void
     {
         $headerList = [
             'From: "Famous bearings |;" <skf@example.com>',
@@ -469,7 +471,7 @@ class MessageTest extends TestCase
         // test that same problem does not happen with Storage\Message internally
         $message = new Message(['headers' => $headers2, 'content' => (string) $body]);
         $this->assertEquals('"Famous bearings |;" <skf@example.com>', $message->from);
-        $this->assertEquals('Famous bearings |: <skf@example.com>', $message->replyTo);
+        $this->assertEquals('"Famous bearings |:" <skf@example.com>', $message->replyTo);
     }
 
     /**
