@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Protocol\Imap;
 
 use Contenir\Mail\Protocol\Imap;
-use Contenir\Mail\Protocol\InMemoryConnection;
+use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ExposedImap;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Tests\Unit\Protocol;
+namespace Contenir\Mail\Tests\Unit\Testing;
 
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Exception\TimeoutException;
-use Contenir\Mail\Protocol\InMemoryConnection;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Testing\InMemoryConnection;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
