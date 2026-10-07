@@ -159,4 +159,85 @@ final class PartWriterTest extends TestCase
             PartWriter::body($multipart),
         );
     }
+
+    /**
+     * RFC 2046, section 5.1.1: the boundary must not appear in a part, on a
+     * line by itself or as the prefix of a line.
+     */
+    #[Test]
+    #[DataProvider('collidingPartProvider')]
+    public function refusesPartContainingItsBoundary(Part|Multipart $child): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'A part contains a line starting with its multipart boundary "frontier"; choose another boundary',
+        );
+
+        PartWriter::body(new Multipart(MultipartType::Mixed, [$child], boundary: 'frontier'));
+    }
+
+    /**
+     * @return array<string, array{Part|Multipart}>
+     */
+    public static function collidingPartProvider(): array
+    {
+        return [
+            'first line'        => [new Part('--frontier', encoding: TransferEncoding::SevenBit)],
+            'later line'        => [new Part("one\r\n--frontier\r\ntwo", encoding: TransferEncoding::SevenBit)],
+            'prefix of a line'  => [new Part("one\r\n--frontier-and-more", encoding: TransferEncoding::SevenBit)],
+            'closing delimiter' => [new Part("one\r\n--frontier--", encoding: TransferEncoding::SevenBit)],
+            'nested boundary'   => [new Multipart(MultipartType::Alternative, [new Part('x')], boundary: 'frontier2')],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('separatePartProvider')]
+    public function writesPartWhoseLinesDoNotStartWithItsBoundary(string $content): void
+    {
+        static::assertStringContainsString(
+            $content,
+            PartWriter::body(
+                new Multipart(
+                    MultipartType::Mixed,
+                    [
+                        new Part($content, encoding: TransferEncoding::SevenBit),
+                    ],
+                    boundary: 'frontier',
+                ),
+            ),
+        );
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function separatePartProvider(): array
+    {
+        return [
+            'after other text' => ['see --frontier'],
+            'after a space'    => [' --frontier'],
+            'single dash'      => ['-frontier'],
+            'other boundary'   => ['--frontline'],
+        ];
+    }
+
+    /**
+     * Boundaries may hold characters that are special in a regular expression, such as "." and "/".
+     */
+    #[Test]
+    public function readsBoundaryCharactersLiterally(): void
+    {
+        static::assertStringContainsString(
+            '--axb/c',
+            PartWriter::body(
+                new Multipart(
+                    MultipartType::Mixed,
+                    [
+                        new Part('--axb/c', encoding: TransferEncoding::SevenBit),
+                    ],
+                    boundary: 'a.b/c',
+                ),
+            ),
+        );
+    }
 }
