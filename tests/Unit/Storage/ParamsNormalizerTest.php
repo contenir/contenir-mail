@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayIterator;
+use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\ParamsNormalizer;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,6 +30,23 @@ class ParamsNormalizerTest extends TestCase
     public function raisesErrorOnInvalidParamsTypes(mixed $params): void
     {
         $this->expectException(InvalidArgumentException::class);
+        ParamsNormalizer::normalizeParams($params);
+    }
+
+    /** @psalm-return iterable<string, array{0: mixed, 1: string}> */
+    public static function nonArrayParams(): iterable
+    {
+        yield 'null' => [null, 'NULL'];
+        yield 'int' => [1, 'integer'];
+        yield 'string' => ['string', 'string'];
+    }
+
+    #[Test]
+    #[DataProvider('nonArrayParams')]
+    public function namesTheTypeOfNonArrayParams(mixed $params, string $type): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid \$params provided; expected array|Traversable|object, received {$type}");
         ParamsNormalizer::normalizeParams($params);
     }
 

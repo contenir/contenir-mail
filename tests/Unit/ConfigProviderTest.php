@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\ConfigProvider;
+use Contenir\Mail\Protocol\SmtpPluginManager;
+use Contenir\Mail\Protocol\SmtpPluginManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -20,5 +22,14 @@ class ConfigProviderTest extends TestCase
         $configProvider = new ConfigProvider();
         $config         = $configProvider();
         static::assertSame(['dependencies'], array_keys($config));
+    }
+
+    #[Test]
+    public function registersSmtpPluginManagerFactory(): void
+    {
+        static::assertSame(
+            ['factories' => [SmtpPluginManager::class => SmtpPluginManagerFactory::class]],
+            (new ConfigProvider())->getDependencyConfig(),
+        );
     }
 }
