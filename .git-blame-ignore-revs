@@ -3,3 +3,6 @@
 
 # Mechanical "Apply mago 1.52 formatting" reformat
 73fe362b3c18e819bddcefd3e781e5aca732979a
+
+# Mechanical "Use static assertions and #[Test] attributes in tests"
+7a4aaeb92e74c830ffcb79cfebe048e1cf937946
