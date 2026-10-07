@@ -1,83 +1,46 @@
 # File Transport Options
 
-This document details the various options available to the
-`Contenir\Mail\Transport\File` mail transport.
-
-## Quick Start
+`Contenir\Mail\Transport\File` writes each message to a new file, for development
+and testing. Its settings are a `Contenir\Mail\Transport\FileConfig`.
 
 ```php
-use Contenir\Mail\Transport\File as FileTransport;
-use Contenir\Mail\Transport\FileOptions;
+use Contenir\Mail\Transport\File;
+use Contenir\Mail\Transport\FileConfig;
 
-// Setup File transport
-$transport = new FileTransport();
-$options   = new FileOptions([
-    'path'     => 'data/mail/',
-    'callback' => function (FileTransport $transport) {
-        return 'Message_' . microtime(true) . '_' . mt_rand() . '.txt';
-    },
-]);
-$transport->setOptions($options);
+$transport = new File(new FileConfig(
+    path: '/var/mail-out',
+    callback: static fn(File $transport): string => sprintf('Message_%s.eml', bin2hex(random_bytes(8))),
+));
+
+$transport = new File(['path' => '/var/mail-out']);
+
+$transport->send($message);
+echo $transport->getLastFile();
 ```
 
-## Configuration Options
+Key        | Argument   | Default                  | Meaning
+---------- | ---------- | ------------------------ | -------
+`path`     | `path`     | the system temp directory | A writable local directory.
+`callback` | `callback` | a random name            | Called with the transport; returns the name of the next file.
 
-Option name | Description
------------ | -----------
-`path`      | The path under which mail files will be written.
-`callback`  | A PHP callable to be invoked in order to generate a unique name for a message file. See below for the default used.
+The default name is `ContenirMail_<time>_<16 random hex digits>.eml`.
 
-The default callback used is:
+## Safety
+
+- `path` must be a local directory: stream wrapper URLs such as `phar://` are
+  refused, and so is a symlink, which could later be pointed elsewhere.
+- The callback's result must be a plain file name: no `/`, `\`, `:` or control
+  characters, and not `.` or `..`, so no name can leave the directory.
+- Each file is created new, with permissions 0600. If a file or symlink with the
+  name already exists, the send fails rather than overwrite or follow it, which
+  protects a shared directory such as `/tmp` from names planted in advance.
+- Headers are checked for unfolded line breaks, as by every transport.
+
+## Methods
 
 ```php
-function (Contenir\Mail\FileTransport $transport) {
-    return 'ContenirMail_' . time() . '_' . mt_rand() . '.tmp';
-}
+__construct(FileConfig|iterable|null $config = null, ClockInterface $clock = new SystemClock())
+getConfig(): FileConfig
+send(Message $message): void
+getLastFile(): ?string
 ```
-
-## Available Methods
-
-`Contenir\Mail\Transport\FileOptions` extends `Laminas\Stdlib\AbstractOptions`, and
-inherits all functionality from that class; this includes property overloading.
-Additionally, the following explicit setters and getters are provided.
-
-### setPath
-
-```php
-setPath(string $path) : void
-```
-
-Set the path under which mail files will be written.
-
-### getPath
-
-```php
-getPath() : string
-```
-
-Get the path under which mail files will be written.
-
-### setCallback
-
-```php
-setCallback(callable $callback) : void
-```
-
-Set the callback used to generate unique filenames for messages.
-
-### getCallback
-
-```php
-getCallback() : callable
-```
-
-Get the callback used to generate unique filenames for messages.
-
-### \_\_construct
-
-```php
-__construct(null|array|Traversable $config) : void
-```
-
-Initialize the object. Allows passing a PHP array or `Traversable` object with
-which to populate the instance.

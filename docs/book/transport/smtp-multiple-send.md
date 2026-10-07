@@ -1,80 +1,57 @@
-# Sending Multiple Mails per SMTP Connection
+# Sending Several Messages per SMTP Connection
 
-By default, a single SMTP transport creates a single connection and re-uses it
-for the lifetime of the script execution. You may send multiple e-mails through
-this SMTP connection. A `RSET` command is issued before each delivery to ensure
-the correct SMTP handshake is followed.
-
-## Examples
-
-### Sending Multiple Mails per SMTP Connection
+An SMTP transport connects on its first `send()` and reuses the session for the
+messages after it, sending `RSET` before each one.
 
 ```php
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\Smtp;
-use Contenir\Mail\Transport\SmtpOptions;
 
-// Create transport
-$transport = new Smtp(new SmtpOptions([
-    'host' => 'mail.example.com',
-]));
+$transport = new Smtp(['host' => 'smtp.example.com']);
 
-// Create a base message:
 $message = (new Message())
     ->addFrom('sender@example.com', 'John Doe')
     ->addReplyTo('replyto@example.com', 'Jane Doe')
-    ->setSubject('Demo of multiple mails per SMTP connection')
-    ->setBody('... Your message here ...');
+    ->setSubject('Demo of several messages per SMTP connection')
+    ->setText('... Your message here ...');
 
-// Loop through recipients, replacing the To header each time:
 foreach ($recipients as $address) {
     $message->setTo($address);
     $transport->send($message);
 }
 ```
 
-Each entry in `$recipients` can be anything `setTo()` accepts, such as an
-e-mail address string, `'Name <email@example.com>'`, or a
-`Contenir\Mail\Address` instance.
+Each entry in `$recipients` can be anything `setTo()` accepts, such as an address
+string, `'Name <email@example.com>'` or a `Contenir\Mail\Address`.
 
-If you wish to have a separate connection for each mail delivery, you will need
-to create and destroy your transport before and after each `send()` method is
-called.
+The connection is closed when the transport is destroyed, or by
+`$transport->disconnect()`. Call `setAutoDisconnect(false)` to leave it open when
+the transport is destroyed, for a connection shared with other code.
 
-### Manipulating the transport between messages
+## Controlling the session yourself
 
-You can manipulate the connection between each delivery by accessing the
-transport's protocol object.
+Give the transport a `Contenir\Mail\Protocol\Smtp` to manage the session
+directly. The transport opens the session if it has not been opened.
 
 ```php
-use Contenir\Mail\Message;
+use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Transport\Smtp as SmtpTransport;
 
-// Create transport
-$transport = new SmtpTransport();
-
-$protocol = new SmtpProtocol('mail.example.com');
+$protocol = new SmtpProtocol(new ConnectionConfig('smtp.example.com'));
 $protocol->connect();
 $protocol->helo('sender.example.com');
 
+$transport = new SmtpTransport();
 $transport->setConnection($protocol);
 
-// Loop through messages
-foreach ($recipients as $address) {
-    $mail = new Message();
-    $mail->addTo($address);
-    $mail->setFrom('studio@example.com', 'Test');
-    $mail->setSubject(
-        'Demonstration - Sending Multiple Mails per SMTP Connection'
-    );
-    $mail->setBody('...Your message here...');
-
-    // Manually control the connection
-    $protocol->rset();
-    $transport->send($mail);
+foreach ($messages as $message) {
+    $transport->send($message);
 }
 
 $protocol->quit();
 $protocol->disconnect();
 ```
+
+`setConnection()` applies the transport's `use_complete_quit` and
+`connection_time_limit` settings to the protocol.

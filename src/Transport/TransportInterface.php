@@ -1,19 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail;
 
 /**
- * Interface for mail transports
+ * Sends a message: through SMTP, sendmail, to a file, or into memory.
+ *
+ * @api
  */
 interface TransportInterface
 {
     /**
-     * Send a mail message
-     *
      * @throws Mail\Exception\ExceptionInterface When the message cannot be written or sent.
-     * @return void
      */
-    public function send(Mail\Message $message);
+    public function send(Mail\Message $message): void;
 }

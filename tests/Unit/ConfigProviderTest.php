@@ -5,31 +5,31 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\ConfigProvider;
-use Contenir\Mail\Protocol\SmtpPluginManager;
-use Contenir\Mail\Protocol\SmtpPluginManagerFactory;
+use Contenir\Mail\Container\TransportFactory;
+use Contenir\Mail\Transport\TransportInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function array_keys;
-
 #[CoversClass(ConfigProvider::class)]
-class ConfigProviderTest extends TestCase
+#[Group('unit')]
+final class ConfigProviderTest extends TestCase
 {
     #[Test]
-    public function invoke(): void
+    public function registersTransportFactory(): void
     {
-        $configProvider = new ConfigProvider();
-        $config         = $configProvider();
-        static::assertSame(['dependencies'], array_keys($config));
+        static::assertSame(
+            ['factories' => [TransportInterface::class => TransportFactory::class]],
+            (new ConfigProvider())->getDependencies(),
+        );
     }
 
     #[Test]
-    public function registersSmtpPluginManagerFactory(): void
+    public function returnsDependenciesWhenInvoked(): void
     {
-        static::assertSame(
-            ['factories' => [SmtpPluginManager::class => SmtpPluginManagerFactory::class]],
-            (new ConfigProvider())->getDependencyConfig(),
-        );
+        $provider = new ConfigProvider();
+
+        static::assertSame(['dependencies' => $provider->getDependencies()], $provider());
     }
 }

@@ -1,57 +1,46 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Transport;
 
-use Laminas\Stdlib\AbstractOptions;
+use Contenir\Mail\Address;
+use Contenir\Mail\Exception\InvalidArgumentException;
+
+use function is_string;
 
 /**
- * @extends AbstractOptions<string|list<string>>
+ * The SMTP envelope, when it should differ from the message's Sender, From and recipient headers.
+ *
+ * ```php
+ * $transport->setEnvelope(new Envelope(from: 'bounces@example.com', to: ['archive@example.com']));
+ * ```
  */
-class Envelope extends AbstractOptions
+final readonly class Envelope
 {
-    /** @var string|null */
-    protected $from;
-
-    /** @var string|null */
-    protected $to;
+    /** The MAIL FROM address, or null to use the message's Sender or first From address */
+    public ?string $from;
 
     /**
-     * Get MAIL FROM
+     * The RCPT TO addresses; empty to use the message's To, Cc and Bcc addresses.
      *
-     * @return string
+     * @var list<string>
      */
-    public function getFrom()
-    {
-        return $this->from;
-    }
+    public array $to;
 
     /**
-     * Set MAIL FROM
-     *
-     * @param  string $from
+     * @param string|iterable<string> $to
+     * @throws InvalidArgumentException When an address is invalid or contains CR or LF.
      */
-    public function setFrom($from)
+    public function __construct(?string $from = null, string|iterable $to = [])
     {
-        $this->from = (string) $from;
-    }
+        $this->from = null === $from ? null : (new Address($from))->getEmail();
 
-    /**
-     * Get RCPT TO
-     *
-     * @return string|null
-     */
-    public function getTo()
-    {
-        return $this->to;
-    }
+        $recipients = [];
+        foreach (is_string($to) ? [$to] : $to as $address) {
+            $recipients[] = (new Address($address))->getEmail();
+        }
 
-    /**
-     * Set RCPT TO
-     *
-     * @param  string $to
-     */
-    public function setTo($to)
-    {
-        $this->to = $to;
+        $this->to = $recipients;
     }
 }

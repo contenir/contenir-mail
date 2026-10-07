@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit;
 
+use Contenir\Mail\ConfigProvider;
 use Contenir\Mail\Module;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function array_keys;
-
 #[CoversClass(Module::class)]
-class ModuleTest extends TestCase
+#[Group('unit')]
+final class ModuleTest extends TestCase
 {
     #[Test]
-    public function invoke(): void
+    public function registersConfigProviderDependenciesWithServiceManager(): void
     {
-        $module = new Module();
-        $config = $module->getConfig();
-        static::assertSame(['service_manager'], array_keys($config));
+        static::assertSame(
+            ['service_manager' => (new ConfigProvider())->getDependencies()],
+            (new Module())->getConfig(),
+        );
     }
 }

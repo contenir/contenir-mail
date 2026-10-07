@@ -6,17 +6,21 @@ namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Override;
 use SensitiveParameter;
 
+use function base64_decode;
 use function base64_encode;
+use function hash_hmac;
 
 /**
- * AUTH LOGIN: the username and the password, each in its own base64 response.
+ * AUTH CRAM-MD5 (RFC 2195): answers the server's challenge with an HMAC-MD5 of the password.
  *
- * Sends the password itself, so use it only over TLS.
+ * The password never crosses the wire, but MD5 is weak and the server must store
+ * the password in a recoverable form. Prefer PLAIN or LOGIN over TLS where offered.
  */
-final readonly class Login implements AuthenticatorInterface
+final readonly class CramMd5 implements AuthenticatorInterface
 {
     public const array KEYS = ['username', 'password'];
 
@@ -30,8 +34,8 @@ final readonly class Login implements AuthenticatorInterface
         #[SensitiveParameter]
         string $password,
     ) {
-        Credentials::username('LOGIN', $username);
-        $this->password = Credentials::secret('LOGIN', 'a password', $password);
+        Credentials::username('CRAM-MD5', $username);
+        $this->password = Credentials::secret('CRAM-MD5', 'a password', $password);
     }
 
     /**
@@ -48,15 +52,22 @@ final readonly class Login implements AuthenticatorInterface
     #[Override]
     public function mechanism(): string
     {
-        return 'LOGIN';
+        return 'CRAM-MD5';
     }
 
+    /**
+     * @throws RuntimeException When the challenge is not base64 text.
+     */
     #[Override]
     public function authenticate(ChannelInterface $channel): void
     {
-        $channel->exchange('AUTH LOGIN', 334);
-        $channel->exchangeSecret(base64_encode($this->username), 334);
-        $channel->exchangeSecret(base64_encode($this->password), 235);
+        $challenge = base64_decode($channel->exchange('AUTH CRAM-MD5', 334), strict: true);
+        if (false === $challenge || '' === $challenge) {
+            throw new RuntimeException('The server sent an invalid CRAM-MD5 challenge');
+        }
+
+        $digest = hash_hmac('md5', $challenge, $this->password);
+        $channel->exchangeSecret(base64_encode("{$this->username} {$digest}"), 235);
     }
 
     /**
