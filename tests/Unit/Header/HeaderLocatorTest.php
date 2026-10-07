@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\HeaderLocator;
 use PHPUnit\Framework\TestCase;
@@ -27,8 +28,8 @@ class HeaderLocatorTest extends TestCase
     /**
      * @param null|class-string<Header\HeaderInterface> $expected
      * @param null|class-string<Header\HeaderInterface> $default
-     * @dataProvider provideHeaderNames
      */
+    #[DataProvider('provideHeaderNames')]
     public function testHeaderIsProperlyLoaded(string $name, ?string $expected, ?string $default = null): void
     {
         $this->assertEquals($expected, $this->headerLocator->get($name, $default));
@@ -82,10 +83,10 @@ class HeaderLocatorTest extends TestCase
     }
 
     /**
-     * @dataProvider expectedHeaders
      * @param string $name
      * @param Header\HeaderInterface $class
      */
+    #[DataProvider('expectedHeaders')]
     public function testDefaultHeadersMapResolvesProperHeader($name, $class): void
     {
         $this->assertEquals($class, $this->headerLocator->get($name));

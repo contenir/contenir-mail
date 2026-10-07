@@ -2,16 +2,15 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Header\ContentDisposition;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\UnstructuredInterface;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group Contenir_Mail
- * @covers Contenir\Mail\Header\ContentDisposition<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\ContentDisposition::class)]
 class ContentDispositionTest extends TestCase
 {
     public function testImplementsHeaderInterface(): void
@@ -49,18 +48,14 @@ class ContentDispositionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider getLiteralData
-     */
+    #[DataProvider('getLiteralData')]
     public function testHandlesLiterals(array $expected, string $header): void
     {
         $header = ContentDisposition::fromString('Content-Disposition: ' . $header);
         $this->assertEquals($expected, $header->getParameters());
     }
 
-    /**
-     * @dataProvider setDispositionProvider
-     */
+    #[DataProvider('setDispositionProvider')]
     public function testFromString(
         string $disposition,
         array $parameters,
@@ -77,9 +72,7 @@ class ContentDispositionTest extends TestCase
         $this->assertEquals($expectedToString, $header->toString(), 'toString() value not match');
     }
 
-    /**
-     * @dataProvider setDispositionProvider
-     */
+    #[DataProvider('setDispositionProvider')]
     public function testSetDisposition(
         string $disposition,
         array $parameters,
@@ -116,8 +109,8 @@ class ContentDispositionTest extends TestCase
 
     /**
      * @param class-string $expectedException
-     * @dataProvider invalidHeaderLinesProvider
      */
+    #[DataProvider('invalidHeaderLinesProvider')]
     public function testFromStringThrowException(
         string $headerLine,
         string $expectedException,
@@ -139,9 +132,8 @@ class ContentDispositionTest extends TestCase
      * Should not throw if the optional count is missing
      *
      * @see https://tools.ietf.org/html/rfc2231
-     *
-     * @dataProvider parameterWrappingProvider
      */
+    #[DataProvider('parameterWrappingProvider')]
     public function testParameterWrapping(string $input, string $disposition, array $parameters): void
     {
         $header = ContentDisposition::fromString($input);
@@ -150,9 +142,7 @@ class ContentDispositionTest extends TestCase
         $this->assertEquals($parameters, $header->getParameters());
     }
 
-    /**
-     * @dataProvider parameterWrappingProviderExceptions
-     */
+    #[DataProvider('parameterWrappingProviderExceptions')]
     public function testParameterWrappingExceptions(string $input, string $exception, string $message): void
     {
         $this->expectException($exception);
@@ -162,8 +152,8 @@ class ContentDispositionTest extends TestCase
 
     /**
      * @param class-string $expectedException
-     * @dataProvider invalidParametersProvider
      */
+    #[DataProvider('invalidParametersProvider')]
     public function testSetParameterThrowException(
         string $paramName,
         string $paramValue,
@@ -178,9 +168,7 @@ class ContentDispositionTest extends TestCase
         $header->setParameter($paramName, $paramValue);
     }
 
-    /**
-     * @dataProvider getParameterProvider
-     */
+    #[DataProvider('getParameterProvider')]
     public function testGetParameter(string $fromString, string $paramName, ?string $paramValue): void
     {
         $header = ContentDisposition::fromString($fromString);
@@ -348,9 +336,7 @@ class ContentDispositionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider unconventionalHeaderLinesProvider
-     */
+    #[DataProvider('unconventionalHeaderLinesProvider')]
     public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = ContentDisposition::fromString($headerLine);

@@ -6,6 +6,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Protocol\AbstractProtocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\ProtocolTrait;
@@ -17,9 +18,8 @@ use function str_contains;
 use const PHP_BINARY;
 
 /**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Protocol\AbstractProtocol<extended>
  */
+#[CoversClass(\Contenir\Mail\Protocol\AbstractProtocol::class)]
 final class AbstractProtocolTest extends TestCase
 {
     private Process $process;

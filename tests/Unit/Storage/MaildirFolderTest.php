@@ -31,9 +31,6 @@ use function unlink;
 use const DIRECTORY_SEPARATOR;
 use const PHP_OS;
 
-/**
- * @group      Contenir_Mail
- */
 class MaildirFolderTest extends TestCase
 {
     /** @var array */
@@ -368,6 +365,10 @@ class MaildirFolderTest extends TestCase
 
     public function testNotReadableMaildir(): void
     {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('File permissions are not enforced for the root user');
+        }
+
         chmod($this->params['dirname'], 0);
 
         $this->expectException(Exception\RuntimeException::class);

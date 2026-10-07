@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\Group;
 use ArrayObject;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
@@ -31,9 +32,6 @@ use function unserialize;
 
 use const INF;
 
-/**
- * @group      Contenir_Mail
- */
 class MboxTest extends TestCase
 {
     /** @var string */
@@ -186,8 +184,8 @@ class MboxTest extends TestCase
 */
 
     /**
-     * @group 6775
      */
+    #[Group('6775')]
     public function testFetchMessageHeaderUnix(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
@@ -213,9 +211,7 @@ class MboxTest extends TestCase
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
 
-    /**
-     * @group 6775
-     */
+    #[Group('6775')]
     public function testFetchMessageBodyUnix(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);

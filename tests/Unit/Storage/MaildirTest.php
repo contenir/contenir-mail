@@ -30,9 +30,6 @@ use function unlink;
 
 use const PHP_OS;
 
-/**
- * @group      Contenir_Mail
- */
 class MaildirTest extends TestCase
 {
     /** @var string */
@@ -350,6 +347,10 @@ class MaildirTest extends TestCase
 
     public function testNotReadableCur(): void
     {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('File permissions are not enforced for the root user');
+        }
+
         chmod($this->maildir . 'cur', 0);
 
         $this->expectException(Exception\RuntimeException::class);
@@ -359,6 +360,10 @@ class MaildirTest extends TestCase
 
     public function testNotReadableNew(): void
     {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('File permissions are not enforced for the root user');
+        }
+
         chmod($this->maildir . 'new', 0);
 
         $this->expectException(Exception\RuntimeException::class);

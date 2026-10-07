@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use ArrayIterator;
 use InvalidArgumentException;
 use Contenir\Mail\Storage\ParamsNormalizer;
@@ -20,9 +21,7 @@ class ParamsNormalizerTest extends TestCase
         yield 'list'         => [[1, 2, 3]];
     }
 
-    /**
-     * @dataProvider invalidParams
-     */
+    #[DataProvider('invalidParams')]
     public function testRaisesErrorOnInvalidParamsTypes(mixed $params): void
     {
         $this->expectException(InvalidArgumentException::class);

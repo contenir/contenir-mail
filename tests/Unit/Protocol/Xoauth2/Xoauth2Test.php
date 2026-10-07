@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Xoauth2;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers  Contenir\Mail\Protocol\Xoauth2\Xoauth2
- */
+#[CoversClass(\Contenir\Mail\Protocol\Xoauth2\Xoauth2::class)]
 class Xoauth2Test extends TestCase
 {
     /** @psalm-suppress InternalClass */

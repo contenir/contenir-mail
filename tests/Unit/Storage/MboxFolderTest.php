@@ -30,9 +30,6 @@ use function unserialize;
 
 use const DIRECTORY_SEPARATOR;
 
-/**
- * @group      Contenir_Mail
- */
 class MboxFolderTest extends TestCase
 {
     /** @var array */

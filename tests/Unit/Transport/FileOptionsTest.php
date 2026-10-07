@@ -2,16 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\TestCase;
 
 use function sys_get_temp_dir;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Transport\FileOptions<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\FileOptions::class)]
 class FileOptionsTest extends TestCase
 {
     private FileOptions $options;
@@ -64,6 +62,10 @@ class FileOptionsTest extends TestCase
 
     public function testSetPathThrowsWhenPathNotWritable(): void
     {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('File permissions are not enforced for the root user');
+        }
+
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('expects a valid path in which to write mail files');
         $this->options->setPath('/');

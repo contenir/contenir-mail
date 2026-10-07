@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Countable;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
@@ -12,10 +13,7 @@ use Traversable;
 
 use function count;
 
-/**
- * @group      Contenir_Mail
- * @covers \Contenir\Mail\AddressList<extended>
- */
+#[CoversClass(\Contenir\Mail\AddressList::class)]
 class AddressListTest extends TestCase
 {
     private AddressList $list;

@@ -2,16 +2,16 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\Subject<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\Subject::class)]
 class SubjectTest extends TestCase
 {
     public function testHeaderFolding(): void
@@ -42,12 +42,12 @@ class SubjectTest extends TestCase
     }
 
     /**
-     * @dataProvider validSubjectValuesProvider
-     * @group ZF2015-04
      * @param string $decodedValue
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[DataProvider('validSubjectValuesProvider')]
+    #[Group('ZF2015-04')]
     public function testParseValidSubjectHeader($decodedValue, $encodedValue, $encoding): void
     {
         $header = Header\Subject::fromString('Subject:' . $encodedValue);
@@ -57,12 +57,12 @@ class SubjectTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidSubjectValuesProvider
-     * @group ZF2015-04
      * @param string $decodedValue
      * @param string $expectedException
      * @param string|null $expectedExceptionMessage
      */
+    #[DataProvider('invalidSubjectValuesProvider')]
+    #[Group('ZF2015-04')]
     public function testParseInvalidSubjectHeaderThrowException(
         $decodedValue,
         $expectedException,
@@ -81,12 +81,12 @@ class SubjectTest extends TestCase
     }
 
     /**
-     * @dataProvider validSubjectValuesProvider
-     * @group ZF2015-04
      * @param string $decodedValue
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[DataProvider('validSubjectValuesProvider')]
+    #[Group('ZF2015-04')]
     public function testSetSubjectValidValue($decodedValue, $encodedValue, $encoding): void
     {
         $header = new Header\Subject();

@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
@@ -11,10 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 use function count;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\MessageFactory<extended>
- */
+#[CoversClass(\Contenir\Mail\MessageFactory::class)]
 class MessageFactoryTest extends TestCase
 {
     public function testConstructMessageWithOptions(): void
@@ -113,9 +112,7 @@ class MessageFactoryTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidMessageOptions
-     */
+    #[DataProvider('invalidMessageOptions')]
     public function testExceptionForOptionsNotArrayOrTraversable(mixed $options): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);

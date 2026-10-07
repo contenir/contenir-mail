@@ -2,6 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
@@ -12,10 +15,8 @@ use function explode;
 /**
  * This test is primarily to test that AbstractAddressList headers perform
  * header folding and MIME encoding properly.
- *
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\To<extended>
  */
+#[CoversClass(\Contenir\Mail\Header\To::class)]
 class ToTest extends TestCase
 {
     public function testHeaderFoldingOccursProperly(): void
@@ -40,10 +41,8 @@ class ToTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider headerLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
     public function testFromStringRaisesExceptionWhenCrlfInjectionIsDetected(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);

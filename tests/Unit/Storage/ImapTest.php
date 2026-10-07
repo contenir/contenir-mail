@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
@@ -28,9 +30,7 @@ use function unlink;
 use const DIRECTORY_SEPARATOR;
 use const INF;
 
-/**
- * @covers Contenir\Mail\Storage\Imap<extended>
- */
+#[CoversClass(\Contenir\Mail\Storage\Imap::class)]
 class ImapTest extends TestCase
 {
     /** @var array */
@@ -574,8 +574,8 @@ class ImapTest extends TestCase
     }
 
     /**
-     * @group 7353
      */
+    #[Group('7353')]
     public function testCanMarkMessageUnseen(): void
     {
         $mail = new Storage\Imap($this->params);

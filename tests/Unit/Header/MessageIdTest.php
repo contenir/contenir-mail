@@ -2,16 +2,16 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function sprintf;
 
-/**
- * @group      Contenir_Mail
- * @covers Contenir\Mail\Header\MessageId<extended>
- */
+#[CoversClass(\Contenir\Mail\Header\MessageId::class)]
 class MessageIdTest extends TestCase
 {
     public function testSettingManually(): void
@@ -56,10 +56,8 @@ class MessageIdTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider headerLines
-     * @group ZF2015-04
-     */
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
     public function testFromStringPreventsCrlfInjectionOnDetection(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -77,10 +75,8 @@ class MessageIdTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidIdentifiers
-     * @group ZF2015-04
-     */
+    #[DataProvider('invalidIdentifiers')]
+    #[Group('ZF2015-04')]
     public function testInvalidIdentifierRaisesException(string $id): void
     {
         $header = new Header\MessageId();

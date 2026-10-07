@@ -5,9 +5,6 @@ namespace Contenir\Mail\Tests\Unit\Protocol;
 use Contenir\Mail\Protocol\ProtocolTrait;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers  Contenir\Mail\Protocol\ProtocolTrait
- */
 class ProtocolTraitTest extends TestCase
 {
     public function testTls12Version(): void

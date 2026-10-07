@@ -2,15 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\ConfigProvider;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
 
-/**
- * @group      Contenir_Mail
- * @covers \Contenir\Mail\ConfigProvider<extended>
- */
+#[CoversClass(\Contenir\Mail\ConfigProvider::class)]
 class ConfigProviderTest extends TestCase
 {
     public function testInvoke(): void

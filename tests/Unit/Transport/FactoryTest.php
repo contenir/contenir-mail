@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Composer\InstalledVersions;
 use Contenir\Mail\Transport\Exception;
 use Contenir\Mail\Transport\Factory;
@@ -20,14 +22,10 @@ use function version_compare;
 
 use const E_USER_DEPRECATED;
 
-/**
- * @covers Contenir\Mail\Transport\Factory<extended>
- */
+#[CoversClass(\Contenir\Mail\Transport\Factory::class)]
 class FactoryTest extends TestCase
 {
-    /**
-     * @dataProvider invalidSpecTypeProvider
-     */
+    #[DataProvider('invalidSpecTypeProvider')]
     public function testInvalidSpecThrowsInvalidArgumentException(mixed $spec): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -50,9 +48,9 @@ class FactoryTest extends TestCase
     }
 
     /**
-     * @dataProvider typeProvider
      * @param class-string $type
      */
+    #[DataProvider('typeProvider')]
     public function testCanCreateClassUsingTypeKey(string $type): void
     {
         set_error_handler(static function ($code, $message): void {
@@ -77,9 +75,9 @@ class FactoryTest extends TestCase
     }
 
     /**
-     * @dataProvider typeAliasProvider
      * @param class-string $expectedClass
      */
+    #[DataProvider('typeAliasProvider')]
     public function testCanCreateClassFromTypeAlias(string $type, string $expectedClass): void
     {
         $transport = Factory::create([
@@ -129,9 +127,7 @@ class FactoryTest extends TestCase
         $this->assertInstanceOf(InMemory::class, $transport);
     }
 
-    /**
-     * @dataProvider invalidClassProvider
-     */
+    #[DataProvider('invalidClassProvider')]
     public function testInvalidClassThrowsDomainException(string $class): void
     {
         $this->expectException(Exception\DomainException::class);

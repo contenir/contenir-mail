@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Mime;
 use PHPUnit\Framework\TestCase;
 
@@ -15,9 +17,6 @@ use function quoted_printable_decode;
 use function realpath;
 use function stream_get_contents;
 
-/**
- * @group      Laminas_Mime
- */
 class PartTest extends TestCase
 {
     /**
@@ -105,8 +104,8 @@ class PartTest extends TestCase
     }
 
     /**
-     * @group Laminas-1491
      */
+    #[Group('Laminas-1491')]
     public function testGetRawContentFromPart()
     {
         $this->assertEquals($this->testText, $this->part->getRawContent());
@@ -114,9 +113,8 @@ class PartTest extends TestCase
 
     /**
      * @link https://github.com/zendframework/zf2/issues/5428
-     *
-     * @group 5428
      */
+    #[Group('5428')]
     public function testContentEncodingWithStreamReadTwiceINaRow()
     {
         $testfile = realpath(__FILE__);
@@ -172,7 +170,7 @@ class PartTest extends TestCase
     }
 
     /** @psalm-return array<string, array{0: mixed}> */
-    public function invalidContentTypes(): array
+    public static function invalidContentTypes(): array
     {
         return [
             'null'       => [null],
@@ -188,9 +186,9 @@ class PartTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidContentTypes
      * @param mixed $content
      */
+    #[DataProvider('invalidContentTypes')]
     public function testConstructorRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
     {
         $this->expectException(Mime\Exception\InvalidArgumentException::class);
@@ -198,9 +196,9 @@ class PartTest extends TestCase
     }
 
     /**
-     * @dataProvider invalidContentTypes
      * @param mixed $content
      */
+    #[DataProvider('invalidContentTypes')]
     public function testSetContentRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
     {
         $part = new Mime\Part();
