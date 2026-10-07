@@ -9,3 +9,6 @@
 
 # Mechanical "Apply mago's safe syntax fixes"
 03ef1dd5d3878980905a950abcb5dc7cd4ca5952
+
+# Mechanical "Add #[Override] to overriding methods"
+4a237b4ecafef9e2358c0f2eacd7ddda9535c11b
