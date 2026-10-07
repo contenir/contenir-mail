@@ -29,6 +29,9 @@ final class SafeText
     /** Longest file name in bytes on common file systems */
     public const int MAX_FILENAME_BYTES = 255;
 
+    /** Longest extension, its dot included, kept when a long file name is shortened */
+    public const int MAX_EXTENSION_BYTES = 16;
+
     /** Used when nothing of a file name is left */
     public const string DEFAULT_FILENAME = 'attachment';
 
@@ -66,15 +69,12 @@ final class SafeText
             return self::DEFAULT_FILENAME;
         }
 
-        if (strlen($name) <= self::MAX_FILENAME_BYTES) {
-            return $name;
-        }
-
-        $dot       = (int) strrpos($name, needle: '.');
-        $extension = 0 < $dot && (strlen($name) - $dot) <= 16 ? substr($name, $dot) : '';
+        $dot       = strrpos($name, needle: '.');
+        $extension = false !== $dot && (strlen($name) - $dot) <= self::MAX_EXTENSION_BYTES ? substr($name, $dot) : '';
+        $base      = substr($name, offset: 0, length: strlen($name) - strlen($extension));
 
         return (
-            mb_strcut($name, start: 0, length: self::MAX_FILENAME_BYTES - strlen($extension), encoding: 'UTF-8')
+            mb_strcut($base, start: 0, length: self::MAX_FILENAME_BYTES - strlen($extension), encoding: 'UTF-8')
                 . $extension
         );
     }

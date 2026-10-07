@@ -14,6 +14,7 @@ use Contenir\Mail\Header\HeaderBlock;
 use Contenir\Mail\Header\HeaderLines;
 use Contenir\Mail\Header\HeaderLocator;
 use Contenir\Mail\Header\HeaderParser;
+use Contenir\Mail\Header\MimeParameterParser;
 use Contenir\Mail\Headers;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,6 +30,7 @@ use function str_repeat;
 #[CoversClass(HeaderParser::class)]
 #[CoversClass(HeaderBlock::class)]
 #[CoversClass(HeaderLines::class)]
+#[CoversClass(MimeParameterParser::class)]
 #[Group('unit')]
 final class HeadersTest extends TestCase
 {
@@ -746,6 +748,21 @@ final class HeadersTest extends TestCase
         $line = 'x-a:  ' . str_repeat('a', times: 992);
 
         static::assertSame("{$line}\r\n", Headers::fromString($line)->toString());
+    }
+
+    #[Test]
+    public function refusesLineThatIsNeitherHeaderNorContinuation(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Line "not a header" does not match header format!');
+
+        Headers::fromString("Subject: x\r\nnot a header");
+    }
+
+    #[Test]
+    public function ignoresWhitespaceAfterTheBlankLines(): void
+    {
+        static::assertCount(1, Headers::fromString("Subject: a\r\n\r\n\r\n  "));
     }
 
     /**

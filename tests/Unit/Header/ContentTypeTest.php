@@ -211,6 +211,12 @@ final class ContentTypeTest extends TestCase
     }
 
     #[Test]
+    public function trimsParameterNames(): void
+    {
+        static::assertSame(['charset' => 'x'], (new ContentType('text/plain', [' Charset ' => 'x']))->getParameters());
+    }
+
+    #[Test]
     public function lowerCasesParameterNames(): void
     {
         static::assertSame(

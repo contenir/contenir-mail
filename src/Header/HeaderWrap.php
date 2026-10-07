@@ -38,8 +38,6 @@ final class HeaderWrap
         ']'  => '=5D',
     ];
 
-    private function __construct() {}
-
     /**
      * Fold a free-text header value to 78 characters, or RFC 2047 encode it as
      * UTF-8 when it is not printable US-ASCII.
