@@ -685,6 +685,51 @@ final class MessageTest extends TestCase
         static::assertSame(['test@example.com' => 'Example Test'], $this->namesByEmail($message, 'To'));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function malformedHeaderProvider(): array
+    {
+        return [
+            'Sender without an address' => ['Sender', 'foo'],
+            'From without an address'   => ['From', '@@@'],
+            'To without an address'     => ['To', '<<<'],
+            'Date that is not a date'   => ['Date', 'not a date'],
+            'Content-Type without type' => ['Content-Type', 'nonsense'],
+            'Message-ID with a space'   => ['Message-ID', '<a b@example.com>'],
+        ];
+    }
+
+    #[DataProvider('malformedHeaderProvider')]
+    #[Test]
+    public function keepsMalformedHeaderAsGenericHeaderAndParsesTheRest(string $name, string $value): void
+    {
+        $message = Message::fromString(
+            "Subject: Hello\r\n{$name}: {$value}\r\nX-Other: yes\r\n\r\nbody",
+        );
+        $header = $message->getHeaders()->get($name);
+
+        static::assertSame(
+            [GenericHeader::class, $value, 'Hello', 'yes', 'body'],
+            [
+                null === $header ? null : $header::class,
+                $header?->getFieldValue(),
+                $message->getSubject(),
+                $message->getHeaders()->get('X-Other')?->getFieldValue(),
+                $message->getBody(),
+            ],
+        );
+    }
+
+    #[DataProvider('malformedHeaderProvider')]
+    #[Test]
+    public function writesMessageWithMalformedHeaderBackByteForByte(string $name, string $value): void
+    {
+        $raw = "Subject: Hello\r\n{$name}: {$value}\r\nX-Other: yes\r\n\r\nbody";
+
+        static::assertSame($raw, Message::fromString($raw)->toString());
+    }
+
     #[DataProvider('multipartReportHeaderProvider')]
     #[Test]
     #[Group('19')]

@@ -167,6 +167,38 @@ final class HeadersTest extends TestCase
         static::assertInstanceOf(GenericHeader::class, Headers::fromString('Date: not a date')->get('date'));
     }
 
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidAddressHeaderProvider(): array
+    {
+        return [
+            'Sender' => ['Sender: foo'],
+            'From'   => ['From: @@@'],
+            'To'     => ['To: <<<'],
+        ];
+    }
+
+    #[DataProvider('invalidAddressHeaderProvider')]
+    #[Test]
+    public function fallsBackToGenericHeaderWhenAddressIsInvalid(string $line): void
+    {
+        static::assertSame(
+            [[GenericHeader::class, $line]],
+            array_map(
+                static fn(Header\HeaderInterface $header): array => [$header::class, $header->toString()],
+                Headers::fromString($line)->toList(),
+            ),
+        );
+    }
+
+    #[DataProvider('invalidAddressHeaderProvider')]
+    #[Test]
+    public function fallsBackToGenericHeaderWhenGivenLineHasInvalidAddress(string $line): void
+    {
+        static::assertInstanceOf(GenericHeader::class, Headers::fromIterable([$line])->toList()[0] ?? null);
+    }
+
     #[Test]
     public function keepsRejectedValueInGenericHeaderFallback(): void
     {
