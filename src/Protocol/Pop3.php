@@ -1,25 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Protocol\Pop3\Response;
-use Laminas\Stdlib\ErrorHandler;
+use LogicException;
 use SensitiveParameter;
 
+use function array_map;
 use function explode;
-use function fclose;
-use function fgets;
-use function fwrite;
-use function is_string;
+use function in_array;
 use function md5;
+use function preg_match;
 use function rtrim;
-use function stream_socket_enable_crypto;
-use function strpos;
-use function strtok;
-use function strtolower;
+use function str_ends_with;
+use function str_starts_with;
+use function strlen;
+use function strtoupper;
 use function substr;
 use function trim;
 
+/**
+ * A POP3 client (RFC 1939), with STLS (RFC 2595) and CAPA (RFC 2449).
+ *
+ * Connections use STLS unless told otherwise, and fail rather than continue
+ * in plain text when the server does not offer it. Message numbers must be
+ * positive integers, no command line can contain CR, LF or NUL, and
+ * responses are bounded by ResponseLimits.
+ *
+ * @api
+ *
+ * @mago-expect lint:cyclomatic-complexity The POP3 command set kept from laminas-mail, one method per command.
+ * @mago-expect lint:kan-defect The POP3 command set kept from laminas-mail, one method per command.
+ * @mago-expect lint:too-many-methods The POP3 command set kept from laminas-mail, one method per command.
+ */
 class Pop3
 {
     use ProtocolTrait;
@@ -27,44 +42,54 @@ class Pop3
     /**
      * Default timeout in seconds for initiating session
      */
-    public const TIMEOUT_CONNECTION = 30;
+    public const int TIMEOUT_CONNECTION = 30;
 
     /**
      * saves if server supports top
-     *
-     * @var null|bool
      */
-    public $hasTop;
-
-    /** @var null|resource */
-    protected $socket;
+    public ?bool $hasTop = null;
 
     /**
      * greeting timestamp for apop
-     *
-     * @var null|string
      */
-    protected $timestamp;
+    protected ?string $timestamp = null;
+
+    private ConnectionConfig $config;
+
+    private ConnectionInterface $connection;
+
+    private ResponseLimits $limits;
 
     /**
      * Public constructor
      *
-     * @param  string      $host           hostname or IP address of POP3 server, if given connect() is called
-     * @param  int|null    $port           port of POP3 server, null for default (110 or 995 for ssl)
-     * @param  bool|string $ssl            use ssl? 'SSL', 'TLS' or false
-     * @param  bool        $novalidatecert set to true to skip SSL certificate validation
+     * @param string|ConnectionConfig $host hostname or IP address of POP3 server, or its settings; if given connect() is called
+     * @param int|null $port port of POP3 server, null for default (110 or 995 for ssl)
+     * @param string|bool|Security|null $ssl null for STLS, 'ssl' for TLS, 'tls' for STLS, false for plain text
+     * @param bool $novalidatecert set to true to skip TLS certificate validation
+     * @param ConnectionInterface|null $connection the connection to use, a StreamConnection by default
+     * @throws Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
      */
-    public function __construct($host = '', $port = null, $ssl = false, $novalidatecert = false)
-    {
+    public function __construct(
+        string|ConnectionConfig $host = '',
+        ?int $port = null,
+        string|bool|Security|null $ssl = null,
+        bool $novalidatecert = false,
+        ?ConnectionInterface $connection = null,
+    ) {
+        $this->config     = new ConnectionConfig(security: Security::StartTls);
+        $this->connection = $connection ?? new StreamConnection();
+        $this->limits     = new ResponseLimits();
         $this->setNoValidateCert($novalidatecert);
 
-        if ($host) {
+        if ($host instanceof ConnectionConfig || '' !== $host) {
             $this->connect($host, $port, $ssl);
         }
     }
 
     /**
-     * Public destructor
+     * Public destructor: logs out if connected, and does nothing otherwise
      */
     public function __destruct()
     {
@@ -72,57 +97,74 @@ class Pop3
     }
 
     /**
+     * A protocol holds a live connection, so it cannot be serialized.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __serialize(): array
+    {
+        throw new LogicException(static::class . ' cannot be serialized');
+    }
+
+    /**
+     * Refuse to unserialize, so that a crafted payload never reaches the destructor.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __wakeup(): void
+    {
+        throw new LogicException(static::class . ' cannot be unserialized');
+    }
+
+    /**
+     * Bound how much the server may send for one command.
+     */
+    public function setResponseLimits(ResponseLimits $limits): static
+    {
+        $this->limits = $limits;
+
+        return $this;
+    }
+
+    /**
+     * The settings of the last connection, or of the next if none was made yet.
+     */
+    public function getConnectionConfig(): ConnectionConfig
+    {
+        return $this->config;
+    }
+
+    /**
      * Open connection to POP3 server
      *
-     * @param  string      $host  hostname or IP address of POP3 server
-     * @param  int|null    $port  of POP3 server, default is 110 (995 for ssl)
-     * @param  string|bool $ssl   use 'SSL', 'TLS' or false
-     * @throws Exception\RuntimeException
+     * @param string|ConnectionConfig $host hostname or IP address of POP3 server, or its settings
+     * @param int|null $port of POP3 server, default is 110 (995 for ssl); ignored with a ConnectionConfig
+     * @param string|bool|Security|null $ssl null for STLS, 'ssl' for TLS, 'tls' for STLS, false for plain text; ignored with a ConnectionConfig
+     * @throws Exception\ExceptionInterface When the server cannot be reached, does not greet, or TLS cannot be negotiated.
+     * @throws Exception\InvalidArgumentException When $ssl is not a recognised setting.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
      * @return string welcome message
      */
-    public function connect($host, $port = null, $ssl = false)
-    {
-        $transport = 'tcp';
-        $isTls     = false;
+    public function connect(
+        string|ConnectionConfig $host,
+        ?int $port = null,
+        string|bool|Security|null $ssl = null,
+    ): string {
+        $this->config = $host instanceof ConnectionConfig
+            ? $host
+            : LegacyOptions::config($host, $port, $ssl, $this->validateCert(), self::TIMEOUT_CONNECTION);
+        $this->setNoValidateCert(! $this->config->verifyPeer);
 
-        if ($ssl) {
-            $ssl = strtolower($ssl);
-        }
+        $this->connection->open($this->config, $this->config->portOr(110, 995));
 
-        switch ($ssl) {
-            case 'ssl':
-                $transport = 'ssl';
-                if (! $port) {
-                    $port = 995;
-                }
-                break;
-            case 'tls':
-                $isTls = true;
-            // break intentionally omitted
-            default:
-                if (! $port) {
-                    $port = 110;
-                }
-        }
+        $welcome         = $this->readResponse();
+        $matches         = [];
+        $this->timestamp = 1 === preg_match('/<[^<>@]+@[^<>]*>/', $welcome, $matches) ? $matches[0] ?? null : null;
 
-        $this->socket = $this->setupSocket($transport, $host, $port, self::TIMEOUT_CONNECTION);
-
-        $welcome = $this->readResponse();
-
-        strtok($welcome, '<');
-        $this->timestamp = strtok('>');
-        if (! strpos($this->timestamp, '@')) {
-            $this->timestamp = null;
-        } else {
-            $this->timestamp = "<{$this->timestamp}>";
-        }
-
-        if ($isTls) {
-            $this->request('STLS');
-            $result = stream_socket_enable_crypto($this->socket, true, $this->getCryptoMethod());
-            if (! $result) {
-                throw new Exception\RuntimeException('cannot enable TLS');
-            }
+        if (Security::StartTls === $this->config->security) {
+            $this->startTls();
         }
 
         return $welcome;
@@ -132,45 +174,50 @@ class Pop3
      * Send a request
      *
      * @param string $request your request without newline
-     * @throws Exception\RuntimeException
+     * @throws Exception\RuntimeException When the connection fails.
+     * @throws Exception\InvalidArgumentException When the request contains CR, LF or NUL.
      */
-    public function sendRequest($request)
+    public function sendRequest(#[SensitiveParameter] string $request): void
     {
-        ErrorHandler::start();
-        $result = fwrite($this->socket, "{$request}\r\n");
-        $error  = ErrorHandler::stop();
-        if (! $result) {
-            throw new Exception\RuntimeException('send failed - connection closed?', 0, $error);
-        }
+        $this->connection->write(CommandLine::terminate($request));
     }
 
     /**
      * read a response
      *
      * @param  bool $multiline response has multiple lines and should be read until "<nl>.<nl>"
-     * @throws Exception\RuntimeException
+     * @throws Exception\RuntimeException When the server answers -ERR, closes the connection, or exceeds the limits.
      * @return string response
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function readResponse($multiline = false)
+    public function readResponse(bool $multiline = false): string
     {
         $response = $this->readRemoteResponse();
 
-        if ($response->status() != '+OK') {
+        if ('+OK' !== $response->status()) {
             throw new Exception\RuntimeException('last request failed');
         }
 
-        $message = $response->message();
+        if (! $multiline) {
+            return $response->message();
+        }
 
-        if ($multiline) {
-            $message = '';
-            $line    = fgets($this->socket);
-            while ($line && rtrim($line, "\r\n") != '.') {
-                if ('.' == $line[0]) {
-                    $line = substr($line, 1);
-                }
-                $message .= $line;
-                $line    = fgets($this->socket);
+        $message = '';
+        $line    = $this->nextLine();
+        while ('.' !== rtrim($line, characters: "\r\n")) {
+            if (str_starts_with($line, '.')) {
+                $line = substr($line, offset: 1);
             }
+
+            $message .= $line;
+            if (strlen($message) > $this->limits->maxResponseSize) {
+                throw new Exception\RuntimeException(
+                    "The server's response exceeds the limit of {$this->limits->maxResponseSize} bytes",
+                );
+            }
+
+            $line = $this->nextLine();
         }
 
         return $message;
@@ -184,20 +231,7 @@ class Pop3
      */
     protected function readRemoteResponse(): Response
     {
-        ErrorHandler::start();
-        $result = fgets($this->socket);
-        $error  = ErrorHandler::stop();
-        if (! is_string($result)) {
-            throw new Exception\RuntimeException('read failed - connection closed?', 0, $error);
-        }
-
-        $result = trim($result);
-        if (strpos($result, ' ')) {
-            [$status, $message] = explode(' ', $result, 2);
-        } else {
-            $status  = $result;
-            $message = '';
-        }
+        [$status, $message] = self::pair(trim($this->nextLine()), default: '');
 
         return new Response($status, $message);
     }
@@ -211,39 +245,39 @@ class Pop3
      * @param  string $request    request
      * @param  bool   $multiline  multiline response?
      * @return string             result from readResponse()
+     * @throws Exception\ExceptionInterface
      */
-    public function request($request, $multiline = false)
+    public function request(#[SensitiveParameter] string $request, bool $multiline = false): string
     {
         $this->sendRequest($request);
+
         return $this->readResponse($multiline);
     }
 
     /**
-     * End communication with POP3 server (also closes socket)
+     * End communication with POP3 server (also closes socket); sends nothing when not connected
+     *
+     * @mago-expect lint:no-empty-catch-clause QUIT may fail on a dead or never opened connection, which is closed either way.
      */
-    public function logout()
+    public function logout(): void
     {
-        if ($this->socket) {
-            try {
-                $this->request('QUIT');
-            } catch (Exception\ExceptionInterface) {
-                // ignore error - we're closing the socket anyway
-            }
-
-            fclose($this->socket);
-            $this->socket = null;
+        try {
+            $this->request('QUIT');
+        } catch (Exception\ExceptionInterface) {
         }
+
+        $this->connection->close();
     }
 
     /**
      * Get capabilities from POP3 server
      *
-     * @return array list of capabilities
+     * @return list<string> list of capabilities
+     * @throws Exception\ExceptionInterface
      */
-    public function capa()
+    public function capa(): array
     {
-        $result = $this->request('CAPA', true);
-        return explode("\n", $result);
+        return explode("\n", $this->request('CAPA', true));
     }
 
     /**
@@ -252,16 +286,14 @@ class Pop3
      * @param  string $user     username
      * @param  string $password password
      * @param  bool   $tryApop  should APOP be tried?
+     * @throws Exception\ExceptionInterface
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function login($user, #[SensitiveParameter] $password, $tryApop = true)
+    public function login(string $user, #[SensitiveParameter] string $password, bool $tryApop = true): void
     {
-        if ($tryApop && $this->timestamp) {
-            try {
-                $this->request("APOP {$user} " . md5($this->timestamp . $password));
-                return;
-            } catch (Exception\ExceptionInterface) {
-                // ignore
-            }
+        if ($tryApop && null !== $this->timestamp && $this->apop($this->timestamp, $user, $password)) {
+            return;
         }
 
         $this->request("USER {$user}");
@@ -273,38 +305,41 @@ class Pop3
      *
      * @param  int $messages  out parameter with count of messages
      * @param  int $octets    out parameter with size in octets of messages
+     * @throws Exception\ExceptionInterface
+     *
+     * @param-out int $messages
+     * @param-out int $octets
      */
-    public function status(&$messages, &$octets)
+    public function status(mixed &$messages, mixed &$octets): void
     {
-        $messages = 0;
-        $octets   = 0;
-        $result   = $this->request('STAT');
-
-        [$messages, $octets] = explode(' ', $result);
+        [$count, $size] = self::pair($this->request('STAT'), default: '0');
+        $messages = (int) $count;
+        $octets   = (int) $size;
     }
 
     /**
      * Make LIST call for size of message(s)
      *
      * @param  int|null $msgno number of message, null for all
-     * @return int|array size of given message or list with array(num => size)
+     * @return int|array<int, int> size of given message or list with array(num => size)
+     * @throws Exception\ExceptionInterface
      */
-    public function getList($msgno = null)
+    public function getList(?int $msgno = null): int|array
     {
         if (null !== $msgno) {
-            $result = $this->request("LIST {$msgno}");
+            [, $size] = self::pair($this->request('LIST ' . self::messageNumber($msgno)), default: '0');
 
-            [, $result] = explode(' ', $result);
-            return (int) $result;
+            return (int) $size;
         }
 
-        $result   = $this->request('LIST', true);
         $messages = [];
-        $line     = strtok($result, "\n");
-        while ($line) {
-            [$no, $size] = explode(' ', trim($line));
-            $messages[(int) $no] = (int) $size;
-            $line                = strtok("\n");
+        foreach (explode("\n", $this->request('LIST', true)) as $line) {
+            if ('' === trim($line)) {
+                continue;
+            }
+
+            [$number, $size] = self::pair(trim($line), default: '0');
+            $messages[(int) $number] = (int) $size;
         }
 
         return $messages;
@@ -314,27 +349,25 @@ class Pop3
      * Make UIDL call for getting a uniqueid
      *
      * @param  int|null $msgno number of message, null for all
-     * @return string|array uniqueid of message or list with array(num => uniqueid)
+     * @return string|array<int, string> uniqueid of message or list with array(num => uniqueid)
+     * @throws Exception\ExceptionInterface
      */
-    public function uniqueid($msgno = null)
+    public function uniqueid(?int $msgno = null): string|array
     {
         if (null !== $msgno) {
-            $result = $this->request("UIDL {$msgno}");
+            [, $id] = self::pair($this->request('UIDL ' . self::messageNumber($msgno)), default: '');
 
-            [, $result] = explode(' ', $result);
-            return $result;
+            return $id;
         }
 
-        $result = $this->request('UIDL', true);
-
-        $result   = explode("\n", $result);
         $messages = [];
-        foreach ($result as $line) {
-            if (! $line) {
+        foreach (explode("\n", $this->request('UIDL', true)) as $line) {
+            if ('' === trim($line)) {
                 continue;
             }
-            [$no, $id] = explode(' ', trim($line), 2);
-            $messages[(int) $no] = $id;
+
+            [$number, $id] = self::pair(trim($line), default: '');
+            $messages[(int) $number] = $id;
         }
 
         return $messages;
@@ -353,9 +386,12 @@ class Pop3
      * @throws Exception\RuntimeException
      * @throws Exception\ExceptionInterface
      * @return string message headers with wanted body lines
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function top($msgno, $lines = 0, $fallback = false)
+    public function top(int $msgno, int $lines = 0, bool $fallback = false): string
     {
+        $number = self::messageNumber($msgno);
         if (false === $this->hasTop) {
             if ($fallback) {
                 return $this->retrieve($msgno);
@@ -363,22 +399,21 @@ class Pop3
 
             throw new Exception\RuntimeException('top not supported and no fallback wanted');
         }
+
         $this->hasTop = true;
 
-        $lines = ! $lines || $lines < 1 ? 0 : (int) $lines;
+        $lines = $lines < 1 ? 0 : $lines;
 
         try {
-            $result = $this->request("TOP {$msgno} {$lines}", true);
-        } catch (Exception\ExceptionInterface $e) {
+            return $this->request("TOP {$number} {$lines}", true);
+        } catch (Exception\RuntimeException $e) {
             $this->hasTop = false;
-            if ($fallback) {
-                $result = $this->retrieve($msgno);
-            } else {
+            if (! $fallback) {
                 throw $e;
             }
         }
 
-        return $result;
+        return $this->retrieve($msgno);
     }
 
     /**
@@ -386,16 +421,19 @@ class Pop3
      *
      * @param  int $msgno  message number
      * @return string message
+     * @throws Exception\ExceptionInterface
      */
-    public function retrieve($msgno)
+    public function retrieve(int $msgno): string
     {
-        return $this->request("RETR {$msgno}", true);
+        return $this->request('RETR ' . self::messageNumber($msgno), true);
     }
 
     /**
      * Make a NOOP call, maybe needed for keeping the server happy
+     *
+     * @throws Exception\ExceptionInterface
      */
-    public function noop()
+    public function noop(): void
     {
         $this->request('NOOP');
     }
@@ -403,18 +441,113 @@ class Pop3
     /**
      * Make a DELE count to remove a message
      *
-     * @param int $msgno
+     * @throws Exception\ExceptionInterface
      */
-    public function delete($msgno)
+    public function delete(int $msgno): void
     {
-        $this->request("DELE {$msgno}");
+        $this->request('DELE ' . self::messageNumber($msgno));
     }
 
     /**
      * Make RSET call, which rollbacks delete requests
+     *
+     * @throws Exception\ExceptionInterface
      */
-    public function undelete()
+    public function undelete(): void
     {
         $this->request('RSET');
+    }
+
+    /**
+     * get the next line from the connection, refusing lines over the limit
+     *
+     * @throws Exception\RuntimeException
+     */
+    private function nextLine(): string
+    {
+        $line = $this->connection->readLine($this->limits->maxLineLength);
+        if (strlen($line) === $this->limits->maxLineLength && ! str_ends_with($line, "\n")) {
+            throw new Exception\RuntimeException(
+                "The server sent a line longer than {$this->limits->maxLineLength} bytes",
+            );
+        }
+
+        return $line;
+    }
+
+    /**
+     * Upgrade the connection with STLS, which the server must advertise in CAPA.
+     *
+     * @throws Exception\RuntimeException When the server does not offer STLS, refuses it, or the handshake fails.
+     * @throws Exception\ExceptionInterface
+     */
+    private function startTls(): void
+    {
+        try {
+            $capabilities = array_map(static fn(string $line): string => strtoupper(trim($line)), $this->capa());
+        } catch (Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException(
+                'cannot enable TLS: the server does not list its capabilities; refusing to continue in plain text',
+                previous: $e,
+            );
+        }
+
+        if (! in_array('STLS', $capabilities, strict: true)) {
+            throw new Exception\RuntimeException(
+                'cannot enable TLS: the server does not offer STLS; refusing to continue in plain text',
+            );
+        }
+
+        try {
+            $this->request('STLS');
+        } catch (Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException('cannot enable TLS: the server refused STLS', previous: $e);
+        }
+
+        $this->connection->enableTls();
+    }
+
+    /**
+     * Log in with APOP, reporting whether the server accepted it.
+     *
+     * @throws Exception\ExceptionInterface When the user name contains CR, LF or NUL, or the connection fails.
+     */
+    private function apop(string $timestamp, string $user, #[SensitiveParameter] string $password): bool
+    {
+        try {
+            $this->request("APOP {$user} " . md5($timestamp . $password));
+        } catch (Exception\RuntimeException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * The first word of a response and the rest, or $default when there is no rest.
+     *
+     * @return array{string, string}
+     */
+    private static function pair(string $text, string $default): array
+    {
+        $parts = explode(
+            separator: ' ',
+            string: $text,
+            limit: 2,
+        );
+
+        return [$parts[0], $parts[1] ?? $default];
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When the number is below 1.
+     */
+    private static function messageNumber(int $msgno): int
+    {
+        if ($msgno < 1) {
+            throw new Exception\InvalidArgumentException('Message numbers start at 1');
+        }
+
+        return $msgno;
     }
 }
