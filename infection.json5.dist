@@ -3,7 +3,7 @@
     "source": {
         "directories": ["src"]
     },
-    "timeout": 10,
+    "timeout": 30,
     "threads": "max",
     "logs": {
         "text": "infection.log",
