@@ -1,13 +1,13 @@
 # File Transport Options
 
 This document details the various options available to the
-`Laminas\Mail\Transport\File` mail transport.
+`Contenir\Mail\Transport\File` mail transport.
 
 ## Quick Start
 
 ```php
-use Laminas\Mail\Transport\File as FileTransport;
-use Laminas\Mail\Transport\FileOptions;
+use Contenir\Mail\Transport\File as FileTransport;
+use Contenir\Mail\Transport\FileOptions;
 
 // Setup File transport
 $transport = new FileTransport();
@@ -30,14 +30,14 @@ Option name | Description
 The default callback used is:
 
 ```php
-function (Laminas\Mail\FileTransport $transport) {
-    return 'LaminasMail_' . time() . '_' . mt_rand() . '.tmp';
+function (Contenir\Mail\FileTransport $transport) {
+    return 'ContenirMail_' . time() . '_' . mt_rand() . '.tmp';
 }
 ```
 
 ## Available Methods
 
-`Laminas\Mail\Transport\FileOptions` extends `Laminas\Stdlib\AbstractOptions`, and
+`Contenir\Mail\Transport\FileOptions` extends `Laminas\Stdlib\AbstractOptions`, and
 inherits all functionality from that class; this includes property overloading.
 Additionally, the following explicit setters and getters are provided.
 

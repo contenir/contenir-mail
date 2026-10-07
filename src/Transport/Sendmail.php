@@ -1,12 +1,12 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail;
-use Laminas\Mail\Address\AddressInterface;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Transport\Exception\InvalidArgumentException;
-use Laminas\Mail\Transport\Exception\RuntimeException;
+use Contenir\Mail;
+use Contenir\Mail\Address\AddressInterface;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Transport\Exception\InvalidArgumentException;
+use Contenir\Mail\Transport\Exception\RuntimeException;
 use Traversable;
 
 use function assert;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
 use Laminas\Stdlib\ErrorHandler;
 

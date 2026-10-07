@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Storage\Message;
+namespace Contenir\Mail\Storage\Message;
 
 interface MessageInterface
 {
@@ -14,7 +14,7 @@ interface MessageInterface
     /**
      * check if flag is set
      *
-     * @param mixed $flag a flag name, use constants defined in Laminas\Mail\Storage
+     * @param mixed $flag a flag name, use constants defined in Contenir\Mail\Storage
      * @return bool true if set, otherwise false
      */
     public function hasFlag($flag);

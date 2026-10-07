@@ -1,16 +1,16 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\Subject<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\Subject<extended>
  */
 class SubjectTest extends TestCase
 {

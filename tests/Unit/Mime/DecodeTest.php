@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mime;
+namespace Contenir\Mail\Tests\Unit\Mime;
 
-use Laminas\Mail\Headers;
-use Laminas\Mime\Decode;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Mime\Decode;
 use PHPUnit\Framework\TestCase;
 
 class DecodeTest extends TestCase

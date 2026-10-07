@@ -1,9 +1,9 @@
 <?php
 
-namespace LaminasTest\Mail\Storage\TestAsset;
+namespace Contenir\Mail\Tests\Unit\Storage\TestAsset;
 
-use Laminas\Mail\Storage\Maildir;
-use Laminas\Mail\Storage\Message;
+use Contenir\Mail\Storage\Maildir;
+use Contenir\Mail\Storage\Message;
 
 /**
  * Maildir class, which uses old message class

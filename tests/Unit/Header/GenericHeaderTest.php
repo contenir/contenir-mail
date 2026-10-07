@@ -1,17 +1,17 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\Exception\InvalidArgumentException;
-use Laminas\Mail\Header\GenericHeader;
-use Laminas\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\Exception\InvalidArgumentException;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\HeaderInterface;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
 
 /**
- * @covers Laminas\Mail\Header\GenericHeader<extended>
+ * @covers Contenir\Mail\Header\GenericHeader<extended>
  */
 class GenericHeaderTest extends TestCase
 {

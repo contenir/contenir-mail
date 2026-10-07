@@ -1,17 +1,17 @@
 <?php
 
-namespace Laminas\Mail;
+namespace Contenir\Mail;
 
 use ArrayIterator;
-use Laminas\Mail\Header\Bcc;
-use Laminas\Mail\Header\Cc;
-use Laminas\Mail\Header\ContentType;
-use Laminas\Mail\Header\From;
-use Laminas\Mail\Header\MimeVersion;
-use Laminas\Mail\Header\ReplyTo;
-use Laminas\Mail\Header\Sender;
-use Laminas\Mail\Header\To;
-use Laminas\Mime;
+use Contenir\Mail\Header\Bcc;
+use Contenir\Mail\Header\Cc;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\From;
+use Contenir\Mail\Header\MimeVersion;
+use Contenir\Mail\Header\ReplyTo;
+use Contenir\Mail\Header\Sender;
+use Contenir\Mail\Header\To;
+use Contenir\Mail\Mime;
 use Traversable;
 
 use function array_shift;
@@ -370,7 +370,7 @@ class Message
     /**
      * Set the message body
      *
-     * @param  null|string|\Laminas\Mime\Message|object $body
+     * @param  null|string|\Contenir\Mail\Mime\Message|object $body
      * @throws Exception\InvalidArgumentException
      * @return Message
      */

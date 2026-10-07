@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Transport;
+namespace Contenir\Mail\Tests\Unit\Transport;
 
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\File;
-use Laminas\Mail\Transport\FileOptions;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\File;
+use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\TestCase;
 
 use function file_get_contents;
@@ -16,8 +16,8 @@ use function sys_get_temp_dir;
 use function unlink;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Transport\File<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Transport\File<extended>
  */
 class FileTest extends TestCase
 {
@@ -63,7 +63,7 @@ class FileTest extends TestCase
                     'matthew@example.com' => 'Matthew',
                 ])
                 ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
         $message->getHeaders()->addHeaders([
             'X-Foo-Bar' => 'Matthew',

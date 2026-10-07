@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laminas\Mail\Protocol\Xoauth2;
+namespace Contenir\Mail\Protocol\Xoauth2;
 
 use function base64_encode;
 use function chr;

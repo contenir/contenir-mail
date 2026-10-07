@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mime;
+namespace Contenir\Mail\Mime;
 
 use function base64_encode;
 use function chunk_split;

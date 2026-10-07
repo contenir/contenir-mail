@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Header\Exception;
+namespace Contenir\Mail\Header\Exception;
 
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 class RuntimeException extends Exception\RuntimeException implements ExceptionInterface
 {

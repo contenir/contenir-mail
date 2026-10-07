@@ -1,13 +1,13 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Laminas\Mail\Header\Date<extended>
+ * @covers Contenir\Mail\Header\Date<extended>
  */
 class DateTest extends TestCase
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Protocol\Exception;
+namespace Contenir\Mail\Protocol\Exception;
 
-use Laminas\Mail\Exception\ExceptionInterface as MailException;
+use Contenir\Mail\Exception\ExceptionInterface as MailException;
 
 interface ExceptionInterface extends MailException
 {

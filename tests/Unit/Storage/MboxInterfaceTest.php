@@ -1,18 +1,18 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\Message\MessageInterface;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Message\MessageInterface;
 use LimitIterator;
 use PHPUnit\Framework\TestCase;
 
 use function count;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Storage\Mbox<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Storage\Mbox<extended>
  */
 class MboxInterfaceTest extends TestCase
 {

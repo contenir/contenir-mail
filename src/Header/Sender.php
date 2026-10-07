@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mail;
-use Laminas\Mail\Address\AddressInterface;
-use Laminas\Mime\Mime;
+use Contenir\Mail;
+use Contenir\Mail\Address\AddressInterface;
+use Contenir\Mail\Mime\Mime;
 
 use function gettype;
 use function is_object;

@@ -1,20 +1,20 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
 use Countable;
-use Laminas\Mail\Address;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Exception\InvalidArgumentException;
-use Laminas\Mail\Header;
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Header;
 use PHPUnit\Framework\TestCase;
 use Traversable;
 
 use function count;
 
 /**
- * @group      Laminas_Mail
- * @covers \Laminas\Mail\AddressList<extended>
+ * @group      Contenir_Mail
+ * @covers \Contenir\Mail\AddressList<extended>
  */
 class AddressListTest extends TestCase
 {
@@ -71,14 +71,14 @@ class AddressListTest extends TestCase
     public function testThrowExceptionOnInvalidInputAdd(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('add expects an email address or Laminas\Mail\Address object');
+        $this->expectExceptionMessage('add expects an email address or Contenir\Mail\Address object');
         $this->list->add(null);
     }
 
     public function testThrowExceptionOnInvalidInputAddMany(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('add expects an email address or Laminas\Mail\Address object');
+        $this->expectExceptionMessage('add expects an email address or Contenir\Mail\Address object');
         $this->list->addMany([null]);
     }
 

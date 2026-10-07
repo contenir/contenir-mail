@@ -1,22 +1,22 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Header\AbstractAddressList;
-use Laminas\Mail\Header\Bcc;
-use Laminas\Mail\Header\Cc;
-use Laminas\Mail\Header\From;
-use Laminas\Mail\Header\ReplyTo;
-use Laminas\Mail\Header\To;
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Header\AbstractAddressList;
+use Contenir\Mail\Header\Bcc;
+use Contenir\Mail\Header\Cc;
+use Contenir\Mail\Header\From;
+use Contenir\Mail\Header\ReplyTo;
+use Contenir\Mail\Header\To;
 use PHPUnit\Framework\TestCase;
 
 use function count;
 use function sprintf;
 
 /**
- * @group      Laminas_Mail
+ * @group      Contenir_Mail
  */
 class AddressListHeaderTest extends TestCase
 {

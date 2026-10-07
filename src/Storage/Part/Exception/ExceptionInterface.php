@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Storage\Part\Exception;
+namespace Contenir\Mail\Storage\Part\Exception;
 
-use Laminas\Mail\Storage\Exception\ExceptionInterface as StorageException;
+use Contenir\Mail\Storage\Exception\ExceptionInterface as StorageException;
 
 interface ExceptionInterface extends StorageException
 {

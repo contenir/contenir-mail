@@ -1,13 +1,13 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\HeaderValue;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\HeaderValue;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Laminas\Mail\Header\HeaderValue<extended>
+ * @covers Contenir\Mail\Header\HeaderValue<extended>
  */
 class HeaderValueTest extends TestCase
 {

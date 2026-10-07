@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mail\Protocol\Pop3\Xoauth2;
+namespace Contenir\Mail\Tests\Unit\Protocol\Pop3\Xoauth2;
 
-use Laminas\Mail\Exception\RuntimeException;
-use Laminas\Mail\Protocol\Pop3\Response;
-use Laminas\Mail\Protocol\Pop3\Xoauth2\Microsoft;
-use Laminas\Mail\Protocol\Xoauth2\Xoauth2;
+use Contenir\Mail\Exception\RuntimeException;
+use Contenir\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
 use PHPUnit\Framework\TestCase;
 
 use function fopen;
@@ -16,7 +16,7 @@ use function str_replace;
 use function stream_get_contents;
 
 /**
- * @covers Laminas\Mail\Protocol\Pop3\Xoauth2\Microsoft
+ * @covers Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft
  */
 class MicrosoftTest extends TestCase
 {

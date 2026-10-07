@@ -1,17 +1,17 @@
 <?php
 
-namespace LaminasTest\Mail\Transport;
+namespace Contenir\Mail\Tests\Unit\Transport;
 
-use Laminas\Mail\Headers;
-use Laminas\Mail\Message;
-use Laminas\Mail\Protocol\Smtp as SmtpProtocol;
-use Laminas\Mail\Protocol\Smtp\Auth\Login;
-use Laminas\Mail\Protocol\SmtpPluginManager;
-use Laminas\Mail\Transport\Envelope;
-use Laminas\Mail\Transport\Exception;
-use Laminas\Mail\Transport\Smtp;
-use Laminas\Mail\Transport\SmtpOptions;
-use LaminasTest\Mail\TestAsset\SmtpProtocolSpy;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Message;
+use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
+use Contenir\Mail\Protocol\Smtp\Auth\Login;
+use Contenir\Mail\Protocol\SmtpPluginManager;
+use Contenir\Mail\Transport\Envelope;
+use Contenir\Mail\Transport\Exception;
+use Contenir\Mail\Transport\Smtp;
+use Contenir\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -22,8 +22,8 @@ use function substr;
 use function time;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Transport\Smtp<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Transport\Smtp<extended>
  */
 class SmtpTest extends TestCase
 {
@@ -50,7 +50,7 @@ class SmtpTest extends TestCase
             'matthew@example.com' => 'Matthew',
         ]);
         $message->setSender('ralph@example.com', 'Ralph Schindler');
-        $message->setSubject('Testing Laminas\Mail\Transport\Sendmail');
+        $message->setSubject('Testing Contenir\Mail\Transport\Sendmail');
         $message->setBody('This is only a test.');
 
         $message->getHeaders()->addHeaders([
@@ -191,7 +191,7 @@ class SmtpTest extends TestCase
         $data = $this->connection->getLog();
         $this->assertStringContainsString('MAIL FROM:<ralph@example.com>', $data);
         $this->assertStringContainsString('To: Example Test <test@example.com>', $data);
-        $this->assertStringContainsString('Subject: Testing Laminas\Mail\Transport\Sendmail', $data);
+        $this->assertStringContainsString('Subject: Testing Contenir\Mail\Transport\Sendmail', $data);
         $this->assertStringContainsString("Cc: matthew@example.com\r\n", $data);
         $this->assertStringNotContainsString("Bcc: \"Example List\" <list@example.com>\r\n", $data);
         $this->assertStringContainsString("From: test@example.com,\r\n Matthew <matthew@example.com>\r\n", $data);

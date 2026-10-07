@@ -8,8 +8,8 @@ creates a mail file for each message sent; these can later be introspected as
 logs or consumed for the purposes of sending via an alternate transport
 mechanism later.
 
-The `Laminas\Mail\Transport` interface defines exactly one method, `send()`. This
-method accepts a `Laminas\Mail\Message` instance, which it then introspects and
+The `Contenir\Mail\Transport` interface defines exactly one method, `send()`. This
+method accepts a `Contenir\Mail\Message` instance, which it then introspects and
 serializes in order to send.
 
 ## Quick Start
@@ -20,8 +20,8 @@ then passing a message to it.
 ### Sendmail Transport Usage
 
 ```php
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\Sendmail as SendmailTransport;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\Sendmail as SendmailTransport;
 
 $message = new Message();
 $message->addTo('matthew@example.org');
@@ -45,9 +45,9 @@ $transport->send($message);
 > ```
 
 ```php
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 $message = new Message();
 $message->addTo('matthew@example.org');
@@ -73,9 +73,9 @@ $transport->send($message);
 ### File Transport Usage
 
 ```php
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\File as FileTransport;
-use Laminas\Mail\Transport\FileOptions;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\File as FileTransport;
+use Contenir\Mail\Transport\FileOptions;
 use Laminas\Math\Rand;
 
 $message = new Message();
@@ -103,8 +103,8 @@ $transport->send($message);
 ### InMemory Transport Usage
 
 ```php
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\InMemory as InMemoryTransport;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\InMemory as InMemoryTransport;
 
 $message = new Message();
 $message->addTo('matthew@example.org');
@@ -132,7 +132,7 @@ notice on instantiation. Please update your code to refer to the `InMemory`
 class instead.
 
 Users pulling their `Null` transport instance from the transport factory
-(`Laminas\Mail\Transport\Factory`) receive an `InMemory` instance instead starting
+(`Contenir\Mail\Transport\Factory`) receive an `InMemory` instance instead starting
 in 2.4.0.
 
 ## Configuration Options
@@ -148,7 +148,7 @@ transport-specific options.
 ### send
 
 ```php
-send(Laminas\Mail\Message $message) : void
+send(Contenir\Mail\Message $message) : void
 ```
 
 Send a mail message.

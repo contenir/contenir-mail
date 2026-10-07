@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage\Folder;
+namespace Contenir\Mail\Storage\Folder;
 
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\ParamsNormalizer;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\ParamsNormalizer;
 use Laminas\Stdlib\ErrorHandler;
 
 use function array_merge;
@@ -49,7 +49,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
      * Create instance with parameters
      *
      * Disallowed parameters are:
-     * - filename use \Laminas\Mail\Storage\Mbox for a single file
+     * - filename use \Contenir\Mail\Storage\Mbox for a single file
      *
      * Supported parameters are:
      *

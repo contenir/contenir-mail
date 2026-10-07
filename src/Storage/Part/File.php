@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Storage\Part;
+namespace Contenir\Mail\Storage\Part;
 
-use Laminas\Mail\Headers;
-use Laminas\Mail\Storage\Part;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Storage\Part;
 
 use function count;
 use function feof;

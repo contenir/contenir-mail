@@ -1,18 +1,18 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Exception as GeneralException;
-use Laminas\Mail\Address\AddressInterface;
-use Laminas\Mail\Exception as MailException;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\To;
-use Laminas\Mail\Headers;
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\Message;
-use Laminas\Mime;
-use Laminas\Mime\Exception as MimeException;
+use Contenir\Mail\Address\AddressInterface;
+use Contenir\Mail\Exception as MailException;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\To;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Message;
+use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Exception as MimeException;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -23,9 +23,9 @@ use function substr;
 use function var_export;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Storage\Message<extended>
- * @covers Laminas\Mail\Headers<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Storage\Message<extended>
+ * @covers Contenir\Mail\Headers<extended>
  */
 class MessageTest extends TestCase
 {
@@ -304,7 +304,7 @@ class MessageTest extends TestCase
     {
         // @codingStandardsIgnoreStart
         $badMessage = unserialize(
-            "O:28:\"Laminas\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
+            "O:28:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
         );
         // @codingStandardsIgnoreEnd
 

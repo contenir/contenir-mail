@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail\Exception;
-use Laminas\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Exception;
+use Contenir\Mail\Exception\InvalidArgumentException;
 use Laminas\Stdlib\AbstractOptions;
 
 use function gettype;
@@ -90,7 +90,7 @@ class FileOptions extends AbstractOptions
     public function getCallback()
     {
         if (null === $this->callback) {
-            $this->setCallback(static fn() => 'LaminasMail_' . time() . '_' . mt_rand() . '.eml');
+            $this->setCallback(static fn() => 'ContenirMail_' . time() . '_' . mt_rand() . '.eml');
         }
         return $this->callback;
     }

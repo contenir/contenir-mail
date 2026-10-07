@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Protocol\Smtp\Auth;
+namespace Contenir\Mail\Protocol\Smtp\Auth;
 
-use Laminas\Mail\Protocol\Smtp;
+use Contenir\Mail\Protocol\Smtp;
 
 use function array_replace_recursive;
 use function base64_encode;

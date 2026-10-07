@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mime;
+namespace Contenir\Mail\Tests\Unit\Mime;
 
-use Laminas\Mime;
+use Contenir\Mail\Mime;
 use PHPUnit\Framework\TestCase;
 
 use function base64_decode;

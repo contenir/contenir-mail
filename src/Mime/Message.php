@@ -1,10 +1,10 @@
 <?php // phpcs:disable WebimpressCodingStandard.NamingConventions.ValidVariableName.NotCamelCaps,PSR12.Files.FileHeader.SpacingAfterBlock,PSR2.Methods.MethodDeclaration.Underscore
 
-namespace Laminas\Mime;
+namespace Contenir\Mail\Mime;
 
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mime\Mime;
-use Laminas\Mime\Part;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Mime\Part;
 
 use function array_keys;
 use function base64_decode;
@@ -27,7 +27,7 @@ class Message
     protected $mime;
 
     /**
-     * Returns the list of all Laminas\Mime\Part in the message
+     * Returns the list of all Contenir\Mail\Mime\Part in the message
      *
      * @return Part[]
      */
@@ -37,7 +37,7 @@ class Message
     }
 
     /**
-     * Sets the given array of Laminas\Mime\Part as the array for the message
+     * Sets the given array of Contenir\Mail\Mime\Part as the array for the message
      *
      * @param array $parts
      * @return self
@@ -49,7 +49,7 @@ class Message
     }
 
     /**
-     * Append a new Laminas\Mime\Part to the current message
+     * Append a new Contenir\Mail\Mime\Part to the current message
      *
      * @throws Exception\InvalidArgumentException
      * @return self
@@ -81,10 +81,10 @@ class Message
     }
 
     /**
-     * Set Laminas\Mime\Mime object for the message
+     * Set Contenir\Mail\Mime\Mime object for the message
      *
      * This can be used to set the boundary specifically or to use a subclass of
-     * Laminas\Mime for generating the boundary.
+     * Contenir\Mail\Mime for generating the boundary.
      *
      * @return self
      */
@@ -95,7 +95,7 @@ class Message
     }
 
     /**
-     * Returns the Laminas\Mime\Mime object in use by the message
+     * Returns the Contenir\Mail\Mime\Mime object in use by the message
      *
      * If the object was not present, it is created and returned. Can be used to
      * determine the boundary used in this message.
@@ -118,12 +118,12 @@ class Message
      * only one part is present, the content of this part is returned. If no
      * part had been added, an empty string is returned.
      *
-     * Parts are separated by the mime boundary as defined in Laminas\Mime\Mime. If
-     * {@link setMime()} has been called before this method, the Laminas\Mime\Mime
-     * object set by this call will be used. Otherwise, a new Laminas\Mime\Mime object
+     * Parts are separated by the mime boundary as defined in Contenir\Mail\Mime\Mime. If
+     * {@link setMime()} has been called before this method, the Contenir\Mail\Mime\Mime
+     * object set by this call will be used. Otherwise, a new Contenir\Mail\Mime\Mime object
      * is generated and used.
      *
-     * @param string $EOL EOL string; defaults to {@link Laminas\Mime\Mime::LINEEND}
+     * @param string $EOL EOL string; defaults to {@link Contenir\Mail\Mime\Mime::LINEEND}
      * @return string
      */
     public function generateMessage($EOL = Mime::LINEEND)
@@ -232,13 +232,13 @@ class Message
     }
 
     /**
-     * Decodes a MIME encoded string and returns a Laminas\Mime\Message object with
+     * Decodes a MIME encoded string and returns a Contenir\Mail\Mime\Message object with
      * all the MIME parts set according to the given string
      *
      * @param string $message
      * @param string $boundary Multipart boundary; if omitted, $message will be
      *     treated as a single part.
-     * @param string $EOL EOL string; defaults to {@link Laminas\Mime\Mime::LINEEND}
+     * @param string $EOL EOL string; defaults to {@link Contenir\Mail\Mime\Mime::LINEEND}
      * @throws Exception\RuntimeException
      * @return Message
      */

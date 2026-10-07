@@ -1,16 +1,16 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\ContentType;
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\UnstructuredInterface;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\UnstructuredInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\ContentType<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\ContentType<extended>
  */
 class ContentTypeTest extends TestCase
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
 // phpcs:ignore WebimpressCodingStandard.PHP.CorrectClassNameCase.Invalid
 use Interop\Container\ContainerInterface;

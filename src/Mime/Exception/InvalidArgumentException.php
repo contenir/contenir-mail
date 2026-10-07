@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mime\Exception;
+namespace Contenir\Mail\Mime\Exception;
 
 class InvalidArgumentException extends \InvalidArgumentException implements
     ExceptionInterface

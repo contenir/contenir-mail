@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayObject;
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function chmod;
@@ -32,7 +32,7 @@ use function unserialize;
 use const INF;
 
 /**
- * @group      Laminas_Mail
+ * @group      Contenir_Mail
  */
 class MboxTest extends TestCase
 {
@@ -48,8 +48,8 @@ class MboxTest extends TestCase
     public function setUp(): void
     {
         if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_LAMINAS_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_LAMINAS_MAIL_TEMPDIR');
+            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
+                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
                 $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
             }

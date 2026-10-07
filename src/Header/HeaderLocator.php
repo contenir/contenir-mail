@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
 use function strtolower;
 

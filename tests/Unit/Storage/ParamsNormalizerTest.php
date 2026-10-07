@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayIterator;
 use InvalidArgumentException;
-use Laminas\Mail\Storage\ParamsNormalizer;
+use Contenir\Mail\Storage\ParamsNormalizer;
 use PHPUnit\Framework\TestCase;
 
 class ParamsNormalizerTest extends TestCase

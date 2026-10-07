@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail\Exception;
-use Laminas\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Exception;
+use Contenir\Mail\Exception\InvalidArgumentException;
 use Laminas\Stdlib\AbstractOptions;
 
 use function gettype;
@@ -76,8 +76,8 @@ class SmtpOptions extends AbstractOptions
     /**
      * Get connection class
      *
-     * This should be either the class Laminas\Mail\Protocol\Smtp or a class
-     * extending it -- typically a class in the Laminas\Mail\Protocol\Smtp\Auth
+     * This should be either the class Contenir\Mail\Protocol\Smtp or a class
+     * extending it -- typically a class in the Contenir\Mail\Protocol\Smtp\Auth
      * namespace.
      *
      * @return string

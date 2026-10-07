@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mime;
+namespace Contenir\Mail\Tests\Unit\Mime;
 
-use Laminas\Mime;
-use Laminas\Mime\Message;
+use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Message;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -44,13 +44,13 @@ class MessageTest extends TestCase
     {
         $msg = new Mime\Message();  // No Parts
         $m   = $msg->getMime();
-        $this->assertInstanceOf(\Laminas\Mime\Mime::class, $m);
+        $this->assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m);
 
         $msg  = new Mime\Message();  // No Parts
         $mime = new Mime\Mime('1234');
         $msg->setMime($mime);
         $m2 = $msg->getMime();
-        $this->assertInstanceOf(\Laminas\Mime\Mime::class, $m2);
+        $this->assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m2);
         $this->assertEquals('1234', $m2->boundary());
     }
 
@@ -78,7 +78,7 @@ class MessageTest extends TestCase
     }
 
     /**
-     * check if decoding a string into a \Laminas\Mime\Message object works
+     * check if decoding a string into a \Contenir\Mail\Mime\Message object works
      */
     public function testDecodeMimeMessage()
     {
@@ -114,7 +114,7 @@ EOD;
     }
 
     /**
-     * check if decoding a string into a \Laminas\Mime\Message object works
+     * check if decoding a string into a \Contenir\Mail\Mime\Message object works
      */
     public function testDecodeMimeMessageNoHeader()
     {

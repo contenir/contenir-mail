@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
 use Laminas\Validator;
 use Laminas\Validator\ValidatorChain;
@@ -321,7 +321,7 @@ abstract class AbstractProtocol
      * Parse server response for successful codes
      *
      * Read the response from the stream and check for expected return code.
-     * Throws a Laminas\Mail\Protocol\Exception\ExceptionInterface if an unexpected code is returned.
+     * Throws a Contenir\Mail\Protocol\Exception\ExceptionInterface if an unexpected code is returned.
      *
      * @param  string|array $code One or more codes that indicate a successful response
      * @param  int $timeout Per-request timeout value if applicable

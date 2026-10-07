@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail;
+namespace Contenir\Mail;
 
 use Countable;
 use Iterator;
-use Laminas\Mail\Address\AddressInterface;
+use Contenir\Mail\Address\AddressInterface;
 use ReturnTypeWillChange;
 
 use function count;

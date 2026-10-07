@@ -1,14 +1,14 @@
 <?php
 
-namespace Laminas\Mail\Storage\Writable;
+namespace Contenir\Mail\Storage\Writable;
 
-use Laminas\Mail\Exception as MailException;
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception as StorageException;
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Exception\InvalidArgumentException;
-use Laminas\Mail\Storage\Exception\RuntimeException;
-use Laminas\Mail\Storage\Folder;
+use Contenir\Mail\Exception as MailException;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception as StorageException;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Exception\RuntimeException;
+use Contenir\Mail\Storage\Folder;
 use Laminas\Stdlib\ErrorHandler;
 use RecursiveIteratorIterator;
 
@@ -773,7 +773,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
     /**
      * get currently set quota
      *
-     * @see \Laminas\Mail\Storage\Writable\Maildir::setQuota()
+     * @see \Contenir\Mail\Storage\Writable\Maildir::setQuota()
      *
      * @param bool $fromStorage
      * @throws RuntimeException

@@ -1,11 +1,11 @@
 <?php
 
-namespace Laminas\Mail;
+namespace Contenir\Mail;
 
 class ConfigProvider
 {
     /**
-     * Retrieve configuration for laminas-mail package.
+     * Retrieve configuration for contenir-mail package.
      *
      * @return array
      */
@@ -17,17 +17,13 @@ class ConfigProvider
     }
 
     /**
-     * Retrieve dependency settings for laminas-mail package.
+     * Retrieve dependency settings for contenir-mail package.
      *
      * @return array
      */
     public function getDependencyConfig()
     {
         return [
-            // Legacy Zend Framework aliases
-            'aliases'   => [
-                'Zend\Mail\Protocol\SmtpPluginManager' => Protocol\SmtpPluginManager::class,
-            ],
             'factories' => [
                 Protocol\SmtpPluginManager::class => Protocol\SmtpPluginManagerFactory::class,
             ],

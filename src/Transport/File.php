@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail\Message;
+use Contenir\Mail\Message;
 
 use function file_put_contents;
 use function sprintf;

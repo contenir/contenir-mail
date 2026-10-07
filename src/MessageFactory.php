@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail;
+namespace Contenir\Mail;
 
 use Traversable;
 

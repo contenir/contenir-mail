@@ -1,6 +1,6 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use PHPUnit\Framework\TestCase;
 
@@ -30,8 +30,8 @@ class MboxMessageOldTest extends TestCase
     public function setUp(): void
     {
         if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_LAMINAS_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_LAMINAS_MAIL_TEMPDIR');
+            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
+                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
                 $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
             }

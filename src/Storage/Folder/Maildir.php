@@ -1,12 +1,12 @@
 <?php
 
-namespace Laminas\Mail\Storage\Folder;
+namespace Contenir\Mail\Storage\Folder;
 
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\Exception\InvalidArgumentException;
-use Laminas\Mail\Storage\Folder;
-use Laminas\Mail\Storage\ParamsNormalizer;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Folder;
+use Contenir\Mail\Storage\ParamsNormalizer;
 use Laminas\Stdlib\ErrorHandler;
 
 use function array_pop;

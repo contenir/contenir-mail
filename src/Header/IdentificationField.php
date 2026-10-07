@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mail\Headers;
+use Contenir\Mail\Headers;
 
 use function array_map;
 use function explode;

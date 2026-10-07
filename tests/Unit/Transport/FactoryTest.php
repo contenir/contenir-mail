@@ -1,14 +1,14 @@
 <?php
 
-namespace LaminasTest\Mail\Transport;
+namespace Contenir\Mail\Tests\Unit\Transport;
 
 use Composer\InstalledVersions;
-use Laminas\Mail\Transport\Exception;
-use Laminas\Mail\Transport\Factory;
-use Laminas\Mail\Transport\File;
-use Laminas\Mail\Transport\InMemory;
-use Laminas\Mail\Transport\Sendmail;
-use Laminas\Mail\Transport\Smtp;
+use Contenir\Mail\Transport\Exception;
+use Contenir\Mail\Transport\Factory;
+use Contenir\Mail\Transport\File;
+use Contenir\Mail\Transport\InMemory;
+use Contenir\Mail\Transport\Sendmail;
+use Contenir\Mail\Transport\Smtp;
 use Laminas\Stdlib\ArrayObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -21,7 +21,7 @@ use function version_compare;
 use const E_USER_DEPRECATED;
 
 /**
- * @covers Laminas\Mail\Transport\Factory<extended>
+ * @covers Contenir\Mail\Transport\Factory<extended>
  */
 class FactoryTest extends TestCase
 {

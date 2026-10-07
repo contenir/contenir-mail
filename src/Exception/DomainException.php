@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Exception;
+namespace Contenir\Mail\Exception;
 
 /**
- * Exception for Laminas\Mail component.
+ * Exception for Contenir\Mail component.
  */
 class DomainException extends \DomainException implements ExceptionInterface
 {

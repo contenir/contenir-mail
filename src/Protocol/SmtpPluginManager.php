@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
 use Laminas\ServiceManager\AbstractPluginManager;
 use Laminas\ServiceManager\ConfigInterface;
@@ -46,20 +46,6 @@ class SmtpPluginManager extends AbstractPluginManager
         'smtp'    => Smtp::class,
         'Smtp'    => Smtp::class,
         'SMTP'    => Smtp::class,
-        // Legacy Zend Framework aliases
-        'Zend\Mail\Protocol\Smtp\Auth\Crammd5' => Smtp\Auth\Crammd5::class,
-        'Zend\Mail\Protocol\Smtp\Auth\Login'   => Smtp\Auth\Login::class,
-        'Zend\Mail\Protocol\Smtp\Auth\Plain'   => Smtp\Auth\Plain::class,
-        'Zend\Mail\Protocol\Smtp'              => Smtp::class,
-        // v2 normalized FQCNs
-        'zendmailprotocolsmtpauthcrammd5'    => Smtp\Auth\Crammd5::class,
-        'zendmailprotocolsmtpauthlogin'      => Smtp\Auth\Login::class,
-        'zendmailprotocolsmtpauthplain'      => Smtp\Auth\Plain::class,
-        'zendmailprotocolsmtp'               => Smtp::class,
-        'laminasmailprotocolsmtpauthcrammd5' => Smtp\Auth\Crammd5::class,
-        'laminasmailprotocolsmtpauthlogin'   => Smtp\Auth\Login::class,
-        'laminasmailprotocolsmtpauthplain'   => Smtp\Auth\Plain::class,
-        'laminasmailprotocolsmtp'            => Smtp::class,
     ];
 
     /**

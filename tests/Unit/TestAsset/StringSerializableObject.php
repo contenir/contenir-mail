@@ -1,6 +1,6 @@
 <?php
 
-namespace LaminasTest\Mail\TestAsset;
+namespace Contenir\Mail\Tests\Unit\TestAsset;
 
 use Stringable;
 

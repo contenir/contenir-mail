@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
 use ArrayAccess;
 use Countable;
-use Laminas\Mail\Storage\Message;
+use Contenir\Mail\Storage\Message;
 use ReturnTypeWillChange;
 use SeekableIterator;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
 use RecursiveIterator;
 use ReturnTypeWillChange;
@@ -28,7 +28,7 @@ class Folder implements RecursiveIterator, Stringable
      * @param bool $selectable if true folder holds messages, if false it's
      *     just a parent for subfolders (Default: true)
      * @param array<string, Folder> $folders subfolders of
-     *     folder array(localName => \Laminas\Mail\Storage\Folder folder)
+     *     folder array(localName => \Contenir\Mail\Storage\Folder folder)
      */
     public function __construct(
         protected $localName,

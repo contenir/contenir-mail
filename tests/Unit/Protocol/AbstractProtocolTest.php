@@ -4,11 +4,11 @@
  * @see       https://github.com/laminas/laminas-mail for the canonical source repository
  */
 
-namespace LaminasTest\Mail\Protocol;
+namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use Laminas\Mail\Protocol\AbstractProtocol;
-use Laminas\Mail\Protocol\Exception\RuntimeException;
-use Laminas\Mail\Protocol\ProtocolTrait;
+use Contenir\Mail\Protocol\AbstractProtocol;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
+use Contenir\Mail\Protocol\ProtocolTrait;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
@@ -17,8 +17,8 @@ use function str_contains;
 use const PHP_BINARY;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Protocol\AbstractProtocol<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Protocol\AbstractProtocol<extended>
  */
 final class AbstractProtocolTest extends TestCase
 {

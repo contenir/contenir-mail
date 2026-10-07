@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Storage\Folder;
+namespace Contenir\Mail\Storage\Folder;
 
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Folder;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Folder;
 
 interface FolderInterface
 {
@@ -26,7 +26,7 @@ interface FolderInterface
     public function selectFolder($globalName);
 
     /**
-     * get Laminas\Mail\Storage\Folder instance for current folder
+     * get Contenir\Mail\Storage\Folder instance for current folder
      *
      * @return string instance of current folder
      * @throws ExceptionInterface

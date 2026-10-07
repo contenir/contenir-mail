@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mime\Exception;
+namespace Contenir\Mail\Mime\Exception;
 
 /**
- * Exception for Laminas\Mime component.
+ * Exception for Contenir\Mail\Mime component.
  */
 class RuntimeException extends \RuntimeException implements ExceptionInterface
 {

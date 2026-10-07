@@ -1,11 +1,11 @@
 <?php
 
-namespace Laminas\Mail\Storage\Exception;
+namespace Contenir\Mail\Storage\Exception;
 
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 /**
- * Exception for Laminas\Mail component.
+ * Exception for Contenir\Mail component.
  */
 class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface
 {

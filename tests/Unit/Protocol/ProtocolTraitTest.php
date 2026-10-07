@@ -1,12 +1,12 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol;
+namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use Laminas\Mail\Protocol\ProtocolTrait;
+use Contenir\Mail\Protocol\ProtocolTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers  Laminas\Mail\Protocol\ProtocolTrait
+ * @covers  Contenir\Mail\Protocol\ProtocolTrait
  */
 class ProtocolTraitTest extends TestCase
 {

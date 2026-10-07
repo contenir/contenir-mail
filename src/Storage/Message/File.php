@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Storage\Message;
+namespace Contenir\Mail\Storage\Message;
 
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Part;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Part;
 
 use function array_combine;
 
@@ -19,8 +19,8 @@ class File extends Part\File implements MessageInterface
     /**
      * Public constructor
      *
-     * In addition to the parameters of Laminas\Mail\Storage\Part::__construct() this constructor supports:
-     * - flags array with flags for message, keys are ignored, use constants defined in Laminas\Mail\Storage
+     * In addition to the parameters of Contenir\Mail\Storage\Part::__construct() this constructor supports:
+     * - flags array with flags for message, keys are ignored, use constants defined in Contenir\Mail\Storage
      *
      * @param  array $params
      * @throws ExceptionInterface
@@ -48,7 +48,7 @@ class File extends Part\File implements MessageInterface
     /**
      * check if flag is set
      *
-     * @param mixed $flag a flag name, use constants defined in \Laminas\Mail\Storage
+     * @param mixed $flag a flag name, use constants defined in \Contenir\Mail\Storage
      * @return bool true if set, otherwise false
      */
     public function hasFlag($flag)

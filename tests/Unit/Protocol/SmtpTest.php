@@ -1,17 +1,17 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol;
+namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use Laminas\Mail\Headers;
-use Laminas\Mail\Message;
-use Laminas\Mail\Protocol\Exception;
-use Laminas\Mail\Transport\Smtp;
-use LaminasTest\Mail\TestAsset\SmtpProtocolSpy;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Message;
+use Contenir\Mail\Protocol\Exception;
+use Contenir\Mail\Transport\Smtp;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Protocol\Smtp<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Protocol\Smtp<extended>
  */
 class SmtpTest extends TestCase
 {

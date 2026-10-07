@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
-use Laminas\Mail\Protocol\Exception\ExceptionInterface;
+use Contenir\Mail\Protocol\Exception\ExceptionInterface;
 
 use function array_merge;
 use function array_pop;

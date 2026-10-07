@@ -1,15 +1,15 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol\Smtp\Auth;
+namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 
-use Laminas\Mail\Exception\InvalidArgumentException;
-use Laminas\Mail\Protocol\Smtp\Auth\Crammd5;
+use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Smtp\Auth\Crammd5;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Protocol\Smtp\Auth\Crammd5<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Protocol\Smtp\Auth\Crammd5<extended>
  */
 class Crammd5Test extends TestCase
 {

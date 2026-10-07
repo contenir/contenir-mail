@@ -1,19 +1,19 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Exception;
-use Laminas\Mail\Message;
-use Laminas\Mail\MessageFactory;
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception;
+use Contenir\Mail\Message;
+use Contenir\Mail\MessageFactory;
 use PHPUnit\Framework\TestCase;
 
 use function count;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\MessageFactory<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\MessageFactory<extended>
  */
 class MessageFactoryTest extends TestCase
 {

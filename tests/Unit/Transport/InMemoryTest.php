@@ -1,14 +1,14 @@
 <?php
 
-namespace LaminasTest\Mail\Transport;
+namespace Contenir\Mail\Tests\Unit\Transport;
 
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\InMemory;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\InMemory;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Transport\InMemory<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Transport\InMemory<extended>
  */
 class InMemoryTest extends TestCase
 {
@@ -23,7 +23,7 @@ class InMemoryTest extends TestCase
                     'matthew@example.com' => 'Matthew',
                 ])
                 ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
         $message->getHeaders()->addHeaders([
             'X-Foo-Bar' => 'Matthew',

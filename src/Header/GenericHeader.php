@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mail\Header\Exception\InvalidArgumentException;
-use Laminas\Mime\Mime;
+use Contenir\Mail\Header\Exception\InvalidArgumentException;
+use Contenir\Mail\Mime\Mime;
 
 use function count;
 use function explode;
