@@ -552,11 +552,10 @@ class HeadersTest extends TestCase
         $this->assertEquals('foo.bar@test.com', $address->getEmail());
 
         $encodedValue = $to->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
-        $this->assertEquals('=?UTF-8?Q?=C3=B5lu=20<bar?= <foo.bar@test.com>', $encodedValue);
+        $this->assertEquals('=?UTF-8?Q?"=C3=B5lu=20<bar"?= <foo.bar@test.com>', $encodedValue);
 
         $encodedValue = $to->getFieldValue(Header\HeaderInterface::FORMAT_RAW);
-        // FIXME: shouldn't the "name" part be in quotes?
-        $this->assertEquals('õlu <bar <foo.bar@test.com>', $encodedValue);
+        $this->assertEquals('"õlu <bar" <foo.bar@test.com>', $encodedValue);
     }
 
     public function testDefaultEncoding(): void
