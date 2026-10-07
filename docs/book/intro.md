@@ -4,16 +4,16 @@ laminas-mail provides generalized functionality to compose and send both text an
 MIME-compliant multipart email messages. Mail can be sent with laminas-mail via any
 of the Sendmail, SMTP, or file-based transports it defines.  You can also
 implement your own transport by implementing the
-`Laminas\Mail\Transport\TransportInterface`.
+`Contenir\Mail\Transport\TransportInterface`.
 
 ## Basic email
 
 A basic email consists of one or more recipients, a subject, a body and a
-sender. To send such a mail using `Laminas\Mail\Transport\Sendmail`, do the
+sender. To send such a mail using `Contenir\Mail\Transport\Sendmail`, do the
 following:
 
 ```php
-use Laminas\Mail;
+use Contenir\Mail;
 
 $mail = new Mail\Message();
 $mail->setBody('This is the text of the email.');
@@ -37,7 +37,7 @@ documentation.
 
 ## Configuring the default sendmail transport
 
-The default transport is `Laminas\Mail\Transport\Sendmail`. It is a wrapper to the
+The default transport is `Contenir\Mail\Transport\Sendmail`. It is a wrapper to the
 PHP [mail()](http://php.net/mail) function. If you wish to pass additional
 parameters to the [mail()](http://php.net/mail) function, create a new transport
 instance and pass your parameters to the constructor.
@@ -48,7 +48,7 @@ This example shows how to change the Return-Path of the
 [mail()](http://php.net/mail) function.
 
 ```php
-use Laminas\Mail;
+use Contenir\Mail;
 
 $mail = new Mail\Message();
 $mail->setBody('This is the text of the email.');

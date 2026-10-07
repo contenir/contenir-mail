@@ -1,11 +1,11 @@
 <?php
 
-namespace Laminas\Mail\Protocol\Exception;
+namespace Contenir\Mail\Protocol\Exception;
 
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 /**
- * Exception for Laminas\Mail component.
+ * Exception for Contenir\Mail component.
  */
 class RuntimeException extends Exception\RuntimeException implements ExceptionInterface
 {

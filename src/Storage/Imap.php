@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
-use Laminas\Mail;
-use Laminas\Mail\Protocol;
+use Contenir\Mail;
+use Contenir\Mail\Protocol;
 
 use function array_key_exists;
 use function array_pop;

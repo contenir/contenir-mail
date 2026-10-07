@@ -1,18 +1,18 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Exception;
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\ContentType;
-use Laminas\Mail\Header\GenericHeader;
-use Laminas\Mail\Headers;
-use Laminas\Mail\Message;
-use Laminas\Mime\Message as MimeMessage;
-use Laminas\Mime\Mime;
-use Laminas\Mime\Part as MimePart;
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Message as MimeMessage;
+use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Mime\Part as MimePart;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -23,8 +23,8 @@ use function implode;
 use function substr;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Message<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Message<extended>
  */
 class MessageTest extends TestCase
 {

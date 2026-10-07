@@ -1,11 +1,11 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Headers;
-use Laminas\Mail\Storage\Exception\RuntimeException;
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Storage\Exception\RuntimeException;
 
 use function array_filter;
 use function array_map;

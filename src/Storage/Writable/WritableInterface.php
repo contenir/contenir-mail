@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage\Writable;
+namespace Contenir\Mail\Storage\Writable;
 
-use Laminas\Mail\Message;
-use Laminas\Mail\Storage;
-use Laminas\Mime;
+use Contenir\Mail\Message;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Mime;
 
 interface WritableInterface
 {

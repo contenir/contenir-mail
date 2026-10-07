@@ -1,9 +1,9 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\HeaderLocator;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\HeaderLocator;
 use PHPUnit\Framework\TestCase;
 
 class HeaderLocatorTest extends TestCase

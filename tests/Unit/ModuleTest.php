@@ -1,15 +1,15 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
-use Laminas\Mail\Module;
+use Contenir\Mail\Module;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
 
 /**
- * @group      Laminas_Mail
- * @covers \Laminas\Mail\Module<extended>
+ * @group      Contenir_Mail
+ * @covers \Contenir\Mail\Module<extended>
  */
 class ModuleTest extends TestCase
 {

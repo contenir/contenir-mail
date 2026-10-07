@@ -1,8 +1,8 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol\TestAsset;
+namespace Contenir\Mail\Tests\Unit\Protocol\TestAsset;
 
-use Laminas\Mail\Protocol\AbstractProtocol;
+use Contenir\Mail\Protocol\AbstractProtocol;
 
 /**
  * Expose AbstractProtocol behaviour

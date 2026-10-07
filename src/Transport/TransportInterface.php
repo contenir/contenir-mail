@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail;
+use Contenir\Mail;
 
 /**
  * Interface for mail transports

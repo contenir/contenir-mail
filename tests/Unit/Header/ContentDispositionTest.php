@@ -1,16 +1,16 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\ContentDisposition;
-use Laminas\Mail\Header\Exception\InvalidArgumentException;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\UnstructuredInterface;
+use Contenir\Mail\Header\ContentDisposition;
+use Contenir\Mail\Header\Exception\InvalidArgumentException;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\UnstructuredInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group Laminas_Mail
- * @covers Laminas\Mail\Header\ContentDisposition<extended>
+ * @group Contenir_Mail
+ * @covers Contenir\Mail\Header\ContentDisposition<extended>
  */
 class ContentDispositionTest extends TestCase
 {

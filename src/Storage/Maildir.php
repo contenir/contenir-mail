@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
-use Laminas\Mail;
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Message\File;
+use Contenir\Mail;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Message\File;
 use Laminas\Stdlib\ErrorHandler;
 
 use function array_flip;

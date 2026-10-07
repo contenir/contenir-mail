@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayObject;
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
 use PharData;
 use PHPUnit\Framework\TestCase;
 
@@ -31,7 +31,7 @@ use function unlink;
 use const PHP_OS;
 
 /**
- * @group      Laminas_Mail
+ * @group      Contenir_Mail
  */
 class MaildirTest extends TestCase
 {
@@ -50,8 +50,8 @@ class MaildirTest extends TestCase
         $originalMaildir = __DIR__ . '/../_files/test.maildir/';
 
         if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_LAMINAS_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_LAMINAS_MAIL_TEMPDIR');
+            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
+                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
                 $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
             }

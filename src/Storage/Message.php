@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
 use Laminas\Stdlib\ErrorHandler;
 
@@ -24,7 +24,7 @@ class Message extends Part implements Message\MessageInterface
      *
      * In addition to the parameters of Part::__construct() this constructor supports:
      * - file  filename or file handle of a file with raw message content
-     * - flags array with flags for message, keys are ignored, use constants defined in \Laminas\Mail\Storage
+     * - flags array with flags for message, keys are ignored, use constants defined in \Contenir\Mail\Storage
      *
      * @param array $params
      * @throws Exception\RuntimeException
@@ -67,7 +67,7 @@ class Message extends Part implements Message\MessageInterface
     /**
      * check if flag is set
      *
-     * @param mixed $flag a flag name, use constants defined in \Laminas\Mail\Storage
+     * @param mixed $flag a flag name, use constants defined in \Contenir\Mail\Storage
      * @return bool true if set, otherwise false
      */
     public function hasFlag($flag)

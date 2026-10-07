@@ -1,13 +1,13 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\Exception;
+use Contenir\Mail\Address;
+use Contenir\Mail\Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Laminas\Mail\Address<extended>
+ * @covers Contenir\Mail\Address<extended>
  */
 class AddressTest extends TestCase
 {

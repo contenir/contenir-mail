@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Address;
+namespace Contenir\Mail\Address;
 
 interface AddressInterface
 {

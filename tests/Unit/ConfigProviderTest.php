@@ -1,15 +1,15 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
-use Laminas\Mail\ConfigProvider;
+use Contenir\Mail\ConfigProvider;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
 
 /**
- * @group      Laminas_Mail
- * @covers \Laminas\Mail\ConfigProvider<extended>
+ * @group      Contenir_Mail
+ * @covers \Contenir\Mail\ConfigProvider<extended>
  */
 class ConfigProviderTest extends TestCase
 {

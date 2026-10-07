@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
 use Generator;
-use Laminas\Mail\Headers;
+use Contenir\Mail\Headers;
 
 use function array_key_exists;
 use function array_replace_recursive;
@@ -23,7 +23,7 @@ use function strtolower;
 use function substr;
 
 /**
- * SMTP implementation of Laminas\Mail\Protocol\AbstractProtocol
+ * SMTP implementation of Contenir\Mail\Protocol\AbstractProtocol
  *
  * Minimum implementation according to RFC2821: EHLO, MAIL FROM, RCPT TO, DATA,
  * RSET, NOOP, QUIT
@@ -432,7 +432,7 @@ class Smtp extends AbstractProtocol
     /**
      * Issues the NOOP command end validates answer
      *
-     * Not used by Laminas\Mail, could be used to keep a connection alive or check if it is still open.
+     * Not used by Contenir\Mail, could be used to keep a connection alive or check if it is still open.
      */
     public function noop()
     {
@@ -443,7 +443,7 @@ class Smtp extends AbstractProtocol
     /**
      * Issues the VRFY command end validates answer
      *
-     * Not used by Laminas\Mail.
+     * Not used by Contenir\Mail.
      *
      * @param  string $user User Name or eMail to verify
      */

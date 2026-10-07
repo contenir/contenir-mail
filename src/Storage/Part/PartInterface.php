@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage\Part;
+namespace Contenir\Mail\Storage\Part;
 
 use ArrayIterator;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Headers;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Headers;
 use RecursiveIterator;
 
 interface PartInterface extends RecursiveIterator
@@ -66,7 +66,7 @@ interface PartInterface extends RecursiveIterator
      *
      * Internally headers that occur more than once are saved as array, all
      * other as string. If $format is set to string implode is used to concat
-     * the values (with Laminas\Mime\Mime::LINEEND as delim).
+     * the values (with Contenir\Mail\Mime\Mime::LINEEND as delim).
      *
      * @param string $name name of header, matches case-insensitive, but
      *     camel-case is replaced with dashes

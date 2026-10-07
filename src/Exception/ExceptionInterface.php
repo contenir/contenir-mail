@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Exception;
+namespace Contenir\Mail\Exception;
 
 use Throwable;
 

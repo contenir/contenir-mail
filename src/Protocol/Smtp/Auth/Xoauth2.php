@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Protocol\Smtp\Auth;
+namespace Contenir\Mail\Protocol\Smtp\Auth;
 
-use Laminas\Mail\Protocol\Smtp;
-use Laminas\Mail\Protocol\Xoauth2\Xoauth2 as Xoauth2AuthEncoder;
+use Contenir\Mail\Protocol\Smtp;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Xoauth2AuthEncoder;
 
 use function array_replace_recursive;
 use function is_array;

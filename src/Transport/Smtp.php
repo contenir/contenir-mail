@@ -1,12 +1,12 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\Headers;
-use Laminas\Mail\Message;
-use Laminas\Mail\Protocol;
-use Laminas\Mail\Protocol\Exception as ProtocolException;
+use Contenir\Mail\Address;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Message;
+use Contenir\Mail\Protocol;
+use Contenir\Mail\Protocol\Exception as ProtocolException;
 use Laminas\ServiceManager\ServiceManager;
 
 use function array_unique;
@@ -17,7 +17,7 @@ use function time;
 /**
  * SMTP connection object
  *
- * Loads an instance of Laminas\Mail\Protocol\Smtp and forwards smtp transactions
+ * Loads an instance of Contenir\Mail\Protocol\Smtp and forwards smtp transactions
  */
 class Smtp implements TransportInterface
 {

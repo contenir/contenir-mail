@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mail\Protocol\Pop3;
+namespace Contenir\Mail\Tests\Unit\Protocol\Pop3;
 
-use Laminas\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Pop3\Response;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Laminas\Mail\Protocol\Pop3\Response
+ * @covers Contenir\Mail\Protocol\Pop3\Response
  */
 class ResponseTest extends TestCase
 {

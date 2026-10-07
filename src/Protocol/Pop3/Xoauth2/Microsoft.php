@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Protocol\Pop3\Xoauth2;
+namespace Contenir\Mail\Protocol\Pop3\Xoauth2;
 
-use Laminas\Mail\Protocol\Exception\RuntimeException;
-use Laminas\Mail\Protocol\Pop3;
-use Laminas\Mail\Protocol\Xoauth2\Xoauth2;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
+use Contenir\Mail\Protocol\Pop3;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
 
 /**
  * @final

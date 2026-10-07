@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laminas\Mail\Protocol\Pop3;
+namespace Contenir\Mail\Protocol\Pop3;
 
 /**
  * POP3 response value object

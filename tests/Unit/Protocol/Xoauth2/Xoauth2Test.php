@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace LaminasTest\Mail\Protocol\Xoauth2;
+namespace Contenir\Mail\Tests\Unit\Protocol\Xoauth2;
 
-use Laminas\Mail\Protocol\Xoauth2\Xoauth2;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers  Laminas\Mail\Protocol\Xoauth2\Xoauth2
+ * @covers  Contenir\Mail\Protocol\Xoauth2\Xoauth2
  */
 class Xoauth2Test extends TestCase
 {

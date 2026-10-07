@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mime;
+namespace Contenir\Mail\Mime;
 
 use function array_key_exists;
 use function gettype;

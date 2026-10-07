@@ -1,14 +1,14 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\MimeVersion<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\MimeVersion<extended>
  */
 class MimeVersionTest extends TestCase
 {

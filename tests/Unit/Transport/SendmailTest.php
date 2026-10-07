@@ -1,12 +1,12 @@
 <?php
 
-namespace LaminasTest\Mail\Transport;
+namespace Contenir\Mail\Tests\Unit\Transport;
 
-use Laminas\Mail\Address\AddressInterface;
-use Laminas\Mail\AddressList;
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\Exception\RuntimeException;
-use Laminas\Mail\Transport\Sendmail;
+use Contenir\Mail\Address\AddressInterface;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Message;
+use Contenir\Mail\Transport\Exception\RuntimeException;
+use Contenir\Mail\Transport\Sendmail;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
@@ -20,7 +20,7 @@ use const PHP_OS;
 use const PHP_VERSION_ID;
 
 /**
- * @covers Laminas\Mail\Transport\Sendmail<extended>
+ * @covers Contenir\Mail\Transport\Sendmail<extended>
  */
 class SendmailTest extends TestCase
 {
@@ -71,7 +71,7 @@ class SendmailTest extends TestCase
                     'matthew@example.com' => 'Matthew',
                 ])
                 ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
         $message->getHeaders()->addHeaders([
             'X-Foo-Bar' => 'Matthew',
@@ -95,7 +95,7 @@ class SendmailTest extends TestCase
 
         $this->transport->send($message);
         $this->assertEquals('Example Test <test@example.com>', $this->to);
-        $this->assertEquals('Testing Laminas\Mail\Transport\Sendmail', $this->subject);
+        $this->assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
         $this->assertEquals('This is only a test.', trim($this->message));
         if (PHP_VERSION_ID < 80000) {
             $this->assertStringNotContainsString("To: Example Test <test@example.com>\n", $this->additionalHeaders);
@@ -149,7 +149,7 @@ class SendmailTest extends TestCase
 
         $this->transport->send($message);
         $this->assertEquals('test@example.com', $this->to);
-        $this->assertEquals('Testing Laminas\Mail\Transport\Sendmail', $this->subject);
+        $this->assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
         $this->assertEquals('This is only a test.', trim($this->message));
         $this->assertStringContainsString("To: Example Test <test@example.com>\r\n", $this->additionalHeaders);
         $this->assertStringContainsString("Cc: matthew@example.com\r\n", $this->additionalHeaders);
@@ -180,7 +180,7 @@ class SendmailTest extends TestCase
         $message = $this->getMessage();
         $message->setEncoding('UTF-8');
         $this->transport->send($message);
-        $this->assertEquals('=?UTF-8?Q?Testing=20Laminas\Mail\Transport\Sendmail?=', $this->subject);
+        $this->assertEquals('=?UTF-8?Q?Testing=20Contenir\Mail\Transport\Sendmail?=', $this->subject);
     }
 
     public function testCodeInjectionInFromHeader(): void
@@ -268,7 +268,7 @@ class SendmailTest extends TestCase
         $message = new Message();
         $message->addCc('matthew@example.com')
                 ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
 
         $this->transport->send($message);
@@ -280,7 +280,7 @@ class SendmailTest extends TestCase
         $message = new Message();
         $message->addBcc('list@example.com', 'Example, List')
                 ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
 
         $this->transport->send($message);
@@ -291,7 +291,7 @@ class SendmailTest extends TestCase
     {
         $message = new Message();
         $message->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Laminas\Mail\Transport\Sendmail')
+                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
                 ->setBody('This is only a test.');
 
         $this->expectException(RuntimeException::class);

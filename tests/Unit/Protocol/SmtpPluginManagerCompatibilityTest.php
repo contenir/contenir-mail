@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol;
+namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use Laminas\Mail\Protocol\Exception\InvalidArgumentException;
-use Laminas\Mail\Protocol\Smtp;
-use Laminas\Mail\Protocol\SmtpPluginManager;
+use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Smtp;
+use Contenir\Mail\Protocol\SmtpPluginManager;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\ServiceManager\Test\CommonPluginManagerTrait;
 use PHPUnit\Framework\TestCase;

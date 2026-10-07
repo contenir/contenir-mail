@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Protocol;
+namespace Contenir\Mail\Protocol;
 
-use Laminas\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Pop3\Response;
 use Laminas\Stdlib\ErrorHandler;
 
 use function explode;

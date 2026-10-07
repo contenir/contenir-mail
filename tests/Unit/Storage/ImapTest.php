@@ -1,11 +1,11 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayObject;
-use Laminas\Mail\Protocol;
-use Laminas\Mail\Storage;
-use Laminas\Mail\Storage\Exception;
+use Contenir\Mail\Protocol;
+use Contenir\Mail\Storage;
+use Contenir\Mail\Storage\Exception;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -29,7 +29,7 @@ use const DIRECTORY_SEPARATOR;
 use const INF;
 
 /**
- * @covers Laminas\Mail\Storage\Imap<extended>
+ * @covers Contenir\Mail\Storage\Imap<extended>
  */
 class ImapTest extends TestCase
 {
@@ -38,31 +38,31 @@ class ImapTest extends TestCase
 
     public function setUp(): void
     {
-        if (! getenv('TESTS_LAMINAS_MAIL_IMAP_ENABLED')) {
-            $this->markTestSkipped('Laminas_Mail IMAP tests are not enabled');
+        if (! getenv('TESTS_CONTENIR_MAIL_IMAP_ENABLED')) {
+            $this->markTestSkipped('Contenir_Mail IMAP tests are not enabled');
         }
         $this->params = [
-            'host'     => getenv('TESTS_LAMINAS_MAIL_IMAP_HOST'),
-            'user'     => getenv('TESTS_LAMINAS_MAIL_IMAP_USER'),
-            'password' => getenv('TESTS_LAMINAS_MAIL_IMAP_PASSWORD'),
+            'host'     => getenv('TESTS_CONTENIR_MAIL_IMAP_HOST'),
+            'user'     => getenv('TESTS_CONTENIR_MAIL_IMAP_USER'),
+            'password' => getenv('TESTS_CONTENIR_MAIL_IMAP_PASSWORD'),
         ];
-        if (getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR') && getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR')) {
+        if (getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') && getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')) {
             if (
-                ! file_exists(getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR') . DIRECTORY_SEPARATOR . 'inbox')
-                && ! file_exists(getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR') . DIRECTORY_SEPARATOR . 'INBOX')
+                ! file_exists(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') . DIRECTORY_SEPARATOR . 'inbox')
+                && ! file_exists(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') . DIRECTORY_SEPARATOR . 'INBOX')
             ) {
                 $this->markTestSkipped(
                     'There is no file name "inbox" or "INBOX" in '
-                    . getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR') . '. I won\'t use it for testing. '
+                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') . '. I won\'t use it for testing. '
                     . 'This is you safety net. If you think it is the right directory just '
                     . 'create an empty file named INBOX or remove/deactived this message.'
                 );
             }
 
-            $this->cleanDir(getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR'));
+            $this->cleanDir(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'));
             $this->copyDir(
-                __DIR__ . '/../_files/test.' . getenv('TESTS_LAMINAS_MAIL_SERVER_FORMAT'),
-                getenv('TESTS_LAMINAS_MAIL_SERVER_TESTDIR')
+                __DIR__ . '/../_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
+                getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
             );
         }
     }
@@ -129,7 +129,7 @@ class ImapTest extends TestCase
 
     public function testConnectSSL(): void
     {
-        if (! getenv('TESTS_LAMINAS_MAIL_IMAP_SSL')) {
+        if (! getenv('TESTS_CONTENIR_MAIL_IMAP_SSL')) {
             return;
         }
 
@@ -139,7 +139,7 @@ class ImapTest extends TestCase
 
     public function testConnectTLS(): void
     {
-        if (! getenv('TESTS_LAMINAS_MAIL_IMAP_TLS')) {
+        if (! getenv('TESTS_CONTENIR_MAIL_IMAP_TLS')) {
             return;
         }
 
@@ -149,7 +149,7 @@ class ImapTest extends TestCase
 
     public function testConnectSelfSignedSSL(): void
     {
-        if (! getenv('TESTS_LAMINAS_MAIL_IMAP_SSL')) {
+        if (! getenv('TESTS_CONTENIR_MAIL_IMAP_SSL')) {
             return;
         }
 
@@ -160,14 +160,14 @@ class ImapTest extends TestCase
 
     public function testInvalidService(): void
     {
-        $this->params['port'] = getenv('TESTS_LAMINAS_MAIL_IMAP_INVALID_PORT');
+        $this->params['port'] = getenv('TESTS_CONTENIR_MAIL_IMAP_INVALID_PORT');
         $this->expectException(Exception\InvalidArgumentException::class);
         new Storage\Imap($this->params);
     }
 
     public function testWrongService(): void
     {
-        $this->params['port'] = getenv('TESTS_LAMINAS_MAIL_IMAP_WRONG_PORT');
+        $this->params['port'] = getenv('TESTS_CONTENIR_MAIL_IMAP_WRONG_PORT');
         $this->expectException(Exception\InvalidArgumentException::class);
         new Storage\Imap($this->params);
     }

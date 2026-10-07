@@ -1,10 +1,10 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Message\File;
-use Laminas\Mail\Storage\Message\MessageInterface;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Message\File;
+use Contenir\Mail\Storage\Message\MessageInterface;
 use Laminas\Stdlib\ErrorHandler;
 
 use function array_combine;
@@ -176,7 +176,7 @@ class Mbox extends AbstractStorage
      * @param  null|array|string $part     path to part or null for message header
      * @param  int               $topLines include this many lines with header (after an empty line)
      * @return string raw header
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
     public function getRawHeader($id, $part = null, $topLines = 0)
@@ -196,7 +196,7 @@ class Mbox extends AbstractStorage
      * @param  int               $id   number of message
      * @param  null|array|string $part path to part or null for message content
      * @return string raw content
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
     public function getRawContent($id, $part = null)

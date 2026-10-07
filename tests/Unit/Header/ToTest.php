@@ -1,9 +1,9 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -13,8 +13,8 @@ use function explode;
  * This test is primarily to test that AbstractAddressList headers perform
  * header folding and MIME encoding properly.
  *
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\To<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\To<extended>
  */
 class ToTest extends TestCase
 {

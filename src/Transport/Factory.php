@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Transport;
+namespace Contenir\Mail\Transport;
 
 use Laminas\Stdlib\ArrayUtils;
 use Traversable;

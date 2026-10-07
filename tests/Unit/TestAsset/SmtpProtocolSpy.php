@@ -1,8 +1,8 @@
 <?php
 
-namespace LaminasTest\Mail\TestAsset;
+namespace Contenir\Mail\Tests\Unit\TestAsset;
 
-use Laminas\Mail\Protocol\Smtp;
+use Contenir\Mail\Protocol\Smtp;
 
 /**
  * Test spy to use when testing SMTP protocol

@@ -1,14 +1,14 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
-use Laminas\Mail\Exception as MailException;
-use Laminas\Mail\Protocol;
-use Laminas\Mail\Protocol\Exception\RuntimeException;
-use Laminas\Mail\Storage\Exception\ExceptionInterface;
-use Laminas\Mail\Storage\Exception\InvalidArgumentException;
-use Laminas\Mail\Storage\Message;
-use Laminas\Mime;
+use Contenir\Mail\Exception as MailException;
+use Contenir\Mail\Protocol;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Message;
+use Contenir\Mail\Mime;
 
 use function array_combine;
 use function array_key_exists;
@@ -21,7 +21,7 @@ class Pop3 extends AbstractStorage
     /**
      * protocol handler
      *
-     * @var null|\Laminas\Mail\Protocol\Pop3
+     * @var null|\Contenir\Mail\Protocol\Pop3
      */
     protected $protocol;
 
@@ -30,7 +30,7 @@ class Pop3 extends AbstractStorage
      *
      * @return int number of messages
      * @throws ExceptionInterface
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
     public function countMessages()
     {
@@ -45,7 +45,7 @@ class Pop3 extends AbstractStorage
      *
      * @param int $id number of message
      * @return int|array size of given message of list with all messages as array(num => size)
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
     public function getSize($id = 0)
     {
@@ -58,7 +58,7 @@ class Pop3 extends AbstractStorage
      *
      * @param int $id number of message
      * @return Message
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
     public function getMessage($id)
     {
@@ -80,7 +80,7 @@ class Pop3 extends AbstractStorage
      * @param  null|array|string $part     path to part or null for message header
      * @param  int               $topLines include this many lines with header (after an empty line)
      * @return string raw header
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
     public function getRawHeader($id, $part = null, $topLines = 0)
@@ -99,7 +99,7 @@ class Pop3 extends AbstractStorage
      * @param  int               $id   number of message
      * @param  null|array|string $part path to part or null for message content
      * @return string raw content
-     * @throws \Laminas\Mail\Protocol\Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
     public function getRawContent($id, $part = null)

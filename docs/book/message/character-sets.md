@@ -1,6 +1,6 @@
 # Character Sets
 
-`Laminas\Mail\Message` assumes a default ASCII character set, and headers and
+`Contenir\Mail\Message` assumes a default ASCII character set, and headers and
 content are quoted accordingly. If you wish to specify alternate characters
 sets, you will need to:
 
@@ -15,14 +15,14 @@ sets, you will need to:
 
 ## Example
 
-The following example is how to use `Laminas\Mail\Message` to send a message in
+The following example is how to use `Contenir\Mail\Message` to send a message in
 Japanese.
 
 ```php
-use Laminas\Mail\Message;
-use Laminas\Mime\Message as MimeMessage;
-use Laminas\Mime\Mime;
-use Laminas\Mime\Part as MimePart;
+use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Message as MimeMessage;
+use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Mime\Part as MimePart;
 
 // Typically, PHP will use UTF-8 internally; the following converts
 // the text to a Japanese encoding.

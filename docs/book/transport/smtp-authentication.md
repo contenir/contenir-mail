@@ -14,14 +14,14 @@ are briefly covered in the [SMTP transport configuration options](smtp-options.m
 ### connection_class
 
 The connection class should be a fully qualified class name of a
-`Laminas\Mail\Protocol\Smtp\Auth\*` class or extension, or the short name (name
+`Contenir\Mail\Protocol\Smtp\Auth\*` class or extension, or the short name (name
 without leading namespace). laminas-mail ships with the following:
 
-- `Laminas\Mail\Protocol\Smtp\Auth\Plain`, or `plain`
-- `Laminas\Mail\Protocol\Smtp\Auth\Login`, or `login`
-- `Laminas\Mail\Protocol\Smtp\Auth\Crammd5`, or `crammd5`
+- `Contenir\Mail\Protocol\Smtp\Auth\Plain`, or `plain`
+- `Contenir\Mail\Protocol\Smtp\Auth\Login`, or `login`
+- `Contenir\Mail\Protocol\Smtp\Auth\Crammd5`, or `crammd5`
 
-Custom connection classes must be extensions of `Laminas\Mail\Protocol\Smtp`.
+Custom connection classes must be extensions of `Contenir\Mail\Protocol\Smtp`.
 
 ### connection_config
 
@@ -46,8 +46,8 @@ Optionally, ou may also provide:
 ### SMTP Transport Usage with PLAIN AUTH
 
 ```php
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Setup SMTP transport using PLAIN authentication
 $transport = new SmtpTransport();
@@ -66,8 +66,8 @@ $transport->setOptions($options);
 ### SMTP Transport Usage with LOGIN AUTH
 
 ```php
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Setup SMTP transport using LOGIN authentication
 $transport = new SmtpTransport();
@@ -95,8 +95,8 @@ $transport->setOptions($options);
 > ```
 
 ```php
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Setup SMTP transport using CRAM-MD5 authentication
 $transport = new SmtpTransport();
@@ -115,8 +115,8 @@ $transport->setOptions($options);
 ### SMTP Transport Usage with PLAIN AUTH over TLS
 
 ```php
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Setup SMTP transport using PLAIN authentication over TLS
 $transport = new SmtpTransport();
@@ -137,7 +137,7 @@ $transport->setOptions($options);
 
 ### SMTP Transport Usage for servers with reuse time limit
 
-By default, every `Laminas\Mail\Protocol\Smtp\*` class tries to disconnect from
+By default, every `Contenir\Mail\Protocol\Smtp\*` class tries to disconnect from
 the STMP server by sending a `QUIT` command and expecting a `221` (_Service
 closing transmission channel_) response code.  This is done automatically at
 object destruction (via the `__destruct()` method), and can generate errors
@@ -156,14 +156,14 @@ exit;
 // E-mail sent
 // Soon to exit...
 // Notice: fwrite(): send of 6 bytes failed with errno=32 Broken pipe in ./laminas-mail/src/Protocol/AbstractProtocol.php on line 255
-// Fatal error: Uncaught Laminas\Mail\Protocol\Exception\RuntimeException: Could not read from 127.0.0.1 in ./laminas-mail/src/Protocol/AbstractProtocol.php:301
+// Fatal error: Uncaught Contenir\Mail\Protocol\Exception\RuntimeException: Could not read from 127.0.0.1 in ./laminas-mail/src/Protocol/AbstractProtocol.php:301
 ```
 
 To avoid this error, you can set a time limit for the SMTP connection in `SmtpOptions`:
 
 ```php
-use Laminas\Mail\Transport\Smtp as SmtpTransport;
-use Laminas\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Transport\Smtp as SmtpTransport;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Setup SMTP transport to exit without the `QUIT` command
 $transport = new SmtpTransport();

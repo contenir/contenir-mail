@@ -1,11 +1,11 @@
 <?php
 
-namespace Laminas\Mail\Transport\Exception;
+namespace Contenir\Mail\Transport\Exception;
 
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 /**
- * Exception for Laminas\Mail\Transport component.
+ * Exception for Contenir\Mail\Transport component.
  */
 class DomainException extends Exception\DomainException implements ExceptionInterface
 {

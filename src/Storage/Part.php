@@ -1,12 +1,12 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
 use ArrayIterator;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Headers;
-use Laminas\Mime;
-use Laminas\Mime\Exception\RuntimeException;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Exception\RuntimeException;
 use RecursiveIterator;
 use ReturnTypeWillChange;
 use Stringable;

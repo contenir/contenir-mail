@@ -1,12 +1,12 @@
 <?php
 
-namespace LaminasTest\Mail\Protocol;
+namespace Contenir\Mail\Tests\Unit\Protocol;
 
 // phpcs:ignore WebimpressCodingStandard.PHP.CorrectClassNameCase.Invalid
 use Interop\Container\ContainerInterface;
-use Laminas\Mail\Protocol\Smtp;
-use Laminas\Mail\Protocol\SmtpPluginManager;
-use Laminas\Mail\Protocol\SmtpPluginManagerFactory;
+use Contenir\Mail\Protocol\Smtp;
+use Contenir\Mail\Protocol\SmtpPluginManager;
+use Contenir\Mail\Protocol\SmtpPluginManagerFactory;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;

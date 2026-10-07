@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Storage;
+namespace Contenir\Mail\Storage;
 
 use Traversable;
 use Webmozart\Assert\Assert;

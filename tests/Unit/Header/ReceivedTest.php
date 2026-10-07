@@ -1,16 +1,16 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\Received;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\Received;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\Received<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\Received<extended>
  */
 class ReceivedTest extends TestCase
 {

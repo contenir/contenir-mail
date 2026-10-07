@@ -1,6 +1,6 @@
 # Messages
 
-`Laminas\Mail\Message` encapsulates a single email message as described in RFCs
+`Contenir\Mail\Message` encapsulates a single email message as described in RFCs
 [822](http://www.w3.org/Protocols/rfc822/) and
 [2822](http://www.ietf.org/rfc/rfc2822.txt). It acts as a value object for
 setting mail headers and content.
@@ -18,7 +18,7 @@ a [Storage adapter](../read.md).
 Creating a `Message` by instantiating it:
 
 ```php
-use Laminas\Mail\Message;
+use Contenir\Mail\Message;
 
 $message = new Message();
 ```
@@ -30,7 +30,7 @@ content:
 ```php
 $message->addFrom('matthew@example.org', 'Matthew Somelli');
 $message->addTo('foobar@example.com');
-$message->setSubject('Sending an email from Laminas\Mail!');
+$message->setSubject('Sending an email from Contenir\Mail!');
 $message->setBody('This is the message body.');
 ```
 
@@ -170,7 +170,7 @@ Get the message encoding.
 ### setHeaders
 
 ```php
-setHeaders(Laminas\Mail\Headers $headers) : void
+setHeaders(Contenir\Mail\Headers $headers) : void
 ```
 
 Compose headers.
@@ -178,7 +178,7 @@ Compose headers.
 ### getHeaders
 
 ```php
-getHeaders() : Laminas\Mail\Headers
+getHeaders() : Contenir\Mail\Headers
 ```
 
 Access headers collection, lazy-loading a `Headers` instance if none was
@@ -396,7 +396,7 @@ Get the message subject header value.
 ### setBody
 
 ```php
-setBody(null|string|Laminas\Mime\Message|object $body) : void
+setBody(null|string|Contenir\Mail\Mime\Message|object $body) : void
 ```
 
 Set the message body. If a generic object is provided, it must implement
@@ -409,7 +409,7 @@ getBody() : null|string|object
 ```
 
 Return the currently set message body. Object return values include
-`Laminas\Mime\Message` instances or objects implementing `__toString()`.
+`Contenir\Mail\Mime\Message` instances or objects implementing `__toString()`.
 
 ### getBodyText
 

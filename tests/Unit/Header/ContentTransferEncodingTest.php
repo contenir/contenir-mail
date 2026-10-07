@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\ContentTransferEncoding;
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\ContentTransferEncoding;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\HeaderInterface;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
@@ -13,8 +13,8 @@ use function strtoupper;
 use function substr;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\ContentTransferEncoding<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\ContentTransferEncoding<extended>
  */
 class ContentTransferEncodingTest extends TestCase
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\IdentificationField;
-use Laminas\Mail\Header\InReplyTo;
-use Laminas\Mail\Header\References;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\IdentificationField;
+use Contenir\Mail\Header\InReplyTo;
+use Contenir\Mail\Header\References;
 use PHPUnit\Framework\TestCase;
 
 use function array_merge;

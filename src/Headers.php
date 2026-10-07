@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Laminas\Mail;
+namespace Contenir\Mail;
 
 use ArrayIterator;
 use Countable;
 use Iterator;
 use Laminas\Loader\PluginClassLocator;
-use Laminas\Mail\Header\GenericHeader;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\HeaderLocatorInterface;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\HeaderLocatorInterface;
 use ReturnTypeWillChange;
 use Traversable;
 

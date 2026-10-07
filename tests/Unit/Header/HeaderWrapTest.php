@@ -1,11 +1,11 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\Bcc;
-use Laminas\Mail\Header\HeaderWrap;
-use Laminas\Mail\Header\UnstructuredInterface;
-use Laminas\Mail\Storage;
+use Contenir\Mail\Header\Bcc;
+use Contenir\Mail\Header\HeaderWrap;
+use Contenir\Mail\Header\UnstructuredInterface;
+use Contenir\Mail\Storage;
 use PHPUnit\Framework\TestCase;
 
 use function base64_encode;
@@ -18,8 +18,8 @@ use function wordwrap;
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\HeaderWrap<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\HeaderWrap<extended>
  */
 class HeaderWrapTest extends TestCase
 {

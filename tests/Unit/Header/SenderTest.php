@@ -1,12 +1,12 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Address;
-use Laminas\Mail\Exception;
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\HeaderInterface;
-use Laminas\Mail\Header\Sender;
+use Contenir\Mail\Address;
+use Contenir\Mail\Exception;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\Sender;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
@@ -14,8 +14,8 @@ use function array_merge;
 use function array_slice;
 
 /**
- * @group      Laminas_Mail
- * @covers Laminas\Mail\Header\Sender<extended>
+ * @group      Contenir_Mail
+ * @covers Contenir\Mail\Header\Sender<extended>
  */
 class SenderTest extends TestCase
 {

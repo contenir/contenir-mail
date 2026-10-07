@@ -15,14 +15,14 @@ Create message/folder | No       | todo     | No       | todo
 Flags                 | No       | Yes      | No       | Yes
 Quota                 | No       | Yes      | No       | No
 
-Storage adapters return instances of `Laminas\Mail\Storage\Message`, which has a
+Storage adapters return instances of `Contenir\Mail\Storage\Message`, which has a
 different API than [messages used when sending](message/intro.md); the API is
 described in the ["Working with messages"](#working-with-messages) section.
 
 ## Basic POP3 example
 
 ```php
-use Laminas\Mail\Storage\Pop3;
+use Contenir\Mail\Storage\Pop3;
 
 $mail = new Pop3([
     'host'     => 'localhost',
@@ -41,10 +41,10 @@ foreach ($mail as $message) {
 Mbox and Maildir are the two supported formats for local mail storage.
 
 If you want to read from an mbox file, provide the filename to the constructor
-of `Laminas\Mail\Storage\Mbox`:
+of `Contenir\Mail\Storage\Mbox`:
 
 ```php
-use Laminas\Mail\Storage\Mbox;
+use Contenir\Mail\Storage\Mbox;
 
 $mail = new Mbox(['filename' => '/home/test/mail/inbox']);
 ```
@@ -52,11 +52,11 @@ $mail = new Mbox(['filename' => '/home/test/mail/inbox']);
 Maildir operates similarly, but requires a dirname instead:
 
 ```php
-use Laminas\Mail\Storage\Maildir;
+use Contenir\Mail\Storage\Maildir;
 $mail = new Maildir(['dirname' => '/home/test/mail/']);
 ```
 
-Both constructors throw a `Laminas\Mail\Exception` if the storage can't be read.
+Both constructors throw a `Contenir\Mail\Exception` if the storage can't be read.
 
 ## Using remote storage protocols
 
@@ -66,8 +66,8 @@ is an empty string, and the default port for the protocol is used if none is
 provided.
 
 ```php
-use Laminas\Mail\Storage\Imap;
-use Laminas\Mail\Storage\Pop3;
+use Contenir\Mail\Storage\Imap;
+use Contenir\Mail\Storage\Pop3;
 
 // Connecting with Pop3:
 $mail = new Pop3([
@@ -96,7 +96,7 @@ Both storage adapters support SSL and TLS. If you use SSL, the default port
 changes as specified in the relevant RFC.
 
 ```php
-use Laminas\Mail\Storage\Pop3;
+use Contenir\Mail\Storage\Pop3;
 
 // Examples use Pop3; the same configuration works for Imap.
 
@@ -121,8 +121,8 @@ If you are connecting to a mail server with a self-signed certificate and want t
 skip the SSL verification, you can also pass an additional argument `novalidatecert`
 with the value `true`.
 
-Both constructors throw `Laminas\Mail\Exception` or `Laminas\Mail\Protocol\Exception`
-(extends `Laminas\Mail\Exception`) for connection errors, depending on the type of
+Both constructors throw `Contenir\Mail\Exception` or `Contenir\Mail\Protocol\Exception`
+(extends `Contenir\Mail\Exception`) for connection errors, depending on the type of
 error encountered.
 
 ## Fetching, counting, and removing messages
@@ -261,9 +261,9 @@ echo '</pre>';
 
 Checking for multipart messages is done with the method `isMultipart()`. If you
 have a multipart message you, can get retrieve the individual
-`Laminas\Mail\Storage\Part` instances making up the message via the `getPart()`
+`Contenir\Mail\Storage\Part` instances making up the message via the `getPart()`
 method, which accepts the part index as a parameter (indices start with 1).
-`Laminas\Mail\Storage\Part` is the base class of `Laminas\Mail\Storage\Message`, and
+`Contenir\Mail\Storage\Part` is the base class of `Contenir\Mail\Storage\Message`, and
 thus exposes the same API with regards to headers, content, and retrieving
 nested parts.
 
@@ -278,13 +278,13 @@ echo "Content:\n";
 echo $part->getContent();
 ```
 
-`Laminas\Mail\Storage\Part` also implements `RecursiveIterator`, which allows iterating
+`Contenir\Mail\Storage\Part` also implements `RecursiveIterator`, which allows iterating
 through all parts, even when nested. Additionally, it implements the magic
 method `__toString()`, which returns the content.
 
 ```php
 use RecursiveIteratorIterator;
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 // output first text/plain part
 $foundPart = null;
@@ -307,13 +307,13 @@ if (! $foundPart) {
 
 ## Checking for flags
 
-Maildir and IMAP support storing flags with messages. The `Laminas\Mail\Storage`
+Maildir and IMAP support storing flags with messages. The `Contenir\Mail\Storage`
 class defines constants for all known maildir and IMAP system flags, named
-`FLAG_<flagname>`. To check for flags, `Laminas\Mail\Storage\Message` has
+`FLAG_<flagname>`. To check for flags, `Contenir\Mail\Storage\Message` has
 a method called `hasFlag()`. With `getFlags()` you'll get all flags.
 
 ```php
-use Laminas\Mail\Storage;
+use Contenir\Mail\Storage;
 
 // Find unread messages:
 echo "Unread mails:\n";
@@ -353,7 +353,7 @@ foreach ($flags as $flag) {
 ```
 
 As IMAP allows user or client defined flags, you could get flags that don't have
-a constant in `Laminas\Mail\Storage`. Instead, they are returned as strings and can
+a constant in `Contenir\Mail\Storage`. Instead, they are returned as strings and can
 be checked the same way with `hasFlag()`.
 
 ```php
@@ -371,12 +371,12 @@ if (! $message->hasFlag('$SpamTested')) {
 
 All storage adapters except POP3 support folders (also called *mailboxes*). The
 interface implemented by all adapters supporting folders is called
-`Laminas\Mail\Storage\Folder\FolderInterface`. Each also supports an optional
+`Contenir\Mail\Storage\Folder\FolderInterface`. Each also supports an optional
 configuration parameter called `folder`, which is the folder selected after
 login.
 
 For the local storage adapters, you need to use the adapter-specific folder
-classes, `Laminas\Mail\Storage\Folder\Mbox` and `Laminas\Mail\Storage\Folder\Maildir`.
+classes, `Contenir\Mail\Storage\Folder\Mbox` and `Contenir\Mail\Storage\Folder\Maildir`.
 Each accepts a single parameter, `dirname`, with the name of the base direcor.
 The format for maildir is as defined in
 [maildir++](https://en.wikipedia.org/wiki/Maildir#Maildir.2B.2B) (with a dot as
@@ -384,13 +384,13 @@ default delimiter); mbox uses a directory hierarchy of mbox files. If you don't
 have an mbox file called `INBOX` in your mbox base directory, you need to
 specify another folder via the constructor.
 
-`Laminas\Mail\Storage\Imap` supports folders by default.
+`Contenir\Mail\Storage\Imap` supports folders by default.
 
 Examples for opening folders with each adapter:
 
 ```php
-use Laminas\Mail\Storage\Folder;
-use Laminas\Mail\Storage\Imap;
+use Contenir\Mail\Storage\Folder;
+use Contenir\Mail\Storage\Imap;
 
 // mbox with folders:
 $mail = new Folder\Mbox(['dirname' => '/home/test/mail/']);
@@ -421,7 +421,7 @@ $mail = new Imap([
 
 With the method `getFolders($root = null)`, you can get the folder hierarchy
 starting with the root folder, or the given folder. The method returns an
-instance of `Laminas\Mail\Storage\Folder`, which implements `RecursiveIterator`,
+instance of `Contenir\Mail\Storage\Folder`, which implements `RecursiveIterator`,
 and all children are also instances of `Folder`. Each of these instances has a
 local and a global name returned by the methods `getLocalName()` and
 `getGlobalName()`. The global name is the absolute name from the root folder
@@ -500,8 +500,8 @@ foreach ($mail as $message) {
 
 ### Caching instances
 
-`Laminas\Mail\Storage\Mbox`, `Laminas\Mail\Storage\Folder\Mbox`,
-`Laminas\Mail\Storage\Maildir`, and `Laminas\Mail\Storage\Folder\Maildir` implement the
+`Contenir\Mail\Storage\Mbox`, `Contenir\Mail\Storage\Folder\Mbox`,
+`Contenir\Mail\Storage\Maildir`, and `Contenir\Mail\Storage\Folder\Maildir` implement the
 magic methods `__sleep()` and `__wakeup()`, which means they are serializable.
 
 Serialization avoids parsing files and directory trees multiple times. The
@@ -517,7 +517,7 @@ You can combine serialization with writable storage in a number of ways:
   reparse if present, and remove it afterwards.
 
 ```php
-use Laminas\Mail\Storage\Folder\Mbox;
+use Contenir\Mail\Storage\Folder\Mbox;
 
 // There's no specific cache handler/class used here,
 // change the code to match your cache handler.
@@ -541,8 +541,8 @@ $cache->set($cacheId, $mail);
 
 ### Extending Protocol Classes
 
-Remote storage adapters use two classes: `Laminas\Mail\Storage\<Name>` and
-`Laminas\Mail\Protocol\<Name>`. The protocol class translates the protocol commands
+Remote storage adapters use two classes: `Contenir\Mail\Storage\<Name>` and
+`Contenir\Mail\Protocol\<Name>`. The protocol class translates the protocol commands
 and responses from and to PHP, like methods for the commands or variables with
 different structures for data. The storage class implements the common
 interface for message access.
@@ -554,7 +554,7 @@ knock different ports before we can connect to POP3.
 ```php
 namespace Example\Mail
 {
-    use Laminas\Mail;
+    use Contenir\Mail;
 
     class Exception extends Mail\Exception
     {
@@ -563,7 +563,7 @@ namespace Example\Mail
 
 namespace Example\Mail\Protocol
 {
-    use Laminas\Mail\Protocol;
+    use Contenir\Mail\Protocol;
 
     class Exception extends Protocol\Exception
     {
@@ -572,7 +572,7 @@ namespace Example\Mail\Protocol
 
 namespace Example\Mail\Protocol\Pop3
 {
-    use Laminas\Mail\Protocol\Pop3;
+    use Contenir\Mail\Protocol\Pop3;
 
     class Knock extends Pop3
     {
@@ -611,7 +611,7 @@ namespace Example\Mail\Protocol\Pop3
 namespace Example\Mail\Pop3
 {
     use Example\Mail\Protoco\Pop3\Knock as KnockProtocol;
-    use Laminas\Mail\Storage\Pop3;
+    use Contenir\Mail\Storage\Pop3;
 
     class Knock extends Pop3
     {
@@ -650,7 +650,7 @@ server doesn't allow it in the current state.
 
 ### Using Quotas
 
-`Laminas\Mail\Storage\Writable\Maildir` has support for Maildir++ quotas. It's
+`Contenir\Mail\Storage\Writable\Maildir` has support for Maildir++ quotas. It's
 disabled by default, but it's possible to use it manually, if the automatic
 checks are not desired (this means `appendMessage()`, `removeMessage()`, and
 `copyMessage()` do no checks and do not add entries to the maildirsize file). If
@@ -661,7 +661,7 @@ There are three methods used for quotas: `getQuota()`, `setQuota()`, and
 `checkQuota()`:
 
 ```php
-use Laminas\Mail\Storage\Writable\Maildir;
+use Contenir\Mail\Storage\Writable\Maildir;
 
 $mail = new Maildir(['dirname' => '/home/test/mail/']);
 $mail->setQuota(true); // true to enable, false to disable
@@ -697,14 +697,14 @@ $quota = $mail->setQuota(['size' => 10000, 'count' => 100]);
 
 To add your own quota checks, use single letters as keys, and they will be
 preserved (but obviously not checked). It's also possible to extend
-`Laminas\Mail\Storage\Writable\Maildir` to define your own quota if the maildirsize
+`Contenir\Mail\Storage\Writable\Maildir` to define your own quota if the maildirsize
 file is missing (which can happen in Maildir++):
 
 ```php
 namespace Example\Mail\Storage;
 
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\Writable\Maildir as BaseMaildir;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Writable\Maildir as BaseMaildir;
 
 class Maildir extends BaseMaildir
 {

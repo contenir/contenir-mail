@@ -1,9 +1,9 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mail\Headers;
-use Laminas\Mime\Mime;
+use Contenir\Mail\Headers;
+use Contenir\Mail\Mime\Mime;
 
 use function count;
 use function explode;

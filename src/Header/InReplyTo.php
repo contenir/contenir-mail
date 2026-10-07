@@ -1,6 +1,6 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
 class InReplyTo extends IdentificationField
 {

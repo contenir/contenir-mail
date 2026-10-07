@@ -1,17 +1,17 @@
 <?php
 
-namespace LaminasTest\Mail;
+namespace Contenir\Mail\Tests\Unit;
 
 use ArrayIterator;
 use Countable;
 use ErrorException;
 use Iterator;
 use Laminas\Loader\PluginClassLocator;
-use Laminas\Mail;
-use Laminas\Mail\Header;
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\GenericHeader;
-use Laminas\Mail\Header\GenericMultiHeader;
+use Contenir\Mail;
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\GenericMultiHeader;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -22,7 +22,7 @@ use function set_error_handler;
 use const E_USER_DEPRECATED;
 
 /**
- * @covers \Laminas\Mail\Headers<extended>
+ * @covers \Contenir\Mail\Headers<extended>
  */
 class HeadersTest extends TestCase
 {

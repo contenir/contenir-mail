@@ -1,15 +1,15 @@
 <?php
 
-namespace LaminasTest\Mail\Header;
+namespace Contenir\Mail\Tests\Unit\Header;
 
-use Laminas\Mail\Header\Exception;
-use Laminas\Mail\Header\GenericMultiHeader;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\GenericMultiHeader;
 use PHPUnit\Framework\TestCase;
 
 use function count;
 
 /**
- * @covers Laminas\Mail\Header\GenericMultiHeader<extended>
+ * @covers Contenir\Mail\Header\GenericMultiHeader<extended>
  */
 class GenericMultiHeaderTest extends TestCase
 {

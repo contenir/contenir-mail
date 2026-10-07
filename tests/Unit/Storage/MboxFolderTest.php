@@ -1,10 +1,10 @@
 <?php
 
-namespace LaminasTest\Mail\Storage;
+namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayObject;
-use Laminas\Mail\Storage\Exception;
-use Laminas\Mail\Storage\Folder;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Folder;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -31,7 +31,7 @@ use function unserialize;
 use const DIRECTORY_SEPARATOR;
 
 /**
- * @group      Laminas_Mail
+ * @group      Contenir_Mail
  */
 class MboxFolderTest extends TestCase
 {
@@ -49,8 +49,8 @@ class MboxFolderTest extends TestCase
         $this->originalDir = __DIR__ . '/../_files/test.mbox/';
 
         if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_LAMINAS_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_LAMINAS_MAIL_TEMPDIR');
+            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
+                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
                 $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
             }

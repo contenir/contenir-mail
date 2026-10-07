@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Header;
+namespace Contenir\Mail\Header;
 
-use Laminas\Mime\Mime;
+use Contenir\Mail\Mime\Mime;
 
 use function strtolower;
 use function strtoupper;

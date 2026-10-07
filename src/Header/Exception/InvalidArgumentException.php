@@ -1,8 +1,8 @@
 <?php
 
-namespace Laminas\Mail\Header\Exception;
+namespace Contenir\Mail\Header\Exception;
 
-use Laminas\Mail\Exception;
+use Contenir\Mail\Exception;
 
 class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface
 {
