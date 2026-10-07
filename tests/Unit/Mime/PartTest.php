@@ -4,213 +4,441 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
-use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Disposition;
+use Contenir\Mail\Mime\Exception\InvalidArgumentException;
+use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
-use function base64_decode;
+use function array_map;
+use function chr;
 use function fclose;
-use function file_get_contents;
 use function fopen;
-use function quoted_printable_decode;
-use function realpath;
-use function stream_get_contents;
+use function fwrite;
+use function implode;
+use function intdiv;
+use function range;
+use function str_repeat;
+use function stream_context_create;
+use function substr;
 
-class PartTest extends TestCase
+#[CoversClass(Part::class)]
+#[Group('unit')]
+final class PartTest extends TestCase
 {
-    /**
-     * MIME part test object
-     *
-     * @var Mime\Part
-     */
-    protected $part;
-
-    /** @var string */
-    protected $testText;
-
-    protected function setUp(): void
+    #[Test]
+    public function defaultsToBase64OctetStreamWithNoOptionalHeaders(): void
     {
-        $this->testText =
-            'safdsafsa�lg ��gd�� sd�jg�sdjg�ld�gksd�gj�sdfg�dsj'
-            . '�gjsd�gj�dfsjg�dsfj�djs�g kjhdkj fgaskjfdh gksjhgjkdh gjhfsdghdhgksdjhg';
-        $this->part              = new Mime\Part($this->testText);
-        $this->part->encoding    = Mime\Mime::ENCODING_BASE64;
-        $this->part->type        = 'text/plain';
-        $this->part->filename    = 'test.txt';
-        $this->part->disposition = 'attachment';
-        $this->part->charset     = 'iso8859-1';
-        $this->part->id          = '4711';
+        static::assertSame(
+            "Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n",
+            (new Part('data'))->getHeaders()->toString(),
+        );
     }
 
     #[Test]
-    public function headers()
+    public function writesEveryOptionalHeaderInOrder(): void
     {
-        $expectedHeaders = [
-            'Content-Type: text/plain',
-            'Content-Transfer-Encoding: ' . Mime\Mime::ENCODING_BASE64,
-            'Content-Disposition: attachment',
-            'filename="test.txt"',
-            'charset=iso8859-1',
-            'Content-ID: <4711>',
-        ];
+        $part = new Part(
+            'data',
+            type: 'text/plain',
+            encoding: TransferEncoding::QuotedPrintable,
+            charset: 'ISO-8859-1',
+            disposition: Disposition::Attachment,
+            filename: 'notes.txt',
+            id: 'part1@example.com',
+            description: 'Meeting notes',
+            location: 'https://example.com/notes.txt',
+            language: 'en-AU',
+        );
 
-        $actual = $this->part->getHeaders();
-
-        foreach ($expectedHeaders as $expected) {
-            static::assertStringContainsString($expected, $actual);
-        }
-    }
-
-    #[Test]
-    public function contentEncoding()
-    {
-        // Test with base64 encoding
-        $content = $this->part->getContent();
-        static::assertSame($this->testText, base64_decode($content));
-        // Test with quotedPrintable Encoding:
-        $this->part->encoding = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
-        $content              = $this->part->getContent();
-        static::assertSame($this->testText, quoted_printable_decode($content));
-        // Test with 8Bit encoding
-        $this->part->encoding = Mime\Mime::ENCODING_8BIT;
-        $content              = $this->part->getContent();
-        static::assertSame($this->testText, $content);
-    }
-
-    #[Test]
-    public function streamEncoding()
-    {
-        $testfile = realpath(__FILE__);
-        $original = file_get_contents($testfile);
-
-        // Test Base64
-        $fp = fopen($testfile, 'rb');
-        static::assertIsResource($fp);
-        $part           = new Mime\Part($fp);
-        $part->encoding = Mime\Mime::ENCODING_BASE64;
-        $fp2            = $part->getEncodedStream();
-        static::assertIsResource($fp2);
-        $encoded = stream_get_contents($fp2);
-        fclose($fp);
-        static::assertSame(base64_decode($encoded), $original);
-
-        // test QuotedPrintable
-        $fp = fopen($testfile, 'rb');
-        static::assertIsResource($fp);
-        $part           = new Mime\Part($fp);
-        $part->encoding = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
-        $fp2            = $part->getEncodedStream();
-        static::assertIsResource($fp2);
-        $encoded = stream_get_contents($fp2);
-        fclose($fp);
-        static::assertSame(quoted_printable_decode($encoded), $original);
-    }
-
-    #[Test]
-    #[Group('Laminas-1491')]
-    public function getRawContentFromPart()
-    {
-        static::assertSame($this->testText, $this->part->getRawContent());
+        static::assertSame(
+            "Content-Type: text/plain;\r\n charset=\"ISO-8859-1\"\r\n"
+                . "Content-Transfer-Encoding: quoted-printable\r\n"
+                . "Content-ID: <part1@example.com>\r\n"
+                . "Content-Disposition: attachment; filename=\"notes.txt\"\r\n"
+                . "Content-Description: Meeting notes\r\n"
+                . "Content-Location: https://example.com/notes.txt\r\n"
+                . "Content-Language: en-AU\r\n",
+            $part->getHeaders()->toString(),
+        );
     }
 
     /**
-     * @link https://github.com/zendframework/zf2/issues/5428
+     * @param array<string, mixed> $arguments
      */
+    #[DataProvider('singleOptionalHeaderProvider')]
     #[Test]
-    #[Group('5428')]
-    public function contentEncodingWithStreamReadTwiceINaRow()
+    public function writesOnlyTheOptionalHeaderThatIsSet(array $arguments, string $expectedHeader): void
     {
-        $testfile = realpath(__FILE__);
-        $original = file_get_contents($testfile);
-
-        $fp                       = fopen($testfile, 'rb');
-        $part                     = new Mime\Part($fp);
-        $part->encoding           = Mime\Mime::ENCODING_BASE64;
-        $contentEncodedFirstTime  = $part->getContent();
-        $contentEncodedSecondTime = $part->getContent();
-        static::assertSame($contentEncodedFirstTime, $contentEncodedSecondTime);
-        fclose($fp);
-
-        $fp                       = fopen($testfile, 'rb');
-        $part                     = new Mime\Part($fp);
-        $part->encoding           = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
-        $contentEncodedFirstTime  = $part->getContent();
-        $contentEncodedSecondTime = $part->getContent();
-        static::assertSame($contentEncodedFirstTime, $contentEncodedSecondTime);
-        fclose($fp);
+        static::assertSame(
+            "Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n{$expectedHeader}",
+            (new Part('data', ...$arguments))->getHeaders()->toString(),
+        );
     }
 
-    #[Test]
-    public function settersGetters()
-    {
-        $part = new Mime\Part();
-        $part->setContent($this->testText)
-            ->setEncoding(Mime\Mime::ENCODING_8BIT)
-            ->setType('text/plain')
-            ->setFilename('test.txt')
-            ->setDisposition('attachment')
-            ->setCharset('iso8859-1')
-            ->setId('4711')
-            ->setBoundary('frontier')
-            ->setLocation('fiction1/fiction2')
-            ->setLanguage('en')
-            ->setIsStream(false)
-            ->setFilters(['foo'])
-            ->setDescription('foobar');
-
-        static::assertSame($this->testText, $part->getContent());
-        static::assertSame(Mime\Mime::ENCODING_8BIT, $part->getEncoding());
-        static::assertSame('text/plain', $part->getType());
-        static::assertSame('test.txt', $part->getFileName());
-        static::assertSame('attachment', $part->getDisposition());
-        static::assertSame('iso8859-1', $part->getCharset());
-        static::assertSame('4711', $part->getId());
-        static::assertSame('frontier', $part->getBoundary());
-        static::assertSame('fiction1/fiction2', $part->getLocation());
-        static::assertSame('en', $part->getLanguage());
-        static::assertSame(false, $part->isStream());
-        static::assertSame(['foo'], $part->getFilters());
-        static::assertSame('foobar', $part->getDescription());
-    }
-
-    /** @psalm-return array<string, array{0: mixed}> */
-    public static function invalidContentTypes(): array
+    /**
+     * @return array<string, array{array<string, mixed>, string}>
+     */
+    public static function singleOptionalHeaderProvider(): array
     {
         return [
-            'null'       => [null],
-            'false'      => [false],
-            'true'       => [true],
-            'zero'       => [0],
-            'int'        => [1],
-            'zero-float' => [0.0],
-            'float'      => [1.1],
-            'array'      => [['string']],
-            'object'     => [(object) ['content' => 'string']],
+            'content id'                       => [['id' => 'logo'], "Content-ID: <logo>\r\n"],
+            'inline disposition'               => [
+                ['disposition' => Disposition::Inline],
+                "Content-Disposition: inline\r\n",
+            ],
+            'attachment disposition'           => [
+                ['disposition' => Disposition::Attachment],
+                "Content-Disposition: attachment\r\n",
+            ],
+            'disposition with filename'        => [
+                ['disposition' => Disposition::Inline, 'filename' => 'logo.png'],
+                "Content-Disposition: inline; filename=\"logo.png\"\r\n",
+            ],
+            'description'                      => [['description' => 'A logo'], "Content-Description: A logo\r\n"],
+            'location'                         => [
+                ['location' => 'https://example.com/a'],
+                "Content-Location: https://example.com/a\r\n",
+            ],
+            'language'                         => [['language' => 'fr'], "Content-Language: fr\r\n"],
+            'filename without any disposition' => [['filename' => 'ignored.txt'], ''],
+        ];
+    }
+
+    #[Test]
+    public function writesCharsetAsAContentTypeParameter(): void
+    {
+        static::assertSame(
+            "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 8bit\r\n",
+            (new Part('data', type: 'text/plain', encoding: TransferEncoding::EightBit, charset: 'UTF-8'))->getHeaders()
+                ->toString(),
+        );
+    }
+
+    #[Test]
+    public function exposesTheValuesItWasBuiltWith(): void
+    {
+        $part = new Part(
+            'data',
+            type: 'image/png',
+            encoding: TransferEncoding::Binary,
+            charset: 'US-ASCII',
+            disposition: Disposition::Inline,
+            filename: 'logo.png',
+            id: 'logo@example.com',
+        );
+
+        static::assertSame(
+            ['image/png', TransferEncoding::Binary, 'US-ASCII', Disposition::Inline, 'logo.png', 'logo@example.com'],
+            [
+                $part->getType(),
+                $part->getTransferEncoding(),
+                $part->getCharset(),
+                $part->getDisposition(),
+                $part->getFilename(),
+                $part->getId(),
+            ],
+        );
+    }
+
+    #[Test]
+    public function leavesOptionalValuesUnsetByDefault(): void
+    {
+        $part = new Part('data');
+
+        static::assertSame(
+            [Mime::TYPE_OCTETSTREAM, TransferEncoding::Base64, null, null, null, null],
+            [
+                $part->getType(),
+                $part->getTransferEncoding(),
+                $part->getCharset(),
+                $part->getDisposition(),
+                $part->getFilename(),
+                $part->getId(),
+            ],
+        );
+    }
+
+    #[Test]
+    public function buildsQuotedPrintableUtf8Text(): void
+    {
+        static::assertSame(
+            "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            Part::text('Hello')->getHeaders()->toString(),
+        );
+    }
+
+    #[Test]
+    public function buildsQuotedPrintableUtf8Html(): void
+    {
+        static::assertSame(
+            "Content-Type: text/html;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            Part::html('<p>Hello</p>')->getHeaders()->toString(),
+        );
+    }
+
+    #[Test]
+    public function buildsTextInAnotherCharset(): void
+    {
+        static::assertSame('ISO-8859-1', Part::text('Hello', charset: 'ISO-8859-1')->getCharset());
+    }
+
+    #[Test]
+    public function buildsHtmlInAnotherCharset(): void
+    {
+        static::assertSame('ISO-8859-1', Part::html('<p>Hello</p>', charset: 'ISO-8859-1')->getCharset());
+    }
+
+    #[Test]
+    public function keepsTextContentAsGiven(): void
+    {
+        static::assertSame('Grüße', Part::text('Grüße')->getContent());
+    }
+
+    #[Test]
+    public function keepsHtmlContentAsGiven(): void
+    {
+        static::assertSame('<p>Grüße</p>', Part::html('<p>Grüße</p>')->getContent());
+    }
+
+    #[Test]
+    public function isALeaf(): void
+    {
+        $part = new Part('data');
+
+        static::assertSame([false, []], [$part->isMultipart(), $part->getParts()]);
+    }
+
+    #[DataProvider('stringEncodingProvider')]
+    #[Test]
+    public function encodesStringContent(TransferEncoding $encoding, string $content, string $expected): void
+    {
+        static::assertSame($expected, (new Part($content, encoding: $encoding))->getEncodedContent());
+    }
+
+    /**
+     * @return array<string, array{TransferEncoding, string, string}>
+     */
+    public static function stringEncodingProvider(): array
+    {
+        return [
+            'base64'                       => [TransferEncoding::Base64, 'Hello, world', 'SGVsbG8sIHdvcmxk'],
+            'base64 wrapped with crlf'     => [
+                TransferEncoding::Base64,
+                str_repeat('a', times: 60),
+                str_repeat('YWFh', times: 18) . "\r\n" . str_repeat('YWFh', times: 2),
+            ],
+            'quoted-printable'             => [TransferEncoding::QuotedPrintable, 'Grüße = 1', 'Gr=C3=BC=C3=9Fe =3D 1'],
+            'quoted-printable soft breaks' => [
+                TransferEncoding::QuotedPrintable,
+                str_repeat('a', times: 80),
+                str_repeat('a', times: 72) . "=\r\n" . str_repeat('a', times: 8),
+            ],
+            '7bit unchanged'               => [TransferEncoding::SevenBit, "a\r\nb", "a\r\nb"],
+            '8bit unchanged'               => [TransferEncoding::EightBit, 'Grüße', 'Grüße'],
+            'binary unchanged'             => [TransferEncoding::Binary, "\x00\xFF", "\x00\xFF"],
+        ];
+    }
+
+    #[Test]
+    public function readsStreamContentFromTheStart(): void
+    {
+        $stream = self::temporaryStream('streamed content');
+
+        static::assertSame('streamed content', (new Part($stream))->getContent());
+    }
+
+    #[Test]
+    public function readsStreamContentTheSameWayTwice(): void
+    {
+        $part  = new Part(self::temporaryStream('streamed content'));
+        $first = $part->getContent();
+
+        static::assertSame($first, $part->getContent());
+    }
+
+    #[DataProvider('everyEncodingProvider')]
+    #[Test]
+    public function encodesStreamContentTheSameWayTwice(TransferEncoding $encoding): void
+    {
+        $part  = new Part(self::temporaryStream(self::bytes(200)), encoding: $encoding);
+        $first = $part->getEncodedContent();
+
+        static::assertSame($first, $part->getEncodedContent());
+    }
+
+    #[DataProvider('everyEncodingProvider')]
+    #[Test]
+    public function encodesStreamContentAsItWouldTheSameString(TransferEncoding $encoding): void
+    {
+        $content = 'Grüße = ' . self::bytes(150);
+
+        static::assertSame(
+            Mime::encode($content, $encoding, "\r\n"),
+            (new Part(self::temporaryStream($content), encoding: $encoding))->getEncodedContent(),
+        );
+    }
+
+    /**
+     * @return array<string, array{TransferEncoding}>
+     */
+    public static function everyEncodingProvider(): array
+    {
+        return [
+            '7bit'             => [TransferEncoding::SevenBit],
+            '8bit'             => [TransferEncoding::EightBit],
+            'binary'           => [TransferEncoding::Binary],
+            'quoted-printable' => [TransferEncoding::QuotedPrintable],
+            'base64'           => [TransferEncoding::Base64],
+        ];
+    }
+
+    #[DataProvider('base64LengthProvider')]
+    #[Test]
+    public function encodesStreamAsBase64LikeAString(int $length): void
+    {
+        $content = self::bytes($length);
+
+        static::assertSame(
+            Mime::encode($content, TransferEncoding::Base64, "\r\n"),
+            (new Part(self::temporaryStream($content)))->getEncodedContent(),
+        );
+    }
+
+    #[DataProvider('shortReadProvider')]
+    #[Test]
+    public function encodesStreamAsBase64LikeAStringWhenReadsAreShort(int $length, int $readSize): void
+    {
+        $content = self::bytes($length);
+
+        static::assertSame(
+            Mime::encode($content, TransferEncoding::Base64, "\r\n"),
+            (new Part(ShortReadStream::open($content, $readSize)))->getEncodedContent(),
+        );
+    }
+
+    #[Test]
+    public function encodesAnEmptyStreamAsNothing(): void
+    {
+        static::assertSame('', (new Part(self::temporaryStream('')))->getEncodedContent());
+    }
+
+    #[Test]
+    public function encodesStreamAsBase64LinesOf72Characters(): void
+    {
+        $content = str_repeat('abc', times: 37);
+
+        static::assertSame(
+            str_repeat('YWJj', times: 18) . "\r\n" . str_repeat('YWJj', times: 18) . "\r\n" . 'YWJj',
+            (new Part(self::temporaryStream($content)))->getEncodedContent(),
+        );
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function base64LengthProvider(): array
+    {
+        return [
+            'no bytes'                    => [0],
+            'one byte'                    => [1],
+            'one short of a line'         => [53],
+            'exactly one line'            => [54],
+            'one over a line'             => [55],
+            'two lines'                   => [108],
+            'one over a full read'        => [(54 * 1024) + 1],
+            'one short of two full reads' => [(54 * 1024 * 2) - 1],
         ];
     }
 
     /**
-     * @param mixed $content
+     * @return array<string, array{int, int}>
      */
-    #[Test]
-    #[DataProvider('invalidContentTypes')]
-    public function constructorRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
+    public static function shortReadProvider(): array
     {
-        $this->expectException(Mime\Exception\InvalidArgumentException::class);
-        new Mime\Part($content);
+        return [
+            'one byte at a time'              => [55, 1],
+            'reads of seven bytes'            => [200, 7],
+            'reads one short of a line'       => [163, 53],
+            'reads of a line'                 => [163, 54],
+            'reads one over a line'           => [163, 55],
+            'reads not a multiple of three'   => [(54 * 1024) + 1, 1000],
+            'reads of the default chunk size' => [(54 * 1024 * 2) + 5, 8192],
+        ];
+    }
+
+    #[DataProvider('invalidContentProvider')]
+    #[Test]
+    public function rejectsContentThatIsNeitherAStringNorAStream(mixed $content): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content must be a string or a stream');
+
+        new Part($content);
     }
 
     /**
-     * @param mixed $content
+     * @return array<string, array{mixed}>
      */
-    #[Test]
-    #[DataProvider('invalidContentTypes')]
-    public function setContentRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
+    public static function invalidContentProvider(): array
     {
-        $part = new Mime\Part();
-        $this->expectException(Mime\Exception\InvalidArgumentException::class);
-        $part->setContent($content);
+        return [
+            'null'           => [null],
+            'false'          => [false],
+            'true'           => [true],
+            'zero'           => [0],
+            'integer'        => [1],
+            'float'          => [1.1],
+            'array'          => [['string']],
+            'object'         => [(object) ['content' => 'string']],
+            'stream context' => [stream_context_create()],
+        ];
+    }
+
+    #[Test]
+    public function rejectsAClosedStream(): void
+    {
+        $stream = self::temporaryStream('data');
+        fclose($stream);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content must be a string or a stream');
+
+        new Part($stream);
+    }
+
+    /**
+     * Every byte value in turn, repeated to the length asked for.
+     */
+    private static function bytes(int $length): string
+    {
+        $all = implode('', array_map(chr(...), range(
+            start: 0,
+            end: 255,
+        )));
+
+        return substr(str_repeat($all, intdiv($length, num2: 256) + 1), offset: 0, length: $length);
+    }
+
+    /**
+     * @return resource
+     */
+    private static function temporaryStream(string $content)
+    {
+        $stream = fopen('php://temp', mode: 'w+b');
+        if (false === $stream) {
+            throw new RuntimeException('Cannot open a temporary stream');
+        }
+
+        fwrite($stream, $content);
+
+        return $stream;
     }
 }
