@@ -62,6 +62,18 @@ final class SmtpSessionTest extends TestCase
         static::assertSame($expected, $server->openedPort());
     }
 
+    /**
+     * The laminas-mail form without "ssl" requires STARTTLS, so it uses the submission port.
+     */
+    #[Test]
+    public function connectsToSubmissionPortWithoutPortOrSecurity(): void
+    {
+        $server = new SmtpServer();
+        (new Smtp('mail.example.com', connection: $server))->connect();
+
+        static::assertSame(587, $server->openedPort());
+    }
+
     #[Test]
     public function connectsToConfiguredPort(): void
     {
@@ -694,7 +706,7 @@ final class SmtpSessionTest extends TestCase
     {
         return [
             'TLS from the start' => [Security::Tls, 465],
-            'STARTTLS'           => [Security::StartTls, 25],
+            'STARTTLS'           => [Security::StartTls, 587],
             'none'               => [Security::None, 25],
         ];
     }
