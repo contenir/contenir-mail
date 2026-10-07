@@ -3,7 +3,7 @@
     "source": {
         "directories": ["src"]
     },
-    "timeout": 10,
+    "timeout": 30,
     "threads": "max",
     "logs": {
         "text": "infection.log",
@@ -24,8 +24,15 @@
             ]
         },
         "DecrementInteger": {
-            // Any read size gives the same output, as unencoded bytes carry over to the next read.
-            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"],
+            "ignore": [
+                // Any read size gives the same output, as unencoded bytes carry over to the next read.
+                "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64",
+                // The default of 0 lines is clamped to 0 before use, so -1 asks for the same TOP.
+                "Contenir\\Mail\\Protocol\\Pop3::top",
+                // A nanosecond more or less on the deadline, or a microsecond on the 10 ms poll,
+                // cannot be observed; the timeout tests check the program is stopped promptly.
+                "Contenir\\Mail\\Transport\\SendmailProcess::wait"
+            ],
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a
                 // space or tab, so stepping onto it again only re-validates a valid character.
@@ -33,13 +40,31 @@
             ]
         },
         "IncrementInteger": {
-            // Any read size gives the same output, as unencoded bytes carry over to the next read.
-            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
+            "ignore": [
+                // Any read size gives the same output, as unencoded bytes carry over to the next read.
+                "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64",
+                // A nanosecond more or less on the deadline, or a microsecond on the 10 ms poll,
+                // cannot be observed; the timeout tests check the program is stopped promptly.
+                "Contenir\\Mail\\Transport\\SendmailProcess::wait"
+            ]
+        },
+        "FunctionCallRemoval": {
+            // Without the 10 ms sleep the loop only polls faster; without proc_close() the
+            // process handle is released when it goes out of scope instead. Neither is observable.
+            "ignore": ["Contenir\\Mail\\Transport\\SendmailProcess::wait"]
+        },
+        "LessThan": {
+            // Stopping at the deadline or one poll later cannot be told apart.
+            "ignore": ["Contenir\\Mail\\Transport\\SendmailProcess::wait"]
         },
         "Modulus": {
             // Encoding fewer whole groups per read only keeps more bytes buffered; the output is
             // the same, as whatever is left over is encoded at the end.
             "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
+        },
+        "TrueValue": {
+            // $tryApop is unused: XOAUTH2 has no APOP. It keeps the Protocol\Pop3::login() signature.
+            "ignore": ["Contenir\\Mail\\Protocol\\Pop3\\Xoauth2\\Microsoft::login"]
         },
         "ReturnRemoval": {
             // The chunked stream encoder only saves memory: falling through to Mime::encode()

@@ -1,124 +1,69 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Protocol\Smtp\Auth;
 
-use Contenir\Mail\Protocol\Smtp;
+use Contenir\Mail\ConfigReader;
+use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Override;
 use SensitiveParameter;
 
-use function array_replace_recursive;
 use function base64_encode;
-use function is_array;
 
 /**
- * Performs LOGIN authentication
+ * AUTH LOGIN: the username and the password, each in its own base64 response.
+ *
+ * Sends the password itself, so use it only over TLS.
  */
-class Login extends Smtp
+final readonly class Login implements AuthenticatorInterface
 {
-    /**
-     * LOGIN username
-     *
-     * @var string
-     */
-    protected $username;
+    public const array KEYS = ['username', 'password'];
+
+    private string $password;
 
     /**
-     * LOGIN password
-     *
-     * @var string
+     * @throws InvalidArgumentException When either value is empty or the username contains a control character.
      */
-    protected $password;
-
-    /**
-     * @param string|array $host (Default: 127.0.0.1)
-     * @param  int    $port   (Default: null)
-     * @param  array  $config Auth-specific parameters
-     */
-    public function __construct($host = '127.0.0.1', $port = null, #[SensitiveParameter] $config = null)
-    {
-        // Did we receive a configuration array?
-        $origConfig = $config;
-        if (is_array($host)) {
-            // Merge config array with principal array, if provided
-            if (is_array($config)) {
-                $config = array_replace_recursive($host, $config);
-            } else {
-                $config = $host;
-            }
-        }
-
-        if (is_array($config)) {
-            if (isset($config['username'])) {
-                $this->setUsername($config['username']);
-            }
-            if (isset($config['password'])) {
-                $this->setPassword($config['password']);
-            }
-        }
-
-        // Call parent with original arguments
-        parent::__construct($host, $port, $origConfig);
+    public function __construct(
+        public string $username,
+        #[SensitiveParameter]
+        string $password,
+    ) {
+        Credentials::username('LOGIN', $username);
+        $this->password = Credentials::secret('LOGIN', 'a password', $password);
     }
 
     /**
-     * Perform LOGIN authentication with supplied credentials
+     * @param iterable<mixed, mixed> $config Keys "username" and "password".
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a key is unknown or a value is invalid.
      */
+    public static function fromIterable(#[SensitiveParameter] iterable $config): self
+    {
+        $reader = ConfigReader::read(self::class, $config, self::KEYS);
+
+        return new self($reader->string('username', ''), $reader->string('password', ''));
+    }
+
     #[Override]
-    public function auth()
+    public function mechanism(): string
     {
-        // Ensure AUTH has not already been initiated.
-        parent::auth();
+        return 'LOGIN';
+    }
 
-        $this->_send('AUTH LOGIN');
-        $this->_expect(334);
-        $this->_send(base64_encode($this->getUsername()));
-        $this->_expect(334);
-        $this->_send(base64_encode($this->getPassword()));
-        $this->_expect(235);
-        $this->auth = true;
+    #[Override]
+    public function authenticate(ChannelInterface $channel): void
+    {
+        $channel->exchange('AUTH LOGIN', 334);
+        $channel->exchangeSecret(base64_encode($this->username), 334);
+        $channel->exchangeSecret(base64_encode($this->password), 235);
     }
 
     /**
-     * Set value for username
-     *
-     * @param  string $username
-     * @return Login
+     * @return array{username: string, password: string}
      */
-    public function setUsername($username)
+    public function __debugInfo(): array
     {
-        $this->username = $username;
-        return $this;
-    }
-
-    /**
-     * Get username
-     *
-     * @return string
-     */
-    public function getUsername()
-    {
-        return $this->username;
-    }
-
-    /**
-     * Set value for password
-     *
-     * @param  string $password
-     * @return Login
-     */
-    public function setPassword(#[SensitiveParameter] $password)
-    {
-        $this->password = $password;
-        return $this;
-    }
-
-    /**
-     * Get password
-     *
-     * @return string
-     */
-    public function getPassword()
-    {
-        return $this->password;
+        return ['username' => $this->username, 'password' => Credentials::HIDDEN];
     }
 }

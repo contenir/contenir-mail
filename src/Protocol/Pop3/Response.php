@@ -9,19 +9,12 @@ namespace Contenir\Mail\Protocol\Pop3;
  *
  * @internal
  */
-final class Response
+final readonly class Response
 {
-    /** @var string $status */
-    private $status;
-
-    /** @var string $message */
-    private $message;
-
-    public function __construct(string $status, string $message)
-    {
-        $this->status  = $status;
-        $this->message = $message;
-    }
+    public function __construct(
+        private string $status,
+        private string $message,
+    ) {}
 
     public function status(): string
     {

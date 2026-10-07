@@ -4,100 +4,96 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Pop3\Xoauth2;
 
-use Contenir\Mail\Exception\RuntimeException;
-use Contenir\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
+use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
+use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-
-use function fopen;
-use function rewind;
-use function str_replace;
-use function stream_get_contents;
+use SensitiveParameter;
 
 #[CoversClass(Microsoft::class)]
-class MicrosoftTest extends TestCase
+#[Group('unit')]
+final class MicrosoftTest extends TestCase
 {
-    /** @psalm-suppress InternalClass */
     #[Test]
-    public function integration(): void
+    public function sendsTheXoauth2SaslResponseAfterTheServerAcceptsTheMechanism(): void
     {
-        /**
-         * @psalm-suppress PropertyNotSetInConstructor
-         * @psalm-suppress InvalidExtendClass
-         */
-        $protocol = new class() extends Microsoft {
-            private string $step;
+        $sasl   = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
+        $server = $this->greetingServer()
+            ->expect("AUTH XOAUTH2\r\n")
+            ->reply("+ \r\n")
+            ->expect("{$sasl}\r\n")
+            ->reply("+OK Authenticated\r\n")
+            ->hangUp();
 
-            /** @psalm-suppress InternalClass */
-            public function readRemoteResponse(): Response
-            {
-                if (self::AUTH_INITIALIZE_REQUEST === $this->step) {
-                    /** @psalm-suppress InternalMethod */
-                    return new Response(self::AUTH_RESPONSE_INITIALIZED_OK, 'Auth initialized');
-                }
+        $this->connect($server)->login('test@example.com', '123');
 
-                /** @psalm-suppress InternalMethod */
-                return new Response('+OK', 'Authenticated');
-            }
+        static::assertTrue($server->isScriptComplete());
+    }
 
-            /**
-             * Send a request
-             *
-             * @param string $request your request without newline
-             * @throws RuntimeException
-             */
-            public function sendRequest($request): void
-            {
-                $this->step = $request;
-                parent::sendRequest($request);
-            }
+    #[Test]
+    public function throwsTheServerMessageWhenTheMechanismIsRefused(): void
+    {
+        $server = $this->greetingServer()
+            ->expect("AUTH XOAUTH2\r\n")
+            ->reply("-ERR XOAUTH2 not available\r\n")
+            ->hangUp();
+        $pop3 = $this->connect($server);
 
-            /**
-             * Open connection to POP3 server
-             *
-             * @param  string      $host  hostname or IP address of POP3 server
-             * @param  int|null    $port  of POP3 server, default is 110 (995 for ssl)
-             * @param  string|bool $ssl   use 'SSL', 'TLS' or false
-             * @throws RuntimeException
-             * @return string welcome message
-             */
-            public function connect($host, $port = null, $ssl = false)
-            {
-                $this->socket = fopen('php://memory', 'rw+');
-                return '';
-            }
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('XOAUTH2 not available');
 
-            /**
-             * @return null|resource
-             */
-            public function getSocket()
-            {
-                return $this->socket;
-            }
-        };
+        $pop3->login('test@example.com', '123');
+    }
 
-        $protocol->connect('localhost', 0, false);
+    #[DataProvider('saslFieldInjectionProvider')]
+    #[Test]
+    public function refusesSaslFieldInjectionThroughControlCharacters(
+        string $user,
+        #[SensitiveParameter]
+        string $token,
+    ): void {
+        $pop3 = $this->connect($this->greetingServer()->hangUp());
 
-        $protocol->login('test@example.com', '123');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('XOAUTH2 user names and tokens cannot contain control characters');
 
-        static::assertInstanceOf(Microsoft::class, $protocol);
+        $pop3->login($user, $token);
+    }
 
-        $streamContents = '';
-        if ($socket = $protocol->getSocket()) {
-            rewind($socket);
-            $streamContents = stream_get_contents($socket);
-            $streamContents = str_replace("\r\n", "\n", $streamContents);
-        }
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function saslFieldInjectionProvider(): array
+    {
+        return [
+            'field separator in the user'  => ["user@example.com\x01auth=Bearer stolen", 'token'],
+            'field separator in the token' => ['user@example.com', "token\x01\x01"],
+            'line feed in the token'       => ['user@example.com', "token\nQUIT"],
+            'delete in the user'           => ["user\x7F", 'token'],
+        ];
+    }
 
-        /** @psalm-suppress InternalMethod */
-        $xoauth2Sasl = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
+    private function greetingServer(): InMemoryConnection
+    {
+        return (new InMemoryConnection())->reply("+OK ready\r\n");
+    }
 
-        static::assertSame(
-            "AUTH XOAUTH2\n{$xoauth2Sasl}\n",
-            $streamContents,
-        );
+    private function connect(InMemoryConnection $server): Microsoft
+    {
+        $pop3 = new Microsoft(connection: $server);
+        $pop3->connect(new ConnectionConfig(
+            host: 'pop3.example.com',
+            security: Security::None,
+        ));
+
+        return $pop3;
     }
 }

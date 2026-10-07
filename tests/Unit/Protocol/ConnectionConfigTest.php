@@ -161,4 +161,34 @@ final class ConnectionConfigTest extends TestCase
             'configured TLS' => [1993, Security::Tls, 1993],
         ];
     }
+
+    #[Test]
+    #[DataProvider('startTlsPortProvider')]
+    public function choosesSeparateStartTlsPortWhenGiven(?int $port, Security $security, int $expected): void
+    {
+        static::assertSame(
+            $expected,
+            (new ConnectionConfig(
+                port: $port,
+                security: $security,
+            ))->portOr(
+                plain: 25,
+                tls: 465,
+                startTls: 587,
+            ),
+        );
+    }
+
+    /**
+     * @return array<string, array{int|null, Security, int}>
+     */
+    public static function startTlsPortProvider(): array
+    {
+        return [
+            'plain'      => [null, Security::None, 25],
+            'STARTTLS'   => [null, Security::StartTls, 587],
+            'TLS'        => [null, Security::Tls, 465],
+            'configured' => [2525, Security::StartTls, 2525],
+        ];
+    }
 }

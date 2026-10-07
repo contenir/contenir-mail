@@ -7,7 +7,6 @@ namespace Contenir\Mail;
 use Contenir\Mail\Validator\EmailAddressValidator;
 
 use function addcslashes;
-use function mb_check_encoding;
 use function preg_match;
 use function sprintf;
 use function strpbrk;
@@ -64,7 +63,7 @@ final readonly class Address
             throw new Exception\InvalidArgumentException('Email must be a valid email address');
         }
 
-        if (! mb_check_encoding($email . ($name ?? '') . ($comment ?? ''), encoding: 'UTF-8')) {
+        if (! Utf8::isValid($email . ($name ?? '') . ($comment ?? ''))) {
             throw new Exception\InvalidArgumentException('Address must be UTF-8 text');
         }
 

@@ -11,8 +11,11 @@ use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderBlock;
+use Contenir\Mail\Header\HeaderLines;
 use Contenir\Mail\Header\HeaderLocator;
+use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderParser;
+use Contenir\Mail\Header\MimeParameterParser;
 use Contenir\Mail\Headers;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -22,10 +25,13 @@ use PHPUnit\Framework\TestCase;
 
 use function array_map;
 use function iterator_to_array;
+use function str_repeat;
 
 #[CoversClass(Headers::class)]
 #[CoversClass(HeaderParser::class)]
 #[CoversClass(HeaderBlock::class)]
+#[CoversClass(HeaderLines::class)]
+#[CoversClass(MimeParameterParser::class)]
 #[Group('unit')]
 final class HeadersTest extends TestCase
 {
@@ -122,10 +128,182 @@ final class HeadersTest extends TestCase
         static::assertInstanceOf($class, Headers::fromString($line)->get($name));
     }
 
+    /**
+     * RFC 6532 lets stored and received mail carry header values in raw UTF-8.
+     *
+     * @param class-string $class
+     */
+    #[DataProvider('rawUtf8HeaderProvider')]
+    #[Test]
+    public function parsesRawUtf8IntoHeaderClass(string $line, string $class, string $value): void
+    {
+        $header = iterator_to_array(Headers::fromString($line))[0];
+
+        static::assertSame([$class, $value], [$header::class, $header->getFieldValue()]);
+    }
+
+    /**
+     * @param class-string $class
+     */
+    #[DataProvider('rawUtf8HeaderProvider')]
+    #[Test]
+    public function writesRawUtf8AsEncodedWords(string $line, string $class, string $value, string $written): void
+    {
+        static::assertSame($written . Headers::EOL, Headers::fromString($line)->toString());
+    }
+
+    #[DataProvider('invalidRawHeaderProvider')]
+    #[Test]
+    public function rejectsHeaderValueThatIsNotValidUtf8OrHasControls(string $block): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid header value detected');
+
+        Headers::fromString($block);
+    }
+
     #[Test]
     public function fallsBackToGenericHeaderWhenHeaderClassRejectsValue(): void
     {
         static::assertInstanceOf(GenericHeader::class, Headers::fromString('Date: not a date')->get('date'));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidAddressHeaderProvider(): array
+    {
+        return [
+            'Sender' => ['Sender: foo'],
+            'From'   => ['From: @@@'],
+            'To'     => ['To: <<<'],
+        ];
+    }
+
+    #[DataProvider('invalidAddressHeaderProvider')]
+    #[Test]
+    public function fallsBackToGenericHeaderWhenAddressIsInvalid(string $line): void
+    {
+        static::assertSame(
+            [[GenericHeader::class, $line]],
+            array_map(
+                static fn(Header\HeaderInterface $header): array => [$header::class, $header->toString()],
+                Headers::fromString($line)->toList(),
+            ),
+        );
+    }
+
+    #[DataProvider('invalidAddressHeaderProvider')]
+    #[Test]
+    public function fallsBackToGenericHeaderWhenGivenLineHasInvalidAddress(string $line): void
+    {
+        static::assertInstanceOf(GenericHeader::class, Headers::fromIterable([$line])->toList()[0] ?? null);
+    }
+
+    #[Test]
+    public function parsesBlockWithNameOfMaximumLength(): void
+    {
+        $block = str_repeat('X', HeaderName::MAX_LENGTH) . ": value\r\nSubject: Hello";
+
+        static::assertSame(
+            [str_repeat('X', HeaderName::MAX_LENGTH) => 'value', 'Subject' => 'Hello'],
+            Headers::fromString($block)->toArray(),
+        );
+    }
+
+    /**
+     * Such a name leaves no room for the colon in a 998-character line.
+     *
+     * @return array<string, array{int}>
+     */
+    public static function receivedLongNameProvider(): array
+    {
+        return [
+            'one past the limit' => [HeaderName::MAX_LENGTH + 1],
+            'longer than a line' => [1200],
+        ];
+    }
+
+    #[DataProvider('receivedLongNameProvider')]
+    #[Test]
+    public function rejectsBlockWithNameLongerThanMaximumLength(int $length): void
+    {
+        $this->expectException(Header\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
+
+        Headers::fromString(str_repeat('X', $length) . ": value\r\nSubject: Hello");
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function receivedLongLineProvider(): array
+    {
+        return [
+            'value filling the line'     => [str_repeat('X', times: 991) . ': value'],
+            'name and colon only'        => [str_repeat('X', HeaderName::MAX_LENGTH) . ':'],
+            'name, colon and space'      => [str_repeat('X', HeaderName::MAX_LENGTH - 1) . ': '],
+            'value on the next line'     => [str_repeat('X', HeaderName::MAX_LENGTH) . ":\r\n value"],
+            'encoded value on next line' => [str_repeat('X', HeaderName::MAX_LENGTH) . ":\r\n =?UTF-8?Q?caf=C3=A9?="],
+        ];
+    }
+
+    #[DataProvider('receivedLongLineProvider')]
+    #[Test]
+    public function writesReceivedLineWithLongNameBackAsReceived(string $line): void
+    {
+        $block = "{$line}\r\nSubject: Hello\r\n";
+
+        static::assertSame($block, Headers::fromString($block)->toString());
+    }
+
+    /**
+     * A received line longer than 998 characters is written again, with its value on the next line.
+     */
+    #[Test]
+    public function rewritesReceivedLineTooLongToWriteBack(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame(
+            "{$name}:\r\n =?UTF-8?Q?value?=\r\n",
+            Headers::fromString("{$name}: value")->toString(),
+        );
+    }
+
+    /**
+     * @return array<string, array{iterable<int|string, string|array{string, string}>}>
+     */
+    public static function builtLongNameProvider(): array
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH + 1);
+
+        return [
+            'name => value' => [[$name => 'value']],
+            '[name, value]' => [[[$name, 'value']]],
+            'line'          => [["{$name}: value"]],
+        ];
+    }
+
+    /**
+     * @param iterable<int|string, string|array{string, string}> $headers
+     */
+    #[DataProvider('builtLongNameProvider')]
+    #[Test]
+    public function rejectsBuiltNameLongerThanLimit(iterable $headers): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
+
+        Headers::fromIterable($headers);
+    }
+
+    #[Test]
+    public function buildsNameOfMaximumLength(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame([$name => 'value'], Headers::fromIterable([$name => 'value'])->toArray());
     }
 
     #[Test]
@@ -470,7 +648,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=');
 
-        static::assertSame("Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=\r\n", $headers->toString());
+        static::assertSame('Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=', $headers->get('Subject')?->toString());
     }
 
     /**
@@ -521,7 +699,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('To: "=?UTF-8?Q?=C3=B5lu?= <bar" <foo.bar@test.com>');
 
-        static::assertSame("To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>\r\n", $headers->toString());
+        static::assertSame('To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>', $headers->get('To')?->toString());
     }
 
     #[Test]
@@ -559,6 +737,46 @@ final class HeadersTest extends TestCase
             'same-named headers'           => ["Foo: one\r\nFoo: two", ['Foo' => ['one', 'two']]],
             'empty block'                  => ['', []],
             'whitespace-only line ignored' => ["Foo: bar\r\n   \r\nBaz: baz", ['Foo' => 'bar', 'Baz' => 'baz']],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, class-string, string, string}>
+     */
+    public static function rawUtf8HeaderProvider(): array
+    {
+        return [
+            'Subject' => ['Subject: Grüße', Header\Subject::class, 'Grüße', 'Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?='],
+            'From'    => [
+                'From: Jösé <jose@example.com>',
+                Header\From::class,
+                'Jösé <jose@example.com>',
+                'From: =?UTF-8?Q?J=C3=B6s=C3=A9?= <jose@example.com>',
+            ],
+            'Sender'  => [
+                'Sender: Zoë <zoe@example.com>',
+                Header\Sender::class,
+                'Zoë <zoe@example.com>',
+                'Sender: =?UTF-8?Q?Zo=C3=AB?= <zoe@example.com>',
+            ],
+            'generic' => ['X: bär', GenericHeader::class, 'bär', 'X: =?UTF-8?Q?b=C3=A4r?='],
+            'folded'  => ["X: b\r\n är", GenericHeader::class, 'b är', 'X: =?UTF-8?Q?b=20=C3=A4r?='],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidRawHeaderProvider(): array
+    {
+        return [
+            'Latin-1 byte'       => ["Subject: Gr\xFC\xDFe\r\n"],
+            'truncated sequence' => ["Subject: Gr\xC3\r\n"],
+            'overlong encoding'  => ["Subject: \xC0\xAF\r\n"],
+            'NUL'                => ["Subject: a\x00b\r\n"],
+            'escape'             => ["Subject: a\x1Bb\r\n"],
+            'DEL'                => ["Subject: a\x7Fb\r\n"],
+            'C1 control'         => ["Subject: a\xC2\x9Bb\r\n"],
         ];
     }
 
@@ -612,6 +830,190 @@ final class HeadersTest extends TestCase
             'name and value' => [['Fake' => "foo-bar\r\n\r\nevilContent"]],
             'pair'           => [[['Fake', "foo-bar\r\n\r\nevilContent"]]],
             'bare line feed' => [['Fake' => "foo-bar\nBcc: evil@example.com"]],
+        ];
+    }
+
+    #[DataProvider('wireTextProvider')]
+    #[Test]
+    public function writesParsedHeadersWithTheTextTheyWereReadWith(string $block, string $eol, string $expected): void
+    {
+        static::assertSame($expected, Headers::fromString($block, $eol)->toString());
+    }
+
+    #[DataProvider('rewrittenTextProvider')]
+    #[Test]
+    public function writesParsedHeaderFromItsValueWhenItsTextCannotBeKept(string $block, string $eol): void
+    {
+        static::assertSame("Subject: a b\r\n", Headers::fromString($block, $eol)->toString());
+    }
+
+    #[Test]
+    public function writesReplacedHeaderFromItsValue(): void
+    {
+        $headers = Headers::fromString("subject:   =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n")->with(new Header\Subject('Grüße'));
+
+        static::assertSame("Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftInPlaceByWith(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->with(new GenericHeader('X-Id', '2'));
+
+        static::assertSame("subject:  Hello\r\nX-Id: 2\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfParsedHeaderSetAgainWithWith(): void
+    {
+        $parsed = Headers::fromString("subject:  Hello\r\n");
+        $header = $parsed->get('Subject');
+        static::assertNotNull($header);
+
+        static::assertSame("subject:  Hello\r\n", $parsed->with($header)->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftByWithout(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->without('X-Id');
+
+        static::assertSame("subject:  Hello\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersBeforeOneAddedWithWithAdded(): void
+    {
+        $headers = Headers::fromString("received:  from a\r\n")->withAdded(new Header\Received('from b'));
+
+        static::assertSame("received:  from a\r\nReceived: from b\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function writesHeadersBuiltFromIterableFromTheirValues(): void
+    {
+        static::assertSame("Subject: Hello\r\n", Headers::fromIterable(['subject:   Hello'])->toString());
+    }
+
+    #[Test]
+    public function keepsUnfoldedValueOfParsedHeader(): void
+    {
+        $headers = Headers::fromString("Subject: Hello\r\n\tworld\r\n");
+
+        static::assertSame('Hello world', $headers->get('Subject')?->getFieldValue());
+    }
+
+    /**
+     * Resource exhaustion: a header block is read only up to a size limit.
+     */
+    #[Test]
+    public function rejectsHeaderBlockLargerThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may be at most 1048576 bytes');
+
+        Headers::fromString('X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES));
+    }
+
+    #[Test]
+    public function readsHeaderBlockOfExactlyTheLimit(): void
+    {
+        $block = 'X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES - 7);
+
+        static::assertCount(1, Headers::fromString($block));
+    }
+
+    /**
+     * Resource exhaustion: a header block holds a limited number of headers.
+     */
+    #[Test]
+    public function rejectsMoreHeadersThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may hold at most 1000 headers');
+
+        Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS + 1));
+    }
+
+    #[Test]
+    public function readsExactlyTheLimitOfHeaders(): void
+    {
+        static::assertCount(
+            HeaderBlock::MAX_HEADERS,
+            Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS)),
+        );
+    }
+
+    /**
+     * RFC 5322 line limit: a line read longer than 998 octets is not written back as it was.
+     */
+    #[Test]
+    public function writesOverlongReadLineFromItsValue(): void
+    {
+        $value = str_repeat('a', times: 993);
+
+        static::assertSame("X-A: {$value}\r\n", Headers::fromString("x-a:  {$value}")->toString());
+    }
+
+    #[Test]
+    public function keepsReadLineOfExactlyTheLineLimit(): void
+    {
+        $line = 'x-a:  ' . str_repeat('a', times: 992);
+
+        static::assertSame("{$line}\r\n", Headers::fromString($line)->toString());
+    }
+
+    #[Test]
+    public function refusesLineThatIsNeitherHeaderNorContinuation(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Line "not a header" does not match header format!');
+
+        Headers::fromString("Subject: x\r\nnot a header");
+    }
+
+    #[Test]
+    public function ignoresWhitespaceAfterTheBlankLines(): void
+    {
+        static::assertCount(1, Headers::fromString("Subject: a\r\n\r\n\r\n  "));
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function wireTextProvider(): array
+    {
+        return [
+            'encoded word'          => [
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+                "\r\n",
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+            ],
+            'folding'               => [
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+                "\r\n",
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+            ],
+            'name case and spacing' => ["subject:Hello  \r\n", "\r\n", "subject:Hello  \r\n"],
+            'line feeds'            => [
+                "Subject: a\n b\nTo: x@example.com\n",
+                "\n",
+                "Subject: a\r\n b\r\nTo: x@example.com\r\n",
+            ],
+            'crlf read as lf'       => ["Subject: a\r\n b\r\n\r\n", "\n", "Subject: a\r\n b\r\n"],
+            'blank line first'      => ["  \r\nSubject: a\r\n", "\r\n", "Subject: a\r\n"],
+            'empty group'           => ["To: undisclosed-recipients:;\r\n", "\r\n", "To: undisclosed-recipients:;\r\n"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function rewrittenTextProvider(): array
+    {
+        return [
+            'whitespace-only continuation' => ["Subject: a\r\n \r\n b\r\n", "\r\n"],
+            'stray carriage return'        => ["Subject: a\r\r\n b\r\n", "\r\n"],
         ];
     }
 

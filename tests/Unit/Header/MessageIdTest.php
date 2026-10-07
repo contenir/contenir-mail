@@ -12,8 +12,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function gethostname;
-use function preg_quote;
+use function str_repeat;
 
 #[CoversClass(MessageId::class)]
 #[Group('unit')]
@@ -69,15 +68,22 @@ final class MessageIdTest extends TestCase
         );
     }
 
+    /**
+     * Information disclosure: the default domain does not reveal the sending machine's host name.
+     */
     #[Test]
-    public function generatesIdOnThisMachineByDefault(): void
+    public function generatesIdOnReservedDomainByDefault(): void
     {
-        $host = (string) gethostname();
+        static::assertMatchesRegularExpression('/^[0-9a-f]{32}@localhost\.invalid$/', MessageId::generate()->getId());
+    }
 
-        static::assertMatchesRegularExpression(
-            '/^[0-9a-f]{32}@' . preg_quote($host, delimiter: '/') . '$/',
-            MessageId::generate()->getId(),
-        );
+    #[Test]
+    public function rejectsDomainHoldingAnAtSign(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid ID detected');
+
+        MessageId::generate('a@example.org');
     }
 
     #[Test]
@@ -194,5 +200,25 @@ final class MessageIdTest extends TestCase
             'cr-lf twice' => ["Message-ID: bar\r\n\r\n baz"],
             'multiline'   => ["Message-ID: baz\r\nbar\r\nbau"],
         ];
+    }
+
+    #[Test]
+    public function acceptsIdOfMaximumLength(): void
+    {
+        $id = str_repeat('a', times: 971) . '@example.com';
+
+        static::assertSame("<{$id}>", (new MessageId($id))->getFieldValue());
+    }
+
+    /**
+     * An ID cannot be encoded or folded, so one too long for a line is refused.
+     */
+    #[Test]
+    public function rejectsIdTooLongForLineLimit(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('An ID may be at most 983 characters, so that its header line fits in 998');
+
+        new MessageId(str_repeat('a', times: 972) . '@example.com');
     }
 }

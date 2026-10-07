@@ -28,15 +28,23 @@ final class EmailAddressValidator
     /** RFC 5322 atext */
     private const string ATEXT = 'a-zA-Z0-9\x21\x23\x24\x25\x26\x27\x2a\x2b\x2d\x2f\x3d\x3f\x5e\x5f\x60\x7b\x7c\x7d\x7e';
 
+    /** A dot-atom of atext and, as RFC 6532 allows, UTF-8 */
+    private const string DOT_ATOM =
+        '/^[' . self::ATEXT . '\x{80}-\x{FFFF}]+(\x2e+[' . self::ATEXT . '\x{80}-\x{FFFF}]+)*$/u';
+
     /** @var list<string> */
     private array $messages = [];
 
+    /**
+     * The address splits at its last "@": the greedy local part runs to it, so the host name
+     * after it, which holds no "@", always runs to the end and needs no end anchor.
+     */
     public function isValid(string $value): bool
     {
         $this->messages = [];
 
         $matches = [];
-        if (str_contains($value, '..') || 1 !== preg_match('/^(.+)@([^@]+)$/', $value, $matches)) {
+        if (str_contains($value, '..') || 1 !== preg_match('/^(.+)@([^@]+)/', $value, $matches)) {
             $this->messages[] = self::INVALID_FORMAT;
             return false;
         }
@@ -80,18 +88,12 @@ final class EmailAddressValidator
     }
 
     /**
-     * Accepts a dot-atom, a dot-atom extended with UTF-8 (RFC 6532), or a
+     * Accepts a dot-atom, also extended with UTF-8 (RFC 6532), or a
      * quoted-string (RFC 5321 section 4.1.2).
      */
     private static function isValidLocalPart(string $localPart): bool
     {
-        $atext = self::ATEXT;
-        if (1 === preg_match("/^[{$atext}]+(\\x2e+[{$atext}]+)*$/", $localPart)) {
-            return true;
-        }
-
-        $uatext = "{$atext}\\x{80}-\\x{FFFF}";
-        if (1 === preg_match("/^[{$uatext}]+(\\x2e+[{$uatext}]+)*$/u", $localPart)) {
+        if (1 === preg_match(self::DOT_ATOM, $localPart)) {
             return true;
         }
 

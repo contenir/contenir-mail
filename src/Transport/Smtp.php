@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail\Address;
@@ -7,397 +9,295 @@ use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
-use Contenir\Mail\Protocol\Exception as ProtocolException;
-use Laminas\ServiceManager\ServiceManager;
+use Contenir\Mail\SystemClock;
+use LogicException;
 use Override;
+use Psr\Clock\ClockInterface;
+use SensitiveParameter;
 
 use function array_unique;
+use function array_values;
 use function count;
+use function preg_grep;
+use function preg_match;
 use function sprintf;
-use function strtolower;
-use function time;
+use function strlen;
 
 /**
- * SMTP connection object
+ * Sends mail through an SMTP server with Protocol\Smtp, connecting on the first send
+ * and reusing the session for the messages after it.
  *
- * Loads an instance of Contenir\Mail\Protocol\Smtp and forwards smtp transactions
+ * ```php
+ * $transport = new Smtp(['host' => 'smtp.example.com', 'auth' => ['type' => 'login', 'username' => …, 'password' => …]]);
+ * $transport->send($message);
+ * ```
+ *
+ * @mago-expect lint:too-many-methods The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
+ * @mago-expect lint:cyclomatic-complexity The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  */
-class Smtp implements TransportInterface
+final class Smtp implements TransportInterface
 {
-    /** @var SmtpOptions */
-    protected $options;
+    private SmtpConfig $config;
 
-    /** @var Envelope|null */
-    protected $envelope;
+    private ?Envelope $envelope = null;
 
-    /** @var null|Protocol\Smtp */
-    protected $connection;
+    private ?Protocol\Smtp $connection = null;
 
-    /** @var bool */
-    protected $autoDisconnect = true;
+    private bool $autoDisconnect = true;
 
-    /** @var null|Protocol\SmtpPluginManager */
-    protected $plugins;
+    /** When the connection was opened, as a Unix time */
+    private ?int $connectedTime = null;
 
     /**
-     * When did we connect to the server?
+     * @param SmtpConfig|iterable<mixed, mixed>|null $config A config, or the settings SmtpConfig::fromIterable() reads.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the settings are invalid.
+     */
+    public function __construct(
+        #[SensitiveParameter]
+        SmtpConfig|iterable|null $config = null,
+        private readonly ClockInterface $clock = new SystemClock(),
+    ) {
+        $this->config = $config instanceof SmtpConfig ? $config : SmtpConfig::fromIterable($config ?? []);
+    }
+
+    /**
+     * A transport holds a live connection and its credentials, so it cannot be serialized.
      *
-     * @var int|null
+     * @return never
+     * @throws LogicException
      */
-    protected $connectedTime;
-
-    /**
-     * @param  SmtpOptions $options Optional
-     */
-    public function __construct(?SmtpOptions $options = null)
+    public function __serialize(): array
     {
-        if (! $options instanceof SmtpOptions) {
-            $options = new SmtpOptions();
-        }
-        $this->setOptions($options);
+        throw new LogicException(self::class . ' cannot be serialized');
     }
 
     /**
-     * Set options
+     * Refuse to unserialize, so that a crafted payload never reaches the destructor.
      *
-     * @return Smtp
+     * @return never
+     * @throws LogicException
      */
-    public function setOptions(SmtpOptions $options)
+    public function __wakeup(): void
     {
-        $this->options = $options;
-        return $this;
+        throw new LogicException(self::class . ' cannot be unserialized');
     }
 
     /**
-     * Get options
-     *
-     * @return SmtpOptions
-     */
-    public function getOptions()
-    {
-        return $this->options;
-    }
-
-    /**
-     * Set options
-     */
-    public function setEnvelope(Envelope $envelope)
-    {
-        $this->envelope = $envelope;
-    }
-
-    /**
-     * Get envelope
-     *
-     * @return Envelope|null
-     */
-    public function getEnvelope()
-    {
-        return $this->envelope;
-    }
-
-    /**
-     * Set plugin manager for obtaining SMTP protocol connection
-     *
-     * @throws Exception\InvalidArgumentException
-     * @return Smtp
-     */
-    public function setPluginManager(Protocol\SmtpPluginManager $plugins)
-    {
-        $this->plugins = $plugins;
-        return $this;
-    }
-
-    /**
-     * Get plugin manager for loading SMTP protocol connection
-     *
-     * @return Protocol\SmtpPluginManager
-     */
-    public function getPluginManager()
-    {
-        if (null === $this->plugins) {
-            $this->setPluginManager(new Protocol\SmtpPluginManager(new ServiceManager()));
-        }
-        return $this->plugins;
-    }
-
-    /**
-     * Set the automatic disconnection when destruct
-     *
-     * @param  bool $flag
-     * @return Smtp
-     */
-    public function setAutoDisconnect($flag)
-    {
-        $this->autoDisconnect = (bool) $flag;
-        return $this;
-    }
-
-    /**
-     * Get the automatic disconnection value
-     *
-     * @return bool
-     */
-    public function getAutoDisconnect()
-    {
-        return $this->autoDisconnect;
-    }
-
-    /**
-     * Return an SMTP connection
-     *
-     * @param  string $name
-     * @return Protocol\Smtp
-     */
-    public function plugin($name, ?array $options = null)
-    {
-        if (null !== $this->plugins) {
-            return $this->plugins->get($name, $options);
-        }
-
-        $options ??= [];
-
-        return match (strtolower($name)) {
-            'smtp', strtolower(Protocol\Smtp::class) => new Protocol\Smtp($options),
-            'plain', strtolower(Protocol\Smtp\Auth\Plain::class) => new Protocol\Smtp\Auth\Plain($options),
-            'login', strtolower(Protocol\Smtp\Auth\Login::class) => new Protocol\Smtp\Auth\Login($options),
-            'crammd5', strtolower(Protocol\Smtp\Auth\Crammd5::class) => new Protocol\Smtp\Auth\Crammd5($options),
-            'xoauth2', strtolower(Protocol\Smtp\Auth\Xoauth2::class) => new Protocol\Smtp\Auth\Xoauth2($options),
-            default => throw new Exception\InvalidArgumentException(sprintf(
-                'SMTP connection "%s" is not a known authentication type; set a plugin manager to use custom connections',
-                $name,
-            )),
-        };
-    }
-
-    /**
-     * Class destructor to ensure all open connections are closed
+     * Close the connection, ignoring a server that has already gone.
      */
     public function __destruct()
     {
         $connection = $this->getConnection();
-        if (! $connection instanceof Protocol\Smtp) {
+        if (null === $connection) {
             return;
         }
 
-        try {
-            $connection->quit();
-        } catch (ProtocolException\ExceptionInterface) {
-            // ignore
-        }
+        $this->quitQuietly($connection);
 
         if ($this->autoDisconnect) {
             $connection->disconnect();
         }
     }
 
-    /**
-     * Sets the connection protocol instance
-     */
-    public function setConnection(Protocol\AbstractProtocol $connection)
+    public function getConfig(): SmtpConfig
     {
-        $this->connection = $connection;
-        if (
-            $connection instanceof Protocol\Smtp
-            && $this->getOptions()->getConnectionTimeLimit() !== null
-        ) {
-            $connection->setUseCompleteQuit(false);
-        }
+        return $this->config;
     }
 
     /**
-     * Gets the connection protocol instance
-     *
-     * @return null|Protocol\Smtp
+     * Use these envelope addresses instead of those taken from each message, or null to stop.
      */
-    public function getConnection()
+    public function setEnvelope(?Envelope $envelope): void
     {
-        $timeLimit = $this->getOptions()->getConnectionTimeLimit();
+        $this->envelope = $envelope;
+    }
+
+    public function getEnvelope(): ?Envelope
+    {
+        return $this->envelope;
+    }
+
+    /**
+     * Whether the destructor closes the connection; turn it off to share one connection.
+     */
+    public function setAutoDisconnect(bool $flag): void
+    {
+        $this->autoDisconnect = $flag;
+    }
+
+    public function getAutoDisconnect(): bool
+    {
+        return $this->autoDisconnect;
+    }
+
+    /**
+     * Use this protocol connection instead of creating one from the config.
+     */
+    public function setConnection(Protocol\Smtp $connection): void
+    {
+        $this->connection = $connection;
+        $connection->setUseCompleteQuit($this->config->useCompleteQuit && null === $this->config->connectionTimeLimit);
+    }
+
+    /**
+     * The connection, or null when there is none or it has outlived the connection time limit.
+     */
+    public function getConnection(): ?Protocol\Smtp
+    {
+        $timeLimit = $this->config->connectionTimeLimit;
         if (
             null !== $timeLimit
             && null !== $this->connectedTime
-            && (time() - $this->connectedTime) > $timeLimit
+            && ($this->clock->now()->getTimestamp() - $this->connectedTime) > $timeLimit
         ) {
             $this->connection = null;
         }
+
         return $this->connection;
     }
 
     /**
-     * Disconnect the connection protocol instance
-     *
-     * @return void
+     * Close the connection, if any.
      */
-    public function disconnect()
+    public function disconnect(): void
     {
         $connection = $this->getConnection();
-        if ($connection instanceof Protocol\Smtp) {
+        if (null !== $connection) {
             $connection->disconnect();
             $this->connectedTime = null;
         }
     }
 
     /**
-     * Send an email via the SMTP connection protocol
+     * Send the message, connecting first if there is no open session.
      *
-     * The connection via the protocol adapter is made just-in-time to allow a
-     * developer to add a custom adapter if required before mail is sent.
-     *
-     * @throws Exception\RuntimeException
+     * @throws Exception\RuntimeException When the message has no sender or recipient, or a header is unsafe.
+     * @throws Protocol\Exception\ExceptionInterface When the server refuses the message.
      * @throws Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
-    public function send(Message $message)
+    public function send(Message $message): void
     {
-        // If sending multiple messages per session use existing adapter
-        $connection = $this->getConnection();
+        $connection = $this->openSession();
 
-        if (! $connection instanceof Protocol\Smtp || ! $connection->hasSession()) {
-            $connection = $this->connect();
-        } else {
-            // Reset connection to ensure reliable transaction
-            $connection->rset();
-        }
-
-        // Prepare message
         $from       = $this->prepareFromAddress($message);
         $recipients = $this->prepareRecipients($message);
-        $headers    = $this->prepareHeaders($message);
-        $body       = $this->prepareBody($message);
+        $data       = HeaderGuard::check($message->getHeaders()->without('Bcc'))->toString()
+        . Headers::EOL
+        . $message->getBodyText();
 
-        if (count($recipients) == 0 && (! empty($headers) || ! empty($body))) {
-            // Per RFC 2821 3.3 (page 18)
-            throw new Exception\RuntimeException(
-                sprintf(
-                    '%s transport expects at least one recipient if the message has at least one header or body',
-                    self::class,
-                ),
-            );
+        if (0 === count($recipients)) {
+            throw new Exception\RuntimeException(sprintf(
+                '%s transport expects at least one recipient if the message has at least one header or body',
+                self::class,
+            ));
         }
 
-        // Set sender email address
-        $connection->mail($from);
-
-        // Set recipient forward paths
+        $connection->mail(
+            $from,
+            strlen($data),
+            smtpUtf8: [] !== preg_grep('/[\x80-\xFF]/', $recipients),
+            eightBit: 1 === preg_match('/[\x80-\xFF]/', $data),
+        );
         foreach ($recipients as $recipient) {
             $connection->rcpt($recipient);
         }
 
-        // Issue DATA command to client
-        $connection->data($headers . Headers::EOL . $body);
+        $connection->data($data);
     }
 
     /**
-     * Retrieve email address for envelope FROM
-     *
-     * @throws Exception\RuntimeException
-     * @return string
+     * @throws Exception\RuntimeException When there is neither an envelope sender, a Sender nor a From address.
      */
-    protected function prepareFromAddress(Message $message)
+    private function prepareFromAddress(Message $message): string
     {
-        if ($this->getEnvelope() && $this->getEnvelope()->getFrom()) {
-            return $this->getEnvelope()->getFrom();
+        $envelopeFrom = $this->envelope?->from;
+        if (null !== $envelopeFrom) {
+            return $envelopeFrom;
         }
 
-        $sender = $message->getSender();
-        if ($sender instanceof Address) {
-            return $sender->getEmail();
-        }
-
-        $from = $message->getFrom();
-        if (! count($from)) {
-            // Per RFC 2822 3.6
+        $sender = $message->getSender() ?? $message->getFrom()->first();
+        if (! $sender instanceof Address) {
             throw new Exception\RuntimeException(sprintf(
                 '%s transport expects either a Sender or at least one From address in the Message; none provided',
                 self::class,
             ));
         }
 
-        return $from->first()?->getEmail() ?? '';
+        return $sender->getEmail();
     }
 
     /**
-     * Prepare array of email address recipients
-     *
-     * @return array
+     * @return list<string>
      */
-    protected function prepareRecipients(Message $message)
+    private function prepareRecipients(Message $message): array
     {
-        if ($this->getEnvelope() && $this->getEnvelope()->getTo()) {
-            return (array) $this->getEnvelope()->getTo();
+        $envelopeTo = $this->envelope->to ?? [];
+        if ([] !== $envelopeTo) {
+            return $envelopeTo;
         }
 
         $recipients = [];
-        foreach ($message->getTo() as $address) {
-            $recipients[] = $address->getEmail();
-        }
-        foreach ($message->getCc() as $address) {
-            $recipients[] = $address->getEmail();
-        }
-        foreach ($message->getBcc() as $address) {
-            $recipients[] = $address->getEmail();
+        foreach ([$message->getTo(), $message->getCc(), $message->getBcc()] as $list) {
+            foreach ($list as $address) {
+                $recipients[] = $address->getEmail();
+            }
         }
 
-        return array_unique($recipients);
+        return array_values(array_unique($recipients));
     }
 
     /**
-     * Prepare header string from message
+     * The session to send with: the open one, reset for a new transaction, or a new one.
      *
-     * @throws Mime\Exception\RuntimeException
-     * @return string
+     * @throws Protocol\Exception\ExceptionInterface When the connection or the session fails.
      */
-    protected function prepareHeaders(Message $message)
+    private function openSession(): Protocol\Smtp
     {
-        return $message->getHeaders()->without('Bcc')->toString();
-    }
-
-    /**
-     * Prepare body string from message
-     *
-     * @throws Mime\Exception\RuntimeException
-     * @return string
-     */
-    protected function prepareBody(Message $message)
-    {
-        return $message->getBodyText();
-    }
-
-    /**
-     * Lazy load the connection
-     *
-     * @return Protocol\Smtp
-     */
-    protected function lazyLoadConnection()
-    {
-        // Check if authentication is required and determine required class
-        $options        = $this->getOptions();
-        $config         = $options->getConnectionConfig();
-        $config['host'] = $options->getHost();
-        $config['port'] = $options->getPort();
-
-        $this->setConnection($this->plugin($options->getConnectionClass(), $config));
-
-        return $this->connect();
-    }
-
-    /**
-     * Connect the connection, and pass it helo
-     *
-     * @return Protocol\Smtp
-     */
-    protected function connect()
-    {
-        if (! $this->connection instanceof Protocol\Smtp) {
-            return $this->lazyLoadConnection();
+        $connection = $this->getConnection();
+        if (null === $connection || ! $connection->hasSession()) {
+            return $this->connect();
         }
 
-        $this->connection->connect();
+        $connection->rset();
 
-        $this->connectedTime = time();
+        return $connection;
+    }
 
-        $this->connection->helo($this->getOptions()->getName());
+    /**
+     * Send QUIT, ignoring a server that has already gone.
+     *
+     * @mago-expect lint:no-empty-catch-clause There is nothing left to close politely when the server has gone.
+     */
+    private function quitQuietly(Protocol\Smtp $connection): void
+    {
+        try {
+            $connection->quit();
+        } catch (Protocol\Exception\ExceptionInterface) {
+        }
+    }
 
-        return $this->connection;
+    /**
+     * Open a connection, creating it from the config unless one was set, and start the session.
+     *
+     * @throws Protocol\Exception\ExceptionInterface When the connection or the session fails.
+     */
+    private function connect(): Protocol\Smtp
+    {
+        $connection = $this->connection;
+        if (null === $connection) {
+            $connection = new Protocol\Smtp(
+                $this->config->connection,
+                config: ['allow_insecure_auth' => $this->config->allowInsecureAuth],
+                authenticator: $this->config->auth,
+            );
+            $this->setConnection($connection);
+        }
+
+        $connection->connect();
+        $this->connectedTime = $this->clock->now()->getTimestamp();
+        $connection->helo($this->config->name);
+
+        return $connection;
     }
 }

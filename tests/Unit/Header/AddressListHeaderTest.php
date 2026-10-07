@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Header\AbstractAddressList;
 use Contenir\Mail\Header\AddressEncoder;
 use Contenir\Mail\Header\AddressListCodec;
@@ -13,6 +14,7 @@ use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\Cc;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\From;
+use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\To;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -22,6 +24,11 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
+use function explode;
+use function max;
+use function str_repeat;
+use function str_starts_with;
+use function strlen;
 
 #[CoversClass(AbstractAddressList::class)]
 #[CoversClass(AddressListCodec::class)]
@@ -34,6 +41,9 @@ use function array_map;
 #[Group('unit')]
 final class AddressListHeaderTest extends TestCase
 {
+    /** An address of 62 characters, long enough that the name and address together are measured */
+    private const string LONG_EMAIL = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com';
+
     private const string FIELD_VALUE =
         'Example Test <test@example.com>, list@example.com, '
             . 'Example Announce List <announce@example.com>, "Last, First" <first@last.example.com>';
@@ -216,6 +226,27 @@ final class AddressListHeaderTest extends TestCase
             'Comment',
             From::fromString('From: user@example.com (Comment)')->getAddressList()->first()?->getComment(),
         );
+    }
+
+    #[Test]
+    public function unfoldsDisplayNameFoldedOverLines(): void
+    {
+        static::assertSame(
+            'John Doe',
+            From::fromString("From: \"John\r\n Doe\" <john@example.com>")->getAddressList()->first()?->getName(),
+        );
+    }
+
+    /**
+     * Text after the closing angle bracket is not part of a name-addr, so the entry is read as a bare address.
+     */
+    #[Test]
+    public function refusesTextAfterAngleAddress(): void
+    {
+        $this->expectException(MailInvalidArgumentException::class);
+        $this->expectExceptionMessage("'example.com> trailing' is not a valid hostname for the email address");
+
+        From::fromString('From: Name <user@example.com> trailing');
     }
 
     #[Test]
@@ -475,5 +506,75 @@ final class AddressListHeaderTest extends TestCase
     public function keepsAsciiDomainCaseOnTheWire(): void
     {
         static::assertSame('User@Example.COM', AddressEncoder::encode(new Address('User@Example.COM')));
+    }
+
+    /**
+     * "Reply-To: ", the name, the address in angle brackets and "," make a line of exactly 998.
+     */
+    #[Test]
+    public function quotesLongDisplayNameThatFitsLineLimit(): void
+    {
+        $name = str_repeat('a', times: 922);
+
+        static::assertSame(
+            "{$name} <" . self::LONG_EMAIL . '>',
+            (new ReplyTo(new AddressList(new Address(self::LONG_EMAIL, $name))))->getEncodedFieldValue(),
+        );
+    }
+
+    /**
+     * A display name can be encoded, so one too long for a line is written as encoded words.
+     */
+    #[Test]
+    public function encodesDisplayNameTooLongForLineLimit(): void
+    {
+        $name    = str_repeat('a', times: 923);
+        $encoded = (new ReplyTo(new AddressList(new Address(self::LONG_EMAIL, $name))))->getEncodedFieldValue();
+
+        static::assertSame(
+            ["{$name} <" . self::LONG_EMAIL . '>', true, true],
+            [
+                HeaderWrap::mimeDecodeValue($encoded),
+                str_starts_with($encoded, '=?UTF-8?Q?'),
+                max(array_map(strlen(...), explode("\r\n", "Reply-To: {$encoded}"))) <= 998,
+            ],
+        );
+    }
+
+    /**
+     * @param array{string|null, string, string|null} $expected
+     */
+    #[DataProvider('foldedAddressProvider')]
+    #[Test]
+    public function unfoldsNameAndCommentAcrossFolds(string $headerLine, array $expected): void
+    {
+        $address = To::fromString($headerLine)->getAddressList()->first();
+
+        static::assertSame($expected, [$address?->getName(), $address?->getEmail(), $address?->getComment()]);
+    }
+
+    /**
+     * @return array<string, array{string, array{string|null, string, string|null}}>
+     */
+    public static function foldedAddressProvider(): array
+    {
+        return [
+            'comment folded with space' => [
+                "To: a@example.com (work\r\n place)",
+                [null, 'a@example.com', 'work place'],
+            ],
+            'comment folded with tab'   => [
+                "To: a@example.com (work\r\n\tplace)",
+                [null, 'a@example.com', 'work place'],
+            ],
+            'name folded with tab'      => [
+                "To: \"John\r\n\tSmith\" <j@example.com>",
+                ['John Smith', 'j@example.com', null],
+            ],
+            'fold before address'       => [
+                "To: John Smith\r\n <j@example.com>",
+                ['John Smith', 'j@example.com', null],
+            ],
+        ];
     }
 }

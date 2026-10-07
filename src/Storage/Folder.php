@@ -1,211 +1,134 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage;
 
+use IteratorAggregate;
 use Override;
-use RecursiveIterator;
-use ReturnTypeWillChange;
 use Stringable;
 
-use function current;
-use function key;
-use function next;
-use function reset;
-
-class Folder implements RecursiveIterator, Stringable
+/**
+ * A mail folder (mailbox) and its subfolders.
+ *
+ * The local name is the folder's name within its parent; the global name
+ * is its full name from the root, with the storage's delimiters, and is
+ * what selectFolder() takes. A folder that is not selectable only holds
+ * other folders.
+ *
+ * @implements IteratorAggregate<string, Folder>
+ *
+ * @api
+ */
+final class Folder implements IteratorAggregate, Stringable
 {
-    /**
-     * global name (absolute name of folder)
-     *
-     * @var string
-     */
-    protected $globalName;
+    private readonly string $globalName;
+
+    /** @var array<string, Folder> by local name */
+    private array $folders = [];
 
     /**
-     * create a new mail folder instance
-     *
-     * @param string $localName  local name (name of folder in parent folder)
-     * @param string $globalName absolute name of folder
-     * @param bool $selectable if true folder holds messages, if false it's
-     *     just a parent for subfolders (Default: true)
-     * @param array<string, Folder> $folders subfolders of
-     *     folder array(localName => \Contenir\Mail\Storage\Folder folder)
+     * @param string $globalName The full name; the local name when empty.
+     * @param iterable<Folder> $folders
      */
     public function __construct(
-        protected $localName,
-        $globalName = '',
-        protected $selectable = true,
-        protected array $folders = [],
+        private readonly string $localName,
+        string $globalName = '',
+        private readonly bool $selectable = true,
+        iterable $folders = [],
     ) {
-        $this->globalName = $globalName ?: $localName;
-    }
-
-    /**
-     * implements RecursiveIterator::hasChildren()
-     *
-     * @return bool current element has children
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function hasChildren()
-    {
-        $current = $this->current();
-        return $current && $current instanceof self && ! $current->isLeaf();
-    }
-
-    /**
-     * implements RecursiveIterator::getChildren()
-     *
-     * @return Folder same as self::current()
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function getChildren()
-    {
-        return $this->current();
-    }
-
-    /**
-     * implements Iterator::valid()
-     *
-     * @return bool check if there's a current element
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function valid()
-    {
-        return key($this->folders) !== null;
-    }
-
-    /**
-     * implements Iterator::next()
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function next()
-    {
-        next($this->folders);
-    }
-
-    /**
-     * implements Iterator::key()
-     *
-     * @return string key/local name of current element
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function key()
-    {
-        return key($this->folders);
-    }
-
-    /**
-     * implements Iterator::current()
-     *
-     * @return Folder current folder
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function current()
-    {
-        return current($this->folders);
-    }
-
-    /**
-     * implements Iterator::rewind()
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function rewind()
-    {
-        reset($this->folders);
-    }
-
-    /**
-     * get subfolder named $name
-     *
-     * @param  string $name wanted subfolder
-     * @throws Exception\InvalidArgumentException
-     * @return Folder folder named $folder
-     */
-    public function __get($name)
-    {
-        if (! isset($this->folders[$name])) {
-            throw new Exception\InvalidArgumentException("no subfolder named {$name}");
+        $this->globalName = '' === $globalName ? $localName : $globalName;
+        foreach ($folders as $folder) {
+            $this->addFolder($folder);
         }
-
-        return $this->folders[$name];
     }
 
-    /**
-     * add or replace subfolder named $name
-     *
-     * @param string $name local name of subfolder
-     * @param Folder $folder instance for new subfolder
-     */
-    public function __set($name, self $folder)
-    {
-        $this->folders[$name] = $folder;
-    }
-
-    /**
-     * remove subfolder named $name
-     *
-     * @param string $name local name of subfolder
-     */
-    public function __unset($name)
-    {
-        unset($this->folders[$name]);
-    }
-
-    /**
-     * magic method for easy output of global name
-     *
-     * @return string global name of folder
-     */
-    #[Override]
-    public function __toString(): string
-    {
-        return (string) $this->getGlobalName();
-    }
-
-    /**
-     * get local name
-     *
-     * @return string local name
-     */
-    public function getLocalName()
+    public function getLocalName(): string
     {
         return $this->localName;
     }
 
-    /**
-     * get global name
-     *
-     * @return string global name
-     */
-    public function getGlobalName()
+    public function getGlobalName(): string
     {
         return $this->globalName;
     }
 
-    /**
-     * is this folder selectable?
-     *
-     * @return bool selectable
-     */
-    public function isSelectable()
+    public function isSelectable(): bool
     {
         return $this->selectable;
     }
 
     /**
-     * check if folder has no subfolder
-     *
-     * @return bool true if no subfolders
+     * Whether the folder has no subfolders.
      */
-    public function isLeaf()
+    public function isLeaf(): bool
     {
-        return empty($this->folders);
+        return [] === $this->folders;
+    }
+
+    public function hasFolder(string $localName): bool
+    {
+        return null !== ($this->folders[$localName] ?? null);
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When there is no subfolder of that name.
+     */
+    public function getFolder(string $localName): self
+    {
+        return (
+            $this->folders[$localName] ?? throw new Exception\InvalidArgumentException(
+                "No subfolder named {$localName}",
+            )
+        );
+    }
+
+    /**
+     * @return array<string, Folder> by local name
+     */
+    public function getFolders(): array
+    {
+        return $this->folders;
+    }
+
+    /**
+     * Add or replace a subfolder, by its local name.
+     *
+     * @internal Storages keep their folder tree up to date with this.
+     */
+    public function addFolder(self $folder): void
+    {
+        $this->folders[$folder->getLocalName()] = $folder;
+    }
+
+    /**
+     * @internal Storages keep their folder tree up to date with this.
+     */
+    public function removeFolder(string $localName): void
+    {
+        unset($this->folders[$localName]);
+    }
+
+    /**
+     * The subfolders by local name; usable with RecursiveIteratorIterator to walk the tree.
+     *
+     * @return TreeIterator<string, Folder>
+     */
+    #[Override]
+    public function getIterator(): TreeIterator
+    {
+        return new TreeIterator(
+            $this->folders,
+            /** @return array<string, Folder> */ static fn(self $folder): array => $folder->getFolders(),
+        );
+    }
+
+    /**
+     * The global name.
+     */
+    #[Override]
+    public function __toString(): string
+    {
+        return $this->globalName;
     }
 }

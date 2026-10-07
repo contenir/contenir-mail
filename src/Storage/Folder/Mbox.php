@@ -1,243 +1,123 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Folder;
 
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
-use Contenir\Mail\Storage\ParamsNormalizer;
-use Laminas\Stdlib\ErrorHandler;
 use Override;
 
-use function array_merge;
-use function closedir;
 use function explode;
 use function is_dir;
-use function is_file;
-use function opendir;
-use function readdir;
+use function is_iterable;
+use function ltrim;
 use function rtrim;
-use function sprintf;
-use function str_contains;
 use function trim;
 
 use const DIRECTORY_SEPARATOR;
-use const E_WARNING;
 
-class Mbox extends Storage\Mbox implements FolderInterface
+/**
+ * A directory tree of mbox files: each file is a folder, each directory a folder of folders.
+ *
+ * Folders are found by reading the directory tree once. Hidden entries and
+ * symbolic links are skipped, so a folder name can only reach files inside
+ * the tree, and the tree is read at most MAX_DEPTH directories deep.
+ *
+ * @api
+ */
+final class Mbox extends Storage\Mbox implements FolderInterface
 {
-    /**
-     * Storage\Folder root folder for folder structure
-     *
-     * @var Storage\Folder
-     */
-    protected $rootFolder;
+    /** Deepest directory read when building the folder tree */
+    public const int MAX_DEPTH = 32;
+
+    private Storage\Folder $rootFolder;
+
+    private string $rootdir;
+
+    private string $currentFolder = '';
 
     /**
-     * rootdir of folder structure
-     *
-     * @var string
+     * @param MboxConfig|iterable<mixed, mixed> $config A Folder\MboxConfig, or its settings.
+     * @throws Exception\ExceptionInterface When the settings are invalid, or the folder cannot be selected.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected $rootdir;
-
-    /**
-     * name of current folder
-     *
-     * @var string
-     */
-    protected $currentFolder;
-
-    /**
-     * Create instance with parameters
-     *
-     * Disallowed parameters are:
-     * - filename use \Contenir\Mail\Storage\Mbox for a single file
-     *
-     * Supported parameters are:
-     *
-     * - dirname rootdir of mbox structure
-     * - folder initial selected folder, default is 'INBOX'
-     *
-     * @param array|object $params Array, iterable object, or stdClass object
-     *     with reader specific parameters
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct($params)
+    public function __construct(MboxConfig|iterable $config)
     {
-        $params = ParamsNormalizer::normalizeParams($params);
-
-        if (isset($params['filename'])) {
-            throw new Exception\InvalidArgumentException(sprintf('use %s for a single file', Storage\Mbox::class));
+        $config = is_iterable($config) ? MboxConfig::fromIterable($config) : $config;
+        if (! is_dir($config->dirname)) {
+            throw new Exception\InvalidArgumentException("{$config->dirname} is not a directory");
         }
 
-        if (! isset($params['dirname'])) {
-            throw new Exception\InvalidArgumentException('no dirname provided in params');
-        }
-
-        $dirname = (string) $params['dirname'];
-
-        if (! is_dir($dirname)) {
-            throw new Exception\InvalidArgumentException('$dirname provided in params is not a directory');
-        }
-
-        $this->rootdir = rtrim($dirname, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $folder        = $params['folder'] ?? 'INBOX';
-
-        $this->buildFolderTree($this->rootdir);
-        $this->selectFolder((string) $folder);
+        $this->format          = $config->format;
+        $this->rootdir         = rtrim($config->dirname, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $this->has['top']      = true;
         $this->has['uniqueid'] = false;
+        $this->rootFolder      = $this->buildFolderTree();
+        $this->selectFolder($config->folder);
     }
 
     /**
-     * find all subfolders and mbox files for folder structure
-     *
-     * Result is save in Storage\Folder instances with the root in $this->rootFolder.
-     * $parentFolder and $parentGlobalName are only used internally for recursion.
-     *
-     * @param string $currentDir call with root dir, also used for recursion.
-     * @param Storage\Folder|null $parentFolder used for recursion
-     * @param string $parentGlobalName used for recursion
-     * @throws Exception\InvalidArgumentException
-     */
-    protected function buildFolderTree($currentDir, $parentFolder = null, $parentGlobalName = '')
-    {
-        if (! $parentFolder) {
-            $this->rootFolder = new Storage\Folder('/', '/', false);
-            $parentFolder     = $this->rootFolder;
-        }
-
-        ErrorHandler::start(E_WARNING);
-        $dh = opendir($currentDir);
-        ErrorHandler::stop();
-        if (! $dh) {
-            throw new Exception\InvalidArgumentException("can't read dir {$currentDir}");
-        }
-        while (($entry = readdir($dh)) !== false) {
-            // ignore hidden files for mbox
-            if ('.' == $entry[0]) {
-                continue;
-            }
-            $absoluteEntry = $currentDir . $entry;
-            $globalName    = $parentGlobalName . DIRECTORY_SEPARATOR . $entry;
-            if (is_file($absoluteEntry) && $this->isMboxFile($absoluteEntry)) {
-                $parentFolder->$entry = new Storage\Folder($entry, $globalName);
-                continue;
-            }
-            if (! is_dir($absoluteEntry)) { /* || $entry == '.' || $entry == '..' */
-                continue;
-            }
-            $folder               = new Storage\Folder($entry, $globalName, false);
-            $parentFolder->$entry = $folder;
-            $this->buildFolderTree($absoluteEntry . DIRECTORY_SEPARATOR, $folder, $globalName);
-        }
-
-        closedir($dh);
-    }
-
-    /**
-     * get root folder or given folder
-     *
-     * @param string $rootFolder get folder structure for given folder, else root
-     * @return Storage\Folder root or wanted folder
-     * @throws Exception\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException When there is no such folder.
      */
     #[Override]
-    public function getFolders($rootFolder = null)
+    public function getFolders(?string $rootFolder = null): Storage\Folder
     {
-        if (! $rootFolder) {
-            return $this->rootFolder;
+        $folder = $this->rootFolder;
+        $path   = trim((string) $rootFolder, DIRECTORY_SEPARATOR);
+        if ('' === $path) {
+            return $folder;
         }
 
-        $currentFolder = $this->rootFolder;
-        $subname       = trim($rootFolder, DIRECTORY_SEPARATOR);
-        while ($currentFolder) {
-            if (str_contains($subname, DIRECTORY_SEPARATOR)) {
-                [$entry, $subname] = explode(DIRECTORY_SEPARATOR, $subname, 2);
-            } else {
-                $entry   = $subname;
-                $subname = null;
+        foreach (explode(DIRECTORY_SEPARATOR, $path) as $name) {
+            if (! $folder->hasFolder($name)) {
+                throw new Exception\InvalidArgumentException("Folder {$rootFolder} not found");
             }
 
-            $currentFolder = $currentFolder->$entry;
-
-            if (! $subname) {
-                break;
-            }
+            $folder = $folder->getFolder($name);
         }
 
-        if ($currentFolder->getGlobalName() != DIRECTORY_SEPARATOR . trim($rootFolder, DIRECTORY_SEPARATOR)) {
-            throw new Exception\InvalidArgumentException("folder {$rootFolder} not found");
-        }
-        return $currentFolder;
+        return $folder;
     }
 
     /**
-     * select given folder
-     *
-     * folder must be selectable!
-     *
-     * @param Storage\Folder|string $globalName global name of folder or
-     *     instance for subfolder
-     * @throws Exception\RuntimeException
+     * @throws Exception\InvalidArgumentException When there is no such folder.
+     * @throws Exception\RuntimeException When the folder is not selectable or its file has gone.
      */
     #[Override]
-    public function selectFolder($globalName)
+    public function selectFolder(Storage\Folder|string $globalName): void
     {
-        $this->currentFolder = (string) $globalName;
-
-        // getting folder from folder tree for validation
-        $folder = $this->getFolders($this->currentFolder);
+        $folder = $this->getFolders((string) $globalName);
+        if (! $folder->isSelectable()) {
+            throw new Exception\RuntimeException("{$globalName} is not selectable");
+        }
 
         try {
-            $this->openMboxFile($this->rootdir . $folder->getGlobalName());
+            $this->openMboxFile($this->rootdir . ltrim($folder->getGlobalName(), DIRECTORY_SEPARATOR));
         } catch (Exception\ExceptionInterface $e) {
-            // check what went wrong
-            if (! $folder->isSelectable()) {
-                throw new Exception\RuntimeException("{$this->currentFolder} is not selectable", 0, $e);
-            }
-            // seems like file has vanished; rebuilding folder tree - but it's still an exception
-            $this->buildFolderTree($this->rootdir);
+            $this->rootFolder = $this->buildFolderTree();
+
             throw new Exception\RuntimeException(
-                'seems like the mbox file has vanished; I have rebuilt the folder tree; '
-                    . 'search for another folder and try again',
+                'The mbox file has gone; the folder tree has been read again, so look for the folder again',
                 0,
                 $e,
             );
         }
+
+        $this->currentFolder = $folder->getGlobalName();
     }
 
-    /**
-     * get Storage\Folder instance for current folder
-     *
-     * @return string instance of current folder
-     * @throws Exception\ExceptionInterface
-     */
     #[Override]
-    public function getCurrentFolder()
+    public function getCurrentFolder(): string
     {
         return $this->currentFolder;
     }
 
     /**
-     * magic method for serialize()
-     *
-     * with this method you can cache the mbox class
-     *
-     * @return array name of variables
+     * @throws Exception\RuntimeException When the root directory cannot be read.
      */
-    #[Override]
-    public function __sleep()
+    private function buildFolderTree(): Storage\Folder
     {
-        return array_merge(parent::__sleep(), ['currentFolder', 'rootFolder', 'rootdir']);
-    }
-
-    /**
-     * magic method for unserialize(), with this method you can cache the mbox class
-     */
-    #[Override]
-    public function __wakeup()
-    {
-        // if cache is stall selectFolder() rebuilds the tree on error
-        parent::__wakeup();
+        return MboxTree::folderTree($this->rootdir, self::MAX_DEPTH);
     }
 }

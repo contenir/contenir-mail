@@ -7,15 +7,25 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Header\EncodedWordDecoder;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderWrap;
+use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_filter;
+use function array_map;
+use function array_slice;
 use function chr;
+use function explode;
+use function ltrim;
+use function max;
+use function preg_match;
 use function str_repeat;
+use function strlen;
 
 #[CoversClass(GenericHeader::class)]
 #[CoversClass(HeaderWrap::class)]
@@ -96,7 +106,11 @@ final class GenericHeaderTest extends TestCase
     #[Test]
     public function encodesLineBreaksInValueOnOutput(string $fieldValue): void
     {
-        static::assertStringNotContainsString("\n", (new GenericHeader('Foo', $fieldValue))->toString());
+        static::assertDoesNotMatchRegularExpression(
+            '/(?<!\r)\n|\n(?! )/',
+            (new GenericHeader('Foo', $fieldValue))->toString(),
+            'Only folding, a CRLF followed by a space, may break the line',
+        );
     }
 
     #[DataProvider('injectedValueProvider')]
@@ -104,7 +118,11 @@ final class GenericHeaderTest extends TestCase
     #[Test]
     public function encodesCarriageReturnsInValueOnOutput(string $fieldValue): void
     {
-        static::assertStringNotContainsString("\r", (new GenericHeader('Foo', $fieldValue))->toString());
+        static::assertDoesNotMatchRegularExpression(
+            '/\r(?!\n )/',
+            (new GenericHeader('Foo', $fieldValue))->toString(),
+            'Only folding, a CRLF followed by a space, may break the line',
+        );
     }
 
     #[DataProvider('validFieldValueProvider')]
@@ -212,7 +230,9 @@ final class GenericHeaderTest extends TestCase
             'empty line after value'   => ["Fake: foo-bar\r\n\r\nevilContent", 'Invalid header value detected'],
             'carriage return in value' => ["Fake: foo-bar\revilContent", 'Invalid header value detected'],
             'trailing carriage return' => ["Fake: foo-bar\r", 'Invalid header value detected'],
-            'non-ASCII byte in value'  => ["Fake: foo-bar\xC3\xA4", 'Invalid header value detected'],
+            'invalid UTF-8 in value'   => ["Fake: foo-bar\xE4", 'Invalid header value detected'],
+            'control in value'         => ["Fake: foo\x00bar", 'Invalid header value detected'],
+            'C1 control in value'      => ["Fake: foo\xC2\x85bar", 'Invalid header value detected'],
             'line feed without fold'   => ["Fake: foo-bar\r\nevilContent", 'Invalid header value detected'],
         ];
     }
@@ -292,5 +312,145 @@ final class GenericHeaderTest extends TestCase
             'double cr-lf' => ["xxx yyy\r\n\r\n", '=?UTF-8?Q?xxx=20yyy=0D=0A=0D=0A?='],
             'multiline'    => ["xxx\r\ny\r\nyy", '=?UTF-8?Q?xxx=0D=0Ay=0D=0Ayy?='],
         ];
+    }
+
+    #[Test]
+    public function rejectsNameLongerThanMaximumLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
+
+        new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH + 1), 'value');
+    }
+
+    /**
+     * The longest names, and values that fit after them or do not.
+     *
+     * @return array<string, array{int, string}>
+     */
+    public static function valueAfterLongestNameProvider(): array
+    {
+        $values = [
+            'empty'                   => '',
+            'one character'           => 'x',
+            'words'                   => 'hello world',
+            'long word'               => str_repeat('a', times: 2000),
+            'many words'              => str_repeat('ab ', times: 400),
+            'two-byte character'      => "h\u{E9}llo",
+            'four-byte characters'    => str_repeat("\u{1F600}", times: 40),
+            'mixed 2-, 3- and 4-byte' => str_repeat("\u{E9}\u{20AC}\u{1F600}", times: 20),
+            'leading space'           => ' lead',
+            'encoded-word lookalike'  => '=?x?=',
+            'injected header'         => "x\r\nBcc: evil@example.com",
+        ];
+        $cases = [];
+        foreach ([HeaderName::MAX_LENGTH - 1, HeaderName::MAX_LENGTH] as $length) {
+            foreach ($values as $label => $value) {
+                $cases["{$label} after {$length}-character name"] = [$length, $value];
+            }
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('valueAfterLongestNameProvider')]
+    #[Test]
+    public function writesNoLineLongerThan998WithNameOfMaximumLength(int $length, string $value): void
+    {
+        $header = new GenericHeader(str_repeat('X', $length), $value);
+
+        static::assertLessThanOrEqual(998, max(array_map(strlen(...), explode("\r\n", $header->toString()))));
+    }
+
+    /**
+     * Every line after the first starts with white space, so no value can start a header of its own.
+     */
+    #[DataProvider('valueAfterLongestNameProvider')]
+    #[Test]
+    public function continuesEveryLaterLineWithWhiteSpaceAfterLongName(int $length, string $value): void
+    {
+        $lines = explode("\r\n", (new GenericHeader(str_repeat('X', $length), $value))->toString());
+
+        static::assertSame([], array_filter(
+            array_slice($lines, offset: 1),
+            static fn(string $line): bool => 1 !== preg_match('/^ \S/', $line),
+        ));
+    }
+
+    /**
+     * Leading white space may or may not survive, as it does after a short name.
+     */
+    #[DataProvider('valueAfterLongestNameProvider')]
+    #[Test]
+    public function readsValueAfterLongestNameBack(int $length, string $value): void
+    {
+        $line = (new GenericHeader(str_repeat('X', $length), $value))->toString();
+
+        static::assertSame(ltrim($value), ltrim(GenericHeader::fromString($line)->getFieldValue()));
+    }
+
+    #[Test]
+    public function startsValueOnNextLineWhenNothingFitsAfterTheName(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame(
+            "{$name}:\r\n =?UTF-8?Q?value?=",
+            (new GenericHeader($name, 'value'))->toString(),
+        );
+    }
+
+    /**
+     * @return array<string, array{int, string}>
+     */
+    public static function emptyValueAfterLongNameProvider(): array
+    {
+        return [
+            '"Name: " fits'         => [HeaderName::MAX_LENGTH - 1, ': '],
+            '"Name: " does not fit' => [HeaderName::MAX_LENGTH, ':'],
+        ];
+    }
+
+    #[DataProvider('emptyValueAfterLongNameProvider')]
+    #[Test]
+    public function writesEmptyValueAfterLongNameWithinTheLine(int $length, string $separator): void
+    {
+        $name = str_repeat('X', $length);
+
+        static::assertSame($name . $separator, (new GenericHeader($name))->toString());
+    }
+
+    #[Test]
+    public function fromStringRejectsNameLongerThanMaximumLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
+
+        GenericHeader::fromString(str_repeat('X', HeaderName::MAX_LENGTH + 1) . ': value');
+    }
+
+    #[Test]
+    public function fromStringNormalisesTheName(): void
+    {
+        static::assertSame('Content-Type', GenericHeader::fromString('content_type: text/plain')->getFieldName());
+    }
+
+    #[Test]
+    public function writesEmojiRunAsEncodedWordsOfWholeCharacters(): void
+    {
+        $header = new GenericHeader('X-Test', str_repeat("\u{1F600}", times: 30));
+
+        static::assertSame([], EncodedWordReader::wordsWithPartialCharacters($header->toString()));
+    }
+
+    #[Test]
+    public function readsWrittenEmojiRunBackToTheValue(): void
+    {
+        $value = str_repeat("\u{1F600}", times: 30);
+
+        static::assertSame(
+            $value,
+            GenericHeader::fromString((new GenericHeader('X-Test', $value))->toString())->getFieldValue(),
+        );
     }
 }

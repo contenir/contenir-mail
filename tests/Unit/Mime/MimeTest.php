@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 use Contenir\Mail\Mime\Decode;
 use Contenir\Mail\Mime\Mime;
 use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -19,6 +20,7 @@ use function explode;
 use function max;
 use function microtime;
 use function quoted_printable_decode;
+use function range;
 use function str_repeat;
 use function strlen;
 
@@ -474,5 +476,90 @@ final class MimeTest extends TestCase
             'base64 text'               => [TransferEncoding::Base64, true, 'YQpi'],
             '8bit text'                 => [TransferEncoding::EightBit, true, "a\nb"],
         ];
+    }
+
+    /**
+     * Multi-byte text in every line length from 16, where no four-byte
+     * character fits a word, to 27, where several do.
+     *
+     * @return array<string, array{string, string, int}>
+     */
+    public static function utf8Base64HeaderProvider(): array
+    {
+        $texts = [
+            'emoji'                   => str_repeat("\u{1F600}", times: 20),
+            'mixed 2-, 3- and 4-byte' => str_repeat("a\u{E9}\u{20AC}\u{1F600}", times: 8),
+        ];
+        $cases = [];
+        foreach ($texts as $name => $text) {
+            foreach (range(
+                start: 16,
+                end: 27,
+            ) as $lineLength) {
+                $cases["{$name} in {$lineLength} characters"]        = [$text, 'UTF-8', $lineLength];
+                $cases["{$name} in {$lineLength} characters, utf-8"] = [$text, 'utf-8', $lineLength];
+            }
+        }
+
+        return $cases;
+    }
+
+    /**
+     * RFC 2047, section 5: each encoded word must hold whole characters.
+     */
+    #[DataProvider('utf8Base64HeaderProvider')]
+    #[Test]
+    public function keepsEveryCharacterWithinOneBase64Word(string $str, string $charset, int $lineLength): void
+    {
+        static::assertSame(
+            [],
+            EncodedWordReader::wordsWithPartialCharacters(Mime::encodeBase64Header($str, $charset, $lineLength)),
+        );
+    }
+
+    #[DataProvider('utf8Base64HeaderProvider')]
+    #[Test]
+    public function decodesUtf8Base64HeaderBackToTheText(string $str, string $charset, int $lineLength): void
+    {
+        static::assertSame($str, Decode::decodeQuotedPrintable(Mime::encodeBase64Header($str, $charset, $lineLength)));
+    }
+
+    /**
+     * A line length of 23 leaves 11 characters for base64, two groups of four: six bytes.
+     */
+    #[Test]
+    public function fillsBase64WordsWithWholeCharactersUpToTheLineLength(): void
+    {
+        static::assertSame(
+            "=?UTF-8?B?w6nDqcOp?=\n =?UTF-8?B?8J+YgMOp?=\n =?UTF-8?B?YQ==?=",
+            Mime::encodeBase64Header("\u{E9}\u{E9}\u{E9}\u{1F600}\u{E9}a", 'UTF-8', 23),
+        );
+    }
+
+    #[Test]
+    public function givesACharacterLongerThanTheLineItsOwnBase64Word(): void
+    {
+        static::assertSame(
+            "=?UTF-8?B?8J+YgA==?=\n =?UTF-8?B?YQ==?=",
+            Mime::encodeBase64Header("\u{1F600}a", 'UTF-8', 16),
+        );
+    }
+
+    #[Test]
+    public function encodesEmptyUtf8Base64Header(): void
+    {
+        static::assertSame('=?UTF-8?B??=', Mime::encodeBase64Header('', 'UTF-8'));
+    }
+
+    /**
+     * Only UTF-8 is split between characters; another charset is split between bytes.
+     */
+    #[Test]
+    public function splitsBase64HeaderInAnotherCharsetBetweenBytes(): void
+    {
+        static::assertSame(
+            "=?ISO-8859-1?B?8J+Y?=\n =?ISO-8859-1?B?gPCf?=\n =?ISO-8859-1?B?mIA=?=",
+            Mime::encodeBase64Header("\u{1F600}\u{1F600}", 'ISO-8859-1', 22),
+        );
     }
 }

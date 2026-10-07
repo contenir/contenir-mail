@@ -65,6 +65,7 @@ final class EmailAddressValidatorTest extends TestCase
             'internationalised host'                 => ['user@münchen.de'],
             'unconvertible host accepted as written' => ['user@' . str_repeat('a', times: 64) . '.com'],
             '64 character local part'                => [str_repeat('l', times: 64) . '@example.com'],
+            '255 byte host'                          => ['user@' . str_repeat('a.', times: 127) . 'a'],
         ];
     }
 
@@ -77,6 +78,19 @@ final class EmailAddressValidatorTest extends TestCase
             'no at-sign'                           => ['plain', [EmailAddressValidator::INVALID_FORMAT]],
             'empty local part'                     => ['@example.com', [EmailAddressValidator::INVALID_FORMAT]],
             'consecutive dots'                     => ['a..b@example.com', [EmailAddressValidator::INVALID_FORMAT]],
+            'line break before at-sign'            => ["user\n@example.com", [EmailAddressValidator::INVALID_FORMAT]],
+            'second at-sign'                       => [
+                'a@b@example.com',
+                [
+                    "'a@b' can not be matched against dot-atom format",
+                    "'a@b' can not be matched against quoted-string format",
+                    "'a@b' is not a valid local part for the email address",
+                ],
+            ],
+            'host one byte too long'               => [
+                'user@' . str_repeat('a.', times: 127) . 'ab',
+                [EmailAddressValidator::LENGTH_EXCEEDED],
+            ],
             'local part too long'                  => [
                 str_repeat('l', times: 65) . '@example.com',
                 [EmailAddressValidator::LENGTH_EXCEEDED],

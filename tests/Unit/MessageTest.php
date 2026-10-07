@@ -373,9 +373,9 @@ final class MessageTest extends TestCase
             . "\r\n"
             . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
 
-        static::assertStringContainsString(
-            'Subject: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
-            Message::fromString($rawMessage)->toString(),
+        static::assertSame(
+            'Subject: ' . self::ENCODED_NON_ASCII_VALUE,
+            Message::fromString($rawMessage)->getHeaders()->get('Subject')?->toString(),
         );
     }
 
@@ -643,6 +643,27 @@ final class MessageTest extends TestCase
     }
 
     #[Test]
+    public function writesParsedMessageBackByteForByte(): void
+    {
+        $raw =
+            "DKIM-Signature: v=1; a=rsa-sha256; d=example.org;\r\n\th=from:subject; b=abc\r\n"
+            . "from: Example <a@example.org>\r\n"
+            . "Subject: =?ISO-8859-1?Q?Gr=FC=DFe?=\r\n"
+            . "\r\n"
+            . "Hello\r\n";
+
+        static::assertSame($raw, Message::fromString($raw)->toString());
+    }
+
+    #[Test]
+    public function writesChangedHeaderOfParsedMessageFromItsValue(): void
+    {
+        $message = Message::fromString("Subject: =?ISO-8859-1?Q?Gr=FC=DFe?=\r\nX-Id: 1\r\n\r\nHello")->setSubject('Hi');
+
+        static::assertSame("Subject: Hi\r\nX-Id: 1\r\n\r\nHello", $message->toString());
+    }
+
+    #[Test]
     public function parsedMessageHasNoDateWhenRawMessageHasNone(): void
     {
         $message = Message::fromString("Subject: Hello\r\n\r\nbody");
@@ -662,6 +683,51 @@ final class MessageTest extends TestCase
         $message = Message::fromString("To: Example Test <test@example.com>\r\n\r\nbody");
 
         static::assertSame(['test@example.com' => 'Example Test'], $this->namesByEmail($message, 'To'));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function malformedHeaderProvider(): array
+    {
+        return [
+            'Sender without an address' => ['Sender', 'foo'],
+            'From without an address'   => ['From', '@@@'],
+            'To without an address'     => ['To', '<<<'],
+            'Date that is not a date'   => ['Date', 'not a date'],
+            'Content-Type without type' => ['Content-Type', 'nonsense'],
+            'Message-ID with a space'   => ['Message-ID', '<a b@example.com>'],
+        ];
+    }
+
+    #[DataProvider('malformedHeaderProvider')]
+    #[Test]
+    public function keepsMalformedHeaderAsGenericHeaderAndParsesTheRest(string $name, string $value): void
+    {
+        $message = Message::fromString(
+            "Subject: Hello\r\n{$name}: {$value}\r\nX-Other: yes\r\n\r\nbody",
+        );
+        $header = $message->getHeaders()->get($name);
+
+        static::assertSame(
+            [GenericHeader::class, $value, 'Hello', 'yes', 'body'],
+            [
+                null === $header ? null : $header::class,
+                $header?->getFieldValue(),
+                $message->getSubject(),
+                $message->getHeaders()->get('X-Other')?->getFieldValue(),
+                $message->getBody(),
+            ],
+        );
+    }
+
+    #[DataProvider('malformedHeaderProvider')]
+    #[Test]
+    public function writesMessageWithMalformedHeaderBackByteForByte(string $name, string $value): void
+    {
+        $raw = "Subject: Hello\r\n{$name}: {$value}\r\nX-Other: yes\r\n\r\nbody";
+
+        static::assertSame($raw, Message::fromString($raw)->toString());
     }
 
     #[DataProvider('multipartReportHeaderProvider')]

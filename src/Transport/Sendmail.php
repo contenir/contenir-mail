@@ -1,330 +1,241 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Transport;
 
+use Closure;
 use Contenir\Mail;
-use Contenir\Mail\Transport\Exception\InvalidArgumentException;
-use Contenir\Mail\Transport\Exception\RuntimeException;
+use Contenir\Mail\Header\To;
 use Override;
 use Traversable;
 
-use function escapeshellarg;
-use function gettype;
+use function array_is_list;
 use function implode;
-use function is_array;
-use function is_callable;
-use function is_object;
 use function is_string;
+use function iterator_to_array;
 use function mail;
 use function preg_match;
 use function restore_error_handler;
 use function set_error_handler;
-use function sprintf;
-use function str_contains;
 use function str_replace;
-use function strtoupper;
-use function substr;
 use function trim;
 
-use const PHP_OS;
-use const PHP_VERSION_ID;
+use const PHP_OS_FAMILY;
 
 /**
- * Class for sending email via the PHP internal mail() function
+ * Sends mail through the local sendmail program, with PHP's mail() function or by running
+ * the program directly.
+ *
+ * ```php
+ * $transport = new Sendmail(['parameters' => '-R hdrs']);
+ * $transport = new Sendmail(['path' => '/usr/sbin/sendmail']);
+ * $transport->send($message);
+ * ```
+ *
+ * With a path, the program is run without a shell as `path [parameters] -oi -f sender --
+ * recipients`, with the message on its standard input; the recipients are the To, Cc and
+ * Bcc addresses, and the Bcc header is left out of the message. A sender starting with "-"
+ * is refused, so it cannot be read as an option.
+ *
+ * Without a path, mail() is used. The envelope sender is passed as "-f" only when it
+ * consists of characters that are safe on a shell command line; any other sender is refused
+ * rather than escaped, because mail() escapes the parameters a second time and the two
+ * escapings do not compose.
+ *
+ * @mago-expect lint:cyclomatic-complexity Each argument of mail() differs between Windows and other systems.
  */
-class Sendmail implements TransportInterface
+final class Sendmail implements TransportInterface
 {
     /**
-     * Config options for sendmail parameters
-     *
-     * @var string
+     * An envelope sender safe to pass to sendmail unquoted: a dot-atom of letters, digits and
+     * . _ + = - in the local part, and a host name.
      */
-    protected $parameters;
+    public const string SAFE_SENDER = '/^[A-Za-z0-9_+=][A-Za-z0-9._+=-]*@[A-Za-z0-9][A-Za-z0-9.-]*$/D';
+
+    private SendmailConfig $config;
+
+    /** @var Closure(string, string, string, string, string): void */
+    private Closure $mailer;
 
     /**
-     * Callback to use when sending mail; typically, {@link mailHandler()}
-     *
-     * @var callable
+     * @param SendmailConfig|iterable<mixed, mixed>|string|null $config A config, the settings
+     *     SendmailConfig::fromIterable() reads, or the sendmail parameters as a string or list.
+     * @param (callable(string, string, string, string, string): void)|null $mailer Called instead of mail()
+     *     with the recipients, subject, body, headers and parameters.
+     * @param string $operatingSystem The PHP_OS_FAMILY of the host; "Windows" changes how mail() is called.
+     * @throws Mail\Exception\InvalidArgumentException When the settings are invalid.
      */
-    protected $callable;
+    public function __construct(
+        SendmailConfig|iterable|string|null $config = null,
+        ?callable $mailer = null,
+        private readonly string $operatingSystem = PHP_OS_FAMILY,
+    ) {
+        $this->config = self::readConfig($config);
+        $this->mailer = null === $mailer ? $this->mail(...) : $mailer(...);
+    }
 
-    /**
-     * error information
-     *
-     * @var string
-     */
-    protected $errstr;
-
-    /** @var string */
-    protected $operatingSystem;
-
-    /**
-     * @param  null|string|array|Traversable $parameters OPTIONAL (Default: null)
-     */
-    public function __construct($parameters = null)
+    public function getConfig(): SendmailConfig
     {
-        if (null !== $parameters) {
-            $this->setParameters($parameters);
-        }
-        $this->callable = [$this, 'mailHandler'];
+        return $this->config;
     }
 
     /**
-     * Set sendmail parameters
-     *
-     * Used to populate the additional_parameters argument to mail()
-     *
-     * @param  null|string|array|Traversable $parameters
-     * @throws InvalidArgumentException
-     * @return Sendmail
-     */
-    public function setParameters($parameters)
-    {
-        if (null === $parameters || is_string($parameters)) {
-            $this->parameters = $parameters;
-            return $this;
-        }
-
-        if (! is_array($parameters) && ! $parameters instanceof Traversable) {
-            throw new InvalidArgumentException(sprintf(
-                '%s expects a string, array, or Traversable object of parameters; received "%s"',
-                __METHOD__,
-                is_object($parameters) ? $parameters::class : gettype($parameters),
-            ));
-        }
-
-        $string = '';
-        foreach ($parameters as $param) {
-            $string .= " {$param}";
-        }
-
-        $this->parameters = trim($string);
-        return $this;
-    }
-
-    /**
-     * Set callback to use for mail
-     *
-     * Primarily for testing purposes, but could be used to curry arguments.
-     *
-     * @param  callable $callable
-     * @throws InvalidArgumentException
-     * @return Sendmail
-     */
-    public function setCallable($callable)
-    {
-        if (! is_callable($callable)) {
-            throw new InvalidArgumentException(sprintf(
-                '%s expects a callable argument; received "%s"',
-                __METHOD__,
-                is_object($callable) ? $callable::class : gettype($callable),
-            ));
-        }
-        $this->callable = $callable;
-        return $this;
-    }
-
-    /**
-     * Send a message
-     *
-     * @throws RuntimeException When the message has no recipients or its From header is unsafe.
+     * @throws Exception\RuntimeException When the message has no recipient, a header is unsafe, the
+     *     envelope sender is unsafe for the command line, or mail() or the sendmail program fails.
      * @throws Mail\Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
-    public function send(Mail\Message $message)
+    public function send(Mail\Message $message): void
     {
-        $to      = $this->prepareRecipients($message);
-        $subject = $this->prepareSubject($message);
-        $body    = $this->prepareBody($message);
-        $headers = $this->prepareHeaders($message);
-        $params  = $this->prepareParameters($message);
+        $headers = HeaderGuard::check($message->getHeaders());
+        if (null !== $this->config->path) {
+            SendmailProcess::send($this->config, $this->config->path, $message, $headers);
 
-        // On *nix platforms, we need to replace \r\n with \n
-        // sendmail is not an SMTP server, it is a unix command - it expects LF
-        if (PHP_VERSION_ID < 80_000 && ! $this->isWindowsOs()) {
-            $to      = str_replace("\r\n", "\n", $to);
-            $subject = str_replace("\r\n", "\n", $subject);
-            $body    = str_replace("\r\n", "\n", $body);
-            $headers = str_replace("\r\n", "\n", $headers);
+            return;
         }
 
-        ($this->callable)($to, $subject, $body, $headers, $params);
+        ($this->mailer)(
+            $this->prepareRecipients($headers),
+            $headers->get('subject')?->getEncodedFieldValue() ?? '',
+            $this->prepareBody($message),
+            $headers->without('To')->without('Subject')->toString(),
+            $this->prepareParameters($message),
+        );
     }
 
     /**
-     * Prepare recipients list
-     *
-     * @throws RuntimeException
-     * @throws Mail\Mime\Exception\RuntimeException
-     * @return string
+     * @throws Exception\RuntimeException When there is no To, Cc or Bcc header, or To is empty.
      */
-    protected function prepareRecipients(Mail\Message $message)
+    private function prepareRecipients(Mail\Headers $headers): string
     {
-        $headers = $message->getHeaders();
-
-        $hasTo = $headers->has('to');
-        if (! $hasTo && ! $headers->has('cc') && ! $headers->has('bcc')) {
-            throw new RuntimeException(
+        $to = $headers->get('to');
+        if (null === $to && ! $headers->has('cc') && ! $headers->has('bcc')) {
+            throw new Exception\RuntimeException(
                 'Invalid email; contains no at least one of "To", "Cc", and "Bcc" header',
             );
         }
 
-        if (! $hasTo) {
+        if (null === $to) {
             return '';
         }
 
-        $to = $headers->get('to');
-        if (! $to instanceof Mail\Header\To || $to->getAddressList()->isEmpty()) {
-            throw new RuntimeException('Invalid "To" header; contains no addresses');
+        if (! $to instanceof To || $to->getAddressList()->isEmpty()) {
+            throw new Exception\RuntimeException('Invalid "To" header; contains no addresses');
         }
 
-        // If not on Windows, return normal string
-        if (! $this->isWindowsOs()) {
+        if (! $this->isWindows()) {
             return $to->getEncodedFieldValue();
         }
 
-        // Otherwise, return list of emails
         $addresses = [];
         foreach ($to->getAddressList() as $address) {
             $addresses[] = $address->getEmail();
         }
+
         return implode(', ', $addresses);
     }
 
     /**
-     * Prepare the subject line string
+     * Windows sends through SMTP itself, so a line starting with "." is doubled there.
      *
      * @throws Mail\Mime\Exception\RuntimeException
-     * @return string
      */
-    protected function prepareSubject(Mail\Message $message)
+    private function prepareBody(Mail\Message $message): string
     {
-        return $message->getHeaders()->get('subject')?->getEncodedFieldValue() ?? '';
-    }
-
-    /**
-     * Prepare the body string
-     *
-     * @throws Mail\Mime\Exception\RuntimeException
-     * @return string
-     */
-    protected function prepareBody(Mail\Message $message)
-    {
-        if (! $this->isWindowsOs()) {
-            // *nix platforms can simply return the body text
-            return $message->getBodyText();
-        }
-
-        // On windows, lines beginning with a full stop need to be fixed
         $text = $message->getBodyText();
-        return str_replace("\n.", "\n..", $text);
+
+        return $this->isWindows()
+            ? str_replace(
+                search: "\n.",
+                replace: "\n..",
+                subject: $text,
+            ) : $text;
     }
 
     /**
-     * Prepare the textual representation of headers
+     * The configured parameters, with "-f" and the envelope sender added unless they set one.
      *
-     * @throws Mail\Mime\Exception\RuntimeException
-     * @return string
+     * @throws Exception\RuntimeException When the sender is not safe for the command line.
      */
-    protected function prepareHeaders(Mail\Message $message)
+    private function prepareParameters(Mail\Message $message): string
     {
-        // mail() takes To and Subject as separate arguments
-        foreach ($message->getFrom() as $address) {
-            if (str_contains($address->getEmail(), '\\"')) {
-                throw new RuntimeException('Potential code injection in From header');
-            }
-        }
-
-        return $message->getHeaders()->without('To')->without('Subject')->toString();
-    }
-
-    /**
-     * Prepare additional_parameters argument
-     *
-     * Basically, overrides the MAIL FROM envelope with either the Sender or
-     * From address.
-     *
-     * @return string
-     */
-    protected function prepareParameters(Mail\Message $message)
-    {
-        if ($this->isWindowsOs()) {
+        if ($this->isWindows()) {
             return '';
         }
 
-        $parameters = (string) $this->parameters;
-        if (preg_match('/(^| )\-f.+/', $parameters)) {
+        $parameters = $this->config->toString();
+        if (1 === preg_match('/(^| )-f/', $parameters)) {
             return $parameters;
         }
 
-        $sender = $message->getSender();
-        if ($sender instanceof Mail\Address) {
-            return $parameters . ' -f' . escapeshellarg($sender->getEmail());
+        $sender = ($message->getSender() ?? $message->getFrom()->first())?->getEmail();
+        if (null === $sender) {
+            return $parameters;
         }
 
-        $from = $message->getFrom()->first();
-        if (null !== $from) {
-            return $parameters . ' -f' . escapeshellarg($from->getEmail());
+        if (1 !== preg_match(self::SAFE_SENDER, $sender)) {
+            throw new Exception\RuntimeException(
+                'The envelope sender cannot be passed safely to sendmail; it may only contain letters, digits '
+                    . 'and . _ + = - before the @. Set "-f" in the sendmail parameters to choose another.',
+            );
         }
 
-        return $parameters;
+        return trim("{$parameters} -f{$sender}");
+    }
+
+    private function isWindows(): bool
+    {
+        return 'Windows' === $this->operatingSystem;
     }
 
     /**
-     * Send mail using PHP native mail()
+     * Send with PHP's mail(), turning its warnings into an exception.
      *
-     * @param  string $to
-     * @param  string $subject
-     * @param  string $message
-     * @param  string $headers
-     * @param  null|string $parameters
-     * @throws RuntimeException
+     * The I/O boundary: the unit tests pass a mailer instead, since calling mail() would hand
+     * the message to the host's sendmail. sendmail_path cannot be changed at run time.
+     *
+     * @throws Exception\RuntimeException When mail() fails.
+     *
+     * @codeCoverageIgnore
      */
-    public function mailHandler($to, $subject, $message, $headers, $parameters)
+    private function mail(string $to, string $subject, string $body, string $headers, string $parameters): void
     {
-        set_error_handler([$this, 'handleMailErrors']);
-        if (null === $parameters) {
-            $result = mail($to, $subject, $message, $headers);
-        } else {
-            $result = mail($to, $subject, $message, $headers, $parameters);
+        $error = null;
+        set_error_handler(static function (int $_number, string $message) use (&$error): bool {
+            $error = $message;
+            return true;
+        });
+        try {
+            $sent = mail($to, $subject, $body, $headers, $parameters);
+        } finally {
+            restore_error_handler();
         }
-        restore_error_handler();
 
-        if (null !== $this->errstr || ! $result) {
-            $errstr = $this->errstr;
-            if (empty($errstr)) {
-                $errstr = 'Unknown error';
-            }
-            throw new RuntimeException("Unable to send mail: {$errstr}");
+        if (null !== $error || ! $sent) {
+            throw new Exception\RuntimeException('Unable to send mail: ' . ($error ?? 'Unknown error'));
         }
     }
 
     /**
-     * Temporary error handler for PHP native mail().
-     *
-     * @param int    $errno
-     * @param string $errstr
-     * @param string $errfile
-     * @param string $errline
-     * @param array  $errcontext
-     * @return bool always true
+     * @param SendmailConfig|iterable<mixed, mixed>|string|null $config
+     * @throws Mail\Exception\InvalidArgumentException
      */
-    public function handleMailErrors($errno, $errstr, $errfile = null, $errline = null, ?array $errcontext = null)
+    private static function readConfig(SendmailConfig|iterable|string|null $config): SendmailConfig
     {
-        $this->errstr = $errstr;
-        return true;
-    }
-
-    /**
-     * Is this a windows OS?
-     *
-     * @return bool
-     */
-    protected function isWindowsOs()
-    {
-        if (! $this->operatingSystem) {
-            $this->operatingSystem = strtoupper(substr(PHP_OS, 0, 3));
+        if ($config instanceof SendmailConfig) {
+            return $config;
         }
-        return 'WIN' == $this->operatingSystem;
+
+        if (null === $config || is_string($config)) {
+            return new SendmailConfig($config ?? []);
+        }
+
+        $values = $config instanceof Traversable ? iterator_to_array($config) : $config;
+        if ([] !== $values && array_is_list($values)) {
+            return SendmailConfig::fromIterable(['parameters' => $values]);
+        }
+
+        return SendmailConfig::fromIterable($values);
     }
 }

@@ -109,6 +109,8 @@ final class HostnameValidatorTest extends TestCase
             'single character labels'               => ['a.b'],
             'one character TLD'                     => ['foo.c'],
             'trailing dot'                          => ['example.com.'],
+            'single label with trailing dot'        => ['a.'],
+            'IPv4 with a letter, as a name'         => ['1.2.3.4x'],
             'mixed case'                            => ['UPPER.Example.COM'],
             'leading dash, as local network name'   => ['-foo.com'],
             'double dash, as local network name'    => ['ab--cd.com'],
@@ -158,6 +160,7 @@ final class HostnameValidatorTest extends TestCase
             'port'                                               => ['host:25'],
             'path'                                               => ['host/path'],
             'IPv6 literal in brackets'                           => ['[::1]'],
+            'IPv6 with a letter beyond f'                        => ['::g'],
             'unconvertible internationalised label'              => ['a.' . str_repeat('é', times: 64) . '.com'],
             'internationalised label with dash at the end'       => ['bé-.com'],
             'internationalised label with misplaced double dash' => ['ab--é.com'],
@@ -173,9 +176,11 @@ final class HostnameValidatorTest extends TestCase
     public static function ipAddressProvider(): array
     {
         return [
-            'IPv4'          => ['192.0.2.1'],
-            'IPv6'          => ['2001:db8::1'],
-            'IPv6 loopback' => ['::1'],
+            'IPv4'             => ['192.0.2.1'],
+            'IPv6'             => ['2001:db8::1'],
+            'IPv6 loopback'    => ['::1'],
+            'upper-case IPv6'  => ['FE80::1'],
+            'IPv4-mapped IPv6' => ['::ffff:192.0.2.1'],
         ];
     }
 }

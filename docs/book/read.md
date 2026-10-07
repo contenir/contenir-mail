@@ -1,23 +1,23 @@
 # Reading and Storing Mail
 
-contenir-mail can read mail messages from several local or remote mail storage
-types. Storage adapters share the same API for counting and fetching messages,
-and some of them implement additional interfaces for less common features. For a
-feature overview of the implemented storages, see the following table.
+contenir-mail reads mail from mbox files, maildirs, IMAP and POP3 servers,
+and stores mail in maildirs and on IMAP servers. Every storage shares the same
+API for counting and fetching messages; some add folders, flags or writing.
 
 Feature               | Mbox     | Maildir  | Pop3     | IMAP
 --------------------- | -------- | -------- | -------- | ----
 Storage type          | local    | local    | remote   | remote
 Fetch message         | Yes      | Yes      | Yes      | Yes
-Fetch MIME-part       | emulated | emulated | emulated | emulated
+Fetch MIME part       | Yes      | Yes      | Yes      | Yes
 Folders               | Yes      | Yes      | No       | Yes
-Create message/folder | No       | todo     | No       | todo
+Create message/folder | No       | Yes      | No       | Yes
 Flags                 | No       | Yes      | No       | Yes
 Quota                 | No       | Yes      | No       | No
 
-Storage adapters return instances of `Contenir\Mail\Storage\Message`, which has a
-different API than [messages used when sending](message/intro.md); the API is
-described in the ["Working with messages"](#working-with-messages) section.
+Storages return `Contenir\Mail\Storage\Message` objects. A stored message is
+also a MIME part (`Contenir\Mail\Mime\PartInterface`), the same interface the
+parts you compose for sending implement, so a message you read can be
+forwarded, attached or stored elsewhere without parsing it again.
 
 ## Basic POP3 example
 
@@ -25,707 +25,456 @@ described in the ["Working with messages"](#working-with-messages) section.
 use Contenir\Mail\Storage\Pop3;
 
 $mail = new Pop3([
-    'host'     => 'localhost',
+    'host'     => 'pop.example.com',
     'user'     => 'test',
     'password' => 'test',
 ]);
 
 echo $mail->countMessages() . " messages found\n";
-foreach ($mail as $message) {
-    printf("Mail from '%s': %s\n", $message->from, $message->subject);
+foreach ($mail as $number => $message) {
+    printf("%d: mail from %s: %s\n", $number, $message->getFrom()->first()?->getEmail(), $message->getSubject());
 }
 ```
 
-## Using local storage via mbox and maildir
+## Settings
 
-Mbox and Maildir are the two supported formats for local mail storage.
+Each storage takes its settings as an array (or any iterable), as in
+laminas-mail, or as a typed, immutable config object:
 
-If you want to read from an mbox file, provide the filename to the constructor
-of `Contenir\Mail\Storage\Mbox`:
+Storage                          | Config                                   | Keys
+-------------------------------- | ---------------------------------------- | ----
+`Storage\Mbox`                   | `Storage\MboxConfig`                     | `filename`, `format`
+`Storage\Folder\Mbox`            | `Storage\Folder\MboxConfig`              | `dirname`, `folder`, `format`
+`Storage\Maildir`                | `Storage\MaildirConfig`                  | `dirname`
+`Storage\Folder\Maildir`         | `Storage\Folder\MaildirConfig`           | `dirname`, `delim`, `folder`
+`Storage\Writable\Maildir`       | `Storage\Writable\MaildirConfig`         | `dirname`, `delim`, `folder`, `create`, `directory_mode`, `file_mode`
+`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`
+`Storage\Pop3`                   | `Storage\Pop3Config`                     | connection keys, `user`, `password`
+
+Keys may be written in snake_case, camelCase or kebab-case. An unknown key, or
+a value of the wrong type, throws an exception that names the key, so a typo
+never silently falls back to a default.
 
 ```php
-use Contenir\Mail\Storage\Mbox;
+use Contenir\Mail\Storage\Folder\MaildirConfig;
+use Contenir\Mail\Storage\Folder\Maildir;
 
-$mail = new Mbox(['filename' => '/home/test/mail/inbox']);
+$mail = new Maildir(new MaildirConfig(dirname: '/home/test/Maildir', folder: 'INBOX.Archive'));
+// the same:
+$mail = new Maildir(['dirname' => '/home/test/Maildir', 'folder' => 'INBOX.Archive']);
 ```
 
-Maildir operates similarly, but requires a dirname instead:
+Paths must be local file system paths: a stream wrapper such as `phar://`,
+`http://` or `data:` is refused, as is a NUL byte.
+
+## Using local storage: mbox and maildir
 
 ```php
 use Contenir\Mail\Storage\Maildir;
-$mail = new Maildir(['dirname' => '/home/test/mail/']);
+use Contenir\Mail\Storage\Mbox;
+
+$mail = new Mbox(['filename' => '/home/test/mail/inbox']);
+$mail = new Maildir(['dirname' => '/home/test/Maildir']);
 ```
 
-Both constructors throw a `Contenir\Mail\Exception` if the storage can't be read.
+Both constructors throw a `Contenir\Mail\Storage\Exception\ExceptionInterface`
+if the storage cannot be read.
 
-## Using remote storage protocols
+Mbox files may use CRLF or bare LF line breaks. Messages are read from the
+file only when their content is asked for, and stay readable after the
+storage is closed.
 
-For remote storage, the two most popular protocols are supported: POP3 and IMAP.
-Both need at least a host and a user to connect and login. The default password
-is an empty string, and the default port for the protocol is used if none is
-provided.
+### mbox variants
+
+Each message in an mbox file starts with a `From ` line, so a body line that
+starts with `From ` is written with a `>` in front. The variants differ in
+what happens to lines that already start with `>From `:
+
+- **mboxo** (the default, `MboxFormat::Mboxo`): only `From ` lines are quoted,
+  so the escaping cannot be undone and body lines are read as written.
+- **mboxrd** (`MboxFormat::Mboxrd`): every `>*From ` line gets one more `>`,
+  and reading removes one again, restoring the body exactly. Use this for
+  files written by mutt, procmail or Postfix's `local`.
 
 ```php
+use Contenir\Mail\Storage\Mbox;
+use Contenir\Mail\Storage\MboxFormat;
+
+$mail = new Mbox(['filename' => '/var/mail/test', 'format' => 'mboxrd']);
+```
+
+The Content-Length variants (mboxcl, mboxcl2) are read as mboxo.
+
+## Using remote storage: IMAP and POP3
+
+Both need at least a user. The connection settings are those of
+`Contenir\Mail\Protocol\ConnectionConfig`:
+
+Key           | Default        | Meaning
+------------- | -------------- | -------
+`host`        | `127.0.0.1`    | Server name or address
+`port`        | standard port  | 143 or 993 for IMAP, 110 or 995 for POP3
+`security`    | `starttls`     | `starttls`, `tls` (TLS from the start) or `none`
+`verify_peer` | `true`         | Check the server's certificate
+`timeout`     | `30`           | Seconds
+
+Connections use STARTTLS unless told otherwise. The laminas-mail keys still
+work: `ssl` set to `SSL` means `tls`, `TLS` means `starttls`, and `false` or
+`none` means a plain connection; any other value is refused. `novalidatecert`
+set to `true` turns peer verification off. Give each setting under one name
+only.
+
+```php
+use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage\Imap;
+use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3;
 
-// Connecting with Pop3:
-$mail = new Pop3([
-    'host'     => 'example.com',
-    'user'     => 'test',
-    'password' => 'test',
-]);
-
-// Connecting with Imap:
 $mail = new Imap([
-    'host'     => 'example.com',
+    'host'     => 'imap.example.com',
     'user'     => 'test',
-    'password' => 'test',
+    'password' => $password,
 ]);
 
-// Example of using POP3 on a non-standard port:
+$mail = new Imap(new ImapConfig(
+    new ConnectionConfig(host: 'imap.example.com', security: Security::Tls),
+    user: 'test',
+    password: $password,
+    folder: 'Archive',
+));
+
+// POP3 on a non-standard port, TLS from the start, as laminas-mail wrote it
 $mail = new Pop3([
-    'host'     => 'example.com',
-    'port'     => 1120,
+    'host'     => 'pop.example.com',
+    'port'     => 1995,
     'user'     => 'test',
-    'password' => 'test',
-]);
-```
-
-Both storage adapters support SSL and TLS. If you use SSL, the default port
-changes as specified in the relevant RFC.
-
-```php
-use Contenir\Mail\Storage\Pop3;
-
-// Examples use Pop3; the same configuration works for Imap.
-
-// Use SSL on a non-standard port (default is 995 for Pop3 and 993 for Imap)
-$mail = new Pop3([
-    'host'     => 'example.com',
-    'user'     => 'test',
-    'password' => 'test',
+    'password' => $password,
     'ssl'      => 'SSL',
 ]);
-
-// use TLS on the default port:
-$mail = new Pop3([
-    'host'     => 'example.com',
-    'user'     => 'test',
-    'password' => 'test',
-    'ssl'      => 'TLS',
-]);
 ```
 
-If you are connecting to a mail server with a self-signed certificate and want to
-skip the SSL verification, you can also pass an additional argument `novalidatecert`
-with the value `true`.
+Passwords are marked `#[SensitiveParameter]`, so they do not appear in stack
+traces, and `var_dump()` of a config shows them masked.
 
-Both constructors throw `Contenir\Mail\Exception` or `Contenir\Mail\Protocol\Exception`
-(extends `Contenir\Mail\Exception`) for connection errors, depending on the type of
-error encountered.
+Connection errors throw `Contenir\Mail\Protocol\Exception\ExceptionInterface`;
+a failed login throws `Contenir\Mail\Storage\Exception\RuntimeException`.
 
-## Fetching, counting, and removing messages
+## Fetching, counting and removing messages
 
-Once you have opened the mail storage, you may fetch messages. To do so, you
-need the message number, which is a counter starting with 1 for the first
-message. To fetch the message, you use the method `getMessage()`:
+Messages are numbered from 1. Fetch one with `getMessage()`, count them with
+`countMessages()` (or `count()`), and iterate the storage to get them all:
 
 ```php
-$message = $mail->getMessage($messageNum);
-```
+$message = $mail->getMessage($number);
 
-Array access is also supported, but this access method does not support any
-additional parameters that could be added to `getMessage()`. As long as you
-don't mind, and can live with the default values, you may use:
+echo count($mail) . " messages\n";
 
-```php
-$message = $mail[$messageNum];
-```
-
-For iterating over all messages the `Iterator` interface is implemented:
-
-```php
-foreach ($mail as $messageNum => $message) {
-    // do stuff ...
+foreach ($mail as $number => $message) {
+    // ...
 }
+
+$sizes = $mail->getSizes();       // [number => bytes]
+$size  = $mail->getSize($number); // bytes
 ```
 
-To count the messages in the storage, you can use the method
-`countMessages()`; alternately, storage adapters implement `Countable`, allowing
-you to `count()` the instance.
+Numbers change when messages are removed. Unique IDs do not, so use them to
+refer to a message across requests:
 
 ```php
-// method
-$maxMessage = $mail->countMessages();
-
-// array access
-$maxMessage = count($mail);
+$id     = $mail->getUniqueId($number);
+$number = $mail->getNumberByUniqueId($id);
+$mail->removeMessage($number);
 ```
 
-To remove a mail, use the method `removeMessage()`, or rely on array access and
-use `unset()`:
+`getUniqueIds()` lists every unique ID by number. Mbox messages have no unique
+IDs, so their numbers serve; a POP3 server without UIDL does the same.
 
-```php
-// method
-$mail->removeMessage($messageNum);
+`getRawHeader()` and `getRawContent()` return a message's header block and
+body as stored. `getCapabilities()` lists what the storage supports.
 
-// array access
-unset($mail[$messageNum]);
-```
+Storages hold open files or connections, so they cannot be serialized.
+`close()` releases them, and the destructor calls it.
 
 ## Working with messages
 
-After you fetch a message, you can:
-
-- fetch headers
-- fetch the message content
-- fetch individual parts of multipart messages
-
-All headers can be accessed as message instance properties or via the method
-`getHeader()`; use the latter for messages with compound names. Header names
-are matched without regard to case, and dash-separated headers may be fetched
-using camelCase notation. Property access returns the decoded header value as
-a string. If no header matching the name is found, an exception is thrown; use
-`isset($message->headerName)` (or `$message->getHeaders()->has('header-name')`)
-to test for header existence prior to retrieval.
-
 ```php
-// get the message object
 $message = $mail->getMessage(1);
 
-// output subject of message
-echo $message->subject . "\n";
-
-// get content-type header
-$type = $message->contentType;
-
-// check if CC isset:
-if (isset($message->cc)) { // or $message->getHeaders()->has('cc')
-    $cc = $message->cc;
-}
+echo $message->getSubject();                  // decoded, or null
+$from    = $message->getFrom();               // Contenir\Mail\AddressList
+$to      = $message->getTo();
+$cc      = $message->getCc();
+$replyTo = $message->getReplyTo();
+$date    = $message->getDate();               // DateTimeImmutable, or null
+$id      = $message->getMessageId();          // without angle brackets, or null
 ```
 
-If you have multiple headers with the same name, such as the `Received`
-headers, you will want an array of values. Property access always returns
-a string, so use `getHeader()` instead for these situations:
+Every header is in `getHeaders()`, an immutable `Contenir\Mail\Headers`
+collection. `get()` returns the first header of a name (or `null`), and
+`all()` every header of that name:
 
 ```php
-// get header as property - the result is always a string,
-// with new lines between each value.
-$received = $message->received;
-
-// The same via getHeader() method:
-$received = $message->getHeader('received', 'string');
-
-// To retrieve an array of values:
-$received = $message->getHeader('received', 'array');
-foreach ($received as $line) {
-    // do stuff
-}
-
-// If you don't define a format you'll get the header objects: a
-// Contenir\Mail\Header\HeaderInterface for a single header, or an
-// ArrayIterator of them when the header appears more than once:
-$received = $message->getHeader('received');
-if ($received instanceof Contenir\Mail\Header\HeaderInterface) {
-    // only one received header found in message
-}
-```
-
-The method `getHeaders()` returns all headers as an immutable
-`Contenir\Mail\Headers` collection. Iterating it yields each header object in
-the order it appears in the message; `get()` returns the first header with a
-given name (or `null`), and `all()` returns every header with that name.
-
-```php
-// dump all headers
 foreach ($message->getHeaders() as $header) {
     printf("%s: %s\n", $header->getFieldName(), $header->getFieldValue());
 }
 
-// all Received headers, as a list of header objects
 $received = $message->getHeaders()->all('Received');
+$type     = $message->getHeaders()->get('Content-Type')?->getFieldValue();
 ```
 
-If you don't have a multipart message, fetch the content via `getContent()`.
-Unlike headers, the content is only fetched when needed (aka late-fetch).
+### Content and parts
+
+`getContent()` returns the content decoded from its Content-Transfer-Encoding
+(base64 or quoted-printable), in the part's own character set, which
+`getCharset()` gives. `getEncodedContent()` returns it as transferred. Both
+are empty for a multipart.
 
 ```php
-// output message content for HTML
-echo '<pre>';
-echo $message->getContent();
-echo '</pre>';
-```
-
-Checking for multipart messages is done with the method `isMultipart()`. If you
-have a multipart message you, can get retrieve the individual
-`Contenir\Mail\Storage\Part` instances making up the message via the `getPart()`
-method, which accepts the part index as a parameter (indices start with 1).
-`Contenir\Mail\Storage\Part` is the base class of `Contenir\Mail\Storage\Message`, and
-thus exposes the same API with regards to headers, content, and retrieving
-nested parts.
-
-```php
-// get the first non-multipart part
 $part = $message;
 while ($part->isMultipart()) {
-    $part = $part->getPart(1);
+    $part = $part->getPart(1);   // parts are numbered from 1
 }
-echo 'Type of this part is ' . strtok($part->contentType, ';') . "\n";
-echo "Content:\n";
+
+echo 'Type: ' . $part->getContentType() . "\n";
 echo $part->getContent();
 ```
 
-`Contenir\Mail\Storage\Part` also implements `RecursiveIterator`, which allows iterating
-through all parts, even when nested. Additionally, it implements the magic
-method `__toString()`, which returns the content.
+`getParts()` lists a multipart's parts and `countParts()` counts them.
+Iterating a message or part gives its parts; with `RecursiveIteratorIterator`
+you walk nested parts too:
 
 ```php
 use RecursiveIteratorIterator;
-use Contenir\Mail\Exception\ExceptionInterface;
 
-// output first text/plain part
-$foundPart = null;
 foreach (new RecursiveIteratorIterator($mail->getMessage(1)) as $part) {
-    try {
-        if (strtok($part->contentType, ';') == 'text/plain') {
-            $foundPart = $part;
-            break;
-        }
-    } catch (ExceptionInterface $e) {
-        // this part has no Content-Type header
+    if ('text/plain' === $part->getContentType()) {
+        echo $part->getContent();
+        break;
     }
-}
-if (! $foundPart) {
-    echo 'no plain text part found';
-} else {
-    echo "plain text part: \n" . $foundPart;
 }
 ```
 
-## Checking for flags
+Bodies load lazily: headers are read with the message, and the body is read
+from the file, or fetched from the server, only when content or parts are
+asked for. A multipart is split into its parts once, on first use.
 
-Maildir and IMAP support storing flags with messages. The `Contenir\Mail\Storage`
-class defines constants for all known maildir and IMAP system flags, named
-`FLAG_<flagname>`. To check for flags, `Contenir\Mail\Storage\Message` has
-a method called `hasFlag()`. With `getFlags()` you'll get all flags.
+Hostile mail is read safely: the header block may be at most 1 MiB and hold
+1000 headers, parts nest at most 32 deep, a multipart holds at most 1000
+parts, and a missing closing boundary ends the last part at the end of the
+body. Long lines are read in pieces, so memory stays bounded.
+
+### Attachments and untrusted text
+
+`getFilename()` returns the file name the sender gave, from
+Content-Disposition or the Content-Type `name`. It is untrusted: it may hold
+`../`, path separators, control characters or bidirectional overrides. Use
+`getSafeFilename()` to store or show it:
 
 ```php
-use Contenir\Mail\Storage;
+foreach (new RecursiveIteratorIterator($message) as $part) {
+    if (null !== $part->getFilename()) {
+        file_put_contents("/srv/attachments/{$part->getSafeFilename()}", $part->getContent());
+    }
+}
+```
 
-// Find unread messages:
-echo "Unread mails:\n";
+Display names and comments are kept as written too. Pass them through
+`Contenir\Mail\Header\SafeText::addressList()` or `SafeText::display()` before
+showing them, to remove control and bidirectional characters.
+
+### Forwarding and attaching
+
+`toString()` writes a message or part back out. Headers that were not
+changed keep the exact text they were read with, folding and encoded words
+included, so DKIM signatures still verify:
+
+```php
+use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\TransferEncoding;
+
+$forward = (new Message())
+    ->setSubject('Fwd: ' . $stored->getSubject())
+    ->setText('See the attached message.')
+    ->attach(new Part($stored->toString(), 'message/rfc822', TransferEncoding::EightBit));
+```
+
+A read part can be attached directly, since it is a `PartInterface`.
+
+## Flags
+
+Maildir and IMAP keep flags for each message. The common ones are cases of
+the `Contenir\Mail\Storage\Flag` enum: `Seen`, `Answered`, `Flagged`,
+`Deleted`, `Draft`, `Recent` and `Passed` (forwarded). Keywords, such as IMAP
+`$Junk` or a Maildir keyword letter, stay strings.
+
+```php
+use Contenir\Mail\Storage\Flag;
+
 foreach ($mail as $message) {
-    if ($message->hasFlag(Storage::FLAG_SEEN)) {
+    if ($message->hasFlag(Flag::Seen)) {
         continue;
     }
 
-    // mark recent/new mails
-    echo ($message->hasFlag(Storage::FLAG_RECENT))
-        ? '! '
-        : '  ';
-
-    echo $message->subject . "\n";
+    echo ($message->hasFlag(Flag::Recent) ? '! ' : '  ') . $message->getSubject() . "\n";
 }
 
-// Check for known flags
-$flags = $message->getFlags();
-echo 'Message is flagged as: ';
-foreach ($flags as $flag) {
-    switch ($flag) {
-        case Storage::FLAG_ANSWERED:
-            echo 'Answered ';
-            break;
-        case Storage::FLAG_FLAGGED:
-            echo 'Flagged ';
-            break;
+// IMAP names work too
+$message->hasFlag('\Seen');
+$message->hasFlag('$Junk');
 
-        // ...
-        // check for other flags
-        // ...
-
-        default:
-            echo $flag . '(unknown flag) ';
-    }
-}
+// messages with every flag given
+$flagged = $mail->countMessages(Flag::Flagged);
 ```
 
-As IMAP allows user or client defined flags, you could get flags that don't have
-a constant in `Contenir\Mail\Storage`. Instead, they are returned as strings and can
-be checked the same way with `hasFlag()`.
+`getFlags()` lists a message's flags, cases and strings alike.
 
-```php
-// check message for client defined flags $IsSpam, $SpamTested
-if (! $message->hasFlag('$SpamTested')) {
-    echo 'message has not been tested for spam';
-} elseif ($message->hasFlag('$IsSpam')) {
-    echo 'this message is spam';
-} else {
-    echo 'this message is ham';
-}
-```
+## Folders
 
-## Using folders
+All storages but POP3 have folders. `getFolders()` returns the folder tree as
+a `Contenir\Mail\Storage\Folder`, or the subtree of the folder named.
 
-All storage adapters except POP3 support folders (also called *mailboxes*). The
-interface implemented by all adapters supporting folders is called
-`Contenir\Mail\Storage\Folder\FolderInterface`. Each also supports an optional
-configuration parameter called `folder`, which is the folder selected after
-login.
-
-For the local storage adapters, you need to use the adapter-specific folder
-classes, `Contenir\Mail\Storage\Folder\Mbox` and `Contenir\Mail\Storage\Folder\Maildir`.
-Each accepts a single parameter, `dirname`, with the name of the base direcor.
-The format for maildir is as defined in
-[maildir++](https://en.wikipedia.org/wiki/Maildir#Maildir.2B.2B) (with a dot as
-default delimiter); mbox uses a directory hierarchy of mbox files. If you don't
-have an mbox file called `INBOX` in your mbox base directory, you need to
-specify another folder via the constructor.
-
-`Contenir\Mail\Storage\Imap` supports folders by default.
-
-Examples for opening folders with each adapter:
+For local folders use `Storage\Folder\Mbox`, where each file in a directory
+tree is a folder, and `Storage\Folder\Maildir`, where each `.Name` maildir in
+a [Maildir++](https://en.wikipedia.org/wiki/Maildir#Maildir++) tree is, split
+by the delimiter (`.` by default). Folder trees are read once; hidden entries
+and symbolic links are skipped, so a folder name can never reach outside the
+tree.
 
 ```php
 use Contenir\Mail\Storage\Folder;
-use Contenir\Mail\Storage\Imap;
 
-// mbox with folders:
-$mail = new Folder\Mbox(['dirname' => '/home/test/mail/']);
-
-// mbox with a default folder not called INBOX; also works
-// with the maildir and IMAP implementations.
-$mail = new Folder\Mbox([
-    'dirname' => '/home/test/mail/',
-    'folder'  => 'Archive',
-]);
-
-// maildir with folders:
-$mail = new Folder\Maildir(['dirname' => '/home/test/mail/']);
-
-// maildir with colon as delimiter, as suggested in Maildir++:
-$mail = new Folder\Maildir([
-    'dirname' => '/home/test/mail/',
-    'delim'   => ':',
-]);
-
-// IMAP is the same with and without folders:
-$mail = new Imap([
-    'host'     => 'example.com',
-    'user'     => 'test',
-    'password' => 'test',
-]);
+$mail = new Folder\Mbox(['dirname' => '/home/test/mail', 'folder' => 'Archive']);
+$mail = new Folder\Maildir(['dirname' => '/home/test/Maildir', 'delim' => '.']);
 ```
 
-With the method `getFolders($root = null)`, you can get the folder hierarchy
-starting with the root folder, or the given folder. The method returns an
-instance of `Contenir\Mail\Storage\Folder`, which implements `RecursiveIterator`,
-and all children are also instances of `Folder`. Each of these instances has a
-local and a global name returned by the methods `getLocalName()` and
-`getGlobalName()`. The global name is the absolute name from the root folder
-(including delimiters); the local name is the name in the parent folder.
-
-If you use the iterator, the key of the current element is the local name. The
-global name is also returned by the magic method `__toString()`. Some folders
-may not be selectable, which means they can't store messages; selecting them
-results in an error. This can be checked with the method `isSelectable()`.
-
-The following demonstrates providing a tree view of a folder:
+Each folder has a local name (its name in its parent) and a global name (its
+full name, which `selectFolder()` takes). A folder that is not selectable
+only holds other folders. Iterate a folder for its subfolders, by local name:
 
 ```php
 use RecursiveIteratorIterator;
 
-$folders = new RecursiveIteratorIterator(
-    $this->mail->getFolders(),
-    RecursiveIteratorIterator::SELF_FIRST
-);
+$folders = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
 
 echo '<select name="folder">';
 foreach ($folders as $localName => $folder) {
-    $localName = str_pad('', $folders->getDepth(), '-', STR_PAD_LEFT)
-        .  $localName;
-    echo '<option';
-
-    if (! $folder->isSelectable()) {
-        echo ' disabled="disabled"';
-    }
-
     printf(
-        ' value="%s">%s</option>',
-        htmlspecialchars($folder),
-        htmlspecialchars($localName)
+        '<option value="%s"%s>%s%s</option>',
+        htmlspecialchars($folder->getGlobalName()),
+        $folder->isSelectable() ? '' : ' disabled',
+        str_repeat('-', $folders->getDepth()),
+        htmlspecialchars($localName),
     );
 }
 echo '</select>';
 ```
 
-The current selected folder is returned by the method `getSelectedFolder()`.
-Changing the folder is done with the method `selectFolder()`, which needs the
-*global name* as a parameter. If you want to avoid writing delimiters, you can
-also use the properties of a `Folder` instance:
+`getCurrentFolder()` names the selected folder; `selectFolder()` changes it,
+by global name or `Folder`. `getFolder()` steps into a subfolder by its local
+name:
 
 ```php
-// depending on your mail storage and its settings $rootFolder->Archive->2005
-// is the same as:
-//  /Archive/2005
-//  Archive:2005
-//  INBOX.Archive.2005
-//  ...
-$folder = $mail->getFolders()->Archive->2005;
-printf("Last folder was %s; new folder is %s\n", $mail->getSelectedFolder(), $folder);
+$folder = $mail->getFolders()->getFolder('Archive')->getFolder('2005');
 $mail->selectFolder($folder);
 ```
 
-## Advanced Use
+## Writing: Maildir and IMAP
 
-### Using NOOP
-
-If you're using a remote storage and have some long tasks, you might need to
-keep the connection alive via noop:
+`Storage\Writable\Maildir` and `Storage\Imap` implement
+`Storage\Writable\WritableInterface`:
 
 ```php
-foreach ($mail as $message) {
-
-    // do some calculations ...
-
-    $mail->noop(); // keep alive
-
-    // do something else ...
-
-    $mail->noop(); // keep alive
-}
-```
-
-### Caching instances
-
-`Contenir\Mail\Storage\Mbox`, `Contenir\Mail\Storage\Folder\Mbox`,
-`Contenir\Mail\Storage\Maildir`, and `Contenir\Mail\Storage\Folder\Maildir` implement the
-magic methods `__sleep()` and `__wakeup()`, which means they are serializable.
-
-Serialization avoids parsing files and directory trees multiple times. The
-disadvantage is that your mbox or maildir storage should not change; as such,
-its best used with static storage.
-
-You can combine serialization with writable storage in a number of ways:
-
-- Check the current mbox file for modification time changes.
-- Reparse the folder structure if a folder has vanished (which still results in
-  an error, but you can search for another folder afterwards).
-- Create a signal file whenever a change is made; check for that signal file,
-  reparse if present, and remove it afterwards.
-
-```php
-use Contenir\Mail\Storage\Folder\Mbox;
-
-// There's no specific cache handler/class used here,
-// change the code to match your cache handler.
-$signalFile  = '/home/test/.mail.last_change';
-$mboxBasedir = '/home/test/mail/';
-$cacheId     = 'example mail cache ' . $mboxBasedir . $signalFile;
-$cache       = new Cache();
-$hasCache    = ($cache->has($cacheId)
-    && filemtime($signalFile) <= $cache->getMTime($cacheId)
-);
-
-$mail        = $hasCache
-    ? $cache->get($cacheId)
-    : new Mbox(['dirname' => $mboxBasedir]);
-
-// do stuff ...
-
-// Cache when done
-$cache->set($cacheId, $mail);
-```
-
-### Extending Protocol Classes
-
-Remote storage adapters use two classes: `Contenir\Mail\Storage\<Name>` and
-`Contenir\Mail\Protocol\<Name>`. The protocol class translates the protocol commands
-and responses from and to PHP, like methods for the commands or variables with
-different structures for data. The storage class implements the common
-interface for message access.
-
-If you need additional protocol features, you can extend the protocol class and
-use it in the constructor of the main class. As an example, assume we need to
-knock different ports before we can connect to POP3.
-
-```php
-namespace Example\Mail
-{
-    use Contenir\Mail;
-
-    class Exception extends Mail\Exception
-    {
-    }
-}
-
-namespace Example\Mail\Protocol
-{
-    use Contenir\Mail\Protocol;
-
-    class Exception extends Protocol\Exception
-    {
-    }
-}
-
-namespace Example\Mail\Protocol\Pop3
-{
-    use Contenir\Mail\Protocol\Pop3;
-
-    class Knock extends Pop3
-    {
-        private $host
-
-        private $port;
-
-        public function __construct($host, $port = null)
-        {
-            // no auto connect in this class
-            $this->host = $host;
-            $this->port = $port;
-        }
-
-        public function knock($port)
-        {
-            $sock = @fsockopen($this->host, $port);
-            if ($sock) {
-                fclose($sock);
-            }
-        }
-
-        public function connect($host = null, $port = null, $ssl = false)
-        {
-            if ($host === null) {
-                $host = $this->host;
-            }
-            if ($port === null) {
-                $port = $this->port;
-            }
-            parent::connect($host, $port);
-        }
-    }
-}
-
-namespace Example\Mail\Pop3
-{
-    use Example\Mail\Protoco\Pop3\Knock as KnockProtocol;
-    use Contenir\Mail\Storage\Pop3;
-
-    class Knock extends Pop3
-    {
-        public function __construct(array $params)
-        {
-            // ... check $params here! ...
-            $protocol = new KnockProtocol($params['host']);
-
-            // do our "special" thing
-            foreach ((array) $params['knock_ports'] as $port) {
-                $protocol->knock($port);
-            }
-
-            // get to correct state
-            $protocol->connect($params['host'], $params['port']);
-            $protocol->login($params['user'], $params['password']);
-
-            // initialize parent
-            parent::__construct($protocol);
-        }
-    }
-}
-
-$mail = new Example\Mail\Pop3\Knock([
-    'host'        => 'localhost',
-    'user'        => 'test',
-    'password'    => 'test',
-    'knock_ports' => [1101, 1105, 1111],
-]);
-```
-
-The above assumes a connection is made; when connected, it logs in and, if
-supported, selects a folder as provided to the constructor.  When defining your
-own protocol class, make sure that's done or the next method will fail if the
-server doesn't allow it in the current state.
-
-### Using Quotas
-
-`Contenir\Mail\Storage\Writable\Maildir` has support for Maildir++ quotas. It's
-disabled by default, but it's possible to use it manually, if the automatic
-checks are not desired (this means `appendMessage()`, `removeMessage()`, and
-`copyMessage()` do no checks and do not add entries to the maildirsize file). If
-enabled, an exception is thrown if you try to write to the maildir and it's
-already over quota.
-
-There are three methods used for quotas: `getQuota()`, `setQuota()`, and
-`checkQuota()`:
-
-```php
+use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Writable\Maildir;
 
-$mail = new Maildir(['dirname' => '/home/test/mail/']);
-$mail->setQuota(true); // true to enable, false to disable
+$mail = new Maildir(['dirname' => '/home/test/Maildir', 'create' => true]);
 
-printf("Quota check is now %s\n", $mail->getQuota() ? 'enabled' : 'disabled');
-
-// Check quota can be used even if quota checks are disabled:
-printf("You are %sover quota\n", $mail->checkQuota() ? '' : 'not ');
+$mail->appendMessage($rawMessage);                                  // to the current folder, as Seen
+$mail->appendMessage($stream, 'INBOX.Archive', [Flag::Flagged]);    // a stream, without reading it all
+$mail->appendMessage($composedMessage);                             // a Contenir\Mail\Message
+$mail->copyMessage(3, 'INBOX.Archive');
+$mail->moveMessage(3, 'INBOX.Archive');
+$mail->setFlags(1, [Flag::Seen, Flag::Answered]);
+$mail->createFolder('Projects', 'INBOX');
+$mail->renameFolder('INBOX.Projects', 'INBOX.Work');
+$mail->removeFolder('INBOX.Work');
 ```
 
-`checkQuota()` can also return a more detailed response by passing a boolean
-`true` argument:
+The Maildir writer follows Maildir delivery: each message is written to a
+new file in `tmp/`, opened exclusively so no existing file or symbolic link of
+that name is followed, synced to disk, and only then linked into `cur/` (or
+`new/` for `appendMessage(..., recent: true)`). It never writes through a
+symbolic link: a folder, `tmp/`, `cur/`, `new/` or `maildirsize` that is a
+link is refused or left alone. Folder names may not hold `/`, `\`, control
+characters, empty parts, or `.` and `..` parts.
+
+Files and directories are created private to their owner (0600 and 0700) by
+default; set `file_mode` and `directory_mode` to share them, for example with
+a group. The process umask can only take permissions away from these modes.
+
+The `Recent` flag cannot be set: the storage sets it for messages in `new/`.
+Maildir stores the common flags and the keywords `a` to `z`; IMAP stores the
+common flags and any keyword atom.
+
+### Quotas
+
+`Storage\Writable\Maildir` supports Maildir++ quotas, off by default. With
+checks on, storing is refused while over quota, and the `maildirsize` file is
+updated as messages are stored and removed.
 
 ```php
-$quota = $mail->checkQuota(true);
-printf("You are %sover quota\n", $quota['over_quota'] ? '' : 'not ');
+$mail->setQuota(true);                              // check against maildirsize
+$mail->setQuota(['size' => 10_000_000, 'count' => 1000]);  // or against your own
+
+printf("You are %sover quota\n", $mail->checkQuota() ? '' : 'not ');
+
+$quota = $mail->checkQuota(detailedResponse: true);
 printf(
-    "You have %d of %d messages and use %d of %d octets\n",
+    "You have %d of %d messages and use %d of %d bytes\n",
     $quota['count'],
-    $quota['quota']['count'],
+    $quota['quota']['count'] ?? 0,
     $quota['size'],
-    $quota['quota']['size']
+    $quota['quota']['size'] ?? 0,
 );
 ```
 
-If you want to specify your own quota instead of using the one specified in the
-maildirsize file, you can do with `setQuota()`:
+`getQuota()` returns the setting, and `getQuota(fromStorage: true)` the quota
+`maildirsize` defines. Anyone who can deliver to the maildir can write
+`maildirsize`, so it is read with care: only the first 5 KB, only valid
+fields, and with totals kept in range; a larger or malformed file is counted
+afresh.
+
+## Extending protocol classes
+
+Remote storages use a storage class and a protocol class
+(`Contenir\Mail\Protocol\Imap` or `Pop3`), which turns protocol commands and
+responses into PHP. To use your own protocol class, pass it to the storage:
+either connected and logged in, or as the second argument, to be connected
+with the settings:
 
 ```php
-// Message count and octet size supported; order does matter.
-$quota = $mail->setQuota(['size' => 10000, 'count' => 100]);
+use Contenir\Mail\Storage\Pop3;
+
+$protocol = new KnockingPop3(); // extends Contenir\Mail\Protocol\Pop3
+$protocol->knock([1101, 1105, 1111]);
+
+$mail = new Pop3(['host' => 'pop.example.com', 'user' => 'test', 'password' => $password], $protocol);
 ```
 
-To add your own quota checks, use single letters as keys, and they will be
-preserved (but obviously not checked). It's also possible to extend
-`Contenir\Mail\Storage\Writable\Maildir` to define your own quota if the maildirsize
-file is missing (which can happen in Maildir++):
+## Migrating from laminas-mail
 
-```php
-namespace Example\Mail\Storage;
-
-use Contenir\Mail\Storage\Exception;
-use Contenir\Mail\Storage\Writable\Maildir as BaseMaildir;
-
-class Maildir extends BaseMaildir
-{
-    /**
-     * getQuota is called with $fromStorage = true by quota checks.
-     *
-     * @param bool $fromStorage
-     * @return bool|array
-     */
-    public function getQuota($fromStorage = false) {
-        try {
-            return parent::getQuota($fromStorage);
-        } catch (Exception\ExceptionInterface $e) {
-            if (! $fromStorage) {
-                // unknown error:
-                throw $e;
-            }
-
-            // maildirsize file must be missing
-            list($count, $size) = get_quota_from_somewhere_else();
-            return ['count' => $count, 'size' => $size];
-        }
-    }
-}
-```
+laminas-mail                                   | contenir-mail
+---------------------------------------------- | -------------
+`$message->subject`, `$message->getHeader()`   | `getSubject()`, `getFrom()`, … and `getHeaders()->get()`
+`isset($message->cc)`                          | `$message->getHeaders()->has('cc')`
+`$mail[3]`, `unset($mail[3])`                  | `getMessage(3)`, `removeMessage(3)`
+`$mail->getSize()` (all)                       | `getSizes()`
+`$mail->getUniqueId()` (all)                   | `getUniqueIds()`
+`$mail->hasTop`                                | `getCapabilities()['top']`
+`Storage::FLAG_SEEN`                           | `Storage\Flag::Seen`
+`$part->getContent()` (encoded)                | `getEncodedContent()`; `getContent()` now decodes
+`$folder->Archive`                             | `$folder->getFolder('Archive')`
+`messageEOL` setting                           | not needed: line breaks are detected
+`serialize($mbox)` to cache                    | not supported: storages hold open files

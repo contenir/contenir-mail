@@ -1,253 +1,142 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Folder;
 
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
-use Contenir\Mail\Storage\Exception\InvalidArgumentException;
-use Contenir\Mail\Storage\Folder;
-use Contenir\Mail\Storage\ParamsNormalizer;
-use Laminas\Stdlib\ErrorHandler;
 use Override;
 
-use function array_pop;
-use function array_push;
-use function closedir;
 use function explode;
-use function is_dir;
-use function opendir;
-use function readdir;
+use function is_iterable;
 use function rtrim;
-use function sort;
-use function str_contains;
 use function str_starts_with;
 use function strlen;
 use function substr;
 use function trim;
 
 use const DIRECTORY_SEPARATOR;
-use const E_WARNING;
 
+/**
+ * A Maildir++ tree: the maildir itself is INBOX, and each ".Name" maildir in it a folder.
+ *
+ * Folder names are split by the delimiter: ".Archive.2024" is "2024" inside
+ * "Archive". Only maildirs found in the root are folders: hidden names,
+ * symbolic links and anything else are skipped, so a folder name can never
+ * reach outside the tree.
+ *
+ * @api
+ */
 class Maildir extends Storage\Maildir implements FolderInterface
 {
-    /**
-     * root folder for folder structure
-     *
-     * @var Storage\Folder
-     */
-    protected $rootFolder;
+    protected Storage\Folder $rootFolder;
+
+    protected string $rootdir;
+
+    protected string $delim;
+
+    protected string $currentFolder = '';
 
     /**
-     * rootdir of folder structure
-     *
-     * @var string
+     * @param MaildirConfig|iterable<mixed, mixed> $config A Folder\MaildirConfig, or its settings.
+     * @throws Exception\ExceptionInterface When the settings are invalid, or the folder cannot be selected.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected $rootdir;
-
-    /**
-     * name of current folder
-     *
-     * @var string
-     */
-    protected $currentFolder;
-
-    /**
-     * delim char for subfolders
-     *
-     * @var string
-     */
-    protected $delim;
-
-    /**
-     * Create instance with parameters
-     *
-     * Supported parameters are:
-     *
-     * - dirname rootdir of maildir structure
-     * - delim   delim char for folder structure, default is '.'
-     * - folder initial selected folder, default is 'INBOX'
-     *
-     * @param  object|array $params mail reader specific parameters
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct($params)
+    public function __construct(MaildirConfig|iterable $config)
     {
-        $params = ParamsNormalizer::normalizeParams($params);
-
-        if (! isset($params['dirname'])) {
-            throw new Exception\InvalidArgumentException('no dirname provided in params');
-        }
-
-        $dirname = (string) $params['dirname'];
-
-        if (! is_dir($dirname)) {
-            throw new Exception\InvalidArgumentException('$dirname provided in params is not a directory');
-        }
-
-        $this->rootdir = rtrim($dirname, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-
-        $delim       = $params['delim'] ?? '.';
-        $this->delim = (string) $delim;
-
-        $folder = $params['folder'] ?? 'INBOX';
-
-        $this->buildFolderTree();
-        $this->selectFolder((string) $folder);
+        $config             = is_iterable($config) ? MaildirConfig::fromIterable($config) : $config;
+        $this->rootdir      = rtrim($config->dirname, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $this->delim        = $config->delim;
         $this->has['top']   = true;
         $this->has['flags'] = true;
+        $this->rootFolder   = $this->buildFolderTree();
+        $this->selectFolder($config->folder);
     }
 
     /**
-     * find all subfolders and mbox files for folder structure
-     *
-     * Result is save in Storage\Folder instances with the root in $this->rootFolder.
-     * $parentFolder and $parentGlobalName are only used internally for recursion.
-     *
-     * @throws Exception\RuntimeException
-     */
-    protected function buildFolderTree()
-    {
-        $this->rootFolder        = new Storage\Folder('/', '/', false);
-        $this->rootFolder->INBOX = new Storage\Folder('INBOX', 'INBOX', true);
-
-        ErrorHandler::start(E_WARNING);
-        $dh    = opendir($this->rootdir);
-        $error = ErrorHandler::stop();
-        if (! $dh) {
-            throw new Exception\RuntimeException("can't read folders in maildir", 0, $error);
-        }
-        $dirs = [];
-
-        while (($entry = readdir($dh)) !== false) {
-            // maildir++ defines folders must start with .
-            if ('.' != $entry[0] || '.' == $entry || '..' == $entry) {
-                continue;
-            }
-
-            if ($this->isMaildir($this->rootdir . $entry)) {
-                $dirs[] = $entry;
-            }
-        }
-        closedir($dh);
-
-        sort($dirs);
-        $stack        = [null];
-        $folderStack  = [null];
-        $parentFolder = $this->rootFolder;
-        $parent       = '.';
-
-        foreach ($dirs as $dir) {
-            do {
-                if (str_starts_with($dir, $parent)) {
-                    $local = substr($dir, strlen((string) $parent));
-                    if (str_contains($local, $this->delim)) {
-                        throw new Exception\RuntimeException('error while reading maildir');
-                    }
-                    array_push($stack, $parent);
-                    $parent               = $dir . $this->delim;
-                    $folder               = new Storage\Folder($local, substr($dir, 1), true);
-                    $parentFolder->$local = $folder;
-                    array_push($folderStack, $parentFolder);
-                    $parentFolder = $folder;
-                    break;
-                }
-
-                if ($stack) {
-                    $parent       = array_pop($stack);
-                    $parentFolder = array_pop($folderStack);
-                }
-            } while ($stack);
-            if (! $stack) {
-                throw new Exception\RuntimeException('error while reading maildir');
-            }
-        }
-    }
-
-    /**
-     * get root folder or given folder
-     *
-     * @param string $rootFolder get folder structure for given folder, else root
-     * @throws InvalidArgumentException
-     * @return Folder root or wanted folder
+     * @throws Exception\InvalidArgumentException When there is no such folder.
      */
     #[Override]
-    public function getFolders($rootFolder = null)
+    public function getFolders(?string $rootFolder = null): Storage\Folder
     {
-        if (! $rootFolder || 'INBOX' == $rootFolder) {
+        $name = $this->localPath((string) $rootFolder);
+        if ('' === $name) {
             return $this->rootFolder;
         }
 
-        // rootdir is same as INBOX in maildir
-        if (str_starts_with($rootFolder, "INBOX{$this->delim}")) {
-            $rootFolder = substr($rootFolder, 6);
-        }
-        $currentFolder = $this->rootFolder;
-        $subname       = trim($rootFolder, $this->delim);
-
-        while ($currentFolder) {
-            if (str_contains($subname, $this->delim)) {
-                [$entry, $subname] = explode($this->delim, $subname, 2);
-            } else {
-                $entry   = $subname;
-                $subname = null;
+        $folder = $this->rootFolder;
+        foreach (explode($this->delim, $name) as $part) {
+            if (! $folder->hasFolder($part)) {
+                throw new Exception\InvalidArgumentException("Folder {$rootFolder} not found");
             }
 
-            $currentFolder = $currentFolder->$entry;
-
-            if (! $subname) {
-                break;
-            }
+            $folder = $folder->getFolder($part);
         }
 
-        if ($currentFolder->getGlobalName() != rtrim($rootFolder, $this->delim)) {
-            throw new Exception\InvalidArgumentException("folder {$rootFolder} not found");
-        }
-        return $currentFolder;
+        return $folder;
     }
 
     /**
-     * select given folder
-     *
-     * folder must be selectable!
-     *
-     * @param Storage\Folder|string $globalName global name of folder or
-     *     instance for subfolder
-     * @throws Exception\RuntimeException
+     * @throws Exception\InvalidArgumentException When there is no such folder.
+     * @throws Exception\RuntimeException When the folder is not selectable or has gone.
      */
     #[Override]
-    public function selectFolder($globalName)
+    public function selectFolder(Storage\Folder|string $globalName): void
     {
-        $this->currentFolder = (string) $globalName;
-
-        // getting folder from folder tree for validation
-        $folder = $this->getFolders($this->currentFolder);
+        $name   = $this->localPath((string) $globalName);
+        $folder = '' === $name ? $this->rootFolder->getFolder('INBOX') : $this->getFolders($name);
+        if (! $folder->isSelectable()) {
+            throw new Exception\RuntimeException("{$globalName} is not selectable");
+        }
 
         try {
-            $this->openMaildir("{$this->rootdir}.{$folder->getGlobalName()}");
+            $this->openMaildir($this->folderPath($name));
         } catch (Exception\ExceptionInterface $e) {
-            // check what went wrong
-            if (! $folder->isSelectable()) {
-                throw new Exception\RuntimeException("{$this->currentFolder} is not selectable", 0, $e);
-            }
-            // seems like file has vanished; rebuilding folder tree - but it's still an exception
-            $this->buildFolderTree();
+            $this->rootFolder = $this->buildFolderTree();
+
             throw new Exception\RuntimeException(
-                'seems like the maildir has vanished; I have rebuilt the folder tree; '
-                    . 'search for another folder and try again',
+                'The maildir has gone; the folder tree has been read again, so look for the folder again',
                 0,
                 $e,
             );
         }
+
+        $this->currentFolder = $folder->getGlobalName();
+    }
+
+    #[Override]
+    public function getCurrentFolder(): string
+    {
+        return $this->currentFolder;
     }
 
     /**
-     * get Storage\Folder instance for current folder
-     *
-     * @return string instance of current folder
+     * The folder name relative to the root: "" for INBOX, and without a leading "INBOX" and delimiter.
      */
-    #[Override]
-    public function getCurrentFolder()
+    protected function localPath(string $globalName): string
     {
-        return $this->currentFolder;
+        $name = trim($globalName, $this->delim);
+        if ('INBOX' === $name || '/' === $name) {
+            return '';
+        }
+
+        return str_starts_with($name, "INBOX{$this->delim}") ? substr($name, strlen("INBOX{$this->delim}")) : $name;
+    }
+
+    /**
+     * The directory of a folder, from its name relative to the root.
+     */
+    protected function folderPath(string $localPath): string
+    {
+        return '' === $localPath ? rtrim($this->rootdir, DIRECTORY_SEPARATOR) : "{$this->rootdir}.{$localPath}";
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the root cannot be read.
+     */
+    protected function buildFolderTree(): Storage\Folder
+    {
+        return MaildirTree::read($this->rootdir, $this->delim);
     }
 }

@@ -1,494 +1,296 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage;
 
-use ArrayIterator;
-use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\ContentDisposition;
+use Contenir\Mail\Header\ContentTransferEncoding;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Headers;
-use Contenir\Mail\Mime;
-use Contenir\Mail\Mime\Exception\RuntimeException;
+use Contenir\Mail\Mime\PartInterface;
+use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
+use Contenir\Mail\Storage\Part\MultipartSplitter;
+use IteratorAggregate;
 use Override;
-use RecursiveIterator;
-use ReturnTypeWillChange;
-use Stringable;
 
-use function array_map;
+use function base64_decode;
 use function count;
-use function current;
-use function implode;
-use function is_array;
 use function preg_replace;
-use function stripos;
+use function quoted_printable_decode;
+use function sprintf;
+use function str_starts_with;
 use function strlen;
 use function strtolower;
-use function trim;
 
-class Part implements RecursiveIterator, Part\PartInterface, Stringable
+/**
+ * A MIME part of a stored message: a leaf with content, or a multipart holding other parts.
+ *
+ * Read parts implement the same PartInterface as composed ones, so a stored
+ * message or any of its parts can be attached or forwarded as it is.
+ *
+ * Parts load lazily. Headers are read with the part; the body is read from
+ * the file, or fetched from the server, only when content or child parts
+ * are asked for, and a multipart is split into its parts once, on first use.
+ *
+ * Hostile input is bounded: parts nest at most MAX_DEPTH deep, a multipart
+ * holds at most MultipartSplitter::MAX_PARTS parts, and a multipart without a
+ * boundary parameter is read as a leaf.
+ *
+ * @implements IteratorAggregate<int, Part>
+ *
+ * @mago-expect lint:too-many-methods PartInterface, the laminas-mail part accessors, and the content-type helpers.
+ * @mago-expect lint:cyclomatic-complexity Each accessor falls back for parts whose headers are missing or malformed.
+ *
+ * @api
+ */
+final class Part implements PartInterface, IteratorAggregate
 {
-    /**
-     * Headers of the part
-     *
-     * @var Headers|null
-     */
-    protected $headers;
+    /** Deepest nesting of multiparts read */
+    public const int MAX_DEPTH = 32;
+
+    /** @var list<Part>|null */
+    private ?array $parts = null;
 
     /**
-     * raw part body
-     *
-     * @var null|string
+     * @internal Storage classes and fromString() build parts.
      */
-    protected $content;
+    public function __construct(
+        private readonly Headers $headers,
+        private readonly Content $body,
+        private readonly int $depth = 0,
+    ) {}
 
     /**
-     * toplines as fetched with headers
+     * Read a part, or a whole message, from its text.
      *
-     * @var string
+     * @throws Exception\RuntimeException When the header block is too large or malformed.
      */
-    protected $topLines = '';
-
-    /**
-     * parts of multipart message
-     *
-     * @var array
-     */
-    protected $parts = [];
-
-    /**
-     * count of parts of a multipart message
-     *
-     * @var null|int
-     */
-    protected $countParts;
-
-    /**
-     * current position of iterator
-     *
-     * @var int
-     */
-    protected $iterationPos = 1;
-
-    /**
-     * mail handler, if late fetch is active
-     *
-     * @var null|AbstractStorage
-     */
-    protected $mail;
-
-    /**
-     * message number for mail handler
-     *
-     * @var int
-     */
-    protected $messageNum = 0;
-
-    /**
-     * Public constructor
-     *
-     * Part supports different sources for content. The possible params are:
-     * - handler    an instance of AbstractStorage for late fetch
-     * - id         number of message for handler
-     * - raw        raw content with header and body as string
-     * - headers    headers as array (name => value) or string, if a content part is found it's used as toplines
-     * - noToplines ignore content found after headers in param 'headers'
-     * - content    content as string
-     * - strict     strictly parse raw content
-     *
-     * @param   array $params  full message with or without headers
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct(array $params)
+    public static function fromString(string $raw): self
     {
-        if (isset($params['handler'])) {
-            if (! $params['handler'] instanceof AbstractStorage) {
-                throw new Exception\InvalidArgumentException('handler is not a valid mail handler');
-            }
-            if (! isset($params['id'])) {
-                throw new Exception\InvalidArgumentException('need a message id with a handler');
-            }
+        [$headers, $body] = MimeParser::split(Content::fromString($raw));
 
-            $this->mail       = $params['handler'];
-            $this->messageNum = $params['id'];
-        }
-
-        $params['strict'] ??= false;
-
-        if (isset($params['raw'])) {
-            Mime\Decode::splitMessage(
-                $params['raw'],
-                $this->headers,
-                $this->content,
-                Mime\Mime::LINEEND,
-                $params['strict'],
-            );
-        } elseif (isset($params['headers'])) {
-            if (is_array($params['headers'])) {
-                /** @var array<int|string, string|array{string, string}> $headerList */
-                $headerList    = $params['headers'];
-                $this->headers = Headers::fromIterable($headerList);
-            } else {
-                if (empty($params['noToplines'])) {
-                    Mime\Decode::splitMessage($params['headers'], $this->headers, $this->topLines);
-                } else {
-                    $this->headers = Headers::fromString($params['headers']);
-                }
-            }
-
-            if (isset($params['content'])) {
-                $this->content = $params['content'];
-            }
-        }
+        return new self($headers, $body);
     }
 
-    /**
-     * Check if part is a multipart message
-     *
-     * @return bool if part is multipart
-     */
     #[Override]
-    public function isMultipart()
+    public function getHeaders(): Headers
     {
-        try {
-            return stripos($this->contentType, 'multipart/') === 0;
-        } catch (Exception\ExceptionInterface) {
-            return false;
-        }
-    }
-
-    /**
-     * Body of part
-     *
-     * If part is multipart the raw content of this part with all sub parts is returned
-     *
-     * @throws Exception\RuntimeException
-     * @return string body
-     */
-    #[Override]
-    public function getContent()
-    {
-        if (null !== $this->content) {
-            return $this->content;
-        }
-
-        if ($this->mail) {
-            return $this->mail->getRawContent($this->messageNum);
-        }
-
-        throw new Exception\RuntimeException('no content');
-    }
-
-    /**
-     * Return size of part
-     *
-     * Quite simple implemented currently (not decoding). Handle with care.
-     *
-     * @return int size
-     */
-    #[Override]
-    public function getSize()
-    {
-        return strlen($this->getContent());
-    }
-
-    /**
-     * Cache content and split in parts if multipart
-     *
-     * @throws Exception\RuntimeException
-     * @return void
-     */
-    protected function cacheContent()
-    {
-        // caching content if we can't fetch parts
-        if (null === $this->content && $this->mail) {
-            $this->content = $this->mail->getRawContent($this->messageNum);
-        }
-
-        if (! $this->isMultipart()) {
-            return;
-        }
-
-        // split content in parts
-        $boundary = $this->getHeaderField('content-type', 'boundary');
-        if (! $boundary) {
-            throw new Exception\RuntimeException('no boundary found in content type to split message');
-        }
-        $parts = Mime\Decode::splitMessageStruct($this->content, $boundary);
-        if (null === $parts) {
-            return;
-        }
-        $counter = 1;
-        foreach ($parts as $part) {
-            $this->parts[$counter++] = new static(['headers' => $part['header'], 'content' => $part['body']]);
-        }
-    }
-
-    /**
-     * Get part of multipart message
-     *
-     * @param  int $num number of part starting with 1 for first part
-     * @throws Exception\RuntimeException
-     * @return Part wanted part
-     */
-    #[Override]
-    public function getPart($num)
-    {
-        if (isset($this->parts[$num])) {
-            return $this->parts[$num];
-        }
-
-        if (! $this->mail && null === $this->content) {
-            throw new Exception\RuntimeException('part not found');
-        }
-
-        // if ($this->mail && $this->mail->hasFetchPart) {
-        // TODO: fetch part
-        // return
-        // }
-
-        $this->cacheContent();
-
-        if (! isset($this->parts[$num])) {
-            throw new Exception\RuntimeException('part not found');
-        }
-
-        return $this->parts[$num];
-    }
-
-    /**
-     * Count parts of a multipart part
-     *
-     * @return int number of sub-parts
-     */
-    #[Override]
-    public function countParts()
-    {
-        if ($this->countParts) {
-            return $this->countParts;
-        }
-
-        $this->countParts = count($this->parts);
-        if ($this->countParts) {
-            return $this->countParts;
-        }
-
-        // if ($this->mail && $this->mail->hasFetchPart) {
-        // TODO: fetch part
-        // return
-        // }
-
-        $this->cacheContent();
-
-        $this->countParts = count($this->parts);
-        return $this->countParts;
-    }
-
-    /**
-     * Access headers collection
-     *
-     * Lazy-loads if not already attached.
-     *
-     * @return Headers
-     * @throws Exception\RuntimeException
-     */
-    #[Override]
-    public function getHeaders()
-    {
-        if (null === $this->headers) {
-            if ($this->mail) {
-                $part          = $this->mail->getRawHeader($this->messageNum);
-                $this->headers = Headers::fromString($part);
-            } else {
-                $this->headers = new Headers();
-            }
-        }
-        if (! $this->headers instanceof Headers) {
-            throw new Exception\RuntimeException(
-                '$this->headers must be an instance of Headers',
-            );
-        }
-
         return $this->headers;
     }
 
     /**
-     * Get a header in specified format
+     * The lower-cased media type, "text/plain" when there is no valid Content-Type (RFC 2045, section 5.2).
+     */
+    public function getContentType(): string
+    {
+        return strtolower($this->contentType()?->getType() ?? 'text/plain');
+    }
+
+    public function getCharset(): ?string
+    {
+        return $this->contentType()?->getParameter('charset');
+    }
+
+    /**
+     * The file name the sender gave: the Content-Disposition filename, or the Content-Type name.
      *
-     * Internally headers that occur more than once are saved as array, all other as string. If $format
-     * is set to string implode is used to concat the values (with Mime::LINEEND as delim).
-     *
-     * @param  string $name   name of header, matches case-insensitive, but camel-case is replaced with dashes
-     * @param  string $format change type of return value to 'string' or 'array'
-     * @throws Exception\InvalidArgumentException
-     * @return string|array|HeaderInterface|ArrayIterator value of header in wanted or internal format
+     * This is untrusted input that may hold path separators, "..", control
+     * or bidirectional characters; use getSafeFilename() to store or show it.
+     */
+    public function getFilename(): ?string
+    {
+        $disposition = $this->headers->get('Content-Disposition');
+        $filename    = $disposition instanceof ContentDisposition ? $disposition->getFilename() : null;
+
+        return $filename ?? $this->contentType()?->getParameter('name');
+    }
+
+    /**
+     * The file name reduced to a safe base name, see SafeText::filename(); null when there is none.
+     */
+    public function getSafeFilename(): ?string
+    {
+        $filename = $this->getFilename();
+
+        return null === $filename ? null : SafeText::filename($filename);
+    }
+
+    #[Override]
+    public function isMultipart(): bool
+    {
+        return null !== $this->boundary();
+    }
+
+    /**
+     * @return list<Part>
+     * @throws Exception\RuntimeException When the parts nest too deeply, are too many, or cannot be read.
      */
     #[Override]
-    public function getHeader($name, $format = null)
+    public function getParts(): array
     {
-        $headers = $this->getHeaders()->all($name);
-        if ([] === $headers) {
-            $lowerName = strtolower((string) preg_replace('%([a-z])([A-Z])%', '\1-\2', $name));
-            $headers   = $this->getHeaders()->all($lowerName);
-            if ([] === $headers) {
-                throw new Exception\InvalidArgumentException(
-                    "Header with Name {$name} or {$lowerName} not found",
-                );
-            }
+        if (null !== $this->parts) {
+            return $this->parts;
         }
 
-        $values = array_map(static fn(HeaderInterface $header): string => $header->getFieldValue(), $headers);
+        $boundary = $this->boundary();
+        if (null === $boundary) {
+            return $this->parts = [];
+        }
 
-        return match ($format) {
-            'string' => trim(implode(Mime\Mime::LINEEND, $values), Mime\Mime::LINEEND),
-            'array'  => $values,
-            default  => 1 === count($headers) ? $headers[0] : new ArrayIterator($headers),
+        if ($this->depth >= self::MAX_DEPTH) {
+            throw new Exception\RuntimeException(sprintf('Parts may nest at most %d deep', self::MAX_DEPTH));
+        }
+
+        $parts = [];
+        foreach (MultipartSplitter::split($this->body, $boundary) as $raw) {
+            [$headers, $body] = MimeParser::split($raw);
+            $parts[] = new self($headers, $body, $this->depth + 1);
+        }
+
+        return $this->parts = $parts;
+    }
+
+    /**
+     * A child part by number, the first being 1, as in laminas-mail.
+     *
+     * @throws Exception\OutOfBoundsException When there is no such part.
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function getPart(int $number): self
+    {
+        return $this->getParts()[$number - 1] ?? throw new Exception\OutOfBoundsException(sprintf(
+            'There is no part %d',
+            $number,
+        ));
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function countParts(): int
+    {
+        return count($this->getParts());
+    }
+
+    /**
+     * The content, decoded from its Content-Transfer-Encoding; empty for a multipart.
+     *
+     * Bytes are returned in the part's own charset, see getCharset().
+     *
+     * @throws Exception\RuntimeException When the storage has been closed.
+     */
+    #[Override]
+    public function getContent(): string
+    {
+        if ($this->isMultipart()) {
+            return '';
+        }
+
+        $encoded = $this->body->read();
+
+        /** @mago-expect lint:strict-behavior Stored base64 often carries stray characters; mail clients decode it leniently, and so do we. */
+        return match ($this->transferEncoding()) {
+            TransferEncoding::Base64 => (string) base64_decode(
+                (string) preg_replace('/[^A-Za-z0-9+\/=]/', replacement: '', subject: $encoded),
+            ),
+            TransferEncoding::QuotedPrintable => quoted_printable_decode(self::crlf($encoded)),
+            default                           => $encoded,
         };
     }
 
     /**
-     * Get a specific field from a header like content type or all fields as array
+     * The content as transferred, with CRLF line breaks; empty for a multipart.
      *
-     * If the header occurs more than once, only the value from the first header
-     * is returned.
-     *
-     * Throws an Exception if the requested header does not exist. If
-     * the specific header field does not exist, returns null.
-     *
-     * @param  string $name       name of header, like in getHeader()
-     * @param  string $wantedPart the wanted part, default is first, if null an array with all parts is returned
-     * @param  string $firstName  key name for the first part
-     * @return string|array wanted part or all parts as array($firstName => firstPart, partname => value)
-     * @throws RuntimeException
+     * @throws Exception\RuntimeException When the storage has been closed.
      */
     #[Override]
-    public function getHeaderField($name, $wantedPart = '0', $firstName = '0')
+    public function getEncodedContent(): string
     {
-        return Mime\Decode::splitHeaderField(current($this->getHeader($name, 'array')), $wantedPart, $firstName);
+        return $this->isMultipart() ? '' : self::crlf($this->body->read());
     }
 
     /**
-     * Getter for mail headers - name is matched in lowercase
+     * The size of the body as stored, in bytes, without reading it.
      *
-     * This getter is short for Part::getHeader($name, 'string')
-     *
-     * @see Part::getHeader()
-     *
-     * @param  string $name header name
-     * @return string value of header
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\RuntimeException When the storage has been closed.
      */
-    #[Override]
-    public function __get($name)
+    public function getSize(): int
     {
-        return $this->getHeader($name, 'string');
+        return $this->body->length();
     }
 
     /**
-     * Isset magic method proxy to hasHeader
+     * The part as written: its headers, as read where unchanged, a blank line and its body, with CRLF line breaks.
      *
-     * This method is short syntax for Part::hasHeader($name);
-     *
-     * @see Part::hasHeader
-     *
-     * @param  string $name
-     * @return bool
+     * @throws Exception\RuntimeException When the storage has been closed.
      */
-    public function __isset($name)
+    public function toString(): string
     {
-        return $this->getHeaders()->has($name);
+        return $this->headers->toString() . Headers::EOL . self::crlf($this->body->read());
     }
 
     /**
-     * magic method to get content of part
+     * The child parts, keyed from 1; usable with RecursiveIteratorIterator to walk nested parts.
      *
-     * @return string content
+     * @return TreeIterator<int, Part>
+     * @throws Exception\RuntimeException When the parts cannot be read.
      */
     #[Override]
-    public function __toString(): string
+    public function getIterator(): TreeIterator
     {
-        return $this->getContent();
+        return new TreeIterator(self::children($this), self::children(...));
     }
 
     /**
-     * implements RecursiveIterator::hasChildren()
+     * A part's child parts, keyed from 1.
      *
-     * @return bool current element has children/is multipart
+     * @return array<int, Part>
+     * @throws Exception\RuntimeException When the parts cannot be read.
      */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function hasChildren()
+    private static function children(self $part): array
     {
-        $current = $this->current();
-        return $current && $current instanceof self && $current->isMultipart();
-    }
-
-    /**
-     * implements RecursiveIterator::getChildren()
-     *
-     * @return Part same as self::current()
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function getChildren()
-    {
-        return $this->current();
-    }
-
-    /**
-     * implements Iterator::valid()
-     *
-     * @return bool check if there's a current element
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function valid()
-    {
-        if (null === $this->countParts) {
-            $this->countParts();
+        $numbered = [];
+        foreach ($part->getParts() as $index => $child) {
+            $numbered[$index + 1] = $child;
         }
-        return $this->iterationPos && $this->iterationPos <= $this->countParts;
+
+        return $numbered;
+    }
+
+    private function contentType(): ?ContentType
+    {
+        $header = $this->headers->get('Content-Type');
+
+        return $header instanceof ContentType ? $header : null;
+    }
+
+    private function boundary(): ?string
+    {
+        $type     = $this->contentType();
+        $boundary = $type?->getParameter('boundary');
+        if (null === $boundary || '' === $boundary || strlen($boundary) > 200) {
+            return null;
+        }
+
+        return str_starts_with($this->getContentType(), 'multipart/') ? $boundary : null;
+    }
+
+    private function transferEncoding(): ?TransferEncoding
+    {
+        $header = $this->headers->get('Content-Transfer-Encoding');
+
+        return $header instanceof ContentTransferEncoding ? $header->getTransferEncoding() : null;
     }
 
     /**
-     * implements Iterator::next()
+     * Bare LF line breaks, as in mbox files, as CRLF.
      */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function next()
+    private static function crlf(string $text): string
     {
-        ++$this->iterationPos;
-    }
-
-    /**
-     * implements Iterator::key()
-     *
-     * @return string key/number of current part
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function key()
-    {
-        return $this->iterationPos;
-    }
-
-    /**
-     * implements Iterator::current()
-     *
-     * @return Part current part
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function current()
-    {
-        return $this->getPart($this->iterationPos);
-    }
-
-    /**
-     * implements Iterator::rewind()
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function rewind()
-    {
-        $this->countParts();
-        $this->iterationPos = 1;
+        return (string) preg_replace('/(?<!\r)\n/', replacement: "\r\n", subject: $text);
     }
 }
