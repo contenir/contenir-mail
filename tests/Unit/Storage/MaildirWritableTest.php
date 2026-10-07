@@ -5,11 +5,10 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Writable;
-use PharData;
+use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
 use PHPUnit\Framework\TestCase;
 
 use function array_reverse;
-use function class_exists;
 use function closedir;
 use function copy;
 use function fclose;
@@ -32,6 +31,8 @@ use const PHP_OS;
 
 class MaildirWritableTest extends TestCase
 {
+    use ExtractsMaildirFixtureTrait;
+
     /** @var array */
     protected $params;
     /** @var string */
@@ -70,20 +71,7 @@ class MaildirWritableTest extends TestCase
             }
         }
 
-        if (! file_exists($originalMaildir . 'maildirsize') && class_exists('PharData')) {
-            try {
-                $phar = new PharData($originalMaildir . 'maildir.tar');
-                $phar->extractTo($originalMaildir);
-            } catch (\Exception) {
-                // intentionally empty catch block
-            }
-        }
-
-        if (! file_exists($originalMaildir . 'maildirsize')) {
-            $this->markTestSkipped('You have to unpack maildir.tar in '
-                . 'Laminas/Mail/_files/test.maildir/ directory to run the maildir tests');
-            return;
-        }
+        $this->extractMaildirFixture($originalMaildir);
 
         $this->params            = [];
         $this->params['dirname'] = $this->tmpdir;
