@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Header;
 
+use Override;
+
 use function implode;
 use function in_array;
 use function sprintf;
@@ -37,6 +39,7 @@ class ContentTransferEncoding implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -61,6 +64,7 @@ class ContentTransferEncoding implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Content-Transfer-Encoding';
@@ -69,6 +73,7 @@ class ContentTransferEncoding implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         return $this->transferEncoding;
@@ -78,6 +83,7 @@ class ContentTransferEncoding implements HeaderInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         // Header must be always in US-ASCII
@@ -87,6 +93,7 @@ class ContentTransferEncoding implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return 'ASCII';
@@ -95,6 +102,7 @@ class ContentTransferEncoding implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Content-Transfer-Encoding: {$this->getFieldValue()}";

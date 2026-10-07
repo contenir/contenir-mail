@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Header;
 
+use Override;
+
 use function explode;
 use function implode;
 use function strpos;
@@ -15,6 +17,7 @@ class GenericMultiHeader extends GenericHeader implements MultipleHeadersInterfa
      * @param string $headerLine
      * @return array|GenericHeader|GenericMultiHeader|static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$fieldName, $fieldValue] = GenericHeader::splitHeaderLine($headerLine);
@@ -38,6 +41,7 @@ class GenericMultiHeader extends GenericHeader implements MultipleHeadersInterfa
      * @throws Exception\InvalidArgumentException
      * @return string
      */
+    #[Override]
     public function toStringMultipleHeaders(array $headers)
     {
         $name   = $this->getFieldName();

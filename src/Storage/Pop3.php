@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Override;
 use SensitiveParameter;
 
 use function array_combine;
@@ -32,6 +33,7 @@ class Pop3 extends AbstractStorage
      * @throws ExceptionInterface
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
+    #[Override]
     public function countMessages()
     {
         $count = 0; // "Declare" variable before first usage.
@@ -47,6 +49,7 @@ class Pop3 extends AbstractStorage
      * @return int|array size of given message of list with all messages as array(num => size)
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
+    #[Override]
     public function getSize($id = 0)
     {
         $id = $id ?: null;
@@ -60,6 +63,7 @@ class Pop3 extends AbstractStorage
      * @return Message
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      */
+    #[Override]
     public function getMessage($id)
     {
         $bodyLines = 0;
@@ -83,6 +87,7 @@ class Pop3 extends AbstractStorage
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
         if (null !== $part) {
@@ -102,6 +107,7 @@ class Pop3 extends AbstractStorage
      * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getRawContent($id, $part = null)
     {
         if (null !== $part) {
@@ -175,6 +181,7 @@ class Pop3 extends AbstractStorage
      * Close resource for mail lib. If you need to control, when the resource
      * is closed. Otherwise the destructor would call this.
      */
+    #[Override]
     public function close()
     {
         $this->protocol->logout();
@@ -185,6 +192,7 @@ class Pop3 extends AbstractStorage
      *
      * @throws RuntimeException
      */
+    #[Override]
     public function noop()
     {
         $this->protocol->noop();
@@ -198,6 +206,7 @@ class Pop3 extends AbstractStorage
      * @param  int $id number of message
      * @throws RuntimeException
      */
+    #[Override]
     public function removeMessage($id)
     {
         $this->protocol->delete($id);
@@ -212,6 +221,7 @@ class Pop3 extends AbstractStorage
      * @return array|string message number for given message or all messages as array
      * @throws ExceptionInterface
      */
+    #[Override]
     public function getUniqueId($id = null)
     {
         if (! $this->hasUniqueid) {
@@ -239,6 +249,7 @@ class Pop3 extends AbstractStorage
      * @throws InvalidArgumentException
      * @return int message number
      */
+    #[Override]
     public function getNumberByUniqueId($id)
     {
         if (! $this->hasUniqueid) {
@@ -264,6 +275,7 @@ class Pop3 extends AbstractStorage
      * @param  string $var
      * @return null|string
      */
+    #[Override]
     public function __get($var)
     {
         $result = parent::__get($var);

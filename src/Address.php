@@ -3,6 +3,7 @@
 namespace Contenir\Mail;
 
 use Contenir\Mail\Validator\EmailAddressValidator;
+use Override;
 
 use function array_shift;
 use function is_string;
@@ -106,6 +107,7 @@ class Address implements Address\AddressInterface
      *
      * @return string
      */
+    #[Override]
     public function getEmail()
     {
         return $this->email;
@@ -116,6 +118,7 @@ class Address implements Address\AddressInterface
      *
      * @return null|string
      */
+    #[Override]
     public function getName()
     {
         return $this->name;
@@ -136,6 +139,7 @@ class Address implements Address\AddressInterface
      *
      * @return string
      */
+    #[Override]
     public function toString()
     {
         $string = sprintf('<%s>', $this->getEmail());

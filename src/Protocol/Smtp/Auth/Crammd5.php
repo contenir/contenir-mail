@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp;
+use Override;
 use SensitiveParameter;
 
 use function array_replace_recursive;
@@ -56,6 +57,7 @@ class Crammd5 extends Smtp
     /**
      * Performs CRAM-MD5 authentication with supplied credentials
      */
+    #[Override]
     public function auth()
     {
         // Ensure AUTH has not already been initiated.

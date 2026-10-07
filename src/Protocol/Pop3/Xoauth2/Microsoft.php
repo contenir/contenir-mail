@@ -5,6 +5,7 @@ namespace Contenir\Mail\Protocol\Pop3\Xoauth2;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
+use Override;
 use SensitiveParameter;
 
 /**
@@ -20,6 +21,7 @@ class Microsoft extends Pop3
      * @param string $password OAUTH2 accessToken
      * @param bool $tryApop obsolete parameter not used here
      */
+    #[Override]
     public function login($user, #[SensitiveParameter] $password, $tryApop = true): void
     {
         $this->sendRequest(self::AUTH_INITIALIZE_REQUEST);

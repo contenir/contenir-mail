@@ -2,6 +2,8 @@
 
 namespace Contenir\Mail\Header;
 
+use Override;
+
 use function getmypid;
 use function mt_rand;
 use function php_uname;
@@ -21,6 +23,7 @@ class MessageId implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -40,6 +43,7 @@ class MessageId implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Message-ID';
@@ -48,6 +52,7 @@ class MessageId implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         return $this->messageId;
@@ -57,6 +62,7 @@ class MessageId implements HeaderInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         // This header must be always in US-ASCII
@@ -66,6 +72,7 @@ class MessageId implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         return 'ASCII';
@@ -74,6 +81,7 @@ class MessageId implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Message-ID: {$this->getFieldValue()}";

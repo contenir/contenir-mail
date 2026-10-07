@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Storage;
 
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 
 use function array_combine;
 use function file_get_contents;
@@ -59,6 +60,7 @@ class Message extends Part implements Message\MessageInterface
      *
      * @return string toplines
      */
+    #[Override]
     public function getTopLines()
     {
         return $this->topLines;
@@ -70,6 +72,7 @@ class Message extends Part implements Message\MessageInterface
      * @param mixed $flag a flag name, use constants defined in \Contenir\Mail\Storage
      * @return bool true if set, otherwise false
      */
+    #[Override]
     public function hasFlag($flag)
     {
         return isset($this->flags[$flag]);
@@ -80,6 +83,7 @@ class Message extends Part implements Message\MessageInterface
      *
      * @return array array with flags, key and value are the same for easy lookup
      */
+    #[Override]
     public function getFlags()
     {
         return $this->flags;

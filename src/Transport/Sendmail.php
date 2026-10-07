@@ -7,6 +7,7 @@ use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Transport\Exception\InvalidArgumentException;
 use Contenir\Mail\Transport\Exception\RuntimeException;
+use Override;
 use Traversable;
 
 use function assert;
@@ -130,6 +131,7 @@ class Sendmail implements TransportInterface
     /**
      * Send a message
      */
+    #[Override]
     public function send(Mail\Message $message)
     {
         $to      = $this->prepareRecipients($message);

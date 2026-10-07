@@ -5,6 +5,7 @@ namespace Contenir\Mail\Header;
 use Contenir\Mail;
 use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\Mime\Mime;
+use Override;
 
 use function gettype;
 use function is_object;
@@ -36,6 +37,7 @@ class Sender implements HeaderInterface
      * @param string $headerLine
      * @return static
      */
+    #[Override]
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
@@ -78,6 +80,7 @@ class Sender implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getFieldName()
     {
         return 'Sender';
@@ -86,6 +89,7 @@ class Sender implements HeaderInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
     {
         if (! $this->address instanceof Mail\Address\AddressInterface) {
@@ -112,6 +116,7 @@ class Sender implements HeaderInterface
      * @param string $encoding
      * @return self
      */
+    #[Override]
     public function setEncoding($encoding)
     {
         $this->encoding = $encoding;
@@ -121,6 +126,7 @@ class Sender implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function getEncoding()
     {
         if (! $this->encoding) {
@@ -135,6 +141,7 @@ class Sender implements HeaderInterface
     /**
      * @return string
      */
+    #[Override]
     public function toString()
     {
         return "Sender: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";

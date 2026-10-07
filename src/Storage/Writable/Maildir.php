@@ -10,6 +10,7 @@ use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Folder;
 use Laminas\Stdlib\ErrorHandler;
+use Override;
 use RecursiveIteratorIterator;
 
 use function array_flip;
@@ -156,6 +157,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @throws RuntimeException
      * @return  string only used internally (new created maildir)
      */
+    #[Override]
     public function createFolder($name, $parentFolder = null)
     {
         if ($parentFolder instanceof Folder) {
@@ -237,6 +239,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param  string|Folder $name      name or instance of folder
      * @throws RuntimeException
      */
+    #[Override]
     public function removeFolder($name)
     {
         // TODO: This could fail in the middle of the task, which is not optimal.
@@ -312,6 +315,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param  string                           $newName new global name of folder
      * @throws RuntimeException
      */
+    #[Override]
     public function renameFolder($oldName, $newName)
     {
         // TODO: This is also not atomar and has similar problems as removeFolder()
@@ -498,6 +502,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      *     should only be used in delivery.
      * @throws StorageException\RuntimeException
      */
+    #[Override]
     public function appendMessage($message, $folder = null, $flags = null, $recent = false)
     {
         if ($this->quota && $this->checkQuota()) {
@@ -567,6 +572,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param string|Folder $folder name or instance of targer folder
      * @throws RuntimeException
      */
+    #[Override]
     public function copyMessage($id, $folder)
     {
         if ($this->quota && $this->checkQuota()) {
@@ -643,6 +649,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param string|Folder $folder name or instance of targer folder
      * @throws RuntimeException
      */
+    #[Override]
     public function moveMessage($id, $folder)
     {
         if (! $folder instanceof Folder) {
@@ -710,6 +717,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param   array $flags new flags for message
      * @throws RuntimeException
      */
+    #[Override]
     public function setFlags($id, $flags)
     {
         $info     = $this->getInfoString($flags);
@@ -743,6 +751,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      * @param int $id
      * @throws RuntimeException
      */
+    #[Override]
     public function removeMessage($id)
     {
         $filename = $this->getFileData($id, 'filename');

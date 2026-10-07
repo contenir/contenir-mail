@@ -10,6 +10,7 @@ use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderLocatorInterface;
 use Countable;
 use Iterator;
+use Override;
 use ReturnTypeWillChange;
 use Traversable;
 
@@ -389,6 +390,7 @@ class Headers implements Countable, Iterator
     /**
      * Advance the pointer for this object as an iterator
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function next()
     {
@@ -400,6 +402,7 @@ class Headers implements Countable, Iterator
      *
      * @return mixed
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function key()
     {
@@ -411,6 +414,7 @@ class Headers implements Countable, Iterator
      *
      * @return bool
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function valid()
     {
@@ -420,6 +424,7 @@ class Headers implements Countable, Iterator
     /**
      * Reset the internal pointer for this object as an iterator
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function rewind()
     {
@@ -431,6 +436,7 @@ class Headers implements Countable, Iterator
      *
      * @return HeaderInterface
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function current()
     {
@@ -447,6 +453,7 @@ class Headers implements Countable, Iterator
      *
      * @return int count of currently known headers
      */
+    #[Override]
     #[ReturnTypeWillChange]
     public function count()
     {
