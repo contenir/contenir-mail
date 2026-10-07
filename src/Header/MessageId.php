@@ -12,6 +12,7 @@ use function preg_match;
 use function random_bytes;
 use function sprintf;
 use function str_contains;
+use function strlen;
 use function strtolower;
 use function trim;
 
@@ -23,19 +24,20 @@ final readonly class MessageId implements HeaderInterface
     /** The domain of generated IDs when none is given: reserved, so it names no real host (RFC 2606) */
     public const string DEFAULT_DOMAIN = 'localhost.invalid';
 
+    /**
+     * The longest ID, so that "In-Reply-To: <ID>", the longest line holding one, stays within
+     * the 998 characters RFC 5322 allows. An ID cannot be encoded, so a longer one is refused.
+     */
+    public const int MAX_LENGTH = HeaderLines::MAX_LINE_LENGTH - 15;
+
     private string $id;
 
     /**
-     * @throws Exception\InvalidArgumentException When the ID is empty or contains invalid characters.
+     * @throws Exception\InvalidArgumentException When the ID is empty, too long or contains invalid characters.
      */
     public function __construct(string $id)
     {
-        $id = trim($id, characters: " \t<>");
-        if ('' === $id || ! HeaderValue::isValid($id) || 1 === preg_match("/[\r\n\\s<>]/", $id)) {
-            throw new Exception\InvalidArgumentException('Invalid ID detected');
-        }
-
-        $this->id = $id;
+        $this->id = self::check($id);
     }
 
     /**
@@ -54,6 +56,29 @@ final readonly class MessageId implements HeaderInterface
         }
 
         return new self(sprintf('%s@%s', bin2hex(random_bytes(16)), $domain));
+    }
+
+    /**
+     * The ID without angle brackets, checked.
+     *
+     * @internal Also used by AbstractIdentificationField.
+     * @throws Exception\InvalidArgumentException When the ID is empty, too long or contains invalid characters.
+     */
+    public static function check(string $id): string
+    {
+        $id = trim($id, characters: " \t<>");
+        if ('' === $id || ! HeaderValue::isValid($id) || 1 === preg_match("/[\r\n\\s<>]/", $id)) {
+            throw new Exception\InvalidArgumentException('Invalid ID detected');
+        }
+
+        if (strlen($id) > self::MAX_LENGTH) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'An ID may be at most %d characters, so that its header line fits in 998',
+                self::MAX_LENGTH,
+            ));
+        }
+
+        return $id;
     }
 
     #[Override]

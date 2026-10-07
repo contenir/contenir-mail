@@ -418,4 +418,52 @@ final class HeaderWrapTest extends TestCase
             'multibyte charset split across words in mixed case' => ['=?shift_jis?Q?=82?= =?SHIFT_JIS?Q?=A0?=', 'あ'],
         ];
     }
+
+    /**
+     * "Subject: " and a 989-character word make a line of exactly 998.
+     */
+    #[Test]
+    public function keepsWordThatFitsLineLimit(): void
+    {
+        static::assertSame(str_repeat('a', times: 989), HeaderWrap::fold('Subject', str_repeat('a', times: 989)));
+    }
+
+    #[Test]
+    public function keepsWordOnFoldedLineThatFitsLineLimit(): void
+    {
+        static::assertSame(
+            "short\r\n " . str_repeat('a', times: 997),
+            HeaderWrap::fold('Subject', 'short ' . str_repeat('a', times: 997)),
+        );
+    }
+
+    /**
+     * @param non-empty-string $value
+     */
+    #[DataProvider('overlongWordProvider')]
+    #[Test]
+    public function encodesValueWithWordTooLongForLineLimit(string $value): void
+    {
+        $folded = HeaderWrap::fold('Subject', $value);
+
+        static::assertSame(
+            [$value, true],
+            [
+                HeaderWrap::mimeDecodeValue($folded),
+                max(array_map(strlen(...), explode("\r\n", "Subject: {$folded}"))) <= 78,
+            ],
+        );
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function overlongWordProvider(): array
+    {
+        return [
+            'first line one over'  => [str_repeat('a', times: 990)],
+            'later line one over'  => ['short ' . str_repeat('a', times: 998)],
+            'long URL in sentence' => ['See https://example.com/' . str_repeat('path/', times: 400) . ' for details'],
+        ];
+    }
 }

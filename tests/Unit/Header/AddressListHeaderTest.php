@@ -14,6 +14,7 @@ use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\Cc;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\From;
+use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\To;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,6 +24,11 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
+use function explode;
+use function max;
+use function str_repeat;
+use function str_starts_with;
+use function strlen;
 
 #[CoversClass(AbstractAddressList::class)]
 #[CoversClass(AddressListCodec::class)]
@@ -35,6 +41,9 @@ use function array_map;
 #[Group('unit')]
 final class AddressListHeaderTest extends TestCase
 {
+    /** An address of 62 characters, long enough that the name and address together are measured */
+    private const string LONG_EMAIL = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com';
+
     private const string FIELD_VALUE =
         'Example Test <test@example.com>, list@example.com, '
             . 'Example Announce List <announce@example.com>, "Last, First" <first@last.example.com>';
@@ -497,5 +506,38 @@ final class AddressListHeaderTest extends TestCase
     public function keepsAsciiDomainCaseOnTheWire(): void
     {
         static::assertSame('User@Example.COM', AddressEncoder::encode(new Address('User@Example.COM')));
+    }
+
+    /**
+     * "Reply-To: ", the name, the address in angle brackets and "," make a line of exactly 998.
+     */
+    #[Test]
+    public function quotesLongDisplayNameThatFitsLineLimit(): void
+    {
+        $name = str_repeat('a', times: 922);
+
+        static::assertSame(
+            "{$name} <" . self::LONG_EMAIL . '>',
+            (new ReplyTo(new AddressList(new Address(self::LONG_EMAIL, $name))))->getEncodedFieldValue(),
+        );
+    }
+
+    /**
+     * A display name can be encoded, so one too long for a line is written as encoded words.
+     */
+    #[Test]
+    public function encodesDisplayNameTooLongForLineLimit(): void
+    {
+        $name    = str_repeat('a', times: 923);
+        $encoded = (new ReplyTo(new AddressList(new Address(self::LONG_EMAIL, $name))))->getEncodedFieldValue();
+
+        static::assertSame(
+            ["{$name} <" . self::LONG_EMAIL . '>', true, true],
+            [
+                HeaderWrap::mimeDecodeValue($encoded),
+                str_starts_with($encoded, '=?UTF-8?Q?'),
+                max(array_map(strlen(...), explode("\r\n", "Reply-To: {$encoded}"))) <= 998,
+            ],
+        );
     }
 }

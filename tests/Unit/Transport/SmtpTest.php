@@ -334,12 +334,37 @@ final class SmtpTest extends TestCase
         static::fail('A header with a line break was sent');
     }
 
+    /**
+     * A word too long to fold is written as encoded words, so every line fits SMTP's limit.
+     */
     #[Test]
-    public function refusesHeaderLineLongerThanSmtpAllows(): void
+    public function sendsHeaderWithOverlongWordWithinLineLimit(): void
     {
         [$transport, , $server] = self::transport();
         $server->setCapabilities('STARTTLS');
         $message = self::message()->addHeader(new GenericHeader('X-Long', str_repeat('0123456789abcdef', times: 64)));
+
+        $transport->send($message);
+        $lines = $server->sentLines();
+
+        static::assertSame(
+            [['X-Long: =?UTF-8?Q?0123456789abcdef0123456789abcdef0123456789abcdef0123456789?='], []],
+            [
+                array_values(array_filter($lines, static fn(string $line): bool => str_starts_with($line, 'X-Long:'))),
+                array_values(array_filter(
+                    $lines,
+                    static fn(string $line): bool => strlen($line) > SmtpProtocol::SMTP_LINE_LIMIT,
+                )),
+            ],
+        );
+    }
+
+    #[Test]
+    public function refusesBodyLineLongerThanSmtpAllows(): void
+    {
+        [$transport, , $server] = self::transport();
+        $server->setCapabilities('STARTTLS');
+        $message = self::message()->setBody(str_repeat('0123456789abcdef', times: 64));
 
         $this->expectException(ProtocolInvalidArgumentException::class);
         $this->expectExceptionMessage('bytes; SMTP allows at most 998');
