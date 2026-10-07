@@ -23,6 +23,7 @@ use PHPUnit\Framework\TestCase;
 
 use function array_map;
 use function iterator_to_array;
+use function str_repeat;
 
 #[CoversClass(Headers::class)]
 #[CoversClass(HeaderParser::class)]
@@ -685,6 +686,66 @@ final class HeadersTest extends TestCase
         $headers = Headers::fromString("Subject: Hello\r\n\tworld\r\n");
 
         static::assertSame('Hello world', $headers->get('Subject')?->getFieldValue());
+    }
+
+    /**
+     * Resource exhaustion: a header block is read only up to a size limit.
+     */
+    #[Test]
+    public function rejectsHeaderBlockLargerThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may be at most 1048576 bytes');
+
+        Headers::fromString('X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES));
+    }
+
+    #[Test]
+    public function readsHeaderBlockOfExactlyTheLimit(): void
+    {
+        $block = 'X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES - 7);
+
+        static::assertCount(1, Headers::fromString($block));
+    }
+
+    /**
+     * Resource exhaustion: a header block holds a limited number of headers.
+     */
+    #[Test]
+    public function rejectsMoreHeadersThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may hold at most 1000 headers');
+
+        Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS + 1));
+    }
+
+    #[Test]
+    public function readsExactlyTheLimitOfHeaders(): void
+    {
+        static::assertCount(
+            HeaderBlock::MAX_HEADERS,
+            Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS)),
+        );
+    }
+
+    /**
+     * RFC 5322 line limit: a line read longer than 998 octets is not written back as it was.
+     */
+    #[Test]
+    public function writesOverlongReadLineFromItsValue(): void
+    {
+        $value = str_repeat('a', times: 993);
+
+        static::assertSame("X-A: {$value}\r\n", Headers::fromString("x-a:  {$value}")->toString());
+    }
+
+    #[Test]
+    public function keepsReadLineOfExactlyTheLineLimit(): void
+    {
+        $line = 'x-a:  ' . str_repeat('a', times: 992);
+
+        static::assertSame("{$line}\r\n", Headers::fromString($line)->toString());
     }
 
     /**
