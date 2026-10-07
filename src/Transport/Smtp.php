@@ -10,6 +10,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\SystemClock;
+use LogicException;
 use Override;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;
@@ -57,6 +58,28 @@ final class Smtp implements TransportInterface
         private readonly ClockInterface $clock = new SystemClock(),
     ) {
         $this->config = $config instanceof SmtpConfig ? $config : SmtpConfig::fromIterable($config ?? []);
+    }
+
+    /**
+     * A transport holds a live connection and its credentials, so it cannot be serialized.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __serialize(): array
+    {
+        throw new LogicException(self::class . ' cannot be serialized');
+    }
+
+    /**
+     * Refuse to unserialize, so that a crafted payload never reaches the destructor.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __wakeup(): void
+    {
+        throw new LogicException(self::class . ' cannot be unserialized');
     }
 
     /**
