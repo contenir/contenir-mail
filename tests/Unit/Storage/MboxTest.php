@@ -6,6 +6,7 @@ use ArrayObject;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chmod;
@@ -81,37 +82,43 @@ class MboxTest extends TestCase
         }
     }
 
-    public function testLoadOk(): void
+    #[Test]
+    public function loadOk(): void
     {
         new Storage\Mbox(['filename' => $this->mboxFile]);
         $this->addToAssertionCount(1);
     }
 
-    public function testLoadConfig(): void
+    #[Test]
+    public function loadConfig(): void
     {
         new Storage\Mbox(new ArrayObject(['filename' => $this->mboxFile]));
         $this->addToAssertionCount(1);
     }
 
-    public function testNoParams(): void
+    #[Test]
+    public function noParams(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         new Storage\Mbox([]);
     }
 
-    public function testLoadFailure(): void
+    #[Test]
+    public function loadFailure(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         new Storage\Mbox(['filename' => 'ThisFileDoesNotExist']);
     }
 
-    public function testLoadInvalid(): void
+    #[Test]
+    public function loadInvalid(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         new Storage\Mbox(['filename' => __FILE__]);
     }
 
-    public function testClose(): void
+    #[Test]
+    public function close(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -119,58 +126,65 @@ class MboxTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testHasTop(): void
+    #[Test]
+    public function hasTop(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertTrue($mail->hasTop);
+        static::assertTrue($mail->hasTop);
     }
 
-    public function testHasCreate(): void
+    #[Test]
+    public function hasCreate(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertFalse($mail->hasCreate);
+        static::assertFalse($mail->hasCreate);
     }
 
-    public function testNoop(): void
+    #[Test]
+    public function noop(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertTrue($mail->noop());
+        static::assertTrue($mail->noop());
     }
 
-    public function testCount(): void
+    #[Test]
+    public function countsMessages(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $count = $mail->countMessages();
-        $this->assertEquals(7, $count);
+        static::assertEquals(7, $count);
     }
 
-    public function testSize(): void
+    #[Test]
+    public function reportsMessageSizes(): void
     {
         $mail        = new Storage\Mbox(['filename' => $this->mboxFile]);
         $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
 
         $sizes = $mail->getSize();
-        $this->assertEquals($shouldSizes, $sizes);
+        static::assertEquals($shouldSizes, $sizes);
     }
 
-    public function testSingleSize(): void
+    #[Test]
+    public function singleSize(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $size = $mail->getSize(2);
-        $this->assertEquals(89, $size);
+        static::assertEquals(89, $size);
     }
 
-    public function testFetchHeader(): void
+    #[Test]
+    public function fetchHeader(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
     /*
@@ -185,43 +199,48 @@ class MboxTest extends TestCase
 
     /**
      */
+    #[Test]
     #[Group('6775')]
-    public function testFetchMessageHeaderUnix(): void
+    public function fetchMessageHeaderUnix(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageHeader(): void
+    #[Test]
+    public function fetchMessageHeader(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageBody(): void
+    #[Test]
+    public function fetchMessageBody(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
 
+    #[Test]
     #[Group('6775')]
-    public function testFetchMessageBodyUnix(): void
+    public function fetchMessageBodyUnix(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
 
-    public function testFailedRemove(): void
+    #[Test]
+    public function failedRemove(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -229,23 +248,26 @@ class MboxTest extends TestCase
         $mail->removeMessage(1);
     }
 
-    public function testCapabilities(): void
+    #[Test]
+    public function capabilities(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
         $capa = $mail->getCapabilities();
-        $this->assertTrue(isset($capa['uniqueid']));
+        static::assertTrue(isset($capa['uniqueid']));
     }
 
-    public function testValid(): void
+    #[Test]
+    public function valid(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertFalse($mail->valid());
+        static::assertFalse($mail->valid());
         $mail->rewind();
-        $this->assertTrue($mail->valid());
+        static::assertTrue($mail->valid());
     }
 
-    public function testOutOfBounds(): void
+    #[Test]
+    public function outOfBounds(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -253,7 +275,8 @@ class MboxTest extends TestCase
         $mail->seek(INF);
     }
 
-    public function testSleepWake(): void
+    #[Test]
+    public function sleepWake(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -268,11 +291,12 @@ class MboxTest extends TestCase
         copy($this->mboxOriginalFile, $this->mboxFile);
         $mail = unserialize($serialzed);
 
-        $this->assertEquals($mail->countMessages(), $count);
-        $this->assertEquals($mail->getMessage(1)->getContent(), $content);
+        static::assertEquals($mail->countMessages(), $count);
+        static::assertEquals($mail->getMessage(1)->getContent(), $content);
     }
 
-    public function testSleepWakeRemoved(): void
+    #[Test]
+    public function sleepWakeRemoved(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -282,7 +306,7 @@ class MboxTest extends TestCase
         $serialzed = serialize($mail);
         $mail      = null;
 
-        $this->assertFileExists($this->mboxFile);
+        static::assertFileExists($this->mboxFile);
 
         $stat = stat($this->mboxFile);
         chmod($this->mboxFile, 0);
@@ -290,7 +314,7 @@ class MboxTest extends TestCase
         $statcheck = stat($this->mboxFile);
         if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
             chmod($this->mboxFile, $stat['mode']);
-            $this->markTestSkipped(
+            static::markTestSkipped(
                 'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
             return;
@@ -309,42 +333,44 @@ class MboxTest extends TestCase
 
         if (! $check) {
             if (function_exists('posix_getuid') && posix_getuid() === 0) {
-                $this->markTestSkipped('seems like you are root and we therefore cannot test the error handling');
+                static::markTestSkipped('seems like you are root and we therefore cannot test the error handling');
             } elseif (! function_exists('posix_getuid')) {
-                $this->markTestSkipped('Can\t test if you\'re root and we therefore cannot test the error handling');
+                static::markTestSkipped('Can\t test if you\'re root and we therefore cannot test the error handling');
             }
-            $this->fail('no exception while waking with non readable file');
+            static::fail('no exception while waking with non readable file');
         }
     }
 
-    public function testUniqueId(): void
+    #[Test]
+    public function uniqueId(): void
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertFalse($mail->hasUniqueId);
-        $this->assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
+        static::assertFalse($mail->hasUniqueId);
+        static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
         $ids = $mail->getUniqueId();
         foreach ($ids as $num => $id) {
-            $this->assertEquals($num, $id);
+            static::assertEquals($num, $id);
 
             if ($mail->getNumberByUniqueId($id) != $num) {
-                $this->fail('reverse lookup failed');
+                static::fail('reverse lookup failed');
             }
         }
     }
 
-    public function testShortMbox(): void
+    #[Test]
+    public function shortMbox(): void
     {
         $fh = fopen($this->mboxFile, 'w');
         fwrite($fh, "From \r\nSubject: test\r\nFrom \r\nSubject: test2\r\n");
         fclose($fh);
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-        $this->assertEquals($mail->countMessages(), 2);
-        $this->assertEquals($mail->getMessage(1)->subject, 'test');
-        $this->assertEquals($mail->getMessage(1)->getContent(), '');
-        $this->assertEquals($mail->getMessage(2)->subject, 'test2');
-        $this->assertEquals($mail->getMessage(2)->getContent(), '');
+        static::assertEquals($mail->countMessages(), 2);
+        static::assertEquals($mail->getMessage(1)->subject, 'test');
+        static::assertEquals($mail->getMessage(1)->getContent(), '');
+        static::assertEquals($mail->getMessage(2)->subject, 'test2');
+        static::assertEquals($mail->getMessage(2)->getContent(), '');
     }
 
     private function getUnixMboxFile(): string

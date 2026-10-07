@@ -7,6 +7,7 @@ use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\Date::class)]
@@ -22,44 +23,50 @@ class DateTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('headerLines')]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionOnCrlfInjectionAttempt(string $header): void
+    public function fromStringRaisesExceptionOnCrlfInjectionAttempt(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         Header\Date::fromString($header);
     }
 
+    #[Test]
     #[Group('ZF2015-04')]
-    public function testPreventsCRLFInjectionViaConstructor(): void
+    public function preventsCRLFInjectionViaConstructor(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $address = new Header\Date("This\ris\r\na\nCRLF Attack");
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for Date string');
         Header\Date::fromString('Foo: bar');
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = new Header\Date('today');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncodingHasNoEffect(): void
+    #[Test]
+    public function setEncodingHasNoEffect(): void
     {
         $header = new Header\Date('today');
         $header->setEncoding('UTF-8');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testToString(): void
+    #[Test]
+    public function rendersHeaderLine(): void
     {
         $header = new Header\Date('today');
-        $this->assertEquals('Date: today', $header->toString());
+        static::assertEquals('Date: today', $header->toString());
     }
 }

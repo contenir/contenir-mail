@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Mime\Message;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -16,43 +17,47 @@ use function strpos;
 
 class MessageTest extends TestCase
 {
-    public function testMultiPart()
+    #[Test]
+    public function multiPart()
     {
         $msg = new Mime\Message(); // No Parts
-        $this->assertFalse($msg->isMultiPart());
+        static::assertFalse($msg->isMultiPart());
     }
 
-    public function testSetGetParts()
+    #[Test]
+    public function setGetParts()
     {
         $msg = new Mime\Message(); // No Parts
         $p = $msg->getParts();
-        $this->assertIsArray($p);
-        $this->assertEmpty($p);
+        static::assertIsArray($p);
+        static::assertEmpty($p);
 
         $p2   = [];
         $p2[] = new Mime\Part('This is a test');
         $p2[] = new Mime\Part('This is another test');
         $msg->setParts($p2);
         $p = $msg->getParts();
-        $this->assertIsArray($p);
-        $this->assertCount(2, $p);
+        static::assertIsArray($p);
+        static::assertCount(2, $p);
     }
 
-    public function testGetMime()
+    #[Test]
+    public function getMime()
     {
         $msg = new Mime\Message(); // No Parts
         $m = $msg->getMime();
-        $this->assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m);
+        static::assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m);
 
         $msg = new Mime\Message(); // No Parts
         $mime = new Mime\Mime('1234');
         $msg->setMime($mime);
         $m2 = $msg->getMime();
-        $this->assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m2);
-        $this->assertEquals('1234', $m2->boundary());
+        static::assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m2);
+        static::assertEquals('1234', $m2->boundary());
     }
 
-    public function testGenerate()
+    #[Test]
+    public function generate()
     {
         $msg = new Mime\Message(); // No Parts
         $p1 = new Mime\Part('This is a test');
@@ -64,14 +69,14 @@ class MessageTest extends TestCase
         $boundary = $mime->boundary();
         $p1       = strpos($res, $boundary);
         // $boundary must appear once for every mime part
-        $this->assertNotFalse($p1);
+        static::assertNotFalse($p1);
         if ($p1) {
             $p2 = strpos($res, $boundary, $p1 + strlen($boundary));
-            $this->assertNotFalse($p2);
+            static::assertNotFalse($p2);
         }
         // check if the two test messages appear:
-        $this->assertStringContainsString('This is a test', $res);
-        $this->assertStringContainsString('This is another test', $res);
+        static::assertStringContainsString('This is a test', $res);
+        static::assertStringContainsString('This is another test', $res);
 
         // ... more in ZMailTest
     }
@@ -79,7 +84,8 @@ class MessageTest extends TestCase
     /**
      * check if decoding a string into a \Contenir\Mail\Mime\Message object works
      */
-    public function testDecodeMimeMessage()
+    #[Test]
+    public function decodeMimeMessage()
     {
         $text = <<<EOD
             This is a message in Mime Format.  If you see this, your mail reader does not support this format.
@@ -100,22 +106,23 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
-        $this->assertEquals(2, count($parts));
+        static::assertEquals(2, count($parts));
 
         $part1 = $parts[0];
-        $this->assertEquals('application/octet-stream', $part1->type);
-        $this->assertEquals('8bit', $part1->encoding);
+        static::assertEquals('application/octet-stream', $part1->type);
+        static::assertEquals('8bit', $part1->encoding);
 
         $part2 = $parts[1];
-        $this->assertEquals('image/gif', $part2->type);
-        $this->assertEquals('base64', $part2->encoding);
-        $this->assertEquals('12', $part2->id);
+        static::assertEquals('image/gif', $part2->type);
+        static::assertEquals('base64', $part2->encoding);
+        static::assertEquals('12', $part2->id);
     }
 
     /**
      * check if decoding a string into a \Contenir\Mail\Mime\Message object works
      */
-    public function testDecodeMimeMessageNoHeader()
+    #[Test]
+    public function decodeMimeMessageNoHeader()
     {
         $text = <<<EOD
             This is a MIME-encapsulated message
@@ -135,21 +142,22 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
-        $this->assertEquals(2, count($parts));
+        static::assertEquals(2, count($parts));
 
         $part1        = $parts[0];
         $part1Content = $part1->getRawContent();
-        $this->assertStringContainsString('The original message', $part1Content);
-        $this->assertStringContainsString('End content', $part1Content);
+        static::assertStringContainsString('The original message', $part1Content);
+        static::assertStringContainsString('End content', $part1Content);
 
         $part2 = $parts[1];
-        $this->assertEquals('image/gif', $part2->type);
+        static::assertEquals('image/gif', $part2->type);
     }
 
     /**
      * Check if decoding a string that is not a multipart message works
      */
-    public function testDecodeNonMultipartMimeMessage()
+    #[Test]
+    public function decodeNonMultipartMimeMessage()
     {
         $text = <<<EOD
             Content-Type: image/gif
@@ -159,15 +167,16 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text);
 
         $parts = $res->getParts();
-        $this->assertEquals(1, count($parts));
+        static::assertEquals(1, count($parts));
 
         $part1        = $parts[0];
         $part1Content = $part1->getRawContent();
-        $this->assertEquals('This is a test', $part1Content);
-        $this->assertEquals('image/gif', $part1->type);
+        static::assertEquals('This is a test', $part1Content);
+        static::assertEquals('image/gif', $part1->type);
     }
 
-    public function testNonMultipartMessageShouldNotRemovePartFromMessage()
+    #[Test]
+    public function nonMultipartMessageShouldNotRemovePartFromMessage()
     {
         $message = new Mime\Message(); // No Parts
         $part = new Mime\Part('This is a test');
@@ -176,19 +185,21 @@ class MessageTest extends TestCase
 
         $parts = $message->getParts();
         $test  = current($parts);
-        $this->assertSame($part, $test);
+        static::assertSame($part, $test);
     }
 
+    #[Test]
     #[Group('Laminas-5962')]
-    public function testPassEmptyArrayIntoSetPartsShouldReturnEmptyString()
+    public function passEmptyArrayIntoSetPartsShouldReturnEmptyString()
     {
         $mimeMessage = new Mime\Message();
         $mimeMessage->setParts([]);
 
-        $this->assertEquals('', $mimeMessage->generateMessage());
+        static::assertEquals('', $mimeMessage->generateMessage());
     }
 
-    public function testDuplicatePartAddedWillThrowException()
+    #[Test]
+    public function duplicatePartAddedWillThrowException()
     {
         $this->expectException(Mime\Exception\InvalidArgumentException::class);
 
@@ -198,7 +209,8 @@ class MessageTest extends TestCase
         $message->addPart($part);
     }
 
-    public function testFromStringWithCrlfAndRfc2822FoldedHeaders()
+    #[Test]
+    public function fromStringWithCrlfAndRfc2822FoldedHeaders()
     {
         // This is a fixture as provided by many mailservers
         // e.g. cyrus or dovecot
@@ -223,7 +235,7 @@ class MessageTest extends TestCase
         $message = Message::createFromMessage($fixture, '=_af4357ef34b786aae1491b0a2d14399f', $eol);
         $parts   = $message->getParts();
 
-        $this->assertEquals(1, count($parts));
-        $this->assertEquals('attachment; filename="test.txt"', $parts[0]->getDisposition());
+        static::assertEquals(1, count($parts));
+        static::assertEquals('attachment; filename="test.txt"', $parts[0]->getDisposition());
     }
 }

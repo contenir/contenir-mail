@@ -7,38 +7,43 @@ use Contenir\Mail\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Address::class)]
 class AddressTest extends TestCase
 {
-    public function testDoesNotRequireNameForInstantiation(): void
+    #[Test]
+    public function doesNotRequireNameForInstantiation(): void
     {
         $address = new Address('test@example.com');
-        $this->assertEquals('test@example.com', $address->getEmail());
-        $this->assertNull($address->getName());
+        static::assertEquals('test@example.com', $address->getEmail());
+        static::assertNull($address->getName());
     }
 
-    public function testAcceptsNameViaConstructor(): void
+    #[Test]
+    public function acceptsNameViaConstructor(): void
     {
         $address = new Address('test@example.com', 'Example Test');
-        $this->assertEquals('test@example.com', $address->getEmail());
-        $this->assertEquals('Example Test', $address->getName());
+        static::assertEquals('test@example.com', $address->getEmail());
+        static::assertEquals('Example Test', $address->getName());
     }
 
-    public function testToStringCreatesStringRepresentation(): void
+    #[Test]
+    public function toStringCreatesStringRepresentation(): void
     {
         $address = new Address('test@example.com', 'Example Test');
-        $this->assertEquals('Example Test <test@example.com>', $address->toString());
+        static::assertEquals('Example Test <test@example.com>', $address->toString());
     }
 
     /**
      * @param string $email
      * @param null|string $name
      */
+    #[Test]
     #[DataProvider('invalidSenderDataProvider')]
     #[Group('ZF2015-04')]
-    public function testSetAddressInvalidAddressObject($email, $name): void
+    public function setAddressInvalidAddressObject($email, $name): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         new Address($email, $name);
@@ -68,11 +73,12 @@ class AddressTest extends TestCase
      * @param string $email
      * @param null|string $name
      */
+    #[Test]
     #[DataProvider('validSenderDataProvider')]
-    public function testSetAddressValidAddressObject($email, $name): void
+    public function setAddressValidAddressObject($email, $name): void
     {
         $address = new Address($email, $name);
-        $this->assertInstanceOf(Address::class, $address);
+        static::assertInstanceOf(Address::class, $address);
     }
 
     public static function validSenderDataProvider(): array

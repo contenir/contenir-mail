@@ -7,6 +7,7 @@ use Contenir\Mail\Header\HeaderValue;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\HeaderValue::class)]
@@ -33,11 +34,12 @@ class HeaderValueTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('getFilterValues')]
     #[Group('ZF2015-04')]
-    public function testFilterValue(string $value, string $expected): void
+    public function filterValue(string $value, string $expected): void
     {
-        $this->assertEquals($expected, HeaderValue::filter($value));
+        static::assertEquals($expected, HeaderValue::filter($value));
     }
 
     public static function validateValues(): array
@@ -62,9 +64,10 @@ class HeaderValueTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('validateValues')]
     #[Group('ZF2015-04')]
-    public function testValidateValue(string $value, string $assertion): void
+    public function validateValue(string $value, string $assertion): void
     {
         $this->{$assertion}(HeaderValue::isValid($value));
     }
@@ -85,9 +88,10 @@ class HeaderValueTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('assertValues')]
     #[Group('ZF2015-04')]
-    public function testAssertValidRaisesExceptionForInvalidValues(string $value): void
+    public function assertValidRaisesExceptionForInvalidValues(string $value): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('Invalid');

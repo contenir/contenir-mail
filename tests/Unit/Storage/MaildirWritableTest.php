@@ -6,6 +6,7 @@ use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Writable;
 use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_reverse;
@@ -127,7 +128,8 @@ class MaildirWritableTest extends TestCase
         @unlink($this->tmpdir . 'maildirsize');
     }
 
-    public function testCreateFolder(): void
+    #[Test]
+    public function createFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->createFolder('subfolder.test1');
@@ -147,10 +149,11 @@ class MaildirWritableTest extends TestCase
             $selected[] = (string) $mail->getCurrentFolder();
         }
 
-        $this->assertSame(['subfolder.test1', 'subfolder.test2', 'subfolder.test3', 'foo.bar'], $selected);
+        static::assertSame(['subfolder.test1', 'subfolder.test2', 'subfolder.test3', 'foo.bar'], $selected);
     }
 
-    public function testCreateFolderEmptyPart(): void
+    #[Test]
+    public function createFolderEmptyPart(): void
     {
         $mail = new Writable\Maildir($this->params);
         $this->expectException(Exception\RuntimeException::class);
@@ -158,7 +161,8 @@ class MaildirWritableTest extends TestCase
         $mail->createFolder('foo..bar');
     }
 
-    public function testCreateFolderSlash(): void
+    #[Test]
+    public function createFolderSlash(): void
     {
         $mail = new Writable\Maildir($this->params);
         $this->expectException(Exception\RuntimeException::class);
@@ -166,7 +170,8 @@ class MaildirWritableTest extends TestCase
         $mail->createFolder('foo/bar');
     }
 
-    public function testCreateFolderDirectorySeparator(): void
+    #[Test]
+    public function createFolderDirectorySeparator(): void
     {
         $mail = new Writable\Maildir($this->params);
         $this->expectException(Exception\RuntimeException::class);
@@ -174,7 +179,8 @@ class MaildirWritableTest extends TestCase
         $mail->createFolder('foo' . DIRECTORY_SEPARATOR . 'bar');
     }
 
-    public function testCreateFolderExistingDir(): void
+    #[Test]
+    public function createFolderExistingDir(): void
     {
         $mail = new Writable\Maildir($this->params);
         unset($mail->getFolders()->subfolder->test);
@@ -184,7 +190,8 @@ class MaildirWritableTest extends TestCase
         $mail->createFolder('subfolder.test');
     }
 
-    public function testCreateExistingFolder(): void
+    #[Test]
+    public function createExistingFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -193,7 +200,8 @@ class MaildirWritableTest extends TestCase
         $mail->createFolder('subfolder.test');
     }
 
-    public function testRemoveFolderName(): void
+    #[Test]
+    public function removeFolderName(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->removeFolder('INBOX.subfolder.test');
@@ -203,7 +211,8 @@ class MaildirWritableTest extends TestCase
         $mail->selectFolder($mail->getFolders()->subfolder->test);
     }
 
-    public function testRemoveFolderInstance(): void
+    #[Test]
+    public function removeFolderInstance(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->removeFolder($mail->getFolders()->subfolder->test);
@@ -213,7 +222,8 @@ class MaildirWritableTest extends TestCase
         $mail->selectFolder($mail->getFolders()->subfolder->test);
     }
 
-    public function testRemoveFolderWithChildren(): void
+    #[Test]
+    public function removeFolderWithChildren(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -222,7 +232,8 @@ class MaildirWritableTest extends TestCase
         $mail->removeFolder($mail->getFolders()->subfolder);
     }
 
-    public function testRemoveSelectedFolder(): void
+    #[Test]
+    public function removeSelectedFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->selectFolder('subfolder.test');
@@ -232,7 +243,8 @@ class MaildirWritableTest extends TestCase
         $mail->removeFolder('subfolder.test');
     }
 
-    public function testRemoveInvalidFolder(): void
+    #[Test]
+    public function removeInvalidFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -241,7 +253,8 @@ class MaildirWritableTest extends TestCase
         $mail->removeFolder('thisFolderDoestNotExist');
     }
 
-    public function testRenameFolder(): void
+    #[Test]
+    public function renameFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -253,7 +266,8 @@ class MaildirWritableTest extends TestCase
         $mail->renameFolder('INBOX', 'foo');
     }
 
-    public function testRenameSelectedFolder(): void
+    #[Test]
+    public function renameSelectedFolder(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->selectFolder('subfolder.test');
@@ -263,7 +277,8 @@ class MaildirWritableTest extends TestCase
         $mail->renameFolder('subfolder.test', 'foo');
     }
 
-    public function testRenameToChild(): void
+    #[Test]
+    public function renameToChild(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -272,7 +287,8 @@ class MaildirWritableTest extends TestCase
         $mail->renameFolder('subfolder.test', 'subfolder.test.foo');
     }
 
-    public function testAppend(): void
+    #[Test]
+    public function append(): void
     {
         $mail  = new Writable\Maildir($this->params);
         $count = $mail->countMessages();
@@ -285,11 +301,12 @@ class MaildirWritableTest extends TestCase
         $message .= "This is a test\r\n";
         $mail->appendMessage($message);
 
-        $this->assertEquals($count + 1, $mail->countMessages());
-        $this->assertEquals($mail->getMessage($count + 1)->subject, 'append test');
+        static::assertEquals($count + 1, $mail->countMessages());
+        static::assertEquals($mail->getMessage($count + 1)->subject, 'append test');
     }
 
-    public function testCopy(): void
+    #[Test]
+    public function copy(): void
     {
         $mail = new Writable\Maildir($this->params);
 
@@ -300,40 +317,42 @@ class MaildirWritableTest extends TestCase
 
         $mail->copyMessage(1, 'subfolder.test');
         $mail->selectFolder('subfolder.test');
-        $this->assertEquals($count + 1, $mail->countMessages());
-        $this->assertEquals($mail->getMessage($count + 1)->subject, $message->subject);
-        $this->assertEquals($mail->getMessage($count + 1)->from, $message->from);
-        $this->assertEquals($mail->getMessage($count + 1)->to, $message->to);
+        static::assertEquals($count + 1, $mail->countMessages());
+        static::assertEquals($mail->getMessage($count + 1)->subject, $message->subject);
+        static::assertEquals($mail->getMessage($count + 1)->from, $message->from);
+        static::assertEquals($mail->getMessage($count + 1)->to, $message->to);
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $mail->copyMessage(1, 'justARandomFolder');
     }
 
-    public function testSetFlags(): void
+    #[Test]
+    public function setFlags(): void
     {
         $mail = new Writable\Maildir($this->params);
 
         $mail->setFlags(1, [Storage::FLAG_SEEN]);
         $message = $mail->getMessage(1);
-        $this->assertTrue($message->hasFlag(Storage::FLAG_SEEN));
-        $this->assertFalse($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertTrue($message->hasFlag(Storage::FLAG_SEEN));
+        static::assertFalse($message->hasFlag(Storage::FLAG_FLAGGED));
 
         $mail->setFlags(1, [Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]);
         $message = $mail->getMessage(1);
-        $this->assertTrue($message->hasFlag(Storage::FLAG_SEEN));
-        $this->assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertTrue($message->hasFlag(Storage::FLAG_SEEN));
+        static::assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
 
         $mail->setFlags(1, [Storage::FLAG_FLAGGED]);
         $message = $mail->getMessage(1);
-        $this->assertFalse($message->hasFlag(Storage::FLAG_SEEN));
-        $this->assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertFalse($message->hasFlag(Storage::FLAG_SEEN));
+        static::assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('recent flag may not be set');
         $mail->setFlags(1, [Storage::FLAG_RECENT]);
     }
 
-    public function testSetFlagsRemovedFile(): void
+    #[Test]
+    public function setFlagsRemovedFile(): void
     {
         $mail = new Writable\Maildir($this->params);
         unlink($this->params['dirname'] . 'cur/1000000000.P1.example.org:2,S');
@@ -343,19 +362,21 @@ class MaildirWritableTest extends TestCase
         $mail->setFlags(1, [Storage::FLAG_FLAGGED]);
     }
 
-    public function testRemove(): void
+    #[Test]
+    public function remove(): void
     {
         $mail  = new Writable\Maildir($this->params);
         $count = $mail->countMessages();
 
         $mail->removeMessage(1);
-        $this->assertEquals($mail->countMessages(), --$count);
+        static::assertEquals($mail->countMessages(), --$count);
 
         unset($mail[2]);
-        $this->assertEquals($mail->countMessages(), --$count);
+        static::assertEquals($mail->countMessages(), --$count);
     }
 
-    public function testRemoveRemovedFile(): void
+    #[Test]
+    public function removeRemovedFile(): void
     {
         $mail = new Writable\Maildir($this->params);
         unlink($this->params['dirname'] . 'cur/1000000000.P1.example.org:2,S');
@@ -365,13 +386,15 @@ class MaildirWritableTest extends TestCase
         $mail->removeMessage(1);
     }
 
-    public function testCheckQuota(): void
+    #[Test]
+    public function checkQuota(): void
     {
         $mail = new Writable\Maildir($this->params);
-        $this->assertFalse($mail->checkQuota());
+        static::assertFalse($mail->checkQuota());
     }
 
-    public function testCheckQuotaDetailed(): void
+    #[Test]
+    public function checkQuotaDetailed(): void
     {
         $mail        = new Writable\Maildir($this->params);
         $quotaResult = [
@@ -384,23 +407,24 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => false,
         ];
-        $this->assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertEquals($quotaResult, $mail->checkQuota(true));
     }
 
-    public function testSetQuota(): void
+    #[Test]
+    public function setQuota(): void
     {
         $mail = new Writable\Maildir($this->params);
-        $this->assertNull($mail->getQuota());
+        static::assertNull($mail->getQuota());
 
         $mail->setQuota(true);
-        $this->assertTrue($mail->getQuota());
+        static::assertTrue($mail->getQuota());
 
         $mail->setQuota(false);
-        $this->assertFalse($mail->getQuota());
+        static::assertFalse($mail->getQuota());
 
         $mail->setQuota(['size' => 100, 'count' => 2, 'X' => 0]);
-        $this->assertEquals($mail->getQuota(), ['size' => 100, 'count' => 2, 'X' => 0]);
-        $this->assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
+        static::assertEquals($mail->getQuota(), ['size' => 100, 'count' => 2, 'X' => 0]);
+        static::assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
 
         $quotaResult = [
             'size'       => 2539,
@@ -412,25 +436,27 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        $this->assertEquals($quotaResult, $mail->checkQuota(true, true));
-        $this->assertEquals(['size' => 100, 'count' => 2, 'X' => 0], $mail->getQuota(true));
+        static::assertEquals($quotaResult, $mail->checkQuota(true, true));
+        static::assertEquals(['size' => 100, 'count' => 2, 'X' => 0], $mail->getQuota(true));
     }
 
-    public function testMissingMaildirsize(): void
+    #[Test]
+    public function missingMaildirsize(): void
     {
         $mail = new Writable\Maildir($this->params);
-        $this->assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
+        static::assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
 
         unlink($this->tmpdir . 'maildirsize');
 
-        $this->assertNull($mail->getQuota());
+        static::assertNull($mail->getQuota());
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('cannot open maildirsize');
         $mail->getQuota(true);
     }
 
-    public function testMissingMaildirsizeWithFixedQuota(): void
+    #[Test]
+    public function missingMaildirsizeWithFixedQuota(): void
     {
         $mail = new Writable\Maildir($this->params);
         unlink($this->tmpdir . 'maildirsize');
@@ -446,16 +472,17 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        $this->assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertEquals($quotaResult, $mail->checkQuota(true));
 
-        $this->assertEquals($quotaResult['quota'], $mail->getQuota(true));
+        static::assertEquals($quotaResult['quota'], $mail->getQuota(true));
     }
 
-    public function testAppendMessage(): void
+    #[Test]
+    public function appendMessage(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 6, 'X' => 0]);
-        $this->assertFalse($mail->checkQuota(false, true));
+        static::assertFalse($mail->checkQuota(false, true));
         $mail->appendMessage("Subject: test\r\n\r\n");
         $quotaResult = [
             'size'       => 2556,
@@ -467,36 +494,38 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        $this->assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertEquals($quotaResult, $mail->checkQuota(true));
 
         $mail->setQuota(false);
-        $this->assertTrue($mail->checkQuota());
+        static::assertTrue($mail->checkQuota());
 
         $mail->appendMessage("Subject: test\r\n\r\n");
 
         $mail->setQuota(true);
-        $this->assertTrue($mail->checkQuota());
+        static::assertTrue($mail->checkQuota());
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('storage is over quota!');
         $mail->appendMessage("Subject: test\r\n\r\n");
     }
 
-    public function testRemoveMessage(): void
+    #[Test]
+    public function removeMessage(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 5, 'X' => 0]);
-        $this->assertTrue($mail->checkQuota(false, true));
+        static::assertTrue($mail->checkQuota(false, true));
 
         $mail->removeMessage(1);
-        $this->assertFalse($mail->checkQuota());
+        static::assertFalse($mail->checkQuota());
     }
 
-    public function testCopyMessage(): void
+    #[Test]
+    public function copyMessage(): void
     {
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 6, 'X' => 0]);
-        $this->assertFalse($mail->checkQuota(false, true));
+        static::assertFalse($mail->checkQuota(false, true));
         $mail->copyMessage(1, 'subfolder');
         $quotaResult = [
             'size'       => 2936,
@@ -508,10 +537,11 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        $this->assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertEquals($quotaResult, $mail->checkQuota(true));
     }
 
-    public function testAppendStream(): void
+    #[Test]
+    public function appendStream(): void
     {
         $mail = new Writable\Maildir($this->params);
         $fh   = fopen('php://memory', 'rw');
@@ -520,10 +550,11 @@ class MaildirWritableTest extends TestCase
         $mail->appendMessage($fh);
         fclose($fh);
 
-        $this->assertEquals($mail->getMessage($mail->countMessages())->subject, 'test');
+        static::assertEquals($mail->getMessage($mail->countMessages())->subject, 'test');
     }
 
-    public function testMove(): void
+    #[Test]
+    public function move(): void
     {
         $mail   = new Writable\Maildir($this->params);
         $target = $mail->getFolders()->subfolder->test;
@@ -533,20 +564,22 @@ class MaildirWritableTest extends TestCase
         $fromCount = $mail->countMessages();
         $mail->moveMessage(1, $target);
 
-        $this->assertEquals($fromCount - 1, $mail->countMessages());
+        static::assertEquals($fromCount - 1, $mail->countMessages());
         $mail->selectFolder($target);
-        $this->assertEquals($toCount + 1, $mail->countMessages());
+        static::assertEquals($toCount + 1, $mail->countMessages());
     }
 
-    public function testInitExisting(): void
+    #[Test]
+    public function initExisting(): void
     {
         // this should be a noop
         Writable\Maildir::initMaildir($this->params['dirname']);
         $mail = new Writable\Maildir($this->params);
-        $this->assertEquals($mail->countMessages(), 5);
+        static::assertEquals($mail->countMessages(), 5);
     }
 
-    public function testInit(): void
+    #[Test]
+    public function init(): void
     {
         $this->tearDown();
 
@@ -554,16 +587,17 @@ class MaildirWritableTest extends TestCase
         $e = null;
         try {
             $mail = new Writable\Maildir($this->params);
-            $this->fail('empty maildir should not be accepted');
+            static::fail('empty maildir should not be accepted');
         } catch (\Exception) {
         }
 
         Writable\Maildir::initMaildir($this->params['dirname']);
         $mail = new Writable\Maildir($this->params);
-        $this->assertEquals($mail->countMessages(), 0);
+        static::assertEquals($mail->countMessages(), 0);
     }
 
-    public function testCreate(): void
+    #[Test]
+    public function create(): void
     {
         $this->tearDown();
 
@@ -571,12 +605,12 @@ class MaildirWritableTest extends TestCase
         $e = null;
         try {
             $mail = new Writable\Maildir($this->params);
-            $this->fail('empty maildir should not be accepted');
+            static::fail('empty maildir should not be accepted');
         } catch (\Exception) {
         }
 
         $this->params['create'] = true;
         $mail                   = new Writable\Maildir($this->params);
-        $this->assertEquals($mail->countMessages(), 0);
+        static::assertEquals($mail->countMessages(), 0);
     }
 }

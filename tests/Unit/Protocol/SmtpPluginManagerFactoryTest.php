@@ -9,6 +9,7 @@ use Contenir\Mail\Protocol\SmtpPluginManagerFactory;
 use Interop\Container\ContainerInterface;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -16,28 +17,30 @@ use function method_exists;
 
 class SmtpPluginManagerFactoryTest extends TestCase
 {
-    public function testFactoryReturnsPluginManager(): void
+    #[Test]
+    public function factoryReturnsPluginManager(): void
     {
         $container = $this->createMock(ContainerInterface::class);
         $factory   = new SmtpPluginManagerFactory();
 
         $plugins = $factory($container, SmtpPluginManager::class);
-        $this->assertInstanceOf(SmtpPluginManager::class, $plugins);
+        static::assertInstanceOf(SmtpPluginManager::class, $plugins);
 
         if (method_exists($plugins, 'configure')) {
             $reflectionClass         = new ReflectionClass($plugins);
             $creationContextProperty = $reflectionClass->getProperty('creationContext');
 
             // laminas-servicemanager v3
-            $this->assertEquals($container, $creationContextProperty->getValue($plugins));
+            static::assertEquals($container, $creationContextProperty->getValue($plugins));
         } else {
             // laminas-servicemanager v2
-            $this->assertSame($container, $plugins->getServiceLocator());
+            static::assertSame($container, $plugins->getServiceLocator());
         }
     }
 
-    #[Depends('testFactoryReturnsPluginManager')]
-    public function testFactoryConfiguresPluginManagerUnderContainerInterop(): void
+    #[Test]
+    #[Depends('factoryReturnsPluginManager')]
+    public function factoryConfiguresPluginManagerUnderContainerInterop(): void
     {
         $container = $this->createMock(ContainerInterface::class);
         $smtp      = $this->createMock(Smtp::class);
@@ -48,11 +51,12 @@ class SmtpPluginManagerFactoryTest extends TestCase
                 'test' => $smtp,
             ],
         ]);
-        $this->assertSame($smtp, $plugins->get('test'));
+        static::assertSame($smtp, $plugins->get('test'));
     }
 
-    #[Depends('testFactoryReturnsPluginManager')]
-    public function testFactoryConfiguresPluginManagerUnderServiceManagerV2(): void
+    #[Test]
+    #[Depends('factoryReturnsPluginManager')]
+    public function factoryConfiguresPluginManagerUnderServiceManagerV2(): void
     {
         $container = $this->createMock(ServiceLocatorInterface::class);
 
@@ -66,6 +70,6 @@ class SmtpPluginManagerFactoryTest extends TestCase
         ]);
 
         $plugins = $factory->createService($container);
-        $this->assertSame($smtp, $plugins->get('test'));
+        static::assertSame($smtp, $plugins->get('test'));
     }
 }

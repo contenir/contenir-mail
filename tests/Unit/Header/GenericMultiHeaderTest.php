@@ -5,6 +5,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericMultiHeader;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -12,37 +13,42 @@ use function count;
 #[CoversClass(\Contenir\Mail\Header\GenericMultiHeader::class)]
 class GenericMultiHeaderTest extends TestCase
 {
-    public function testFromStringSingle(): void
+    #[Test]
+    public function fromStringSingle(): void
     {
         $multiHeader = GenericMultiHeader::fromString('x-custom: test');
-        $this->assertSame(GenericMultiHeader::class, $multiHeader::class);
+        static::assertSame(GenericMultiHeader::class, $multiHeader::class);
     }
 
-    public function testFromStringMultiple(): void
+    #[Test]
+    public function fromStringMultiple(): void
     {
         $headers = GenericMultiHeader::fromString('x-custom: foo,bar');
-        $this->assertSame(2, count($headers));
+        static::assertSame(2, count($headers));
         foreach ($headers as $header) {
-            $this->assertSame(GenericMultiHeader::class, $header::class);
+            static::assertSame(GenericMultiHeader::class, $header::class);
         }
     }
 
-    public function testToStringSingle(): void
+    #[Test]
+    public function toStringSingle(): void
     {
         $multiHeader = new GenericMultiHeader('x-custom', 'test');
 
-        $this->assertSame('X-Custom: test', $multiHeader->toStringMultipleHeaders([]));
+        static::assertSame('X-Custom: test', $multiHeader->toStringMultipleHeaders([]));
     }
 
-    public function testToStringMultiple(): void
+    #[Test]
+    public function toStringMultiple(): void
     {
         $multiHeader   = new GenericMultiHeader('x-custom', 'test');
         $anotherHeader = new GenericMultiHeader('x-custom', 'two');
 
-        $this->assertSame('X-Custom: test,two', $multiHeader->toStringMultipleHeaders([$anotherHeader]));
+        static::assertSame('X-Custom: test,two', $multiHeader->toStringMultipleHeaders([$anotherHeader]));
     }
 
-    public function testToStringInvalid(): void
+    #[Test]
+    public function toStringInvalid(): void
     {
         $multiHeader = new GenericMultiHeader('x-custom', 'test');
 

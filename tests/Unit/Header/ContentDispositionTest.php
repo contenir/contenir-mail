@@ -8,26 +8,29 @@ use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\UnstructuredInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\ContentDisposition::class)]
 class ContentDispositionTest extends TestCase
 {
-    public function testImplementsHeaderInterface(): void
+    #[Test]
+    public function implementsHeaderInterface(): void
     {
         $header = new ContentDisposition();
 
-        $this->assertInstanceOf(UnstructuredInterface::class, $header);
-        $this->assertInstanceOf(HeaderInterface::class, $header);
+        static::assertInstanceOf(UnstructuredInterface::class, $header);
+        static::assertInstanceOf(HeaderInterface::class, $header);
     }
 
-    public function testTrailingSemiColonFromString(): void
+    #[Test]
+    public function trailingSemiColonFromString(): void
     {
         $contentTypeHeader = ContentDisposition::fromString(
             'Content-Disposition: attachment; filename="test-case.txt";',
         );
         $params = $contentTypeHeader->getParameters();
-        $this->assertEquals(['filename' => 'test-case.txt'], $params);
+        static::assertEquals(['filename' => 'test-case.txt'], $params);
     }
 
     public static function getLiteralData(): array
@@ -48,15 +51,17 @@ class ContentDispositionTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('getLiteralData')]
-    public function testHandlesLiterals(array $expected, string $header): void
+    public function handlesLiterals(array $expected, string $header): void
     {
         $header = ContentDisposition::fromString('Content-Disposition: ' . $header);
-        $this->assertEquals($expected, $header->getParameters());
+        static::assertEquals($expected, $header->getParameters());
     }
 
+    #[Test]
     #[DataProvider('setDispositionProvider')]
-    public function testFromString(
+    public function fromString(
         string $disposition,
         array $parameters,
         string $fieldValue,
@@ -64,16 +69,17 @@ class ContentDispositionTest extends TestCase
     ): void {
         $header = ContentDisposition::fromString($expectedToString);
 
-        $this->assertInstanceOf(ContentDisposition::class, $header);
-        $this->assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
-        $this->assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
-        $this->assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
-        $this->assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        $this->assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertInstanceOf(ContentDisposition::class, $header);
+        static::assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
+        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
+        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
     }
 
+    #[Test]
     #[DataProvider('setDispositionProvider')]
-    public function testSetDisposition(
+    public function setDisposition(
         string $disposition,
         array $parameters,
         string $fieldValue,
@@ -86,32 +92,34 @@ class ContentDispositionTest extends TestCase
             $header->setParameter($name, $value);
         }
 
-        $this->assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
-        $this->assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
-        $this->assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
-        $this->assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        $this->assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
+        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
+        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
     }
 
-    public function testGetSetEncoding(): void
+    #[Test]
+    public function getSetEncoding(): void
     {
         $header = new ContentDisposition();
 
         // default value
-        $this->assertEquals('ASCII', $header->getEncoding());
+        static::assertEquals('ASCII', $header->getEncoding());
 
         $header->setEncoding('UTF-8');
-        $this->assertEquals('UTF-8', $header->getEncoding());
+        static::assertEquals('UTF-8', $header->getEncoding());
 
         $header->setEncoding('ASCII');
-        $this->assertEquals('ASCII', $header->getEncoding());
+        static::assertEquals('ASCII', $header->getEncoding());
     }
 
     /**
      * @param class-string $expectedException
      */
+    #[Test]
     #[DataProvider('invalidHeaderLinesProvider')]
-    public function testFromStringThrowException(
+    public function fromStringThrowException(
         string $headerLine,
         string $expectedException,
         string $exceptionMessage,
@@ -121,11 +129,12 @@ class ContentDispositionTest extends TestCase
         ContentDisposition::fromString($headerLine);
     }
 
-    public function testFromStringHandlesContinuations(): void
+    #[Test]
+    public function fromStringHandlesContinuations(): void
     {
         $header = ContentDisposition::fromString("Content-Disposition: attachment;\r\n level=1");
-        $this->assertEquals('attachment', $header->getDisposition());
-        $this->assertEquals(['level' => '1'], $header->getParameters());
+        static::assertEquals('attachment', $header->getDisposition());
+        static::assertEquals(['level' => '1'], $header->getParameters());
     }
 
     /**
@@ -133,17 +142,19 @@ class ContentDispositionTest extends TestCase
      *
      * @see https://tools.ietf.org/html/rfc2231
      */
+    #[Test]
     #[DataProvider('parameterWrappingProvider')]
-    public function testParameterWrapping(string $input, string $disposition, array $parameters): void
+    public function parameterWrapping(string $input, string $disposition, array $parameters): void
     {
         $header = ContentDisposition::fromString($input);
 
-        $this->assertEquals($disposition, $header->getDisposition());
-        $this->assertEquals($parameters, $header->getParameters());
+        static::assertEquals($disposition, $header->getDisposition());
+        static::assertEquals($parameters, $header->getParameters());
     }
 
+    #[Test]
     #[DataProvider('parameterWrappingProviderExceptions')]
-    public function testParameterWrappingExceptions(string $input, string $exception, string $message): void
+    public function parameterWrappingExceptions(string $input, string $exception, string $message): void
     {
         $this->expectException($exception);
         $this->expectExceptionMessage($message);
@@ -153,8 +164,9 @@ class ContentDispositionTest extends TestCase
     /**
      * @param class-string $expectedException
      */
+    #[Test]
     #[DataProvider('invalidParametersProvider')]
-    public function testSetParameterThrowException(
+    public function setParameterThrowException(
         string $paramName,
         string $paramValue,
         string $expectedException,
@@ -168,21 +180,23 @@ class ContentDispositionTest extends TestCase
         $header->setParameter($paramName, $paramValue);
     }
 
+    #[Test]
     #[DataProvider('getParameterProvider')]
-    public function testGetParameter(string $fromString, string $paramName, ?string $paramValue): void
+    public function getParameter(string $fromString, string $paramName, ?string $paramValue): void
     {
         $header = ContentDisposition::fromString($fromString);
-        $this->assertEquals($paramValue, $header->getParameter($paramName));
+        static::assertEquals($paramValue, $header->getParameter($paramName));
     }
 
-    public function testRemoveParameter(): void
+    #[Test]
+    public function removeParameter(): void
     {
         $header = ContentDisposition::fromString('Content-Disposition: inline');
 
-        $this->assertEquals(false, $header->removeParameter('no-such-parameter'));
+        static::assertEquals(false, $header->removeParameter('no-such-parameter'));
 
         $header->setParameter('name', 'value');
-        $this->assertEquals(true, $header->removeParameter('name'));
+        static::assertEquals(true, $header->removeParameter('name'));
     }
 
     public static function setDispositionProvider(): array
@@ -400,12 +414,13 @@ class ContentDispositionTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
+    public function fromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = ContentDisposition::fromString($headerLine);
-        $this->assertInstanceOf(ContentDisposition::class, $header);
-        $this->assertEquals('Content-Disposition', $header->getFieldName());
-        $this->assertEquals($expected, $header->getFieldValue());
+        static::assertInstanceOf(ContentDisposition::class, $header);
+        static::assertEquals('Content-Disposition', $header->getFieldName());
+        static::assertEquals($expected, $header->getFieldValue());
     }
 }

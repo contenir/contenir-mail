@@ -6,6 +6,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function file_get_contents;
@@ -70,21 +71,23 @@ class FileTest extends TestCase
         return $message;
     }
 
-    public function testReceivesMailArtifacts(): void
+    #[Test]
+    public function receivesMailArtifacts(): void
     {
         $message = $this->getMessage();
         $this->transport->send($message);
 
-        $this->assertNotNull($this->transport->getLastFile());
+        static::assertNotNull($this->transport->getLastFile());
         $file = $this->transport->getLastFile();
         $test = file_get_contents($file);
 
-        $this->assertEquals($message->toString(), $test);
+        static::assertEquals($message->toString(), $test);
     }
 
-    public function testConstructorNoOptions(): void
+    #[Test]
+    public function constructorNoOptions(): void
     {
         $transport = new File();
-        $this->assertSame(FileOptions::class, $transport->getOptions()::class);
+        static::assertSame(FileOptions::class, $transport->getOptions()::class);
     }
 }

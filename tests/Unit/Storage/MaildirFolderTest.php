@@ -6,6 +6,7 @@ use ArrayObject;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Folder;
 use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -126,33 +127,38 @@ class MaildirFolderTest extends TestCase
         }
     }
 
-    public function testLoadOk(): void
+    #[Test]
+    public function loadOk(): void
     {
         $mail = new Folder\Maildir($this->params);
-        $this->assertSame(Folder\Maildir::class, $mail::class);
+        static::assertSame(Folder\Maildir::class, $mail::class);
     }
 
-    public function testLoadConfig(): void
+    #[Test]
+    public function loadConfig(): void
     {
         $mail = new Folder\Maildir(new ArrayObject($this->params));
-        $this->assertSame(Folder\Maildir::class, $mail::class);
+        static::assertSame(Folder\Maildir::class, $mail::class);
     }
 
-    public function testNoParams(): void
+    #[Test]
+    public function noParams(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('no dirname provided');
         new Folder\Maildir([]);
     }
 
-    public function testLoadFailure(): void
+    #[Test]
+    public function loadFailure(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('not a directory');
         new Folder\Maildir(['dirname' => 'This/Folder/Does/Not/Exist']);
     }
 
-    public function testLoadUnkownFolder(): void
+    #[Test]
+    public function loadUnkownFolder(): void
     {
         $this->params['folder'] = 'UnknownFolder';
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -160,16 +166,18 @@ class MaildirFolderTest extends TestCase
         new Folder\Maildir($this->params);
     }
 
-    public function testChangeFolder(): void
+    #[Test]
+    public function changeFolder(): void
     {
         $mail = new Folder\Maildir($this->params);
 
         $mail->selectFolder('subfolder.test');
 
-        $this->assertEquals($mail->getCurrentFolder(), 'subfolder.test');
+        static::assertEquals($mail->getCurrentFolder(), 'subfolder.test');
     }
 
-    public function testUnknownFolder(): void
+    #[Test]
+    public function unknownFolder(): void
     {
         $mail = new Folder\Maildir($this->params);
 
@@ -178,21 +186,24 @@ class MaildirFolderTest extends TestCase
         $mail->selectFolder('/Unknown/Folder/');
     }
 
-    public function testGlobalName(): void
+    #[Test]
+    public function globalName(): void
     {
         $mail = new Folder\Maildir($this->params);
 
-        $this->assertEquals($mail->getFolders()->subfolder->__toString(), 'subfolder');
+        static::assertEquals($mail->getFolders()->subfolder->__toString(), 'subfolder');
     }
 
-    public function testLocalName(): void
+    #[Test]
+    public function localName(): void
     {
         $mail = new Folder\Maildir($this->params);
 
-        $this->assertEquals($mail->getFolders()->subfolder->key(), 'test');
+        static::assertEquals($mail->getFolders()->subfolder->key(), 'test');
     }
 
-    public function testIterator(): void
+    #[Test]
+    public function iterator(): void
     {
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
@@ -213,10 +224,11 @@ class MaildirFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        $this->assertEquals($searchFolders, $foundFolders);
+        static::assertEquals($searchFolders, $foundFolders);
     }
 
-    public function testKeyLocalName(): void
+    #[Test]
+    public function keyLocalName(): void
     {
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
@@ -237,10 +249,11 @@ class MaildirFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        $this->assertEquals($searchFolders, $foundFolders);
+        static::assertEquals($searchFolders, $foundFolders);
     }
 
-    public function testInboxEquals(): void
+    #[Test]
+    public function inboxEquals(): void
     {
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator(
@@ -260,57 +273,62 @@ class MaildirFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        $this->assertEquals($searchFolders, $foundFolders);
+        static::assertEquals($searchFolders, $foundFolders);
     }
 
-    public function testSelectable(): void
+    #[Test]
+    public function selectable(): void
     {
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
 
         foreach ($iterator as $localName => $folder) {
-            $this->assertEquals($localName, $folder->getLocalName());
+            static::assertEquals($localName, $folder->getLocalName());
         }
     }
 
-    public function testCount(): void
+    #[Test]
+    public function countsMessages(): void
     {
         $mail = new Folder\Maildir($this->params);
 
         $count = $mail->countMessages();
-        $this->assertEquals(5, $count);
+        static::assertEquals(5, $count);
 
         $mail->selectFolder('subfolder.test');
         $count = $mail->countMessages();
-        $this->assertEquals(1, $count);
+        static::assertEquals(1, $count);
     }
 
-    public function testSize(): void
+    #[Test]
+    public function reportsMessageSizes(): void
     {
         $mail        = new Folder\Maildir($this->params);
         $shouldSizes = [1 => 397, 89, 694, 452, 497];
 
         $sizes = $mail->getSize();
-        $this->assertEquals($shouldSizes, $sizes);
+        static::assertEquals($shouldSizes, $sizes);
 
         $mail->selectFolder('subfolder.test');
         $sizes = $mail->getSize();
-        $this->assertEquals([1 => 410], $sizes);
+        static::assertEquals([1 => 410], $sizes);
     }
 
-    public function testFetchHeader(): void
+    #[Test]
+    public function fetchHeader(): void
     {
         $mail = new Folder\Maildir($this->params);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
 
         $mail->selectFolder('subfolder.test');
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Message in subfolder', $subject);
+        static::assertEquals('Message in subfolder', $subject);
     }
 
-    public function testNotReadableFolder(): void
+    #[Test]
+    public function notReadableFolder(): void
     {
         $stat = stat($this->params['dirname'] . '.subfolder');
         chmod($this->params['dirname'] . '.subfolder', 0);
@@ -318,7 +336,7 @@ class MaildirFolderTest extends TestCase
         $statcheck = stat($this->params['dirname'] . '.subfolder');
         if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
             chmod($this->params['dirname'] . '.subfolder', $stat['mode']);
-            $this->markTestSkipped(
+            static::markTestSkipped(
                 'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
             return;
@@ -333,10 +351,11 @@ class MaildirFolderTest extends TestCase
         }
     }
 
-    public function testNotReadableMaildir(): void
+    #[Test]
+    public function notReadableMaildir(): void
     {
         if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-            $this->markTestSkipped('File permissions are not enforced for the root user');
+            static::markTestSkipped('File permissions are not enforced for the root user');
         }
 
         chmod($this->params['dirname'], 0);
@@ -346,7 +365,8 @@ class MaildirFolderTest extends TestCase
         new Folder\Maildir($this->params);
     }
 
-    public function testGetInvalidFolder(): void
+    #[Test]
+    public function getInvalidFolder(): void
     {
         $mail         = new Folder\Maildir($this->params);
         $root         = $mail->getFolders();
@@ -357,7 +377,8 @@ class MaildirFolderTest extends TestCase
         $mail->selectFolder('foobar');
     }
 
-    public function testGetVanishedFolder(): void
+    #[Test]
+    public function getVanishedFolder(): void
     {
         $mail         = new Folder\Maildir($this->params);
         $root         = $mail->getFolders();
@@ -368,7 +389,8 @@ class MaildirFolderTest extends TestCase
         $mail->selectFolder('foobar');
     }
 
-    public function testGetNotSelectableFolder(): void
+    #[Test]
+    public function getNotSelectableFolder(): void
     {
         $mail         = new Folder\Maildir($this->params);
         $root         = $mail->getFolders();
@@ -379,7 +401,8 @@ class MaildirFolderTest extends TestCase
         $mail->selectFolder('foobar');
     }
 
-    public function testWithAdditionalFolder(): void
+    #[Test]
+    public function withAdditionalFolder(): void
     {
         mkdir($this->params['dirname'] . '.xyyx');
         mkdir($this->params['dirname'] . '.xyyx/cur');
@@ -387,7 +410,7 @@ class MaildirFolderTest extends TestCase
 
         $mail = new Folder\Maildir($this->params);
         $mail->selectFolder('xyyx');
-        $this->assertEquals($mail->countMessages(), 0);
+        static::assertEquals($mail->countMessages(), 0);
 
         rmdir($this->params['dirname'] . '.xyyx/cur');
         rmdir($this->params['dirname'] . '.xyyx/new');

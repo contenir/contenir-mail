@@ -10,6 +10,7 @@ use Contenir\Mail\Header\Sender;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
@@ -19,36 +20,40 @@ use function array_slice;
 #[CoversClass(\Contenir\Mail\Header\Sender::class)]
 class SenderTest extends TestCase
 {
-    public function testFromStringCreatesValidReceivedHeader(): void
+    #[Test]
+    public function fromStringCreatesValidReceivedHeader(): void
     {
         $sender = Header\Sender::fromString('Sender: <foo@bar>');
-        $this->assertInstanceOf(HeaderInterface::class, $sender);
-        $this->assertInstanceOf(Sender::class, $sender);
+        static::assertInstanceOf(HeaderInterface::class, $sender);
+        static::assertInstanceOf(Sender::class, $sender);
     }
 
-    public function testGetFieldNameReturnsHeaderName(): void
+    #[Test]
+    public function getFieldNameReturnsHeaderName(): void
     {
         $sender = new Header\Sender();
-        $this->assertEquals('Sender', $sender->getFieldName());
+        static::assertEquals('Sender', $sender->getFieldName());
     }
 
+    #[Test]
     #[DataProvider('validSenderHeaderDataProvider')]
     #[Group('ZF2015-04')]
-    public function testParseValidSenderHeader(string $expectedFieldValue, string $encodedValue, string $encoding): void
+    public function parseValidSenderHeader(string $expectedFieldValue, string $encodedValue, string $encoding): void
     {
         $header = Header\Sender::fromString('Sender:' . $encodedValue);
 
-        $this->assertEquals($expectedFieldValue, $header->getFieldValue());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($expectedFieldValue, $header->getFieldValue());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     /**
      * @param string $decodedValue
      * @param string $expectedException
      */
+    #[Test]
     #[DataProvider('invalidSenderEncodedDataProvider')]
     #[Group('ZF2015-04')]
-    public function testParseInvalidSenderHeaderThrowException(
+    public function parseInvalidSenderHeaderThrowException(
         $decodedValue,
         $expectedException,
     ): void {
@@ -63,25 +68,27 @@ class SenderTest extends TestCase
      * @param string $expectedFieldValue,
      * @param string $encoding
      */
+    #[Test]
     #[DataProvider('validSenderDataProvider')]
     #[Group('ZF2015-04')]
-    public function testSetAddressValidValue($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
+    public function setAddressValidValue($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
     {
         $header = new Header\Sender();
         $header->setAddress($email, $name);
 
-        $this->assertEquals($expectedFieldValue, $header->getFieldValue());
-        $this->assertEquals('Sender: ' . $encodedValue, $header->toString());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($expectedFieldValue, $header->getFieldValue());
+        static::assertEquals('Sender: ' . $encodedValue, $header->toString());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     /**
      * @param string $email
      * @param null|string $name
      */
+    #[Test]
     #[DataProvider('invalidSenderDataProvider')]
     #[Group('ZF2015-04')]
-    public function testSetAddressInvalidValue($email, $name): void
+    public function setAddressInvalidValue($email, $name): void
     {
         $header = new Header\Sender();
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -95,19 +102,20 @@ class SenderTest extends TestCase
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[Test]
     #[DataProvider('validSenderDataProvider')]
     #[Group('ZF2015-04')]
-    public function testSetAddressValidAddressObject($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
+    public function setAddressValidAddressObject($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
     {
         $address = new Address($email, $name);
 
         $header = new Header\Sender();
         $header->setAddress($address);
 
-        $this->assertSame($address, $header->getAddress());
-        $this->assertEquals($expectedFieldValue, $header->getFieldValue());
-        $this->assertEquals('Sender: ' . $encodedValue, $header->toString());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertSame($address, $header->getAddress());
+        static::assertEquals($expectedFieldValue, $header->getFieldValue());
+        static::assertEquals('Sender: ' . $encodedValue, $header->toString());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     public static function validSenderDataProvider(): array
@@ -204,13 +212,14 @@ class SenderTest extends TestCase
      * @param string $expectedName
      * @param string $expectedEmail
      */
+    #[Test]
     #[DataProvider('validHeaderLinesProvider')]
-    public function testFromStringWithValidInput($headerString, $expectedName, $expectedEmail): void
+    public function fromStringWithValidInput($headerString, $expectedName, $expectedEmail): void
     {
         $header = Header\Sender::fromString($headerString);
 
-        $this->assertSame($expectedName, $header->getAddress()->getName());
-        $this->assertSame($expectedEmail, $header->getAddress()->getEmail());
+        static::assertSame($expectedName, $header->getAddress()->getName());
+        static::assertSame($expectedEmail, $header->getAddress()->getEmail());
     }
 
     public static function validHeaderLinesProvider(): array
@@ -235,8 +244,9 @@ class SenderTest extends TestCase
      * @param string $expectedException
      * @param string $expectedMessagePart
      */
+    #[Test]
     #[DataProvider('invalidHeaderLinesProvider')]
-    public function testFromStringWithInvalidInput($headerString, $expectedException, $expectedMessagePart = ''): void
+    public function fromStringWithInvalidInput($headerString, $expectedException, $expectedMessagePart = ''): void
     {
         $this->expectException($expectedException);
         if ($expectedMessagePart) {
@@ -259,20 +269,23 @@ class SenderTest extends TestCase
         ];
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = new Header\Sender();
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncoding(): void
+    #[Test]
+    public function setEncoding(): void
     {
         $header = new Header\Sender();
         $header->setEncoding('UTF-8');
-        $this->assertSame('UTF-8', $header->getEncoding());
+        static::assertSame('UTF-8', $header->getEncoding());
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header name for Sender string');

@@ -9,6 +9,7 @@ use Contenir\Mail\Header\HeaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
@@ -35,9 +36,10 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('invalidHeaderLines')]
     #[Group('ZF2015-04')]
-    public function testSplitHeaderLineRaisesExceptionOnInvalidHeader(string $line, string $message): void
+    public function splitHeaderLineRaisesExceptionOnInvalidHeader(string $line, string $message): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage($message);
@@ -54,9 +56,10 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('fieldNames')]
     #[Group('ZF2015-04')]
-    public function testConstructorRaisesExceptionOnInvalidFieldName(?string $fieldName): void
+    public function constructorRaisesExceptionOnInvalidFieldName(?string $fieldName): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('name');
@@ -66,9 +69,10 @@ class GenericHeaderTest extends TestCase
 
     /**
      */
+    #[Test]
     #[DataProvider('fieldNames')]
     #[Group('ZF2015-04')]
-    public function testSetFieldNameRaisesExceptionOnInvalidFieldName(?string $fieldName): void
+    public function setFieldNameRaisesExceptionOnInvalidFieldName(?string $fieldName): void
     {
         $header = new GenericHeader('Subject');
         $this->expectException(InvalidArgumentException::class);
@@ -92,38 +96,41 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('fieldValues')]
     #[Group('ZF2015-04')]
-    public function testCRLFsequencesAreEncodedOnToString(string $fieldValue): void
+    public function cRLFsequencesAreEncodedOnToString(string $fieldValue): void
     {
         $header = new GenericHeader('Foo');
         $header->setFieldValue($fieldValue);
 
         $serialized = $header->toString();
-        $this->assertStringNotContainsString("\n", $serialized);
-        $this->assertStringNotContainsString("\r", $serialized);
+        static::assertStringNotContainsString("\n", $serialized);
+        static::assertStringNotContainsString("\r", $serialized);
     }
 
+    #[Test]
     #[DataProvider('validFieldValuesProvider')]
     #[Group('ZF2015-04')]
-    public function testParseValidSubjectHeader(string $decodedValue, string $encodedValue, string $encoding): void
+    public function parseValidSubjectHeader(string $decodedValue, string $encodedValue, string $encoding): void
     {
         $header = GenericHeader::fromString('Foo:' . $encodedValue);
 
-        $this->assertEquals($decodedValue, $header->getFieldValue());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($decodedValue, $header->getFieldValue());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
+    #[Test]
     #[DataProvider('validFieldValuesProvider')]
     #[Group('ZF2015-04')]
-    public function testSetFieldValueValidValue(string $decodedValue, string $encodedValue, string $encoding): void
+    public function setFieldValueValidValue(string $decodedValue, string $encodedValue, string $encoding): void
     {
         $header = new GenericHeader('Foo');
         $header->setFieldValue($decodedValue);
 
-        $this->assertEquals($decodedValue, $header->getFieldValue());
-        $this->assertEquals('Foo: ' . $encodedValue, $header->toString());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($decodedValue, $header->getFieldValue());
+        static::assertEquals('Foo: ' . $encodedValue, $header->toString());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     /** @return array<string, array{0: string, 1: string, 2: string}> */
@@ -145,8 +152,9 @@ class GenericHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[Group('ZF2015-04')]
-    public function testCastingToStringHandlesContinuationsProperly(): void
+    public function castingToStringHandlesContinuationsProperly(): void
     {
         $encoded = '=?UTF-8?Q?foo=0D=0A=20bar?=';
         $raw     = "foo\r\n bar";
@@ -154,87 +162,96 @@ class GenericHeaderTest extends TestCase
         $header = new GenericHeader('Foo');
         $header->setFieldValue($raw);
 
-        $this->assertEquals($raw, $header->getFieldValue());
-        $this->assertEquals($encoded, $header->getFieldValue(HeaderInterface::FORMAT_ENCODED));
-        $this->assertEquals('Foo: ' . $encoded, $header->toString());
+        static::assertEquals($raw, $header->getFieldValue());
+        static::assertEquals($encoded, $header->getFieldValue(HeaderInterface::FORMAT_ENCODED));
+        static::assertEquals('Foo: ' . $encoded, $header->toString());
     }
 
-    public function testAllowZeroInHeaderValueInConstructor(): void
+    #[Test]
+    public function allowZeroInHeaderValueInConstructor(): void
     {
         /** @psalm-suppress InvalidArgument $header */
         $header = new GenericHeader('Foo', 0);
-        $this->assertEquals(0, $header->getFieldValue());
-        $this->assertEquals('Foo: 0', $header->toString());
+        static::assertEquals(0, $header->getFieldValue());
+        static::assertEquals('Foo: 0', $header->toString());
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = new GenericHeader('Foo');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncoding(): void
+    #[Test]
+    public function setEncoding(): void
     {
         $header = new GenericHeader('Foo');
         $header->setEncoding('UTF-8');
-        $this->assertSame('UTF-8', $header->getEncoding());
+        static::assertSame('UTF-8', $header->getEncoding());
     }
 
-    public function testCannotInstantiateWithoutFieldName(): void
+    #[Test]
+    public function cannotInstantiateWithoutFieldName(): void
     {
         $this->expectException(InvalidArgumentException::class);
         new GenericHeader();
     }
 
-    public function testChangeEncodingToAsciiNotAllowedWhenHeaderValueContainsUtf8Characters(): void
+    #[Test]
+    public function changeEncodingToAsciiNotAllowedWhenHeaderValueContainsUtf8Characters(): void
     {
         $subject = new GenericHeader('Subject');
         $subject->setFieldValue('Accents òàùèéì');
 
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
     }
 
-    public function testChangeEncodingBackToAscii(): void
+    #[Test]
+    public function changeEncodingBackToAscii(): void
     {
         $subject = new GenericHeader('X-Test');
         $subject->setFieldValue('test');
 
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding('UTF-8');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 
-    public function testSetNullEncoding(): void
+    #[Test]
+    public function setNullEncoding(): void
     {
         $subject = GenericHeader::fromString('X-Test: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding(null);
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 
-    public function testSettingFieldValueCanChangeEncoding(): void
+    #[Test]
+    public function settingFieldValueCanChangeEncoding(): void
     {
         $subject = GenericHeader::fromString('X-Test: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setFieldValue('Accents òàùèéì');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
     }
 
-    public function testSettingTheSameEncoding(): void
+    #[Test]
+    public function settingTheSameEncoding(): void
     {
         $subject = GenericHeader::fromString('X-Test: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 }

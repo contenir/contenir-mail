@@ -7,6 +7,7 @@ use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\UnstructuredInterface;
 use Contenir\Mail\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function base64_encode;
@@ -21,7 +22,8 @@ use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 #[CoversClass(\Contenir\Mail\Header\HeaderWrap::class)]
 class HeaderWrapTest extends TestCase
 {
-    public function testWrapUnstructuredHeaderAscii(): void
+    #[Test]
+    public function wrapUnstructuredHeaderAscii(): void
     {
         $string = str_repeat('foobarblahblahblah baz bat', 4);
         $header = $this->createMock(UnstructuredInterface::class);
@@ -31,13 +33,14 @@ class HeaderWrapTest extends TestCase
         $expected = wordwrap($string, 78, "\r\n ");
 
         $test = HeaderWrap::wrap($string, $header);
-        $this->assertEquals($expected, $test);
+        static::assertEquals($expected, $test);
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF2-258
      */
-    public function testWrapUnstructuredHeaderMime(): void
+    #[Test]
+    public function wrapUnstructuredHeaderMime(): void
     {
         $string = str_repeat('foobarblahblahblah baz bat', 3);
         $header = $this->createMock(UnstructuredInterface::class);
@@ -49,31 +52,34 @@ class HeaderWrapTest extends TestCase
             . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
 
         $test = HeaderWrap::wrap($string, $header);
-        $this->assertEquals($expected, $test);
-        $this->assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertEquals($expected, $test);
+        static::assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
     }
 
-    public function testWrapUnknownHeaderType(): void
+    #[Test]
+    public function wrapUnknownHeaderType(): void
     {
         $header = new Bcc('test@example.org');
         $value  = 'value unmodified by wrap function';
-        $this->assertSame($value, HeaderWrap::wrap($value, $header));
+        static::assertSame($value, HeaderWrap::wrap($value, $header));
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF2-359
      */
-    public function testMimeEncoding(): void
+    #[Test]
+    public function mimeEncoding(): void
     {
         $string   = 'Umlauts: ä';
         $expected = '=?UTF-8?Q?Umlauts:=20=C3=A4?=';
 
         $test = HeaderWrap::mimeEncodeValue($string, 'UTF-8', 78);
-        $this->assertEquals($expected, $test);
-        $this->assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertEquals($expected, $test);
+        static::assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
     }
 
-    public function testMimeDecoding(): void
+    #[Test]
+    public function mimeDecoding(): void
     {
         $expected = str_repeat('foobarblahblahblah baz bat', 3);
         $encoded  = "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
@@ -81,7 +87,7 @@ class HeaderWrapTest extends TestCase
 
         $decoded = HeaderWrap::mimeDecodeValue($encoded);
 
-        $this->assertEquals($expected, $decoded);
+        static::assertEquals($expected, $decoded);
     }
 
     /**
@@ -90,7 +96,8 @@ class HeaderWrapTest extends TestCase
      *
      * @see https://github.com/zendframework/zend-mail/pull/187
      */
-    public function testMimeDecodeBreakageBug(): void
+    #[Test]
+    public function mimeDecodeBreakageBug(): void
     {
         $headerValue =
             'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h='
@@ -105,7 +112,7 @@ class HeaderWrapTest extends TestCase
         $headers->toString();
 
         $header = $headers->get('DKIM-Signature');
-        $this->assertEquals(
+        static::assertEquals(
             'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org;'
                 . ' h= content-language:content-type:content-type:in-reply-to',
             $header->getFieldValue(),
@@ -119,27 +126,29 @@ class HeaderWrapTest extends TestCase
      * which can be triggered as:
      *   $header = new GenericHeader($name, $value);
      */
-    public function testCanBeEncoded(): void
+    #[Test]
+    public function canBeEncoded(): void
     {
         // @codingStandardsIgnoreStart
         $value = '[#77675] New Issue:xxxxxxxxx xxxxxxx xxxxxxxx xxxxxxxxxxxxx xxxxxxxxxx xxxxxxxx, tähtaeg xx.xx, xxxx';
         // @codingStandardsIgnoreEnd
         $res = HeaderWrap::canBeEncoded($value);
-        $this->assertTrue($res);
+        static::assertTrue($res);
     }
 
-    public function testMultilineWithMultibyteSplitAcrossCharacter(): void
+    #[Test]
+    public function multilineWithMultibyteSplitAcrossCharacter(): void
     {
         $originalValue = 'аф';
 
-        $this->assertEquals(strlen($originalValue), 4);
+        static::assertEquals(strlen($originalValue), 4);
 
         $part1 = base64_encode(substr($originalValue, 0, 3));
         $part2 = base64_encode(substr($originalValue, 3));
 
         $header = '=?utf-8?B?' . $part1 . '?==?utf-8?B?' . $part2 . '?=';
 
-        $this->assertEquals(
+        static::assertEquals(
             $originalValue,
             HeaderWrap::mimeDecodeValue($header),
         );

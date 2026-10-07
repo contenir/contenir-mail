@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\ConfigProvider;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
@@ -11,10 +12,11 @@ use function array_keys;
 #[CoversClass(\Contenir\Mail\ConfigProvider::class)]
 class ConfigProviderTest extends TestCase
 {
-    public function testInvoke(): void
+    #[Test]
+    public function invoke(): void
     {
         $configProvider = new ConfigProvider();
         $config         = $configProvider();
-        $this->assertEquals(['dependencies'], array_keys($config));
+        static::assertEquals(['dependencies'], array_keys($config));
     }
 }

@@ -9,41 +9,46 @@ use Contenir\Mail\Header\Received;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\Received::class)]
 class ReceivedTest extends TestCase
 {
-    public function testFromStringCreatesValidReceivedHeader(): void
+    #[Test]
+    public function fromStringCreatesValidReceivedHeader(): void
     {
         $receivedHeader = Header\Received::fromString('Received: xxx');
-        $this->assertInstanceOf(HeaderInterface::class, $receivedHeader);
-        $this->assertInstanceOf(Received::class, $receivedHeader);
+        static::assertInstanceOf(HeaderInterface::class, $receivedHeader);
+        static::assertInstanceOf(Received::class, $receivedHeader);
     }
 
-    public function testGetFieldNameReturnsHeaderName(): void
+    #[Test]
+    public function getFieldNameReturnsHeaderName(): void
     {
         $receivedHeader = new Header\Received();
-        $this->assertEquals('Received', $receivedHeader->getFieldName());
+        static::assertEquals('Received', $receivedHeader->getFieldName());
     }
 
-    public function testReceivedGetFieldValueReturnsProperValue(): void
+    #[Test]
+    public function receivedGetFieldValueReturnsProperValue(): void
     {
         $receivedHeader = new Header\Received(
             'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
         );
-        $this->assertSame(
+        static::assertSame(
             'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
             $receivedHeader->getFieldValue(),
         );
     }
 
-    public function testReceivedToStringReturnsHeaderFormattedString(): void
+    #[Test]
+    public function receivedToStringReturnsHeaderFormattedString(): void
     {
         $receivedHeader = new Header\Received(
             'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
         );
-        $this->assertSame(
+        static::assertSame(
             'Received: from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
             $receivedHeader->toString(),
         );
@@ -61,9 +66,10 @@ class ReceivedTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('headerLines')]
     #[Group('ZF2015-04')]
-    public function testRaisesExceptionViaFromStringOnDetectionOfCrlfInjection(string $header): void
+    public function raisesExceptionViaFromStringOnDetectionOfCrlfInjection(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $received = Header\Received::fromString($header);
@@ -79,59 +85,66 @@ class ReceivedTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('invalidValues')]
     #[Group('ZF2015-04')]
-    public function testConstructorRaisesExceptionOnValueWithCRLFInjectionAttempt(string $value): void
+    public function constructorRaisesExceptionOnValueWithCRLFInjectionAttempt(string $value): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         new Header\Received($value);
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for Received string');
         Header\Received::fromString('Foo: bar');
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = Header\Received::fromString('Received: test');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncodingHasNoEffect(): void
+    #[Test]
+    public function setEncodingHasNoEffect(): void
     {
         $header = Header\Received::fromString('Received: test');
         $header->setEncoding('UTF-8');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testToString(): void
+    #[Test]
+    public function rendersHeaderLine(): void
     {
         $header = new Header\Received('test');
-        $this->assertEquals('Received: test', $header->toString());
+        static::assertEquals('Received: test', $header->toString());
     }
 
-    public function testToStringMultipleHeaders(): void
+    #[Test]
+    public function toStringMultipleHeaders(): void
     {
         $header = new Header\Received('test');
-        $this->assertEquals('Received: test', $header->toStringMultipleHeaders([]));
+        static::assertEquals('Received: test', $header->toStringMultipleHeaders([]));
 
         $header2 = new Header\Received('test2');
-        $this->assertEquals(
+        static::assertEquals(
             "Received: test\r\nReceived: test2",
             $header->toStringMultipleHeaders([$header2]),
         );
 
         $header3 = new Header\Received('test3');
-        $this->assertEquals(
+        static::assertEquals(
             "Received: test\r\nReceived: test2\r\nReceived: test3",
             $header->toStringMultipleHeaders([$header2, $header3]),
         );
     }
 
-    public function testToStringMultipleHeadersThrows(): void
+    #[Test]
+    public function toStringMultipleHeadersThrows(): void
     {
         $header = new Header\Received('test');
         $this->expectException(Exception\RuntimeException::class);

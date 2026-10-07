@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\Module;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
@@ -11,10 +12,11 @@ use function array_keys;
 #[CoversClass(\Contenir\Mail\Module::class)]
 class ModuleTest extends TestCase
 {
-    public function testInvoke(): void
+    #[Test]
+    public function invoke(): void
     {
         $module = new Module();
         $config = $module->getConfig();
-        $this->assertEquals(['service_manager'], array_keys($config));
+        static::assertEquals(['service_manager'], array_keys($config));
     }
 }

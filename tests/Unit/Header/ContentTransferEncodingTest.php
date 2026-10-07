@@ -8,6 +8,7 @@ use Contenir\Mail\Header\HeaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
@@ -36,64 +37,72 @@ class ContentTransferEncodingTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('dataValidEncodings')]
-    public function testContentTransferEncodingFromStringCreatesValidContentTransferEncodingHeader(
+    public function contentTransferEncodingFromStringCreatesValidContentTransferEncodingHeader(
         string $encoding,
     ): void {
         $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: ' . $encoding);
-        $this->assertInstanceOf(HeaderInterface::class, $contentTransferEncodingHeader);
-        $this->assertInstanceOf(ContentTransferEncoding::class, $contentTransferEncodingHeader);
+        static::assertInstanceOf(HeaderInterface::class, $contentTransferEncodingHeader);
+        static::assertInstanceOf(ContentTransferEncoding::class, $contentTransferEncodingHeader);
     }
 
+    #[Test]
     #[DataProvider('dataInvalidEncodings')]
-    public function testContentTransferEncodingFromStringRaisesException(string $encoding): void
+    public function contentTransferEncodingFromStringRaisesException(string $encoding): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: ' . $encoding);
     }
 
-    public function testContentTransferEncodingGetFieldNameReturnsHeaderName(): void
+    #[Test]
+    public function contentTransferEncodingGetFieldNameReturnsHeaderName(): void
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
-        $this->assertEquals('Content-Transfer-Encoding', $contentTransferEncodingHeader->getFieldName());
+        static::assertEquals('Content-Transfer-Encoding', $contentTransferEncodingHeader->getFieldName());
     }
 
+    #[Test]
     #[DataProvider('dataValidEncodings')]
-    public function testContentTransferEncodingGetFieldValueReturnsProperValue(string $encoding): void
+    public function contentTransferEncodingGetFieldValueReturnsProperValue(string $encoding): void
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        $this->assertEquals($encoding, $contentTransferEncodingHeader->getFieldValue());
-        $this->assertEquals($encoding, $contentTransferEncodingHeader->getTransferEncoding());
+        static::assertEquals($encoding, $contentTransferEncodingHeader->getFieldValue());
+        static::assertEquals($encoding, $contentTransferEncodingHeader->getTransferEncoding());
     }
 
+    #[Test]
     #[DataProvider('dataValidEncodings')]
-    public function testContentTransferEncodingHandlesCaseInsensitivity(string $encoding): void
+    public function contentTransferEncodingHandlesCaseInsensitivity(string $encoding): void
     {
         $header = new ContentTransferEncoding();
         $header->setTransferEncoding(strtoupper(substr($encoding, 0, 4)) . substr($encoding, 4));
-        $this->assertEquals(strtolower($encoding), strtolower($header->getFieldValue()));
+        static::assertEquals(strtolower($encoding), strtolower($header->getFieldValue()));
     }
 
+    #[Test]
     #[DataProvider('dataValidEncodings')]
-    public function testContentTransferEncodingToStringReturnsHeaderFormattedString(string $encoding): void
+    public function contentTransferEncodingToStringReturnsHeaderFormattedString(string $encoding): void
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        $this->assertEquals('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
+        static::assertEquals('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
     }
 
-    public function testProvidingParametersIntroducesHeaderFolding(): void
+    #[Test]
+    public function providingParametersIntroducesHeaderFolding(): void
     {
         $header = new ContentTransferEncoding();
         $header->setTransferEncoding('quoted-printable');
         $string = $header->toString();
 
-        $this->assertStringContainsString('Content-Transfer-Encoding: quoted-printable', $string);
+        static::assertStringContainsString('Content-Transfer-Encoding: quoted-printable', $string);
     }
 
+    #[Test]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionOnInvalidHeaderName(): void
+    public function fromStringRaisesExceptionOnInvalidHeaderName(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         ContentTransferEncoding::fromString('Content-Transfer-Encoding' . chr(32) . ': 8bit');
@@ -108,24 +117,27 @@ class ContentTransferEncodingTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('headerLines')]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionForInvalidMultilineValues(string $headerLine): void
+    public function fromStringRaisesExceptionForInvalidMultilineValues(string $headerLine): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         ContentTransferEncoding::fromString($headerLine);
     }
 
+    #[Test]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionForContinuations(): void
+    public function fromStringRaisesExceptionForContinuations(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('expects');
         ContentTransferEncoding::fromString("Content-Transfer-Encoding: 8bit\r\n 7bit");
     }
 
+    #[Test]
     #[Group('ZF2015-04')]
-    public function testSetTransferEncodingRaisesExceptionForInvalidValues(): void
+    public function setTransferEncodingRaisesExceptionForInvalidValues(): void
     {
         $header = new ContentTransferEncoding();
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -133,24 +145,27 @@ class ContentTransferEncodingTest extends TestCase
         $header->setTransferEncoding("8bit\r\n 7bit");
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for Content-Transfer-Encoding string');
         ContentTransferEncoding::fromString('Foo: bar');
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = new ContentTransferEncoding();
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testChangeEncodingHasNoEffect(): void
+    #[Test]
+    public function changeEncodingHasNoEffect(): void
     {
         $header = new ContentTransferEncoding();
         $header->setEncoding('UTF-8');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
     public static function unconventionalHeaderLinesProvider(): array
@@ -162,12 +177,13 @@ class ContentTransferEncodingTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
+    public function fromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = ContentTransferEncoding::fromString($headerLine);
-        $this->assertInstanceOf(ContentTransferEncoding::class, $header);
-        $this->assertEquals('Content-Transfer-Encoding', $header->getFieldName());
-        $this->assertEquals($expected, $header->getFieldValue());
+        static::assertInstanceOf(ContentTransferEncoding::class, $header);
+        static::assertEquals('Content-Transfer-Encoding', $header->getFieldName());
+        static::assertEquals($expected, $header->getFieldValue());
     }
 }

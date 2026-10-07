@@ -5,6 +5,7 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\InMemory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Transport\InMemory::class)]
@@ -30,19 +31,21 @@ class InMemoryTest extends TestCase
         return $message;
     }
 
-    public function testReceivesMailArtifacts(): void
+    #[Test]
+    public function receivesMailArtifacts(): void
     {
         $message   = $this->getMessage();
         $transport = new InMemory();
 
         $transport->send($message);
 
-        $this->assertSame($message, $transport->getLastMessage());
+        static::assertSame($message, $transport->getLastMessage());
     }
 
-    public function testNullMessage(): void
+    #[Test]
+    public function nullMessage(): void
     {
         $transport = new InMemory();
-        $this->assertNull($transport->getLastMessage());
+        static::assertNull($transport->getLastMessage());
     }
 }

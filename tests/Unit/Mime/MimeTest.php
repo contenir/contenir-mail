@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 use Contenir\Mail\Mime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function base64_decode;
@@ -44,30 +45,34 @@ class MimeTest extends TestCase
         date_default_timezone_set($this->originalTimezone);
     }
 
-    public function testBoundary()
+    #[Test]
+    public function boundary()
     {
         // check boundary for uniqueness
         $m1 = new Mime\Mime();
         $m2 = new Mime\Mime();
-        $this->assertNotEquals($m1->boundary(), $m2->boundary());
+        static::assertNotEquals($m1->boundary(), $m2->boundary());
 
         // check instantiating with arbitrary boundary string
         $myBoundary = 'mySpecificBoundary';
         $m3         = new Mime\Mime($myBoundary);
-        $this->assertEquals($m3->boundary(), $myBoundary);
+        static::assertEquals($m3->boundary(), $myBoundary);
     }
 
-    public function testIsNotPrintable()
+    #[Test]
+    public function isNotPrintable()
     {
-        $this->assertFalse(Mime\Mime::isPrintable('Test with special chars: �����'));
+        static::assertFalse(Mime\Mime::isPrintable('Test with special chars: �����'));
     }
 
-    public function testIsPrintable()
+    #[Test]
+    public function isPrintable()
     {
-        $this->assertTrue(Mime\Mime::isPrintable('Test without special chars'));
+        static::assertTrue(Mime\Mime::isPrintable('Test without special chars'));
     }
 
-    public function testQP()
+    #[Test]
+    public function qP()
     {
         $text =
             "This is a cool Test Text with special chars: ����\n"
@@ -78,20 +83,22 @@ class MimeTest extends TestCase
             . ', long, long, long, long and with ����';
 
         $qp = Mime\Mime::encodeQuotedPrintable($text);
-        $this->assertEquals(quoted_printable_decode($qp), $text);
+        static::assertEquals(quoted_printable_decode($qp), $text);
     }
 
-    public function testQuotedPrintableNoDotAtBeginningOfLine()
+    #[Test]
+    public function quotedPrintableNoDotAtBeginningOfLine()
     {
         $text = str_repeat('a', Mime\Mime::LINELENGTH) . '.bbb';
         $qp   = Mime\Mime::encodeQuotedPrintable($text);
 
         $expected = str_repeat('a', Mime\Mime::LINELENGTH) . "=\n=2Ebbb";
 
-        $this->assertEquals($expected, $qp);
+        static::assertEquals($expected, $qp);
     }
 
-    public function testQuotedPrintableSpacesAndDots()
+    #[Test]
+    public function quotedPrintableSpacesAndDots()
     {
         $text = str_repeat(' ', Mime\Mime::LINELENGTH) . str_repeat('.', Mime\Mime::LINELENGTH);
         $qp   = Mime\Mime::encodeQuotedPrintable($text);
@@ -101,38 +108,42 @@ class MimeTest extends TestCase
             . "=20=\n=2E"
             . str_repeat('.', Mime\Mime::LINELENGTH - 1);
 
-        $this->assertEquals($expected, $qp);
+        static::assertEquals($expected, $qp);
     }
 
-    public function testQuotedPrintableDoesNotBreakOctets()
+    #[Test]
+    public function quotedPrintableDoesNotBreakOctets()
     {
         $text = str_repeat('a', Mime\Mime::LINELENGTH - 2) . '=.bbb';
         $qp   = Mime\Mime::encodeQuotedPrintable($text);
 
         $expected = str_repeat('a', Mime\Mime::LINELENGTH - 2) . "=\n=3D.bbb";
 
-        $this->assertEquals($expected, $qp);
+        static::assertEquals($expected, $qp);
     }
 
-    public function testBase64()
+    #[Test]
+    public function base64()
     {
         $content = str_repeat("\x88\xAA\xAF\xBF\x29\x88\xAA\xAF\xBF\x29\x88\xAA\xAF", 4);
         $encoded = Mime\Mime::encodeBase64($content);
-        $this->assertEquals($content, base64_decode($encoded));
+        static::assertEquals($content, base64_decode($encoded));
     }
 
-    public function testLaminas1058WhitespaceAtEndOfBodyCausesInfiniteLoop()
+    #[Test]
+    public function laminas1058WhitespaceAtEndOfBodyCausesInfiniteLoop()
     {
         $text   = "my body\r\n\r\n...after two newlines\r\n ";
         $result = quoted_printable_decode(Mime\Mime::encodeQuotedPrintable($text));
-        $this->assertStringContainsString("my body\r\n\r\n...after two newlines", $result, $result);
+        static::assertStringContainsString("my body\r\n\r\n...after two newlines", $result, $result);
     }
 
+    #[Test]
     #[Group('Laminas-1688')]
     #[DataProvider('dataTestEncodeMailHeaderQuotedPrintable')]
-    public function testEncodeMailHeaderQuotedPrintable(string $str, string $charset, string $result): void
+    public function encodeMailHeaderQuotedPrintable(string $str, string $charset, string $result): void
     {
-        $this->assertEquals($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
+        static::assertEquals($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
@@ -174,15 +185,16 @@ class MimeTest extends TestCase
         // phpcs:enable
     }
 
+    #[Test]
     #[DataProvider('dataTestEncodeMailHeaderQuotedPrintableWithHeaderName')]
-    public function testEncodeMailHeaderQuotedPrintableWithHeaderName(
+    public function encodeMailHeaderQuotedPrintableWithHeaderName(
         string $str,
         string $charset,
         string $expectedResult,
         int $headerLength,
     ): void {
         $actualResult = Mime\Mime::encodeQuotedPrintableHeader($str, $charset, 78, Mime\Mime::LINEEND, $headerLength);
-        $this->assertEquals($expectedResult, $actualResult);
+        static::assertEquals($expectedResult, $actualResult);
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string, 3: int}> */
@@ -222,11 +234,12 @@ class MimeTest extends TestCase
         ];
     }
 
+    #[Test]
     #[Group('Laminas-1688')]
     #[DataProvider('dataTestEncodeMailHeaderBase64')]
-    public function testEncodeMailHeaderBase64(string $str, string $charset, string $result): void
+    public function encodeMailHeaderBase64(string $str, string $charset, string $result): void
     {
-        $this->assertEquals($result, Mime\Mime::encodeBase64Header($str, $charset));
+        static::assertEquals($result, Mime\Mime::encodeBase64Header($str, $charset));
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
@@ -249,13 +262,26 @@ class MimeTest extends TestCase
      * base64 chunk are 4 chars long
      * try to encode/decode with 4 line length
      */
+    #[Test]
     #[DataProvider('dataTestEncodeMailHeaderBase64wrap')]
-    public function testEncodeMailHeaderBase64wrap(string $str): void
+    public function encodeMailHeaderBase64Wrap(string $str): void
     {
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 20)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 21)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 22)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 23)));
+        static::assertEquals(
+            $str,
+            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 20)),
+        );
+        static::assertEquals(
+            $str,
+            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 21)),
+        );
+        static::assertEquals(
+            $str,
+            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 22)),
+        );
+        static::assertEquals(
+            $str,
+            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 23)),
+        );
     }
 
     /** @psalm-return array<array-key, array{0: string}> */
@@ -270,7 +296,8 @@ class MimeTest extends TestCase
         ];
     }
 
-    public function testFromMessageMultiPart()
+    #[Test]
+    public function fromMessageMultiPart()
     {
         $message = Mime\Message::createFromMessage(
             '--089e0141a1902f83ee04e0a07b7a'
@@ -312,7 +339,7 @@ class MimeTest extends TestCase
                 . '--089e0141a1902f83ee04e0a07b7a--',
             '089e0141a1902f83ee04e0a07b7a',
         );
-        $this->assertSame(2, count($message->getParts()));
+        static::assertSame(2, count($message->getParts()));
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
@@ -333,8 +360,9 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         // phpcs:enable
     }
 
+    #[Test]
     #[DataProvider('dataTestFromMessageDecode')]
-    public function testFromMessageDecode(string $input, string $encoding, string $result): void
+    public function fromMessageDecode(string $input, string $encoding, string $result): void
     {
         $parts = Mime\Message::createFromMessage(
             '--089e0141a1902f83ee04e0a07b7a'
@@ -350,18 +378,19 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
                 . '--089e0141a1902f83ee04e0a07b7a--',
             '089e0141a1902f83ee04e0a07b7a',
         )->getParts();
-        $this->assertSame($input . "\n", $parts[0]->getRawContent());
+        static::assertSame($input . "\n", $parts[0]->getRawContent());
     }
 
+    #[Test]
     #[Group('Laminas-1688')]
-    public function testLineLengthInQuotedPrintableHeaderEncoding()
+    public function lineLengthInQuotedPrintableHeaderEncoding()
     {
         $subject =
             'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
             . 'Köpfchen in das Wasser, Schwänzchen in die Höh!';
         $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 100);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            $this->assertLessThanOrEqual(
+            static::assertLessThanOrEqual(
                 100,
                 strlen($line),
                 "Line '" . $line . "' is " . strlen($line) . ' chars long, only 100 allowed.',
@@ -369,7 +398,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         }
         $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 40);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            $this->assertLessThanOrEqual(
+            static::assertLessThanOrEqual(
                 40,
                 strlen($line),
                 "Line '" . $line . "' is " . strlen($line) . ' chars long, only 40 allowed.',
@@ -389,17 +418,19 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
         ];
     }
 
+    #[Test]
     #[DataProvider('dataTestCharsetDetection')]
-    public function testCharsetDetection(string $expected, string $string): void
+    public function charsetDetection(string $expected, string $string): void
     {
-        $this->assertEquals($expected, Mime\Mime::mimeDetectCharset($string));
+        static::assertEquals($expected, Mime\Mime::mimeDetectCharset($string));
     }
 
-    public function testEncodeQuotedPrintableShouldBeFastEnoughForLongInputStrings()
+    #[Test]
+    public function encodeQuotedPrintableShouldBeFastEnoughForLongInputStrings()
     {
         $str  = str_repeat('this could be anything, ', 200000);
         $time = microtime(true);
         Mime\Mime::encodeQuotedPrintable($str);
-        $this->assertLessThan(5, microtime(true) - $time);
+        static::assertLessThan(5, microtime(true) - $time);
     }
 }
