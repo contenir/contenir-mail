@@ -13,6 +13,7 @@ use Override;
 use function array_unique;
 use function count;
 use function sprintf;
+use function strtolower;
 use function time;
 
 /**
@@ -34,7 +35,7 @@ class Smtp implements TransportInterface
     /** @var bool */
     protected $autoDisconnect = true;
 
-    /** @var Protocol\SmtpPluginManager */
+    /** @var null|Protocol\SmtpPluginManager */
     protected $plugins;
 
     /**
@@ -149,7 +150,23 @@ class Smtp implements TransportInterface
      */
     public function plugin($name, ?array $options = null)
     {
-        return $this->getPluginManager()->get($name, $options);
+        if (null !== $this->plugins) {
+            return $this->plugins->get($name, $options);
+        }
+
+        $options ??= [];
+
+        return match (strtolower($name)) {
+            'smtp', strtolower(Protocol\Smtp::class) => new Protocol\Smtp($options),
+            'plain', strtolower(Protocol\Smtp\Auth\Plain::class) => new Protocol\Smtp\Auth\Plain($options),
+            'login', strtolower(Protocol\Smtp\Auth\Login::class) => new Protocol\Smtp\Auth\Login($options),
+            'crammd5', strtolower(Protocol\Smtp\Auth\Crammd5::class) => new Protocol\Smtp\Auth\Crammd5($options),
+            'xoauth2', strtolower(Protocol\Smtp\Auth\Xoauth2::class) => new Protocol\Smtp\Auth\Xoauth2($options),
+            default => throw new Exception\InvalidArgumentException(sprintf(
+                'SMTP connection "%s" is not a known authentication type; set a plugin manager to use custom connections',
+                $name,
+            )),
+        };
     }
 
     /**
