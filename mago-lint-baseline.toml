@@ -3338,153 +3338,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/AddressListTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 42
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddingEmailFromStringIncreasesCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddingEmailsIncreasesCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddAddressWithName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddFromStringFluently`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyAddressesAtOnce`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeleteNotExist`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeleteSuccess`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDoesNotStoreDuplicatesAndFirstWins`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetReturnsAddressObjectWhenEmailFound`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetReturnsFalseWhenEmailNotFound`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasReturnsFalseWhenAddressNotInList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasReturnsTrueWhenAddressInList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testImplementsCountable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testImplementsTraversable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIsEmptyByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testKey`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLosesParensInName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMergeTwoLists`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMixedQuotesInName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSemicolonSeparator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testThrowExceptionOnInvalidInputAddMany`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testThrowExceptionOnInvalidInputAdd`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 15
 
 [[issues]]
 file = "tests/Unit/AddressListTest.php"
@@ -3500,62 +3356,14 @@ count = 3
 
 [[issues]]
 file = "tests/Unit/AddressTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 6
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
 file = "tests/Unit/AddressTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAcceptsNameViaConstructor`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDoesNotRequireNameForInstantiation`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAddressInvalidAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAddressValidAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringCreatesStringRepresentation`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 4
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ConfigProviderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
 count = 1
 
 [[issues]]
@@ -3566,105 +3374,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/ConfigProviderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvoke`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ConfigProviderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 38
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddressListWithGroup`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowsNoWhitespaceBetweenHeaderAndValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConcreteHeaderFieldNamesAreDiscrete`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConcreteHeadersComposeAddressLists`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConcreteHeadersExtendAbstractAddressListHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeserializationFromSpecialCharString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeserializationFromStringWithComments`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeserializationFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFieldValueIsCreatedFromAddressList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFieldValueIsEmptyByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesUnconventionalNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStringRepresentationIncludesHeaderAndFieldValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTrimSurroundingSingleQuotes`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 12
 
 [[issues]]
 file = "tests/Unit/Header/AddressListHeaderTest.php"
@@ -3686,12 +3398,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 28
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
 code = "braced-string-interpolation"
 message = "Unbraced variable in string interpolation."
 count = 6
@@ -3704,96 +3410,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesContinuations`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesUnconventionalNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetParameter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHandlesLiterals`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testImplementsHeaderInterface`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParameterWrappingExceptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParameterWrapping`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveParameter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetDisposition`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetParameterThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTrailingSemiColonFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 7
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -3803,24 +3419,6 @@ file = "tests/Unit/Header/ContentDispositionTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "use-specific-assertions"
-message = "Use `assertFalse` instead of `assertEquals` for clearer test assertions."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "use-specific-assertions"
-message = "Use `assertTrue` instead of `assertEquals` for clearer test assertions."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 13
 
 [[issues]]
 file = "tests/Unit/Header/ContentTransferEncodingTest.php"
@@ -3848,102 +3446,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingFromStringCreatesValidContentTransferEncodingHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingFromStringRaisesException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingGetFieldNameReturnsHeaderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingGetFieldValueReturnsProperValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingHandlesCaseInsensitivity`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTransferEncodingToStringReturnsHeaderFormattedString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesUnconventionalNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionForContinuations`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionForInvalidMultilineValues`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeaderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testProvidingParametersIntroducesHeaderFolding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetTransferEncodingRaisesExceptionForInvalidValues`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -3962,141 +3464,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentTypeTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 29
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddParameterThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testExtractsExtraInformationWithoutBeingConfusedByTrailingSemicolon`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesContinuations`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesUnconventionalNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetParameterNotExists`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetParameterWithSpaceTrimmed`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetParameter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHandlesLiterals`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testImplementsHeaderInterface`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParameterWrapping`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveParameterNotExists`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveParameter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetTypeThrowsOnInvalidValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetType`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTrailingSemiColonFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 4
 
 [[issues]]
 file = "tests/Unit/Header/ContentTypeTest.php"
@@ -4109,12 +3479,6 @@ file = "tests/Unit/Header/ContentTypeTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 3
 
 [[issues]]
 file = "tests/Unit/Header/DateTest.php"
@@ -4130,57 +3494,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnCrlfInjectionAttempt`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPreventsCRLFInjectionViaConstructor`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 25
 
 [[issues]]
 file = "tests/Unit/Header/GenericHeaderTest.php"
@@ -4196,108 +3512,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowZeroInHeaderValueInConstructor`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCRLFsequencesAreEncodedOnToString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCannotInstantiateWithoutFieldName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCastingToStringHandlesContinuationsProperly`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeEncodingBackToAscii`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeEncodingToAsciiNotAllowedWhenHeaderValueContainsUtf8Characters`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConstructorRaisesExceptionOnInvalidFieldName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParseValidSubjectHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetFieldNameRaisesExceptionOnInvalidFieldName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetFieldValueValidValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetNullEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingFieldValueCanChangeEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingTheSameEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitHeaderLineRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -4310,98 +3524,20 @@ count = 3
 
 [[issues]]
 file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
 file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringMultiple`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringSingle`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringInvalid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringMultiple`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringSingle`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 12
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultHeadersMapResolvesProperHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCanBeAdded`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCanBeRemoved`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderExistenceIsProperlyChecked`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderIsProperlyLoaded`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderLocatorTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
 count = 1
 
 [[issues]]
@@ -4412,32 +3548,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderNameTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAssertValidRaisesExceptionForInvalidNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFilterName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testValidateName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
 count = 1
 
 [[issues]]
@@ -4448,33 +3560,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderValueTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAssertValidRaisesExceptionForInvalidValues`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFilterValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testValidateValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 11
 
 [[issues]]
 file = "tests/Unit/Header/HeaderWrapTest.php"
@@ -4520,60 +3608,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanBeEncoded`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMimeDecodeBreakageBug`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMimeDecoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMimeEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMultilineWithMultibyteSplitAcrossCharacter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrapUnknownHeaderType`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrapUnstructuredHeaderAscii`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrapUnstructuredHeaderMime`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -4583,12 +3617,6 @@ file = "tests/Unit/Header/HeaderWrapTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 4
 
 [[issues]]
 file = "tests/Unit/Header/IdentificationFieldTest.php"
@@ -4604,51 +3632,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDeserializationFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSerializationToString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetIdsThrowsOnInvalidInput`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/IdentificationFieldTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 7
 
 [[issues]]
 file = "tests/Unit/Header/MessageIdTest.php"
@@ -4670,69 +3656,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAutoGenerationWithServerVars`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAutoGeneration`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringPreventsCrlfInjectionOnDetection`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidIdentifierRaisesException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingManually`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 8
 
 [[issues]]
 file = "tests/Unit/Header/MimeVersionTest.php"
@@ -4748,69 +3674,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultVersion`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringHandlesUnconventionalNames`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnDetectionOfCrlfInjection`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRaisesExceptionOnInvalidVersionFromSetVersion`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingManually`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 11
 
 [[issues]]
 file = "tests/Unit/Header/ReceivedTest.php"
@@ -4826,93 +3692,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConstructorRaisesExceptionOnValueWithCRLFInjectionAttempt`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringCreatesValidReceivedHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFieldNameReturnsHeaderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRaisesExceptionViaFromStringOnDetectionOfCrlfInjection`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivedGetFieldValueReturnsProperValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivedToStringReturnsHeaderFormattedString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingHasNoEffect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringMultipleHeadersThrows`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToStringMultipleHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 16
 
 [[issues]]
 file = "tests/Unit/Header/SenderTest.php"
@@ -4934,84 +3716,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringCreatesValidReceivedHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringWithInvalidInput`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringWithValidInput`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFieldNameReturnsHeaderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParseInvalidSenderHeaderThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParseValidSenderHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAddressInvalidValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAddressValidAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAddressValidValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -5024,12 +3728,6 @@ count = 4
 
 [[issues]]
 file = "tests/Unit/Header/SubjectTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 19
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
 code = "literal-named-argument"
 message = "Literal argument `10` should be passed as a named argument for clarity."
 count = 1
@@ -5038,78 +3736,6 @@ count = 1
 file = "tests/Unit/Header/SubjectTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeEncodingBackToAscii`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeEncodingToAsciiNotAllowedWhenSubjectContainsUtf8Characters`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionOnInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderFolding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParseInvalidSubjectHeaderThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testParseValidSubjectHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetNullEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetSubjectValidValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingSubjectCanChangeEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingTheSameEncoding`."
 count = 1
 
 [[issues]]
@@ -5126,32 +3752,8 @@ count = 3
 
 [[issues]]
 file = "tests/Unit/Header/ToTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringRaisesExceptionWhenCrlfInjectionIsDetected`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderFoldingOccursProperly`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
 count = 1
 
 [[issues]]
@@ -5165,12 +3767,6 @@ file = "tests/Unit/Header/ToTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 102
 
 [[issues]]
 file = "tests/Unit/HeadersTest.php"
@@ -5192,312 +3788,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddHeaderCallsSetEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddressListGetEncodedFieldValueWithUtf8Domain`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanInjectAlternateHeaderLocatorInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCastingToArrayReturnsMultiHeadersAsArrays`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCastingToStringReturnsAllMultiHeaderValues`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClone`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEmailNameParser`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderLocatorReturnsHeaderLocatorInstanceByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetReturnsArrayIterator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeaderLineMultiple`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeaderLineSingle`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeaderLineWithValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeadersMultiple`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeadersSingle`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackAddHeadersWithValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderCrLfAttackFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAddHeaderLineThrowsExceptionOnInvalidFieldNull`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAddHeaderLineThrowsExceptionOnInvalidFieldObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAddHeaderLineThrowsExceptionOnMissingFieldValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAddHeadersThrowsExceptionOnInvalidArguments`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAggregatesHeaderObjects`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAggregatesHeaderThroughAddHeaderLine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAggregatesHeaderThroughAddHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersAggregatesHeadersThroughAddHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersCanBeCastToArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersCanBeCastToString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersCanBeIterated`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersCanClearAllHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersCanRemoveHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryCreatesMultipleObjects`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryCreatesSingleObjectWithContinuationLine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryCreatesSingleObjectWithHeaderBreakLine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryCreatesSingleObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryHandlesMissingWhitespace`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryThrowsExceptionOnMalformedHeaderLine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringFactoryThrowsExceptionOnMalformedHeaderLines`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersFromStringMultiHeaderWillAggregateLazyLoadedHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersHasAndGetWorkProperly`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersImplementsProperClasses`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveHeaderWhenEmpty`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveHeaderWithFieldNameWillRemoveAllInstances`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveHeaderWithInstanceWillRemoveThatInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingNoHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetEncodingWithHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStrictKeyComparisonInGet`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStrictKeyComparisonInHas`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToArrayFormatEncoded`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToArrayFormatRaw`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUndefinedDefineMissingIntlExtensionConstants`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 54
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -5510,63 +3800,15 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/MessageFactoryTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 19
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
 file = "tests/Unit/MessageFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanCreateMessageWithMultipleRecipientsViaArrayValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConstructMessageWithOptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEmptyOption`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testExceptionForOptionsNotArrayOrTraversable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIgnoresUnreconizedOptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 7
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 168
 
 [[issues]]
 file = "tests/Unit/MessageTest.php"
@@ -5600,495 +3842,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAddingFromAddressMarksAsValid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testBccAddressListLivesInHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testBccMethodReturnsAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testBodyIsEmptyByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddBccAddressUsingAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddBccAddressUsingName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddCcAddressUsingAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddCcAddressUsingName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddFromAddressUsingAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddFromAddressUsingEmailAndNameAsString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddFromAddressUsingName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyBccAddressesUsingAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyBccAddressesUsingArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyCcAddressesUsingAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyCcAddressesUsingArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyFromAddressesUsingAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyFromAddressesUsingArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyReplyToAddressesUsingAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddManyReplyToAddressesUsingArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddReplyToAddressUsingAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAddReplyToAddressUsingName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanParseMultipartReport`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanProvideAddressObjectWhenSettingSender`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanRestoreFromSerializedStringWhenBodyContainsMultipleNewlines`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanSetBccListFromAddressList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanSetCcListFromAddressList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanSetFromListFromAddressList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanSetReplyToListFromAddressList`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanSpecifyNameWhenSettingSender`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCcAddressListLivesInHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCcMethodReturnsAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCorrectHeaderEncodingAddHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCorrectHeaderEncodingFromStringAndSetHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCorrectHeaderEncodingFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCorrectHeaderEncodingSetHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultDateHeaderEncodingIsAlwaysAscii`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDetectsCRLFInjectionViaSubject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodingIsAsciiByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodingIsMutable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testExceptionWhenAttemptingToSerializeMessageWithCRLFInjectionViaHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromAddressListLivesInHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromMethodReturnsAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaderUnfoldingWorksAsExpectedForMultipartMessages`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersMethodReturnsHeadersObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMailHeaderContainsZeroValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMaySetBodyFromMimeMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMaySetBodyFromStringSerializableObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMaySetBodyFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMaySetNullBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageReturnsNonEncodedSubject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageSubjectEncodingWhenEcodingSetBeforeTheSubject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageSubjectEncodingWhenEncodingSetAfterTheSubject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageSubjectFromString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageSubjectSetSubject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNullSenderDoesNotCreateHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPassEmptyArrayIntoSetPartsOfMimeMessageShouldReturnEmptyBodyString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReplyToAddressListLivesInHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReplyToMethodReturnsAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRestoreFromSerializedString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRetrievingBodyTextFromMessageWithMultiPartMimeBodyReturnsMimeSerialization`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSecondCodeInjectionInFromHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSenderAccessorsProxyToSenderHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSenderIsNullByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetsOrigDateHeaderByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingBodyFromMultiPartMimeMessageSetsAppropriateHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingBodyFromSinglePartMimeMessageSetsAppropriateHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingNonAsciiEncodingForcesMimeEncodingOfSomeHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingNonScalarNonMimeNonStringSerializableValueForBodyRaisesException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingSenderCreatesAddressObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingSubjectProxiesToHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettingUtf8MailBodyFromSinglePartMimeUtf8MessageSetsAppropriateHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSubjectIsEmptyByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSubjectIsMutableReplaceExisting`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSubjectIsMutable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToAddressListLivesInHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testToMethodReturnsAddressListObject`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 45
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/DecodeTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Mime/DecodeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDecodeMessageWithoutHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 29
 
 [[issues]]
 file = "tests/Unit/Mime/MessageTest.php"
@@ -6098,87 +3854,9 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDecodeMimeMessageNoHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDecodeMimeMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDecodeNonMultipartMimeMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDuplicatePartAddedWillThrowException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromStringWithCrlfAndRfc2822FoldedHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGenerate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetMime`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMultiPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNonMultipartMessageShouldNotRemovePartFromMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPassEmptyArrayIntoSetPartsShouldReturnEmptyString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetGetParts`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 15
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 23
 
 [[issues]]
 file = "tests/Unit/Mime/MimeTest.php"
@@ -6196,120 +3874,6 @@ count = 1
 file = "tests/Unit/Mime/MimeTest.php"
 code = "method-name"
 message = "Method name `dataTestEncodeMailHeaderBase64wrap` should be in camel case."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "method-name"
-message = "Method name `testEncodeMailHeaderBase64wrap` should be in camel case."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testBase64`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testBoundary`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCharsetDetection`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeMailHeaderBase64`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeMailHeaderBase64wrap`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeMailHeaderQuotedPrintableWithHeaderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeMailHeaderQuotedPrintable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeQuotedPrintableShouldBeFastEnoughForLongInputStrings`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromMessageDecode`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFromMessageMultiPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIsNotPrintable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIsPrintable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLaminas1058WhitespaceAtEndOfBodyCausesInfiniteLoop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLineLengthInQuotedPrintableHeaderEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testQP`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testQuotedPrintableDoesNotBreakOctets`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testQuotedPrintableNoDotAtBeginningOfLine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testQuotedPrintableSpacesAndDots`."
 count = 1
 
 [[issues]]
@@ -6332,12 +3896,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Mime/PartTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 26
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
 code = "literal-named-argument"
 message = "Literal argument `'rb'` should be passed as a named argument for clarity."
 count = 4
@@ -6356,75 +3914,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConstructorRaisesInvalidArgumentExceptionForInvalidContentTypes`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentEncodingWithStreamReadTwiceINaRow`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetRawContentFromPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetContentRaisesInvalidArgumentExceptionForInvalidContentTypes`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSettersGetters`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStreamEncoding`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 9
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
 code = "strict-behavior"
 message = "Call to `base64_decode` must enforce strict comparison."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "use-specific-assertions"
-message = "Use `assertFalse` instead of `assertEquals` for clearer test assertions."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ModuleTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 1
 
 [[issues]]
 file = "tests/Unit/ModuleTest.php"
@@ -6434,20 +3926,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/ModuleTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvoke`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ModuleTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
 count = 1
 
 [[issues]]
@@ -6460,12 +3940,6 @@ count = 1
 file = "tests/Unit/Protocol/AbstractProtocolTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testExceptionShouldBeRaisedWhenConnectionHasTimedOut`."
 count = 1
 
 [[issues]]
@@ -6494,33 +3968,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/Pop3/ResponseTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/ResponseTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/ResponseTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIntegration`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/ResponseTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 2
 
 [[issues]]
 file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
@@ -6548,12 +3998,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIntegration`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 1
@@ -6572,27 +4016,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/ProtocolTraitTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/ProtocolTraitTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTls12Version`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/ProtocolTraitTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 3
 
 [[issues]]
 file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
@@ -6602,50 +4028,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAnExceptionIsThrownForEmptyChallenge`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAnExceptionIsThrownForEmptyPassword`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHmacMd5ReturnsExpectedHash`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPasswordAccessors`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUsernameAccessors`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerCompatibilityTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
 count = 1
 
 [[issues]]
@@ -6668,32 +4052,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFactoryConfiguresPluginManagerUnderContainerInterop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFactoryConfiguresPluginManagerUnderServiceManagerV2`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerFactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFactoryReturnsPluginManager`."
 count = 1
 
 [[issues]]
@@ -6704,92 +4064,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/SmtpTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 10
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAuthThrowsWhenAlreadyAuthed`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanAvoidQuitRequest`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectHasVerboseErrors`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDataThrowsWhenNoRcpt`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDisconnectCallsQuit`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDisconnectResetsAuthFlag`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeloThrowsWhenAlreadySession`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeloThrowsWithInvalidHostname`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMailThrowsWhenNoSession`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRcptThrowsWhenNoMail`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRcptThrowsWithCodeWhenErroneousRecipient`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendEscapedEmail`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMinimalMail`."
 count = 1
 
 [[issues]]
@@ -6806,12 +4082,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
 count = 1
@@ -6821,18 +4091,6 @@ file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEncodeXoauth2Sasl`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 78
 
 [[issues]]
 file = "tests/Unit/Storage/ImapTest.php"
@@ -6902,378 +4160,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAppend`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanMarkMessageUnseen`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCapability`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClosedSocketNewlineToken`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectSSL`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectSelfSignedSSL`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectTLS`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCopy`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCountFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCountFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateExistingFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDelimiter`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEscaping`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testExamine`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchByUid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeaderFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetch`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGlobalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasCreate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasFlag`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidService`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testKeyLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadUnkownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoParams`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRawHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveFolderInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveFolderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveInvalidFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRenameFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSelect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSelectable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSingleSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSizeFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStore`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTooLateCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUnknownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWithInstanceConstruction`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWithNotConnectedInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWithNotLoggedInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongService`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongUsername`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 30
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -7289,12 +4175,6 @@ file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 18
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7355,144 +4235,6 @@ file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 4
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetInvalidFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetNotSelectableFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetVanishedFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGlobalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInboxEquals`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testKeyLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadUnkownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoParams`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotReadableFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotReadableMaildir`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSelectable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUnknownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWithAdditionalFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 8
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7514,12 +4256,6 @@ count = 3
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 11
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "identity-comparison"
 message = "Use identity comparison `===` instead of equality comparison `==`."
 count = 1
@@ -7568,54 +4304,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasFlag`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPartSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -7637,12 +4325,6 @@ file = "tests/Unit/Storage/MaildirTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
 count = 4
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 35
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
@@ -7712,204 +4394,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCountFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCurIsFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFailedRemove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchWrongMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchWrongSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasCreate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasFlag`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasTop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadInvalid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNewIsFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotReadableCur`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotReadableNew`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPartSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSingleSizePlusPlus`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSingleSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSizePlusPlus`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTmpIsFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 15
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -7925,12 +4409,6 @@ file = "tests/Unit/Storage/MaildirTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 44
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -8030,210 +4508,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAppendMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAppendStream`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAppend`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCheckQuotaDetailed`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCheckQuota`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCopyMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCopy`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateExistingFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolderDirectorySeparator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolderEmptyPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolderExistingDir`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolderSlash`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreateFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCreate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInitExisting`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInit`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMissingMaildirsizeWithFixedQuota`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMissingMaildirsize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveFolderInstance`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveFolderName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveFolderWithChildren`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveInvalidFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveRemovedFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemoveSelectedFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRenameFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRenameSelectedFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRenameToChild`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetFlagsRemovedFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetFlags`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetQuota`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -8249,12 +4523,6 @@ file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
 count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 24
 
 [[issues]]
 file = "tests/Unit/Storage/MboxFolderTest.php"
@@ -8312,144 +4580,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeFolderUnselectable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testChangeFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFilenameParam`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetInvalidFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetVanishedFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGlobalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testKeyLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadUnknownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLocalName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoParams`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotMboxFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotReadableFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSelectable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSleepWake`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUnknownFolder`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -8465,12 +4595,6 @@ file = "tests/Unit/Storage/MboxFolderTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
 count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 11
 
 [[issues]]
 file = "tests/Unit/Storage/MboxInterfaceTest.php"
@@ -8498,105 +4622,9 @@ count = 4
 
 [[issues]]
 file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testArrayGet`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testArraySetFail`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFallback`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIsset`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterationIsMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterationKey`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterationRounds`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterationWithSeekCapped`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterationWithSeek`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNotIsset`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongVariable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 5
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 8
 
 [[issues]]
 file = "tests/Unit/Storage/MboxMessageOldTest.php"
@@ -8636,36 +4664,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testShortMbox`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 8
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -8681,12 +4679,6 @@ file = "tests/Unit/Storage/MboxMessageOldTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 30
 
 [[issues]]
 file = "tests/Unit/Storage/MboxTest.php"
@@ -8774,162 +4766,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCapabilities`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFailedRemove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBodyUnix`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeaderUnix`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasCreate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasTop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadInvalid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLoadOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoParams`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testOutOfBounds`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testShortMbox`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSingleSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSleepWakeRemoved`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSleepWake`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testValid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 13
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -8951,12 +4787,6 @@ file = "tests/Unit/Storage/MessageTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 64
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
@@ -9038,276 +4868,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowWhitespaceInEmptyMultiLineHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowWhitespaceInEmptySingleLineHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCaseInsensitiveField`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCaseInsensitiveMultipart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCheckingHasHeaderFunctionality`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testContentTypeDecode`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDecodeString`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEmptyBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testEmptyHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetDecodedHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFirstPartTwice`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetFirstPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderAsArray`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderFieldDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderFieldInvalid`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderFieldMissing`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderFieldNamed`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeaderFieldSingle`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetToHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetWrongPart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidFile`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidMailHandler`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIsMultipart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testIterator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLateFetch`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testManualIterator`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageFlagsAreSet`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMessageIdHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMissingId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMultipleHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testMultivaluedToHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoContent`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoHeaderMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSpaceInFieldName`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitEmptyMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitInvalidHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitInvalidMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSplitMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testStrictParseMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTopLines`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongHeaderType`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongMultipart`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 31
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -9320,44 +4880,8 @@ count = 3
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
-code = "use-specific-assertions"
-message = "Use `assertNull` instead of `assertEquals` for clearer test assertions."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConvertsIterableMapToArrayMap`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConvertsObjectToArrayMap`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRaisesErrorOnInvalidParamsTypes`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ParamsNormalizerTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReturnsArrayMapVerbatim`."
 count = 1
 
 [[issues]]
@@ -9365,12 +4889,6 @@ file = "tests/Unit/Storage/ParamsNormalizerTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 19
 
 [[issues]]
 file = "tests/Unit/Storage/Pop3Test.php"
@@ -9419,186 +4937,6 @@ file = "tests/Unit/Storage/Pop3Test.php"
 code = "no-redundant-variable"
 message = "Variable `$count` is assigned but never used."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectConfig`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectFailure`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectOk`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectSSL`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectSelfSignedSSL`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConnectTLS`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCount`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDotMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageBody`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testFetchMessageHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasCreate`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHasTop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidService`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoParams`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNoop`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRawHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReadAfterClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRemove`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testRequestAfterClose`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testServerCapa`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testServerUidl`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSingleSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSize`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWithInstanceConstruction`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongService`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testWrongUniqueId`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 7
 
 [[issues]]
 file = "tests/Unit/Storage/Pop3Test.php"
@@ -9668,12 +5006,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/FactoryTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 7
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
 code = "literal-named-argument"
 message = "Literal argument `'3.3.0'` should be passed as a named argument for clarity."
 count = 1
@@ -9682,60 +5014,6 @@ count = 1
 file = "tests/Unit/Transport/FactoryTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanCreateClassFromTypeAlias`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanCreateClassUsingTypeKey`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanCreateFileTransportWithOptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanCreateSmtpTransportWithOptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanUseTraversableAsSpec`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultTypeIsSendmail`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidClassThrowsDomainException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidSpecThrowsInvalidArgumentException`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
 count = 1
 
 [[issues]]
@@ -9752,50 +5030,8 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 8
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCallbackIsMutable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDefaultCallbackIsSetByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPathIsMutable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPathIsSysTempDirByDefault`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetCallbackThrowsWhenNotCallable`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetPathThrowsWhenPathNotWritable`."
 count = 1
 
 [[issues]]
@@ -9803,12 +5039,6 @@ file = "tests/Unit/Transport/FileOptionsTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 3
 
 [[issues]]
 file = "tests/Unit/Transport/FileTest.php"
@@ -9820,18 +5050,6 @@ count = 1
 file = "tests/Unit/Transport/FileTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testConstructorNoOptions`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivesMailArtifacts`."
 count = 1
 
 [[issues]]
@@ -9848,26 +5066,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/InMemoryTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Transport/InMemoryTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/InMemoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testNullMessage`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/InMemoryTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivesMailArtifacts`."
 count = 1
 
 [[issues]]
@@ -9875,12 +5075,6 @@ file = "tests/Unit/Transport/InMemoryTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 43
 
 [[issues]]
 file = "tests/Unit/Transport/SendmailTest.php"
@@ -9914,99 +5108,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowMessageWithEmptyToHeaderButHasBccHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAllowMessageWithEmptyToHeaderButHasCcHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAssertSubjectEncoded`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCodeInjectionInFromHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDoNotAllowMessageWithoutToAndCcAndBccHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDoesNotInjectFromParameterFromSenderWhenFromOptionPresentInParameters`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersToAndSubjectAreNotDuplicated`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLinesStartingWithFullStopsArePreparedProperlyForWindows`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPrepareParametersEscapesFromAddressUsingEscapeShellArg`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testPrepareParametersEscapesSenderUsingEscapeShellArg`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivesMailArtifactsOnUnixSystems`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivesMailArtifactsOnWindowsSystems`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testTrimmedParameters`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testValidEmailLocaDomainInFromHeader`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
 code = "readable-literal"
 message = "Numeric literal could use underscore separators for readability."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 10
 
 [[issues]]
 file = "tests/Unit/Transport/SendmailTest.php"
@@ -10019,12 +5123,6 @@ file = "tests/Unit/Transport/SendmailTest.php"
 code = "yoda-conditions"
 message = "Use Yoda condition style for safer comparisons"
 count = 2
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "assertion-style"
-message = "Inconsistent assertions style."
-count = 44
 
 [[issues]]
 file = "tests/Unit/Transport/SmtpTest.php"
@@ -10049,114 +5147,6 @@ file = "tests/Unit/Transport/SmtpTest.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAutoDisconnectFalse`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAutoDisconnectTrue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testAutoReconnect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testCanUseAuthenticationExtensionsViaPluginManager`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDisconnectSendReconnects`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testDisconnect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetDefaultAutoDisconnectValue`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testLongLinesFoldingRFC5322`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testReceivesMailArtifacts`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMailWithEnvelopeFrom`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMailWithEnvelopeTo`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMailWithEnvelope`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMailWithoutMinimalHeaders`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMailWithoutRecipient`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMinimalMailWithoutSender`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSendMinimalMail`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetAutoDisconnect`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "strict-assertions"
-message = "Use strict assertions in PHPUnit tests."
-count = 3
 
 [[issues]]
 file = "tests/Unit/Transport/SmtpTest.php"

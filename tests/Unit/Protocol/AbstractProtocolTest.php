@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\AbstractProtocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\ProtocolTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
@@ -42,7 +43,8 @@ final class AbstractProtocolTest extends TestCase
         $this->process->stop();
     }
 
-    public function testExceptionShouldBeRaisedWhenConnectionHasTimedOut(): void
+    #[Test]
+    public function exceptionShouldBeRaisedWhenConnectionHasTimedOut(): void
     {
         $protocol = new class('127.0.0.1', 8080) extends AbstractProtocol {
             use ProtocolTrait;
@@ -64,7 +66,7 @@ final class AbstractProtocolTest extends TestCase
         };
 
         $protocol->connect();
-        self::assertSame('HTTP/1.1 200 OK' . AbstractProtocol::EOL, $protocol->send('/', null));
+        static::assertSame('HTTP/1.1 200 OK' . AbstractProtocol::EOL, $protocol->send('/', null));
 
         $protocol->connect();
         $this->expectExceptionObject(new RuntimeException('127.0.0.1 has timed out'));

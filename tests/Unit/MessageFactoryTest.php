@@ -9,6 +9,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\MessageFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -16,7 +17,8 @@ use function count;
 #[CoversClass(\Contenir\Mail\MessageFactory::class)]
 class MessageFactoryTest extends TestCase
 {
-    public function testConstructMessageWithOptions(): void
+    #[Test]
+    public function constructMessageWithOptions(): void
     {
         $options = [
             'encoding' => 'UTF-8',
@@ -32,12 +34,12 @@ class MessageFactoryTest extends TestCase
 
         $message = MessageFactory::getInstance($options);
 
-        $this->assertInstanceOf(Message::class, $message);
-        $this->assertEquals('UTF-8', $message->getEncoding());
-        $this->assertEquals('subject', $message->getSubject());
-        $this->assertEquals('body', $message->getBody());
-        $this->assertInstanceOf(Address::class, $message->getSender());
-        $this->assertEquals($options['sender'], $message->getSender()->getEmail());
+        static::assertInstanceOf(Message::class, $message);
+        static::assertEquals('UTF-8', $message->getEncoding());
+        static::assertEquals('subject', $message->getSubject());
+        static::assertEquals('body', $message->getBody());
+        static::assertInstanceOf(Address::class, $message->getSender());
+        static::assertEquals($options['sender'], $message->getSender()->getEmail());
 
         $getMethods = [
             'from'     => 'getFrom',
@@ -49,13 +51,14 @@ class MessageFactoryTest extends TestCase
 
         foreach ($getMethods as $key => $method) {
             $value = $message->{$method}();
-            $this->assertInstanceOf(AddressList::class, $value);
-            $this->assertEquals(1, count($value));
-            $this->assertTrue($value->has($options[$key]));
+            static::assertInstanceOf(AddressList::class, $value);
+            static::assertEquals(1, count($value));
+            static::assertTrue($value->has($options[$key]));
         }
     }
 
-    public function testCanCreateMessageWithMultipleRecipientsViaArrayValue(): void
+    #[Test]
+    public function canCreateMessageWithMultipleRecipientsViaArrayValue(): void
     {
         $options = [
             'from' => ['matthew@example.com' => 'Matthew'],
@@ -68,31 +71,33 @@ class MessageFactoryTest extends TestCase
         $message = MessageFactory::getInstance($options);
 
         $from = $message->getFrom();
-        $this->assertInstanceOf(AddressList::class, $from);
-        $this->assertEquals(1, count($from));
-        $this->assertTrue($from->has('matthew@example.com'));
-        $this->assertEquals('Matthew', $from->get('matthew@example.com')->getName());
+        static::assertInstanceOf(AddressList::class, $from);
+        static::assertEquals(1, count($from));
+        static::assertTrue($from->has('matthew@example.com'));
+        static::assertEquals('Matthew', $from->get('matthew@example.com')->getName());
 
         $to = $message->getTo();
-        $this->assertInstanceOf(AddressList::class, $to);
-        $this->assertEquals(2, count($to));
-        $this->assertTrue($to->has('test@example.com'));
-        $this->assertTrue($to->has('list@example.com'));
+        static::assertInstanceOf(AddressList::class, $to);
+        static::assertEquals(2, count($to));
+        static::assertTrue($to->has('test@example.com'));
+        static::assertTrue($to->has('list@example.com'));
     }
 
-    public function testIgnoresUnreconizedOptions(): void
+    #[Test]
+    public function ignoresUnreconizedOptions(): void
     {
         $options = [
             'foo' => 'bar',
         ];
         $mail = MessageFactory::getInstance($options);
-        $this->assertInstanceOf(Message::class, $mail);
+        static::assertInstanceOf(Message::class, $mail);
     }
 
-    public function testEmptyOption(): void
+    #[Test]
+    public function emptyOption(): void
     {
         $mail = MessageFactory::getInstance();
-        $this->assertInstanceOf(Message::class, $mail);
+        static::assertInstanceOf(Message::class, $mail);
     }
 
     public static function invalidMessageOptions(): array
@@ -112,8 +117,9 @@ class MessageFactoryTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('invalidMessageOptions')]
-    public function testExceptionForOptionsNotArrayOrTraversable(mixed $options): void
+    public function exceptionForOptionsNotArrayOrTraversable(mixed $options): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         MessageFactory::getInstance($options);

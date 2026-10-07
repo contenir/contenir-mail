@@ -6,6 +6,7 @@ use ArrayIterator;
 use Contenir\Mail\Storage\ParamsNormalizer;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ParamsNormalizerTest extends TestCase
@@ -21,14 +22,16 @@ class ParamsNormalizerTest extends TestCase
         yield 'list' => [[1, 2, 3]];
     }
 
+    #[Test]
     #[DataProvider('invalidParams')]
-    public function testRaisesErrorOnInvalidParamsTypes(mixed $params): void
+    public function raisesErrorOnInvalidParamsTypes(mixed $params): void
     {
         $this->expectException(InvalidArgumentException::class);
         ParamsNormalizer::normalizeParams($params);
     }
 
-    public function testReturnsArrayMapVerbatim(): void
+    #[Test]
+    public function returnsArrayMapVerbatim(): void
     {
         $params = [
             'foo'   => 'bar',
@@ -41,10 +44,11 @@ class ParamsNormalizerTest extends TestCase
             'here'  => (object) ['foo' => 'bar'],
         ];
 
-        self::assertSame($params, ParamsNormalizer::normalizeParams($params));
+        static::assertSame($params, ParamsNormalizer::normalizeParams($params));
     }
 
-    public function testConvertsIterableMapToArrayMap(): void
+    #[Test]
+    public function convertsIterableMapToArrayMap(): void
     {
         $paramsArray = [
             'foo'   => 'bar',
@@ -58,10 +62,11 @@ class ParamsNormalizerTest extends TestCase
         ];
         $params = new ArrayIterator($paramsArray);
 
-        self::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
+        static::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
     }
 
-    public function testConvertsObjectToArrayMap(): void
+    #[Test]
+    public function convertsObjectToArrayMap(): void
     {
         $paramsArray = [
             'foo'   => 'bar',
@@ -75,6 +80,6 @@ class ParamsNormalizerTest extends TestCase
         ];
         $params = (object) $paramsArray;
 
-        self::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
+        static::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
     }
 }

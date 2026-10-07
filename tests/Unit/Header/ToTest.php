@@ -7,6 +7,7 @@ use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -19,7 +20,8 @@ use function explode;
 #[CoversClass(\Contenir\Mail\Header\To::class)]
 class ToTest extends TestCase
 {
-    public function testHeaderFoldingOccursProperly(): void
+    #[Test]
+    public function headerFoldingOccursProperly(): void
     {
         $header = new Header\To();
         $list   = $header->getAddressList();
@@ -28,7 +30,7 @@ class ToTest extends TestCase
         }
         $string = $header->getFieldValue();
         $emails = explode("\r\n ", $string);
-        $this->assertEquals(10, count($emails));
+        static::assertEquals(10, count($emails));
     }
 
     public static function headerLines(): array
@@ -41,9 +43,10 @@ class ToTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('headerLines')]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionWhenCrlfInjectionIsDetected(string $header): void
+    public function fromStringRaisesExceptionWhenCrlfInjectionIsDetected(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         Header\To::fromString($header);

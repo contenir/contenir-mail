@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Storage;
 use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function closedir;
@@ -100,59 +101,66 @@ class MaildirMessageOldTest extends TestCase
         }
     }
 
-    public function testFetchHeader(): void
+    #[Test]
+    public function fetchHeader(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageHeader(): void
+    #[Test]
+    public function fetchMessageHeader(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageBody(): void
+    #[Test]
+    public function fetchMessageBody(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
 
-    public function testHasFlag(): void
+    #[Test]
+    public function hasFlag(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
-        $this->assertFalse($mail->getMessage(5)->hasFlag(Storage::FLAG_SEEN));
-        $this->assertTrue($mail->getMessage(5)->hasFlag(Storage::FLAG_RECENT));
-        $this->assertTrue($mail->getMessage(2)->hasFlag(Storage::FLAG_FLAGGED));
-        $this->assertFalse($mail->getMessage(2)->hasFlag(Storage::FLAG_ANSWERED));
+        static::assertFalse($mail->getMessage(5)->hasFlag(Storage::FLAG_SEEN));
+        static::assertTrue($mail->getMessage(5)->hasFlag(Storage::FLAG_RECENT));
+        static::assertTrue($mail->getMessage(2)->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertFalse($mail->getMessage(2)->hasFlag(Storage::FLAG_ANSWERED));
     }
 
-    public function testGetFlags(): void
+    #[Test]
+    public function getFlags(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $flags = $mail->getMessage(1)->getFlags();
-        $this->assertTrue(isset($flags[Storage::FLAG_SEEN]));
-        $this->assertContains(Storage::FLAG_SEEN, $flags);
+        static::assertTrue(isset($flags[Storage::FLAG_SEEN]));
+        static::assertContains(Storage::FLAG_SEEN, $flags);
     }
 
-    public function testFetchPart(): void
+    #[Test]
+    public function fetchPart(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
-        $this->assertEquals($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
+        static::assertEquals($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
     }
 
-    public function testPartSize(): void
+    #[Test]
+    public function partSize(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
-        $this->assertEquals($mail->getMessage(4)->getPart(2)->getSize(), 80);
+        static::assertEquals($mail->getMessage(4)->getPart(2)->getSize(), 80);
     }
 }

@@ -7,6 +7,7 @@ use Contenir\Mail\Header\IdentificationField;
 use Contenir\Mail\Header\InReplyTo;
 use Contenir\Mail\Header\References;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_merge;
@@ -54,12 +55,13 @@ class IdentificationFieldTest extends TestCase
      * @param string $headerString
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('stringHeadersProvider')]
-    public function testDeserializationFromString($className, $headerString, $ids): void
+    public function deserializationFromString($className, $headerString, $ids): void
     {
         /** @var IdentificationField $header */
         $header = $className::fromString($headerString);
-        $this->assertEquals($ids, $header->getIds());
+        static::assertEquals($ids, $header->getIds());
     }
 
     /**
@@ -67,13 +69,14 @@ class IdentificationFieldTest extends TestCase
      * @param string $headerString
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('reversibleStringHeadersProvider')]
-    public function testSerializationToString($className, $headerString, $ids): void
+    public function serializationToString($className, $headerString, $ids): void
     {
         /** @var IdentificationField $header */
         $header = new $className();
         $header->setIds($ids);
-        $this->assertEquals($headerString, $header->toString());
+        static::assertEquals($headerString, $header->toString());
     }
 
     /**
@@ -81,12 +84,13 @@ class IdentificationFieldTest extends TestCase
      * @param string $headerString
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('stringHeadersProvider')]
-    public function testDefaultEncoding($className, $headerString, array $ids): void
+    public function defaultEncoding($className, $headerString, array $ids): void
     {
         /** @var IdentificationField $header */
         $header = $className::fromString($headerString);
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
     /**
@@ -94,21 +98,23 @@ class IdentificationFieldTest extends TestCase
      * @param string $headerString
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('stringHeadersProvider')]
-    public function testSetEncodingHasNoEffect($className, $headerString, array $ids): void
+    public function setEncodingHasNoEffect($className, $headerString, array $ids): void
     {
         /** @var IdentificationField $header */
         $header = $className::fromString($headerString);
         $header->setEncoding('UTF-8');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
     /**
      * @param string $className
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('invalidIds')]
-    public function testSetIdsThrowsOnInvalidInput($className, $ids): void
+    public function setIdsThrowsOnInvalidInput($className, $ids): void
     {
         /** @var IdentificationField $header */
         $header = new $className();
@@ -121,8 +127,9 @@ class IdentificationFieldTest extends TestCase
      * @param string $className
      * @param string[] $ids
      */
+    #[Test]
     #[DataProvider('invalidIds')]
-    public function testFromStringRaisesExceptionOnInvalidHeader($className, $ids): void
+    public function fromStringRaisesExceptionOnInvalidHeader($className, $ids): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line');

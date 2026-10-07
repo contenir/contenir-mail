@@ -39,6 +39,6 @@ class SmtpPluginManagerCompatibilityTest extends TestCase
     #[DataProvider('aliasProvider')]
     public function testPluginAliasesResolve($alias, $expected): void
     {
-        $this->assertInstanceOf($expected, $this->getPluginManager()->get($alias), "Alias '$alias' does not resolve'");
+        static::assertInstanceOf($expected, $this->getPluginManager()->get($alias), "Alias '$alias' does not resolve'");
     }
 }

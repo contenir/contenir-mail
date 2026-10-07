@@ -5,6 +5,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp\Auth\Crammd5;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -19,7 +20,8 @@ class Crammd5Test extends TestCase
         $this->auth = new Crammd5();
     }
 
-    public function testHmacMd5ReturnsExpectedHash(): void
+    #[Test]
+    public function hmacMd5ReturnsExpectedHash(): void
     {
         $class  = new ReflectionClass(Crammd5::class);
         $method = $class->getMethod('hmacMd5');
@@ -29,10 +31,11 @@ class Crammd5Test extends TestCase
             ['frodo', 'speakfriendandenter'],
         );
 
-        $this->assertEquals('be56fa81a5671e0c62e00134180aae2c', $result);
+        static::assertEquals('be56fa81a5671e0c62e00134180aae2c', $result);
     }
 
-    public function testAnExceptionIsThrownForEmptyPassword(): void
+    #[Test]
+    public function anExceptionIsThrownForEmptyPassword(): void
     {
         $class  = new ReflectionClass(Crammd5::class);
         $method = $class->getMethod('hmacMd5');
@@ -45,7 +48,8 @@ class Crammd5Test extends TestCase
         );
     }
 
-    public function testAnExceptionIsThrownForEmptyChallenge(): void
+    #[Test]
+    public function anExceptionIsThrownForEmptyChallenge(): void
     {
         $class  = new ReflectionClass(Crammd5::class);
         $method = $class->getMethod('hmacMd5');
@@ -58,15 +62,17 @@ class Crammd5Test extends TestCase
         );
     }
 
-    public function testUsernameAccessors(): void
+    #[Test]
+    public function usernameAccessors(): void
     {
         $this->auth->setUsername('test');
-        $this->assertEquals('test', $this->auth->getUsername());
+        static::assertEquals('test', $this->auth->getUsername());
     }
 
-    public function testPasswordAccessors(): void
+    #[Test]
+    public function passwordAccessors(): void
     {
         $this->auth->setPassword('test');
-        $this->assertEquals('test', $this->auth->getPassword());
+        static::assertEquals('test', $this->auth->getPassword());
     }
 }

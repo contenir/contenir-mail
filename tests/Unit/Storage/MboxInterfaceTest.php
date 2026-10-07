@@ -7,6 +7,7 @@ use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Message\MessageInterface;
 use LimitIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -22,37 +23,42 @@ class MboxInterfaceTest extends TestCase
         $this->mboxFile = __DIR__ . '/../_files/test.mbox/INBOX';
     }
 
-    public function testCount(): void
+    #[Test]
+    public function countsMessages(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $count = count($list);
-        $this->assertEquals(7, $count);
+        static::assertEquals(7, $count);
     }
 
-    public function testIsset(): void
+    #[Test]
+    public function isset(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertTrue(isset($list[1]));
+        static::assertTrue(isset($list[1]));
     }
 
-    public function testNotIsset(): void
+    #[Test]
+    public function notIsset(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $this->assertFalse(isset($list[10]));
+        static::assertFalse(isset($list[10]));
     }
 
-    public function testArrayGet(): void
+    #[Test]
+    public function arrayGet(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $list[1]->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testArraySetFail(): void
+    #[Test]
+    public function arraySetFail(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -60,23 +66,25 @@ class MboxInterfaceTest extends TestCase
         $list[1] = 'test';
     }
 
-    public function testIterationKey(): void
+    #[Test]
+    public function iterationKey(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
         $pos  = 1;
 
         foreach ($list as $key => $message) {
-            $this->assertEquals($key, $pos, "wrong key in iteration $pos");
+            static::assertEquals($key, $pos, "wrong key in iteration $pos");
             ++$pos;
         }
     }
 
-    public function testIterationIsMessage(): void
+    #[Test]
+    public function iterationIsMessage(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         foreach ($list as $message) {
-            $this->assertInstanceOf(
+            static::assertInstanceOf(
                 MessageInterface::class,
                 $message,
                 'value in iteration is not a mail message',
@@ -84,7 +92,8 @@ class MboxInterfaceTest extends TestCase
         }
     }
 
-    public function testIterationRounds(): void
+    #[Test]
+    public function iterationRounds(): void
     {
         $list  = new Storage\Mbox(['filename' => $this->mboxFile]);
         $count = 0;
@@ -93,10 +102,11 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        $this->assertEquals(7, $count);
+        static::assertEquals(7, $count);
     }
 
-    public function testIterationWithSeek(): void
+    #[Test]
+    public function iterationWithSeek(): void
     {
         $list  = new Storage\Mbox(['filename' => $this->mboxFile]);
         $count = 0;
@@ -105,10 +115,11 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        $this->assertEquals(3, $count);
+        static::assertEquals(3, $count);
     }
 
-    public function testIterationWithSeekCapped(): void
+    #[Test]
+    public function iterationWithSeekCapped(): void
     {
         $list  = new Storage\Mbox(['filename' => $this->mboxFile]);
         $count = 0;
@@ -117,18 +128,20 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        $this->assertEquals(5, $count);
+        static::assertEquals(5, $count);
     }
 
-    public function testFallback(): void
+    #[Test]
+    public function fallback(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $result = $list->noop();
-        $this->assertTrue($result);
+        static::assertTrue($result);
     }
 
-    public function testWrongVariable(): void
+    #[Test]
+    public function wrongVariable(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
@@ -136,14 +149,16 @@ class MboxInterfaceTest extends TestCase
         $list->thisdoesnotexist;
     }
 
-    public function testGetHeaders(): void
+    #[Test]
+    public function getHeaders(): void
     {
         $list    = new Storage\Mbox(['filename' => $this->mboxFile]);
         $headers = $list[1]->getHeaders();
-        $this->assertNotEmpty($headers);
+        static::assertNotEmpty($headers);
     }
 
-    public function testWrongHeader(): void
+    #[Test]
+    public function wrongHeader(): void
     {
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 

@@ -7,24 +7,27 @@ use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\MimeVersion::class)]
 class MimeVersionTest extends TestCase
 {
-    public function testSettingManually(): void
+    #[Test]
+    public function settingManually(): void
     {
         $version = '2.0';
         $mime    = new Header\MimeVersion();
         $mime->setVersion($version);
-        $this->assertEquals($version, $mime->getFieldValue());
+        static::assertEquals($version, $mime->getFieldValue());
     }
 
-    public function testDefaultVersion(): void
+    #[Test]
+    public function defaultVersion(): void
     {
         $mime = new Header\MimeVersion();
-        $this->assertEquals('1.0', $mime->getVersion());
-        $this->assertEquals('MIME-Version: 1.0', $mime->toString());
+        static::assertEquals('1.0', $mime->getVersion());
+        static::assertEquals('MIME-Version: 1.0', $mime->toString());
     }
 
     public static function headerLines(): array
@@ -37,9 +40,10 @@ class MimeVersionTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('headerLines')]
     #[Group('ZF2015-04')]
-    public function testFromStringRaisesExceptionOnDetectionOfCrlfInjection(string $header): void
+    public function fromStringRaisesExceptionOnDetectionOfCrlfInjection(string $header): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $mime = Header\MimeVersion::fromString($header);
@@ -55,33 +59,37 @@ class MimeVersionTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('invalidVersions')]
     #[Group('ZF2015-04')]
-    public function testRaisesExceptionOnInvalidVersionFromSetVersion(string $value): void
+    public function raisesExceptionOnInvalidVersionFromSetVersion(string $value): void
     {
         $header = new Header\MimeVersion();
         $this->expectException(Exception\InvalidArgumentException::class);
         $header->setVersion($value);
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for MIME-Version string');
         Header\MimeVersion::fromString('Foo: bar');
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = new Header\MimeVersion();
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncodingHasNoEffect(): void
+    #[Test]
+    public function setEncodingHasNoEffect(): void
     {
         $header = new Header\MimeVersion();
         $header->setEncoding('UTF-8');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
     public static function unconventionalHeaderLinesProvider(): array
@@ -93,12 +101,13 @@ class MimeVersionTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function testFromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
+    public function fromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
     {
         $header = Header\MimeVersion::fromString($headerLine);
-        $this->assertInstanceOf(Header\MimeVersion::class, $header);
-        $this->assertEquals('MIME-Version', $header->getFieldName());
-        $this->assertEquals($expected, $header->getFieldValue());
+        static::assertInstanceOf(Header\MimeVersion::class, $header);
+        static::assertEquals('MIME-Version', $header->getFieldName());
+        static::assertEquals($expected, $header->getFieldValue());
     }
 }

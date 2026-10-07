@@ -5,6 +5,7 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function sys_get_temp_dir;
@@ -19,50 +20,56 @@ class FileOptionsTest extends TestCase
         $this->options = new FileOptions();
     }
 
-    public function testPathIsSysTempDirByDefault(): void
+    #[Test]
+    public function pathIsSysTempDirByDefault(): void
     {
-        $this->assertEquals(sys_get_temp_dir(), $this->options->getPath());
+        static::assertEquals(sys_get_temp_dir(), $this->options->getPath());
     }
 
-    public function testDefaultCallbackIsSetByDefault(): void
+    #[Test]
+    public function defaultCallbackIsSetByDefault(): void
     {
         $callback = $this->options->getCallback();
-        $this->assertIsCallable($callback);
+        static::assertIsCallable($callback);
         $test = $callback('');
-        $this->assertMatchesRegularExpression('#^ContenirMail_\d+_\d+\.eml$#', $test);
+        static::assertMatchesRegularExpression('#^ContenirMail_\d+_\d+\.eml$#', $test);
     }
 
-    public function testPathIsMutable(): void
+    #[Test]
+    public function pathIsMutable(): void
     {
         $original = $this->options->getPath();
         $this->options->setPath(__DIR__);
         $test = $this->options->getPath();
-        $this->assertNotEquals($original, $test);
-        $this->assertEquals(__DIR__, $test);
+        static::assertNotEquals($original, $test);
+        static::assertEquals(__DIR__, $test);
     }
 
-    public function testCallbackIsMutable(): void
+    #[Test]
+    public function callbackIsMutable(): void
     {
         $original = $this->options->getCallback();
         $new      = static function ($transport): void {};
 
         $this->options->setCallback($new);
         $test = $this->options->getCallback();
-        $this->assertNotSame($original, $test);
-        $this->assertSame($new, $test);
+        static::assertNotSame($original, $test);
+        static::assertSame($new, $test);
     }
 
-    public function testSetCallbackThrowsWhenNotCallable(): void
+    #[Test]
+    public function setCallbackThrowsWhenNotCallable(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('expects a valid callback');
         $this->options->setCallback(null);
     }
 
-    public function testSetPathThrowsWhenPathNotWritable(): void
+    #[Test]
+    public function setPathThrowsWhenPathNotWritable(): void
     {
         if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-            $this->markTestSkipped('File permissions are not enforced for the root user');
+            static::markTestSkipped('File permissions are not enforced for the root user');
         }
 
         $this->expectException(Exception\InvalidArgumentException::class);

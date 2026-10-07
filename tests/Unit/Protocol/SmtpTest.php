@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol\Exception;
 use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use Contenir\Mail\Transport\Smtp;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Protocol\Smtp::class)]
@@ -25,7 +26,8 @@ class SmtpTest extends TestCase
         $this->transport->setConnection($this->connection);
     }
 
-    public function testSendMinimalMail(): void
+    #[Test]
+    public function sendMinimalMail(): void
     {
         $headers = new Headers();
         $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
@@ -50,10 +52,11 @@ class SmtpTest extends TestCase
 
         $this->transport->send($message);
 
-        $this->assertEquals($expectedMessage, $this->connection->getLog());
+        static::assertEquals($expectedMessage, $this->connection->getLog());
     }
 
-    public function testSendEscapedEmail(): void
+    #[Test]
+    public function sendEscapedEmail(): void
     {
         $headers = new Headers();
         $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
@@ -79,26 +82,29 @@ class SmtpTest extends TestCase
 
         $this->transport->send($message);
 
-        $this->assertEquals($expectedMessage, $this->connection->getLog());
+        static::assertEquals($expectedMessage, $this->connection->getLog());
     }
 
-    public function testDisconnectCallsQuit(): void
+    #[Test]
+    public function disconnectCallsQuit(): void
     {
         $this->connection->disconnect();
-        $this->assertTrue($this->connection->calledQuit);
+        static::assertTrue($this->connection->calledQuit);
     }
 
-    public function testDisconnectResetsAuthFlag(): void
+    #[Test]
+    public function disconnectResetsAuthFlag(): void
     {
         $this->connection->connect();
         $this->connection->setSessionStatus(true);
         $this->connection->setAuth(true);
-        $this->assertTrue($this->connection->getAuth());
+        static::assertTrue($this->connection->getAuth());
         $this->connection->disconnect();
-        $this->assertFalse($this->connection->getAuth());
+        static::assertFalse($this->connection->getAuth());
     }
 
-    public function testConnectHasVerboseErrors(): void
+    #[Test]
+    public function connectHasVerboseErrors(): void
     {
         $smtp = new TestAsset\ErroneousSmtp();
 
@@ -108,34 +114,36 @@ class SmtpTest extends TestCase
         $smtp->connect('nonexistentremote');
     }
 
-    public function testCanAvoidQuitRequest(): void
+    #[Test]
+    public function canAvoidQuitRequest(): void
     {
-        $this->assertTrue($this->connection->useCompleteQuit(), 'Default behaviour must be BC');
+        static::assertTrue($this->connection->useCompleteQuit(), 'Default behaviour must be BC');
 
         $this->connection->resetLog();
         $this->connection->connect();
         $this->connection->helo();
         $this->connection->disconnect();
 
-        $this->assertStringContainsString('QUIT', $this->connection->getLog());
+        static::assertStringContainsString('QUIT', $this->connection->getLog());
 
         $this->connection->setUseCompleteQuit(false);
-        $this->assertFalse($this->connection->useCompleteQuit());
+        static::assertFalse($this->connection->useCompleteQuit());
 
         $this->connection->resetLog();
         $this->connection->connect();
         $this->connection->helo();
         $this->connection->disconnect();
 
-        $this->assertStringNotContainsString('QUIT', $this->connection->getLog());
+        static::assertStringNotContainsString('QUIT', $this->connection->getLog());
 
         $connection = new SmtpProtocolSpy([
             'use_complete_quit' => false,
         ]);
-        $this->assertFalse($connection->useCompleteQuit());
+        static::assertFalse($connection->useCompleteQuit());
     }
 
-    public function testAuthThrowsWhenAlreadyAuthed(): void
+    #[Test]
+    public function authThrowsWhenAlreadyAuthed(): void
     {
         $this->connection->setAuth(true);
         $this->expectException(Exception\RuntimeException::class);
@@ -143,7 +151,8 @@ class SmtpTest extends TestCase
         $this->connection->auth();
     }
 
-    public function testHeloThrowsWhenAlreadySession(): void
+    #[Test]
+    public function heloThrowsWhenAlreadySession(): void
     {
         $this->connection->helo('hostname.test');
         $this->expectException(Exception\RuntimeException::class);
@@ -151,35 +160,40 @@ class SmtpTest extends TestCase
         $this->connection->helo('hostname.test');
     }
 
-    public function testHeloThrowsWithInvalidHostname(): void
+    #[Test]
+    public function heloThrowsWithInvalidHostname(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('The input does not match the expected structure for a DNS hostname');
         $this->connection->helo("invalid\r\nhost name");
     }
 
-    public function testMailThrowsWhenNoSession(): void
+    #[Test]
+    public function mailThrowsWhenNoSession(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('A valid session has not been started');
         $this->connection->mail('test@example.com');
     }
 
-    public function testRcptThrowsWhenNoMail(): void
+    #[Test]
+    public function rcptThrowsWhenNoMail(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('No sender reverse path has been supplied');
         $this->connection->rcpt('test@example.com');
     }
 
-    public function testDataThrowsWhenNoRcpt(): void
+    #[Test]
+    public function dataThrowsWhenNoRcpt(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('No recipient forward path has been supplied');
         $this->connection->data('message');
     }
 
-    public function testRcptThrowsWithCodeWhenErroneousRecipient(): void
+    #[Test]
+    public function rcptThrowsWithCodeWhenErroneousRecipient(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage(

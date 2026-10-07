@@ -2,6 +2,7 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function closedir;
@@ -61,41 +62,45 @@ class MboxMessageOldTest extends TestCase
         unlink($this->mboxFile);
     }
 
-    public function testFetchHeader(): void
+    #[Test]
+    public function fetchHeader(): void
     {
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageHeader(): void
+    #[Test]
+    public function fetchMessageHeader(): void
     {
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        $this->assertEquals('Simple Message', $subject);
+        static::assertEquals('Simple Message', $subject);
     }
 
-    public function testFetchMessageBody(): void
+    #[Test]
+    public function fetchMessageBody(): void
     {
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
 
-    public function testShortMbox(): void
+    #[Test]
+    public function shortMbox(): void
     {
         $fh = fopen($this->mboxFile, 'w');
         fwrite($fh, "From \r\nSubject: test\r\nFrom \r\nSubject: test2\r\n");
         fclose($fh);
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
-        $this->assertEquals($mail->countMessages(), 2);
-        $this->assertEquals($mail->getMessage(1)->subject, 'test');
-        $this->assertEquals($mail->getMessage(1)->getContent(), '');
-        $this->assertEquals($mail->getMessage(2)->subject, 'test2');
-        $this->assertEquals($mail->getMessage(2)->getContent(), '');
+        static::assertEquals($mail->countMessages(), 2);
+        static::assertEquals($mail->getMessage(1)->subject, 'test');
+        static::assertEquals($mail->getMessage(1)->getContent(), '');
+        static::assertEquals($mail->getMessage(2)->subject, 'test2');
+        static::assertEquals($mail->getMessage(2)->getContent(), '');
     }
 }

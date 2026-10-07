@@ -12,6 +12,7 @@ use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\To;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -30,38 +31,43 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('getHeaderInstances')]
-    public function testConcreteHeadersExtendAbstractAddressListHeader(AbstractAddressList $header): void
+    public function concreteHeadersExtendAbstractAddressListHeader(AbstractAddressList $header): void
     {
-        $this->assertInstanceOf(AbstractAddressList::class, $header);
+        static::assertInstanceOf(AbstractAddressList::class, $header);
     }
 
+    #[Test]
     #[DataProvider('getHeaderInstances')]
-    public function testConcreteHeaderFieldNamesAreDiscrete(AbstractAddressList $header, string $type): void
+    public function concreteHeaderFieldNamesAreDiscrete(AbstractAddressList $header, string $type): void
     {
-        $this->assertEquals($type, $header->getFieldName());
+        static::assertEquals($type, $header->getFieldName());
     }
 
+    #[Test]
     #[DataProvider('getHeaderInstances')]
-    public function testConcreteHeadersComposeAddressLists(AbstractAddressList $header): void
+    public function concreteHeadersComposeAddressLists(AbstractAddressList $header): void
     {
         $list = $header->getAddressList();
-        $this->assertInstanceOf(AddressList::class, $list);
+        static::assertInstanceOf(AddressList::class, $list);
     }
 
-    public function testFieldValueIsEmptyByDefault(): void
+    #[Test]
+    public function fieldValueIsEmptyByDefault(): void
     {
         $header = new To();
-        $this->assertEquals('', $header->getFieldValue());
+        static::assertEquals('', $header->getFieldValue());
     }
 
-    public function testFieldValueIsCreatedFromAddressList(): void
+    #[Test]
+    public function fieldValueIsCreatedFromAddressList(): void
     {
         $header = new To();
         $list   = $header->getAddressList();
         $this->populateAddressList($list);
         $expected = self::getExpectedFieldValue();
-        $this->assertEquals($expected, $header->getFieldValue());
+        static::assertEquals($expected, $header->getFieldValue());
     }
 
     public function populateAddressList(AddressList $list): void
@@ -81,12 +87,13 @@ class AddressListHeaderTest extends TestCase
         // @codingStandardsIgnoreEnd
     }
 
+    #[Test]
     #[DataProvider('getHeaderInstances')]
-    public function testStringRepresentationIncludesHeaderAndFieldValue(AbstractAddressList $header, string $type): void
+    public function stringRepresentationIncludesHeaderAndFieldValue(AbstractAddressList $header, string $type): void
     {
         $this->populateAddressList($header->getAddressList());
         $expected = sprintf('%s: %s', $type, self::getExpectedFieldValue());
-        $this->assertEquals($expected, $header->toString());
+        static::assertEquals($expected, $header->toString());
     }
 
     public static function getStringHeaders(): array
@@ -104,26 +111,27 @@ class AddressListHeaderTest extends TestCase
     /**
      * @param class-string $class
      */
+    #[Test]
     #[DataProvider('getStringHeaders')]
-    public function testDeserializationFromString(string $headerLine, string $class): void
+    public function deserializationFromString(string $headerLine, string $class): void
     {
         $callback = sprintf('%s::fromString', $class);
         $header   = $callback($headerLine);
-        $this->assertInstanceOf($class, $header);
+        static::assertInstanceOf($class, $header);
         $list = $header->getAddressList();
-        $this->assertEquals(4, count($list));
-        $this->assertTrue($list->has('test@example.com'));
-        $this->assertTrue($list->has('list@example.com'));
-        $this->assertTrue($list->has('announce@example.com'));
-        $this->assertTrue($list->has('first@last.example.com'));
+        static::assertEquals(4, count($list));
+        static::assertTrue($list->has('test@example.com'));
+        static::assertTrue($list->has('list@example.com'));
+        static::assertTrue($list->has('announce@example.com'));
+        static::assertTrue($list->has('first@last.example.com'));
         $address = $list->get('test@example.com');
-        $this->assertEquals('Example Test', $address->getName());
+        static::assertEquals('Example Test', $address->getName());
         $address = $list->get('list@example.com');
-        $this->assertNull($address->getName());
+        static::assertNull($address->getName());
         $address = $list->get('announce@example.com');
-        $this->assertEquals('Example Announce List', $address->getName());
+        static::assertEquals('Example Announce List', $address->getName());
         $address = $list->get('first@last.example.com');
-        $this->assertEquals('Last, First', $address->getName());
+        static::assertEquals('Last, First', $address->getName());
     }
 
     public static function getStringHeadersWithNoWhitespaceSeparator(): array
@@ -138,13 +146,14 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('getHeadersWithComments')]
-    public function testDeserializationFromStringWithComments(string $value): void
+    public function deserializationFromStringWithComments(string $value): void
     {
         $header = From::fromString($value);
         $list   = $header->getAddressList();
-        $this->assertEquals(1, count($list));
-        $this->assertTrue($list->has('user@example.com'));
+        static::assertEquals(1, count($list));
+        static::assertTrue($list->has('user@example.com'));
     }
 
     public static function getHeadersWithComments(): array
@@ -156,13 +165,14 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('getHeadersWithSurroundingSingleQuotes')]
-    public function testTrimSurroundingSingleQuotes(string $value): void
+    public function trimSurroundingSingleQuotes(string $value): void
     {
         $header = To::fromString($value);
         $list   = $header->getAddressList();
-        $this->assertEquals(1, count($list));
-        $this->assertTrue($list->has('foo@example.com'));
+        static::assertEquals(1, count($list));
+        static::assertTrue($list->has('foo@example.com'));
     }
 
     /**
@@ -180,40 +190,42 @@ class AddressListHeaderTest extends TestCase
     /**
      * @param class-string $class
      */
+    #[Test]
     #[Group('3789')]
     #[DataProvider('getStringHeadersWithNoWhitespaceSeparator')]
-    public function testAllowsNoWhitespaceBetweenHeaderAndValue(string $headerLine, string $class): void
+    public function allowsNoWhitespaceBetweenHeaderAndValue(string $headerLine, string $class): void
     {
         $callback = sprintf('%s::fromString', $class);
         $header   = $callback($headerLine);
-        $this->assertInstanceOf($class, $header);
+        static::assertInstanceOf($class, $header);
         $list = $header->getAddressList();
-        $this->assertEquals(4, count($list));
-        $this->assertTrue($list->has('test@example.com'));
-        $this->assertTrue($list->has('list@example.com'));
-        $this->assertTrue($list->has('announce@example.com'));
-        $this->assertTrue($list->has('first@last.example.com'));
+        static::assertEquals(4, count($list));
+        static::assertTrue($list->has('test@example.com'));
+        static::assertTrue($list->has('list@example.com'));
+        static::assertTrue($list->has('announce@example.com'));
+        static::assertTrue($list->has('first@last.example.com'));
         $address = $list->get('test@example.com');
-        $this->assertEquals('Example Test', $address->getName());
+        static::assertEquals('Example Test', $address->getName());
         $address = $list->get('list@example.com');
-        $this->assertNull($address->getName());
+        static::assertNull($address->getName());
         $address = $list->get('announce@example.com');
-        $this->assertEquals('Example Announce List', $address->getName());
+        static::assertEquals('Example Announce List', $address->getName());
         $address = $list->get('first@last.example.com');
-        $this->assertEquals('Last, First', $address->getName());
+        static::assertEquals('Last, First', $address->getName());
     }
 
     /**
      * @param null|string $sample
      */
+    #[Test]
     #[DataProvider('getAddressListsWithGroup')]
-    public function testAddressListWithGroup(string $input, int $count, $sample): void
+    public function addressListWithGroup(string $input, int $count, $sample): void
     {
         $header = To::fromString($input);
         $list   = $header->getAddressList();
-        $this->assertEquals($count, count($list));
+        static::assertEquals($count, count($list));
         if ($count > 0) {
-            $this->assertTrue($list->has($sample));
+            static::assertTrue($list->has($sample));
         }
     }
 
@@ -241,8 +253,9 @@ class AddressListHeaderTest extends TestCase
         ];
     }
 
+    #[Test]
     #[DataProvider('specialCharHeaderProvider')]
-    public function testDeserializationFromSpecialCharString(
+    public function deserializationFromSpecialCharString(
         string $headerLine,
         array $expected,
         string $encoding,
@@ -253,10 +266,10 @@ class AddressListHeaderTest extends TestCase
         $addressList = $expectedTo->getAddressList();
         $addressList->addMany($expected);
         $expectedTo->setEncoding($encoding);
-        $this->assertEquals($expectedTo, $header);
+        static::assertEquals($expectedTo, $header);
         foreach ($expected as $k => $v) {
-            $this->assertTrue($addressList->has($k));
-            $this->assertEquals($addressList->get($k)->getName(), $v);
+            static::assertTrue($addressList->has($k));
+            static::assertEquals($addressList->get($k)->getName(), $v);
         }
     }
 
@@ -272,13 +285,14 @@ class AddressListHeaderTest extends TestCase
     /**
      * @param class-string $class
      */
+    #[Test]
     #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function testFromStringHandlesUnconventionalNames(string $headerLine, string $class, string $expected): void
+    public function fromStringHandlesUnconventionalNames(string $headerLine, string $class, string $expected): void
     {
         $callback = sprintf('%s::fromString', $class);
         $header   = $callback($headerLine);
-        $this->assertInstanceOf($class, $header);
-        $this->assertEquals('Reply-To', $header->getFieldName());
-        $this->assertEquals($expected, $header->getFieldValue());
+        static::assertInstanceOf($class, $header);
+        static::assertEquals('Reply-To', $header->getFieldName());
+        static::assertEquals($expected, $header->getFieldValue());
     }
 }

@@ -7,6 +7,7 @@ use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
@@ -14,7 +15,8 @@ use function str_repeat;
 #[CoversClass(\Contenir\Mail\Header\Subject::class)]
 class SubjectTest extends TestCase
 {
-    public function testHeaderFolding(): void
+    #[Test]
+    public function headerFolding(): void
     {
         $string  = str_repeat('foobarblahblahblah baz bat', 10);
         $subject = new Header\Subject();
@@ -26,20 +28,22 @@ class SubjectTest extends TestCase
             . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
             . 'batfoobarblahblahblah baz batfoobarblahblahblah baz bat';
         $test = $subject->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
-        $this->assertEquals($expected, $test);
+        static::assertEquals($expected, $test);
     }
 
-    public function testDefaultEncoding(): void
+    #[Test]
+    public function defaultEncoding(): void
     {
         $header = Header\Subject::fromString('Subject: test');
-        $this->assertSame('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
-    public function testSetEncoding(): void
+    #[Test]
+    public function setEncoding(): void
     {
         $header = Header\Subject::fromString('Subject: test');
         $header->setEncoding('UTF-8');
-        $this->assertSame('UTF-8', $header->getEncoding());
+        static::assertSame('UTF-8', $header->getEncoding());
     }
 
     /**
@@ -47,14 +51,15 @@ class SubjectTest extends TestCase
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[Test]
     #[DataProvider('validSubjectValuesProvider')]
     #[Group('ZF2015-04')]
-    public function testParseValidSubjectHeader($decodedValue, $encodedValue, $encoding): void
+    public function parseValidSubjectHeader($decodedValue, $encodedValue, $encoding): void
     {
         $header = Header\Subject::fromString('Subject:' . $encodedValue);
 
-        $this->assertEquals($decodedValue, $header->getFieldValue());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($decodedValue, $header->getFieldValue());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     /**
@@ -62,9 +67,10 @@ class SubjectTest extends TestCase
      * @param string $expectedException
      * @param string|null $expectedExceptionMessage
      */
+    #[Test]
     #[DataProvider('invalidSubjectValuesProvider')]
     #[Group('ZF2015-04')]
-    public function testParseInvalidSubjectHeaderThrowException(
+    public function parseInvalidSubjectHeaderThrowException(
         $decodedValue,
         $expectedException,
         $expectedExceptionMessage,
@@ -74,7 +80,8 @@ class SubjectTest extends TestCase
         Header\Subject::fromString('Subject:' . $decodedValue);
     }
 
-    public function testFromStringRaisesExceptionOnInvalidHeader(): void
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for Subject string');
@@ -86,16 +93,17 @@ class SubjectTest extends TestCase
      * @param string $encodedValue
      * @param string $encoding
      */
+    #[Test]
     #[DataProvider('validSubjectValuesProvider')]
     #[Group('ZF2015-04')]
-    public function testSetSubjectValidValue($decodedValue, $encodedValue, $encoding): void
+    public function setSubjectValidValue($decodedValue, $encodedValue, $encoding): void
     {
         $header = new Header\Subject();
         $header->setSubject($decodedValue);
 
-        $this->assertEquals($decodedValue, $header->getFieldValue());
-        $this->assertEquals('Subject: ' . $encodedValue, $header->toString());
-        $this->assertEquals($encoding, $header->getEncoding());
+        static::assertEquals($decodedValue, $header->getFieldValue());
+        static::assertEquals('Subject: ' . $encodedValue, $header->toString());
+        static::assertEquals($encoding, $header->getEncoding());
     }
 
     public static function validSubjectValuesProvider(): array
@@ -130,55 +138,60 @@ class SubjectTest extends TestCase
         ];
     }
 
-    public function testChangeEncodingToAsciiNotAllowedWhenSubjectContainsUtf8Characters(): void
+    #[Test]
+    public function changeEncodingToAsciiNotAllowedWhenSubjectContainsUtf8Characters(): void
     {
         $subject = new Header\Subject();
         $subject->setSubject('Accents òàùèéì');
 
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
     }
 
-    public function testChangeEncodingBackToAscii(): void
+    #[Test]
+    public function changeEncodingBackToAscii(): void
     {
         $subject = new Header\Subject();
         $subject->setSubject('test');
 
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding('UTF-8');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 
-    public function testSetNullEncoding(): void
+    #[Test]
+    public function setNullEncoding(): void
     {
         $subject = Header\Subject::fromString('Subject: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding(null);
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 
-    public function testSettingSubjectCanChangeEncoding(): void
+    #[Test]
+    public function settingSubjectCanChangeEncoding(): void
     {
         $subject = Header\Subject::fromString('Subject: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setSubject('Accents òàùèéì');
-        $this->assertSame('UTF-8', $subject->getEncoding());
+        static::assertSame('UTF-8', $subject->getEncoding());
     }
 
-    public function testSettingTheSameEncoding(): void
+    #[Test]
+    public function settingTheSameEncoding(): void
     {
         $subject = Header\Subject::fromString('Subject: test');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
 
         $subject->setEncoding('ASCII');
-        $this->assertSame('ASCII', $subject->getEncoding());
+        static::assertSame('ASCII', $subject->getEncoding());
     }
 }

@@ -6,21 +6,23 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Pop3;
 
 use Contenir\Mail\Protocol\Pop3\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Protocol\Pop3\Response::class)]
 class ResponseTest extends TestCase
 {
     /** @psalm-suppress InternalClass */
-    public function testIntegration(): void
+    #[Test]
+    public function integration(): void
     {
         /** @psalm-suppress InternalMethod */
         $response = new Response('+OK', 'Auth');
 
         /** @psalm-suppress InternalMethod */
-        $this->assertEquals('+OK', $response->status());
+        static::assertEquals('+OK', $response->status());
 
         /** @psalm-suppress InternalMethod */
-        $this->assertEquals('Auth', $response->message());
+        static::assertEquals('Auth', $response->message());
     }
 }

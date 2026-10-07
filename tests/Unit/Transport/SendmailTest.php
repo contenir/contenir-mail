@@ -9,6 +9,7 @@ use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\Sendmail;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
@@ -85,106 +86,111 @@ class SendmailTest extends TestCase
         return $this->operatingSystem === 'WIN';
     }
 
-    public function testReceivesMailArtifactsOnUnixSystems(): void
+    #[Test]
+    public function receivesMailArtifactsOnUnixSystems(): void
     {
         if ($this->isWindows()) {
-            $this->markTestSkipped('This test is *nix-specific');
+            static::markTestSkipped('This test is *nix-specific');
         }
 
         $message = $this->getMessage();
         $this->transport->setParameters('-R hdrs');
 
         $this->transport->send($message);
-        $this->assertEquals('Example Test <test@example.com>', $this->to);
-        $this->assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
-        $this->assertEquals('This is only a test.', trim($this->message));
+        static::assertEquals('Example Test <test@example.com>', $this->to);
+        static::assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
+        static::assertEquals('This is only a test.', trim($this->message));
         if (PHP_VERSION_ID < 80000) {
-            $this->assertStringNotContainsString("To: Example Test <test@example.com>\n", $this->additionalHeaders);
-            $this->assertStringContainsString("Cc: matthew@example.com\n", $this->additionalHeaders);
-            $this->assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\n", $this->additionalHeaders);
-            $this->assertStringContainsString(
+            static::assertStringNotContainsString("To: Example Test <test@example.com>\n", $this->additionalHeaders);
+            static::assertStringContainsString("Cc: matthew@example.com\n", $this->additionalHeaders);
+            static::assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\n", $this->additionalHeaders);
+            static::assertStringContainsString(
                 "From: test@example.com,\n Matthew <matthew@example.com>\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString("X-Foo-Bar: Matthew\n", $this->additionalHeaders);
-            $this->assertStringContainsString(
+            static::assertStringContainsString("X-Foo-Bar: Matthew\n", $this->additionalHeaders);
+            static::assertStringContainsString(
                 "Sender: Ralph Schindler <ralph@example.com>\n",
                 $this->additionalHeaders,
             );
         } else {
-            $this->assertStringNotContainsString(
+            static::assertStringNotContainsString(
                 "To: Example Test <test@example.com>\r\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString(
+            static::assertStringContainsString(
                 "Cc: matthew@example.com\r\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString(
+            static::assertStringContainsString(
                 "Bcc: \"Example, List\" <list@example.com>\r\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString(
+            static::assertStringContainsString(
                 "From: test@example.com,\r\n Matthew <matthew@example.com>\r\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString(
+            static::assertStringContainsString(
                 "X-Foo-Bar: Matthew\r\n",
                 $this->additionalHeaders,
             );
-            $this->assertStringContainsString(
+            static::assertStringContainsString(
                 "Sender: Ralph Schindler <ralph@example.com>\r\n",
                 $this->additionalHeaders,
             );
         }
-        $this->assertEquals('-R hdrs -f\'ralph@example.com\'', $this->additionalParameters);
+        static::assertEquals('-R hdrs -f\'ralph@example.com\'', $this->additionalParameters);
     }
 
-    public function testReceivesMailArtifactsOnWindowsSystems(): void
+    #[Test]
+    public function receivesMailArtifactsOnWindowsSystems(): void
     {
         if (! $this->isWindows()) {
-            $this->markTestSkipped('This test is Windows-specific');
+            static::markTestSkipped('This test is Windows-specific');
         }
 
         $message = $this->getMessage();
 
         $this->transport->send($message);
-        $this->assertEquals('test@example.com', $this->to);
-        $this->assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
-        $this->assertEquals('This is only a test.', trim($this->message));
-        $this->assertStringContainsString("To: Example Test <test@example.com>\r\n", $this->additionalHeaders);
-        $this->assertStringContainsString("Cc: matthew@example.com\r\n", $this->additionalHeaders);
-        $this->assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\r\n", $this->additionalHeaders);
-        $this->assertStringContainsString(
+        static::assertEquals('test@example.com', $this->to);
+        static::assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
+        static::assertEquals('This is only a test.', trim($this->message));
+        static::assertStringContainsString("To: Example Test <test@example.com>\r\n", $this->additionalHeaders);
+        static::assertStringContainsString("Cc: matthew@example.com\r\n", $this->additionalHeaders);
+        static::assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\r\n", $this->additionalHeaders);
+        static::assertStringContainsString(
             "From: test@example.com,\r\n Matthew <matthew@example.com>\r\n",
             $this->additionalHeaders,
         );
-        $this->assertStringContainsString("X-Foo-Bar: Matthew\r\n", $this->additionalHeaders);
-        $this->assertStringContainsString("Sender: Ralph Schindler <ralph@example.com>\r\n", $this->additionalHeaders);
-        $this->assertNull($this->additionalParameters);
+        static::assertStringContainsString("X-Foo-Bar: Matthew\r\n", $this->additionalHeaders);
+        static::assertStringContainsString("Sender: Ralph Schindler <ralph@example.com>\r\n", $this->additionalHeaders);
+        static::assertNull($this->additionalParameters);
     }
 
-    public function testLinesStartingWithFullStopsArePreparedProperlyForWindows(): void
+    #[Test]
+    public function linesStartingWithFullStopsArePreparedProperlyForWindows(): void
     {
         if (! $this->isWindows()) {
-            $this->markTestSkipped('This test is Windows-specific');
+            static::markTestSkipped('This test is Windows-specific');
         }
 
         $message = $this->getMessage();
         $message->setBody("This is the first line.\n. This is the second");
         $this->transport->send($message);
-        $this->assertStringContainsString("line.\n.. This", trim($this->message));
+        static::assertStringContainsString("line.\n.. This", trim($this->message));
     }
 
-    public function testAssertSubjectEncoded(): void
+    #[Test]
+    public function assertSubjectEncoded(): void
     {
         $message = $this->getMessage();
         $message->setEncoding('UTF-8');
         $this->transport->send($message);
-        $this->assertEquals('=?UTF-8?Q?Testing=20Contenir\Mail\Transport\Sendmail?=', $this->subject);
+        static::assertEquals('=?UTF-8?Q?Testing=20Contenir\Mail\Transport\Sendmail?=', $this->subject);
     }
 
-    public function testCodeInjectionInFromHeader(): void
+    #[Test]
+    public function codeInjectionInFromHeader(): void
     {
         $this->expectException(RuntimeException::class);
         $message = $this->getMessage();
@@ -196,7 +202,8 @@ class SendmailTest extends TestCase
         $this->transport->send($message);
     }
 
-    public function testValidEmailLocaDomainInFromHeader(): void
+    #[Test]
+    public function validEmailLocaDomainInFromHeader(): void
     {
         $message = $this->getMessage();
         $message->setBody('This is the text of the email.');
@@ -205,13 +212,14 @@ class SendmailTest extends TestCase
         $message->setSubject('TestSubject');
 
         $this->transport->send($message);
-        $this->assertStringContainsString('From: Foo Bar <"foo-bar"@domain>', $this->additionalHeaders);
+        static::assertStringContainsString('From: Foo Bar <"foo-bar"@domain>', $this->additionalHeaders);
     }
 
     /**
      * @ref CVE-2016-10033 which targeted WordPress
      */
-    public function testPrepareParametersEscapesSenderUsingEscapeShellArg(): void
+    #[Test]
+    public function prepareParametersEscapesSenderUsingEscapeShellArg(): void
     {
         // @codingStandardsIgnoreStart
         $injectedEmail = 'user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)';
@@ -227,13 +235,14 @@ class SendmailTest extends TestCase
         $r = new ReflectionMethod($this->transport, 'prepareParameters');
 
         $parameters = $r->invoke($this->transport, $message);
-        $this->assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
+        static::assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
     }
 
     /**
      * @ref CVE-2016-10033 which targeted WordPress
      */
-    public function testPrepareParametersEscapesFromAddressUsingEscapeShellArg(): void
+    #[Test]
+    public function prepareParametersEscapesFromAddressUsingEscapeShellArg(): void
     {
         // @codingStandardsIgnoreStart
         $injectedEmail = 'user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)';
@@ -252,19 +261,21 @@ class SendmailTest extends TestCase
         $r = new ReflectionMethod($this->transport, 'prepareParameters');
 
         $parameters = $r->invoke($this->transport, $message);
-        $this->assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
+        static::assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
     }
 
-    public function testTrimmedParameters(): void
+    #[Test]
+    public function trimmedParameters(): void
     {
         $this->transport->setParameters([' -R', 'hdrs ']);
 
         $r = new ReflectionProperty($this->transport, 'parameters');
 
-        $this->assertSame('-R hdrs', $r->getValue($this->transport));
+        static::assertSame('-R hdrs', $r->getValue($this->transport));
     }
 
-    public function testAllowMessageWithEmptyToHeaderButHasCcHeader(): void
+    #[Test]
+    public function allowMessageWithEmptyToHeaderButHasCcHeader(): void
     {
         $message = new Message();
         $message->addCc('matthew@example.com')
@@ -273,10 +284,11 @@ class SendmailTest extends TestCase
             ->setBody('This is only a test.');
 
         $this->transport->send($message);
-        $this->assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
+        static::assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
     }
 
-    public function testAllowMessageWithEmptyToHeaderButHasBccHeader(): void
+    #[Test]
+    public function allowMessageWithEmptyToHeaderButHasBccHeader(): void
     {
         $message = new Message();
         $message->addBcc('list@example.com', 'Example, List')
@@ -285,10 +297,11 @@ class SendmailTest extends TestCase
             ->setBody('This is only a test.');
 
         $this->transport->send($message);
-        $this->assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
+        static::assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
     }
 
-    public function testDoNotAllowMessageWithoutToAndCcAndBccHeaders(): void
+    #[Test]
+    public function doNotAllowMessageWithoutToAndCcAndBccHeaders(): void
     {
         $message = new Message();
         $message->setSender('ralph@example.com', 'Ralph Schindler')
@@ -302,7 +315,8 @@ class SendmailTest extends TestCase
     /**
      * @see https://github.com/laminas/laminas-mail/issues/19
      */
-    public function testHeadersToAndSubjectAreNotDuplicated(): void
+    #[Test]
+    public function headersToAndSubjectAreNotDuplicated(): void
     {
         $message = new Message();
         $message->addTo('matthew@example.org')
@@ -312,14 +326,14 @@ class SendmailTest extends TestCase
 
         $this->transport->send($message);
 
-        $this->assertEquals('matthew@example.org', $this->to);
-        $this->assertEquals('Greetings and Salutations!', $this->subject);
+        static::assertEquals('matthew@example.org', $this->to);
+        static::assertEquals('Greetings and Salutations!', $this->subject);
 
-        $this->assertDoesNotMatchRegularExpression(
+        static::assertDoesNotMatchRegularExpression(
             '/^To: matthew\@example\.org$/m',
             $this->additionalHeaders,
         );
-        $this->assertDoesNotMatchRegularExpression(
+        static::assertDoesNotMatchRegularExpression(
             '/^Subject: Greetings and Salutations!$/m',
             $this->additionalHeaders,
         );
@@ -331,17 +345,18 @@ class SendmailTest extends TestCase
         yield 'not-leading' => ['-bs -f\'foo@example.com\''];
     }
 
+    #[Test]
     #[DataProvider('additionalParametersContainingFromSwitch')]
-    public function testDoesNotInjectFromParameterFromSenderWhenFromOptionPresentInParameters(string $parameters): void
+    public function doesNotInjectFromParameterFromSenderWhenFromOptionPresentInParameters(string $parameters): void
     {
         if ($this->operatingSystem == 'WIN') {
-            $this->markTestSkipped('This test is *nix-specific');
+            static::markTestSkipped('This test is *nix-specific');
         }
 
         $message = $this->getMessage();
         $this->transport->setParameters($parameters);
 
         $this->transport->send($message);
-        $this->assertEquals($parameters, $this->additionalParameters);
+        static::assertEquals($parameters, $this->additionalParameters);
     }
 }

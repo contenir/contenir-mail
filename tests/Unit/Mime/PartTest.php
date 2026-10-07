@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 use Contenir\Mail\Mime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function base64_decode;
@@ -43,7 +44,8 @@ class PartTest extends TestCase
         $this->part->id          = '4711';
     }
 
-    public function testHeaders()
+    #[Test]
+    public function headers()
     {
         $expectedHeaders = [
             'Content-Type: text/plain',
@@ -57,66 +59,70 @@ class PartTest extends TestCase
         $actual = $this->part->getHeaders();
 
         foreach ($expectedHeaders as $expected) {
-            $this->assertStringContainsString($expected, $actual);
+            static::assertStringContainsString($expected, $actual);
         }
     }
 
-    public function testContentEncoding()
+    #[Test]
+    public function contentEncoding()
     {
         // Test with base64 encoding
         $content = $this->part->getContent();
-        $this->assertEquals($this->testText, base64_decode($content));
+        static::assertEquals($this->testText, base64_decode($content));
         // Test with quotedPrintable Encoding:
         $this->part->encoding = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
         $content              = $this->part->getContent();
-        $this->assertEquals($this->testText, quoted_printable_decode($content));
+        static::assertEquals($this->testText, quoted_printable_decode($content));
         // Test with 8Bit encoding
         $this->part->encoding = Mime\Mime::ENCODING_8BIT;
         $content              = $this->part->getContent();
-        $this->assertEquals($this->testText, $content);
+        static::assertEquals($this->testText, $content);
     }
 
-    public function testStreamEncoding()
+    #[Test]
+    public function streamEncoding()
     {
         $testfile = realpath(__FILE__);
         $original = file_get_contents($testfile);
 
         // Test Base64
         $fp = fopen($testfile, 'rb');
-        $this->assertIsResource($fp);
+        static::assertIsResource($fp);
         $part           = new Mime\Part($fp);
         $part->encoding = Mime\Mime::ENCODING_BASE64;
         $fp2            = $part->getEncodedStream();
-        $this->assertIsResource($fp2);
+        static::assertIsResource($fp2);
         $encoded = stream_get_contents($fp2);
         fclose($fp);
-        $this->assertEquals(base64_decode($encoded), $original);
+        static::assertEquals(base64_decode($encoded), $original);
 
         // test QuotedPrintable
         $fp = fopen($testfile, 'rb');
-        $this->assertIsResource($fp);
+        static::assertIsResource($fp);
         $part           = new Mime\Part($fp);
         $part->encoding = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
         $fp2            = $part->getEncodedStream();
-        $this->assertIsResource($fp2);
+        static::assertIsResource($fp2);
         $encoded = stream_get_contents($fp2);
         fclose($fp);
-        $this->assertEquals(quoted_printable_decode($encoded), $original);
+        static::assertEquals(quoted_printable_decode($encoded), $original);
     }
 
     /**
      */
+    #[Test]
     #[Group('Laminas-1491')]
-    public function testGetRawContentFromPart()
+    public function getRawContentFromPart()
     {
-        $this->assertEquals($this->testText, $this->part->getRawContent());
+        static::assertEquals($this->testText, $this->part->getRawContent());
     }
 
     /**
      * @link https://github.com/zendframework/zf2/issues/5428
      */
+    #[Test]
     #[Group('5428')]
-    public function testContentEncodingWithStreamReadTwiceINaRow()
+    public function contentEncodingWithStreamReadTwiceINaRow()
     {
         $testfile = realpath(__FILE__);
         $original = file_get_contents($testfile);
@@ -126,7 +132,7 @@ class PartTest extends TestCase
         $part->encoding           = Mime\Mime::ENCODING_BASE64;
         $contentEncodedFirstTime  = $part->getContent();
         $contentEncodedSecondTime = $part->getContent();
-        $this->assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
+        static::assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
         fclose($fp);
 
         $fp                       = fopen($testfile, 'rb');
@@ -134,11 +140,12 @@ class PartTest extends TestCase
         $part->encoding           = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
         $contentEncodedFirstTime  = $part->getContent();
         $contentEncodedSecondTime = $part->getContent();
-        $this->assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
+        static::assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
         fclose($fp);
     }
 
-    public function testSettersGetters()
+    #[Test]
+    public function settersGetters()
     {
         $part = new Mime\Part();
         $part->setContent($this->testText)
@@ -155,19 +162,19 @@ class PartTest extends TestCase
             ->setFilters(['foo'])
             ->setDescription('foobar');
 
-        $this->assertEquals($this->testText, $part->getContent());
-        $this->assertEquals(Mime\Mime::ENCODING_8BIT, $part->getEncoding());
-        $this->assertEquals('text/plain', $part->getType());
-        $this->assertEquals('test.txt', $part->getFileName());
-        $this->assertEquals('attachment', $part->getDisposition());
-        $this->assertEquals('iso8859-1', $part->getCharset());
-        $this->assertEquals('4711', $part->getId());
-        $this->assertEquals('frontier', $part->getBoundary());
-        $this->assertEquals('fiction1/fiction2', $part->getLocation());
-        $this->assertEquals('en', $part->getLanguage());
-        $this->assertEquals(false, $part->isStream());
-        $this->assertEquals(['foo'], $part->getFilters());
-        $this->assertEquals('foobar', $part->getDescription());
+        static::assertEquals($this->testText, $part->getContent());
+        static::assertEquals(Mime\Mime::ENCODING_8BIT, $part->getEncoding());
+        static::assertEquals('text/plain', $part->getType());
+        static::assertEquals('test.txt', $part->getFileName());
+        static::assertEquals('attachment', $part->getDisposition());
+        static::assertEquals('iso8859-1', $part->getCharset());
+        static::assertEquals('4711', $part->getId());
+        static::assertEquals('frontier', $part->getBoundary());
+        static::assertEquals('fiction1/fiction2', $part->getLocation());
+        static::assertEquals('en', $part->getLanguage());
+        static::assertEquals(false, $part->isStream());
+        static::assertEquals(['foo'], $part->getFilters());
+        static::assertEquals('foobar', $part->getDescription());
     }
 
     /** @psalm-return array<string, array{0: mixed}> */
@@ -189,8 +196,9 @@ class PartTest extends TestCase
     /**
      * @param mixed $content
      */
+    #[Test]
     #[DataProvider('invalidContentTypes')]
-    public function testConstructorRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
+    public function constructorRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
     {
         $this->expectException(Mime\Exception\InvalidArgumentException::class);
         new Mime\Part($content);
@@ -199,8 +207,9 @@ class PartTest extends TestCase
     /**
      * @param mixed $content
      */
+    #[Test]
     #[DataProvider('invalidContentTypes')]
-    public function testSetContentRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
+    public function setContentRaisesInvalidArgumentExceptionForInvalidContentTypes($content)
     {
         $part = new Mime\Part();
         $this->expectException(Mime\Exception\InvalidArgumentException::class);

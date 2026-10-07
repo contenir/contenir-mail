@@ -6,17 +6,19 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Decode;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class DecodeTest extends TestCase
 {
-    public function testDecodeMessageWithoutHeaders()
+    #[Test]
+    public function decodeMessageWithoutHeaders()
     {
         $text = 'This is a message body';
 
         Decode::splitMessage($text, $headers, $body);
 
-        self::assertInstanceOf(Headers::class, $headers);
-        self::assertSame($text, $body);
+        static::assertInstanceOf(Headers::class, $headers);
+        static::assertSame($text, $body);
     }
 }

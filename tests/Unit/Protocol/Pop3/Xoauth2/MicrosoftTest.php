@@ -9,6 +9,7 @@ use Contenir\Mail\Protocol\Pop3\Response;
 use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function fopen;
@@ -20,7 +21,8 @@ use function stream_get_contents;
 class MicrosoftTest extends TestCase
 {
     /** @psalm-suppress InternalClass */
-    public function testIntegration(): void
+    #[Test]
+    public function integration(): void
     {
         /**
          * @psalm-suppress PropertyNotSetInConstructor
@@ -81,7 +83,7 @@ class MicrosoftTest extends TestCase
 
         $protocol->login('test@example.com', '123');
 
-        $this->assertInstanceOf(Microsoft::class, $protocol);
+        static::assertInstanceOf(Microsoft::class, $protocol);
 
         $streamContents = '';
         if ($socket = $protocol->getSocket()) {
@@ -93,7 +95,7 @@ class MicrosoftTest extends TestCase
         /** @psalm-suppress InternalMethod */
         $xoauth2Sasl = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
 
-        $this->assertEquals(
+        static::assertEquals(
             'AUTH XOAUTH2' . "\n" . $xoauth2Sasl . "\n",
             $streamContents,
         );
