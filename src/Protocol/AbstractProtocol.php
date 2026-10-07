@@ -222,8 +222,11 @@ abstract class AbstractProtocol
             },
             E_WARNING
         );
-        $this->socket = stream_socket_client($remote, $errorNum, $errorStr, self::TIMEOUT_CONNECTION);
-        restore_error_handler();
+        try {
+            $this->socket = stream_socket_client($remote, $errorNum, $errorStr, self::TIMEOUT_CONNECTION);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($this->socket === false) {
             if ($errorNum == 0) {

@@ -5,23 +5,28 @@ namespace Contenir\Mail\Header;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
 
-use function array_reduce;
+use function base64_decode;
 use function explode;
-use function extension_loaded;
+use function iconv;
 use function iconv_mime_decode;
 use function iconv_mime_encode;
-use function imap_mime_header_decode;
-use function imap_utf8;
 use function implode;
+use function preg_match_all;
+use function quoted_printable_decode;
+use function str_replace;
 use function str_contains;
 use function str_pad;
 use function str_starts_with;
 use function strlen;
 use function strpos;
+use function strtoupper;
 use function substr;
+use function trim;
 use function wordwrap;
 
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
+use const PREG_OFFSET_CAPTURE;
+use const PREG_SET_ORDER;
 
 /**
  * Utility class used for creating wrapped or MIME-encoded versions of header
@@ -138,16 +143,65 @@ abstract class HeaderWrap
 
         $decodedValue = iconv_mime_decode($value, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8');
 
-        // imap (unlike iconv) can handle multibyte headers which are splitted across multiple line
-        if (self::isNotDecoded($value, $decodedValue) && extension_loaded('imap')) {
-            return array_reduce(
-                imap_mime_header_decode(imap_utf8($value)),
-                static fn($accumulator, $headerPart) => $accumulator . $headerPart->text,
-                ''
-            );
+        // iconv cannot decode a multibyte character split across adjacent encoded words
+        if (self::isNotDecoded($value, $decodedValue)) {
+            return self::decodeEncodedWords($value);
         }
 
         return $decodedValue;
+    }
+
+    /**
+     * Decode RFC 2047 encoded words, joining adjacent words of the same charset
+     * before conversion so that multibyte characters split across them survive.
+     */
+    private static function decodeEncodedWords(string $value): string
+    {
+        $pattern = '/=\?([^?*]+)(?:\*[^?]*)?\?([BbQq])\?([^?]*)\?=/';
+        if (! preg_match_all($pattern, $value, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            return $value;
+        }
+
+        $result  = '';
+        $buffer  = '';
+        $charset = null;
+        $offset  = 0;
+
+        foreach ($matches as $match) {
+            $between = substr($value, $offset, $match[0][1] - $offset);
+            $offset  = $match[0][1] + strlen($match[0][0]);
+
+            // Whitespace between adjacent encoded words is not displayed (RFC 2047, section 6.2)
+            if ($charset === null || trim($between) !== '') {
+                $result .= self::convertToUtf8($buffer, $charset) . $between;
+                $buffer  = '';
+                $charset = null;
+            }
+
+            $wordCharset = strtoupper($match[1][0]);
+            if ($charset !== null && $wordCharset !== $charset) {
+                $result .= self::convertToUtf8($buffer, $charset);
+                $buffer  = '';
+            }
+
+            $charset = $wordCharset;
+            $buffer .= strtoupper($match[2][0]) === 'B'
+                ? (string) base64_decode($match[3][0])
+                : quoted_printable_decode(str_replace('_', ' ', $match[3][0]));
+        }
+
+        return $result . self::convertToUtf8($buffer, $charset) . substr($value, $offset);
+    }
+
+    private static function convertToUtf8(string $value, ?string $charset): string
+    {
+        if ($value === '' || $charset === null || $charset === 'UTF-8') {
+            return $value;
+        }
+
+        $converted = iconv($charset, 'UTF-8', $value);
+
+        return $converted === false ? $value : $converted;
     }
 
     private static function isNotDecoded(string $originalValue, string $value): bool
