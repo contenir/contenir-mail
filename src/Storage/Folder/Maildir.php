@@ -228,7 +228,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
             $this->buildFolderTree();
             throw new Exception\RuntimeException(
                 'seems like the maildir has vanished; I have rebuilt the folder tree; '
-                . 'search for another folder and try again',
+                    . 'search for another folder and try again',
                 0,
                 $e,
             );

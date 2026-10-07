@@ -84,7 +84,7 @@ class ContentDisposition implements UnstructuredInterface
                         $value = var_export($count, true);
                         throw new Exception\InvalidArgumentException(sprintf(
                             'Invalid header line for Content-Disposition string'
-                            . ' - count expected to be numeric, got %s with value %s',
+                                . ' - count expected to be numeric, got %s with value %s',
                             $type,
                             $value,
                         ));
@@ -104,8 +104,8 @@ class ContentDisposition implements UnstructuredInterface
                     if (! isset($values[$i])) {
                         throw new Exception\InvalidArgumentException(
                             'Invalid header line for Content-Disposition string - incomplete continuation'
-                            . '; HeaderLine: '
-                            . $headerLine,
+                                . '; HeaderLine: '
+                                . $headerLine,
                         );
                     }
                     $value .= $values[$i];

@@ -196,7 +196,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
             $this->buildFolderTree($this->rootdir);
             throw new Exception\RuntimeException(
                 'seems like the mbox file has vanished; I have rebuilt the folder tree; '
-                . 'search for another folder and try again',
+                    . 'search for another folder and try again',
                 0,
                 $e,
             );
