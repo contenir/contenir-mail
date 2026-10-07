@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
+use Contenir\Mail\Utf8;
 
 use function array_map;
 use function array_values;
 use function explode;
 use function implode;
-use function mb_str_split;
 use function min;
 use function ord;
 use function preg_match;
@@ -76,7 +76,7 @@ final class EncodedWords
     private static function encodeCharacters(string $value, array $specials): array
     {
         $encoded = [];
-        foreach (mb_str_split($value, encoding: 'UTF-8') as $character) {
+        foreach (Utf8::split($value) as $character) {
             $literal   = 1 === preg_match(self::WORD_LITERAL, $character) ? $character : null;
             $encoded[] = $specials[$character] ?? $literal ?? self::encodeBytes($character);
         }

@@ -163,7 +163,7 @@ final class SafeTextTest extends TestCase
             'isolate'                => ["a\u{2067}b.txt", 'a b.txt'],
             'C1 control'             => ["a\u{0085}b.txt", 'a b.txt'],
             'windows reserved'       => ['a<b>c:d"e|f?g*h.txt', 'a_b_c_d_e_f_g_h.txt'],
-            'invalid UTF-8'          => ["caf\xE9.txt", 'caf_.txt'],
+            'invalid UTF-8'          => ["caf\xE9.txt", "caf\u{FFFD}.txt"],
         ];
     }
 

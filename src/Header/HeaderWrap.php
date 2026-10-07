@@ -6,8 +6,8 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Utf8;
 
-use function mb_check_encoding;
 use function preg_match;
 use function preg_replace;
 use function str_pad;
@@ -108,10 +108,10 @@ final class HeaderWrap
      * Whether the value can be RFC 2047 encoded: whether it is valid UTF-8.
      *
      * iconv_mime_encode() was used to find out; it fails for invalid UTF-8
-     * and for nothing else, which mb_check_encoding() says directly.
+     * and for nothing else, which Utf8::isValid() says directly.
      */
     public static function canBeEncoded(string $value): bool
     {
-        return mb_check_encoding($value, encoding: 'UTF-8');
+        return Utf8::isValid($value);
     }
 }
