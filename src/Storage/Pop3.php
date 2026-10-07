@@ -60,12 +60,7 @@ final class Pop3 extends AbstractStorage
 
         $config         = is_iterable($config) ? Pop3Config::fromIterable($config) : $config;
         $this->protocol = $protocol ?? new Protocol\Pop3();
-        $this->protocol->setNoValidateCert(! $config->connection->verifyPeer);
-        $this->protocol->connect(
-            $config->connection->host,
-            $config->connection->port,
-            RemoteConnection::legacySsl($config->connection->security),
-        );
+        $this->protocol->connect($config->connection);
         $this->open = true;
         $this->protocol->login($config->user, $config->password);
     }

@@ -152,7 +152,7 @@ final class ConnectTest extends TestCase
     public function refusesAnUnknownSecuritySetting(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown security setting');
+        $this->expectExceptionMessage('Unknown connection security');
 
         new Pop3('pop.example.com', null, true, false, new InMemoryConnection());
     }

@@ -47,9 +47,7 @@ final class LegacyOptionsTest extends TestCase
     public function refusesSettingsThatWouldSilentlyMeanPlainText(string|bool $ssl): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage(
-            'Unknown security setting; use "ssl" for TLS, "tls" for STARTTLS, or false for a plain connection',
-        );
+        $this->expectExceptionMessage('Unknown connection security');
 
         LegacyOptions::security($ssl);
     }
