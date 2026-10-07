@@ -78,6 +78,31 @@ final class Utf8
     }
 
     /**
+     * The string in pieces of at most $maxBytes bytes each, split only
+     * between characters, as split() finds them. A character longer than
+     * $maxBytes is a piece of its own.
+     *
+     * @return non-empty-list<string>
+     */
+    public static function chunk(string $value, int $maxBytes): array
+    {
+        $pieces  = [];
+        $current = '';
+        foreach (self::split($value) as $character) {
+            if ('' !== $current && (strlen($current) + strlen($character)) > $maxBytes) {
+                $pieces[] = $current;
+                $current  = '';
+            }
+
+            $current .= $character;
+        }
+
+        $pieces[] = $current;
+
+        return $pieces;
+    }
+
+    /**
      * The number of code points, each maximal subpart of an ill-formed
      * sequence counting as one, as mbstring counts them.
      */

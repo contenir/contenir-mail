@@ -8,15 +8,11 @@ use Contenir\Mail\Headers;
 use Contenir\Mail\Utf8;
 
 use function array_map;
-use function array_values;
-use function explode;
 use function implode;
 use function min;
 use function ord;
 use function preg_match;
-use function preg_match_all;
 use function sprintf;
-use function str_replace;
 use function str_split;
 use function strlen;
 
@@ -52,7 +48,7 @@ final class EncodedWords
     public static function encode(string $value, int $firstLineGap): string
     {
         return self::encodeWords(
-            self::encodeCharacters($value, []),
+            self::runs($value, []),
             min(self::MAX_CONTENT, self::FIRST_LINE_CONTENT - $firstLineGap),
         );
     }
@@ -64,24 +60,35 @@ final class EncodedWords
      */
     public static function encodePhrase(string $value, array $specials): string
     {
-        return self::encodeWords(self::encodeCharacters($value, $specials), self::MAX_CONTENT);
+        return self::encodeWords(self::runs($value, $specials), self::MAX_CONTENT);
     }
 
     /**
-     * Each character of the value as it is written inside a "Q" encoded word.
+     * The characters of the value as they are written inside a "Q" encoded
+     * word, in runs that each end after a space.
+     *
+     * Each entry is one whole character, so a word never splits a
+     * character between two words (RFC 2047, section 5).
      *
      * @param array<string, string> $specials Characters to escape besides the ones every encoded word escapes.
-     * @return list<string>
+     * @return non-empty-list<list<string>>
      */
-    private static function encodeCharacters(string $value, array $specials): array
+    private static function runs(string $value, array $specials): array
     {
-        $encoded = [];
+        $runs = [];
+        $run  = [];
         foreach (Utf8::split($value) as $character) {
-            $literal   = 1 === preg_match(self::WORD_LITERAL, $character) ? $character : null;
-            $encoded[] = $specials[$character] ?? $literal ?? self::encodeBytes($character);
+            $literal = 1 === preg_match(self::WORD_LITERAL, $character) ? $character : null;
+            $run[]   = $specials[$character] ?? $literal ?? self::encodeBytes($character);
+            if (' ' === $character) {
+                $runs[] = $run;
+                $run    = [];
+            }
         }
 
-        return $encoded;
+        $runs[] = $run;
+
+        return $runs;
     }
 
     private static function encodeBytes(string $character): string
@@ -99,20 +106,20 @@ final class EncodedWords
      * after a space when the next run of characters does not fit, and
      * splitting a run between characters when it fits no word.
      *
-     * @param list<string> $characters
+     * @param non-empty-list<list<string>> $runs
      */
-    private static function encodeWords(array $characters, int $room): string
+    private static function encodeWords(array $runs, int $room): string
     {
         $words   = [];
         $current = '';
-        foreach (self::runs($characters) as $run) {
-            if ('' !== $current && (strlen($current) + strlen($run)) > $room) {
+        foreach ($runs as $run) {
+            if ('' !== $current && (strlen($current) + strlen(implode('', $run))) > $room) {
                 $words[] = $current;
                 $current = '';
                 $room    = self::MAX_CONTENT;
             }
 
-            foreach (self::characters($run) as $encoded) {
+            foreach ($run as $encoded) {
                 if ('' !== $current && (strlen($current) + strlen($encoded)) > $room) {
                     $words[] = $current;
                     $current = '';
@@ -129,33 +136,5 @@ final class EncodedWords
             static fn(string $word): string => self::WORD_PREFIX . $word . self::WORD_SUFFIX,
             $words,
         ));
-    }
-
-    /**
-     * The encoded characters joined into runs that each end after a space.
-     *
-     * @param list<string> $characters
-     * @return list<string>
-     */
-    private static function runs(array $characters): array
-    {
-        return explode("\n", str_replace(
-            search: '=20',
-            replace: "=20\n",
-            subject: implode('', $characters),
-        ));
-    }
-
-    /**
-     * The encoded characters of a run: "=XX" escapes, or single characters.
-     *
-     * @return list<string>
-     */
-    private static function characters(string $run): array
-    {
-        $matches = [];
-        preg_match_all('/=[0-9A-F]{2}|./s', $run, $matches);
-
-        return array_values($matches[0] ?? []);
     }
 }

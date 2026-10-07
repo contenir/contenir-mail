@@ -253,7 +253,7 @@ final class HeadersTest extends TestCase
     public function rejectsBuiltNameLongerThanLimit(iterable $headers): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be at most 981 characters');
+        $this->expectExceptionMessage('Header name must be at most 972 characters');
 
         Headers::fromIterable($headers);
     }

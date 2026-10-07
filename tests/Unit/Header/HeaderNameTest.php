@@ -103,7 +103,7 @@ class HeaderNameTest extends TestCase
     public function rejectsNameLongerThanMaximumLength(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be at most 981 characters');
+        $this->expectExceptionMessage('Header name must be at most 972 characters');
 
         HeaderName::assertLength(str_repeat('X', HeaderName::MAX_LENGTH + 1));
     }

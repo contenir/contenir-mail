@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Mime;
 
+use Contenir\Mail\Utf8;
+
 use function array_map;
 use function base64_encode;
 use function chunk_split;
 use function count;
 use function explode;
 use function implode;
+use function intdiv;
 use function ord;
 use function preg_match;
 use function rtrim;
@@ -595,6 +598,10 @@ final class Mime
     /**
      * Encode a given string in mail header compatible base64 encoding.
      *
+     * A UTF-8 string is split between characters, so that each encoded word
+     * holds only whole characters (RFC 2047, section 5); a string in another
+     * charset is split between any bytes.
+     *
      * @param string $str
      * @param string $charset
      * @param int $lineLength Defaults to {@link LINELENGTH}
@@ -610,6 +617,12 @@ final class Mime
         $prefix          = "=?{$charset}?B?";
         $suffix          = '?=';
         $remainingLength = $lineLength - strlen($prefix) - strlen($suffix);
+        if ('UTF-8' === strtoupper($charset)) {
+            return $prefix . implode("{$suffix}{$lineEnd} {$prefix}", array_map(
+                base64_encode(...),
+                Utf8::chunk($str, maxBytes: intdiv($remainingLength, num2: 4) * 3),
+            )) . $suffix;
+        }
 
         $encodedValue = self::encodeBase64($str, $remainingLength, $lineEnd);
         $encodedValue = str_replace($lineEnd, "{$suffix}{$lineEnd} {$prefix}", $encodedValue);
