@@ -426,16 +426,16 @@ class Maildir extends Folder\Maildir implements WritableInterface
         // if you change this variable take into account that it can take up to $maxTries seconds
         // normally we should have a valid unique name after the first try, we're just following the "standard" here
         $maxTries = 5;
+        $fh       = false;
+        $path     = '';
         for ($i = 0; $i < $maxTries; ++$i) {
             $uniq = $this->createUniqueId();
-            if (! file_exists($tmpdir . $uniq)) {
-                // here is the race condition! - as defined in the standard
-                // to avoid having a long time between stat()ing the file and creating it we're opening it here
-                // to mark the filename as taken
-                $fh = fopen($tmpdir . $uniq, 'w');
-                if (! $fh) {
-                    throw new StorageException\RuntimeException('could not open temp file');
-                }
+            $path = $tmpdir . $uniq;
+            // "x" creates the file only if nothing, not even a symlink, has that name yet
+            ErrorHandler::start(E_WARNING);
+            $fh = fopen($path, 'x');
+            ErrorHandler::stop();
+            if ($fh) {
                 break;
             }
             sleep(1);
@@ -450,7 +450,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         return [
             'dirname'  => "{$this->rootdir}.{$folder}",
             'uniq'     => $uniq,
-            'filename' => $tmpdir . $uniq,
+            'filename' => $path,
             'handle'   => $fh,
         ];
     }
