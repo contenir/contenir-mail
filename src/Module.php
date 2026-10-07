@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail;
 
-class Module
+/**
+ * The laminas-mvc module, registering the same services as ConfigProvider.
+ */
+final readonly class Module
 {
     /**
-     * Retrieve laminas-mail package configuration for laminas-mvc context.
-     *
-     * @return array
+     * @return array{service_manager: array{factories: array<class-string, class-string>}}
      */
-    public function getConfig()
+    public function getConfig(): array
     {
-        $provider = new ConfigProvider();
         return [
-            'service_manager' => $provider->getDependencyConfig(),
+            'service_manager' => (new ConfigProvider())->getDependencies(),
         ];
     }
 }
