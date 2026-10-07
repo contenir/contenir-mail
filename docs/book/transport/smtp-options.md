@@ -29,7 +29,7 @@ $transport = new Smtp(SmtpConfig::fromIterable([
 Key                     | Argument              | Default        | Meaning
 ----------------------- | --------------------- | -------------- | -------
 `host`                  | `host`                | `127.0.0.1`    | The server's host name or address.
-`port`                  | `port`                | 25, or 465 for `tls` | The server's port.
+`port`                  | `port`                | 587, 465 for `tls`, 25 for `none` | The server's port.
 `security`              | `security`            | `starttls`     | `starttls`: upgrade a plain connection, and refuse a server that cannot. `tls`: TLS from the start. `none`: no encryption.
 `verify_peer`           | `verifyPeer`          | `true`         | Verify the server's certificate and name. Turn it off only for a test server.
 `timeout`               | `timeout`             | `30`           | Seconds to wait for the connection.

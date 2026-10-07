@@ -15,8 +15,8 @@ Headers and body handle character sets in different ways.
 > Pass header values (subjects, display names, other header text) as UTF-8
 > strings. Text in any other encoding is rejected with an exception
 > implementing `Contenir\Mail\Exception\ExceptionInterface`. Convert text from
-> other encodings first, for example with `mb_convert_encoding($text, 'UTF-8',
-> 'ISO-8859-1')`.
+> other encodings first, for example with `iconv('ISO-8859-1', 'UTF-8', $text)`.
+> Control characters other than tab, including DEL and the C1 range, are refused.
 
 > ## Only in text format
 >
@@ -74,6 +74,24 @@ echo $subject->getFieldValue();        // Café menu
 echo $subject->getEncodedFieldValue(); // =?UTF-8?Q?Caf=C3=A9=20menu?=
 echo $subject->toString();             // Subject: =?UTF-8?Q?Caf=C3=A9=20menu?=
 ```
+
+## Long header values
+
+RFC 5322 limits every line of a message to 998 characters. Headers are folded
+at spaces to stay well within that. A word too long to fold, such as a long URL
+in a Subject, or a display name too long for its line, is written as RFC 2047
+encoded words, which can be split anywhere. Values that cannot be encoded are
+refused when the header is built: message IDs over 983 characters, Received
+lines over 988, and media-type or parameter names over 127 characters
+(RFC 6838).
+
+## Reading raw UTF-8 headers
+
+Mail sent with SMTPUTF8 can carry header values as raw UTF-8 rather than encoded
+words (RFC 6532). When such mail is read from storage or parsed with
+`Message::fromString()`, those values are read into their header classes like any
+other. Invalid UTF-8 is refused. Composing still writes non-ASCII text as RFC 2047
+encoded words.
 
 ## Using another character set for the body
 
