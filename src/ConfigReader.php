@@ -215,6 +215,27 @@ final readonly class ConfigReader
     }
 
     /**
+     * A string, or a callable as a Closure, such as a secret or a function that returns it.
+     *
+     * A string is always read as a string, never as the name of a function to call.
+     *
+     * @throws Exception\InvalidArgumentException When the value is neither a string nor callable.
+     */
+    public function stringOrCallable(string $key): string|Closure|null
+    {
+        $value = $this->values[$key] ?? null;
+        if (null === $value || is_string($value)) {
+            return $value;
+        }
+
+        if (! is_callable($value)) {
+            throw $this->invalid($key, 'a string or a callable', $value);
+        }
+
+        return Closure::fromCallable($value);
+    }
+
+    /**
      * A callable, as a Closure.
      *
      * @throws Exception\InvalidArgumentException When the value is not callable.
