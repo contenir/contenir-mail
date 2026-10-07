@@ -22,14 +22,17 @@ final readonly class HeaderParser
     ) {}
 
     /**
-     * @return list<HeaderInterface>
+     * Parse a header block into headers, each with its text as written, or
+     * null where that text cannot be written back as it is.
+     *
+     * @return list<array{HeaderInterface, string|null}>
      * @throws RuntimeException When the block is not a sequence of header lines.
      */
     public function parseBlock(string $block, string $eol): array
     {
         $headers = [];
-        foreach (HeaderBlock::lines($block, $eol) as $line) {
-            $headers[] = $this->parseLine($line);
+        foreach (HeaderBlock::fields($block, $eol) as [$line, $wireText]) {
+            $headers[] = [$this->parseLine($line), $wireText];
         }
 
         return $headers;
