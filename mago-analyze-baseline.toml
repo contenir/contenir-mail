@@ -418,7 +418,7 @@ count = 1
 file = "src/Mime/Mime.php"
 code = "possibly-null-operand"
 message = "Possibly null left operand used in string concatenation (type `null|string`)."
-count = 3
+count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -437,18 +437,6 @@ file = "src/Mime/Mime.php"
 code = "possibly-undefined-int-array-index"
 message = "Possibly undefined array key `non-negative-int` accessed on `array{0: string, ...<non-negative-int, string>}`."
 count = 2
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `positive-int` accessed on `array{0: string('')}`."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `positive-int` accessed on `array{0: string, ...<non-negative-int, string>}`."
-count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"

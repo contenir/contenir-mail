@@ -262,7 +262,7 @@ count = 1
 file = "src/Mime/Mime.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
-count = 3
+count = 2
 
 [[issues]]
 file = "src/Mime/Mime.php"

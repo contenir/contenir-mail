@@ -8,7 +8,6 @@ use function base64_encode;
 use function chunk_split;
 use function count;
 use function implode;
-use function max;
 use function ord;
 use function preg_match;
 use function rtrim;
@@ -427,13 +426,8 @@ final class Mime
         $initialPtr = 0;
         $strLength  = strlen($str);
         while ($initialPtr < $strLength) {
-            $continueAt = $strLength - $initialPtr;
-
-            if ($continueAt > $lineLength) {
-                $continueAt = $lineLength;
-            }
-
-            $chunk = substr($str, $initialPtr, $continueAt);
+            $continueAt = $lineLength;
+            $chunk      = substr($str, $initialPtr, $continueAt);
 
             // Ensure we are not splitting across an encoded character
             $endingMarkerPos = strrpos($chunk, '=');
@@ -513,7 +507,7 @@ final class Mime
         // Split encoded text into separate lines
         $tmp = '';
         while (strlen($str) > 0) {
-            $currentLine = max(count($lines) - 1, 0);
+            $currentLine = count($lines) - 1;
             $token       = self::getNextQuotedPrintableToken($str);
             $substr      = substr($str, strlen($token));
             $str         = false === $substr ? '' : $substr;
@@ -522,22 +516,22 @@ final class Mime
             if ('=20' === $token) {
                 // only if we have a single char token or space, we can append the
                 // tempstring it to the current line or start a new line if necessary.
+                $line              = $lines[$currentLine] ?? '';
+                $currentLineLength = strlen($line) + strlen($tmp);
                 if (0 === $currentLine) {
                     // The size of the first line should be calculated with the header name.
-                    $currentLineLength = strlen($lines[$currentLine] . $tmp) + $headerNameSize;
-                } else {
-                    $currentLineLength = strlen($lines[$currentLine] . $tmp);
+                    $currentLineLength += $headerNameSize;
                 }
 
                 $lineLimitReached = $currentLineLength > $lineLength;
-                $noCurrentLine    = '' === $lines[$currentLine];
+                $noCurrentLine    = '' === $line;
                 if ($noCurrentLine && $lineLimitReached) {
                     $lines[$currentLine]     = $tmp;
                     $lines[$currentLine + 1] = '';
                 } elseif ($lineLimitReached) {
                     $lines[$currentLine + 1] = $tmp;
                 } else {
-                    $lines[$currentLine] .= $tmp;
+                    $lines[$currentLine] = $line . $tmp;
                 }
                 $tmp = '';
             }

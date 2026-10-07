@@ -329,6 +329,24 @@ final class MimeTest extends TestCase
         return $cases;
     }
 
+    #[Test]
+    public function fillsTheFirstQuotedPrintableHeaderLineToExactlyTheLineLength(): void
+    {
+        static::assertSame(
+            '=?UTF-8?Q?' . str_repeat('x', times: 56) . '=20y?=',
+            Mime::encodeQuotedPrintableHeader(str_repeat('x', times: 56) . ' y', 'UTF-8'),
+        );
+    }
+
+    #[Test]
+    public function foldsAQuotedPrintableHeaderWordThatWouldPassTheLineLength(): void
+    {
+        static::assertSame(
+            '=?UTF-8?Q?' . str_repeat('x', times: 57) . '=20?=' . Mime::LINEEND . ' =?UTF-8?Q?y?=',
+            Mime::encodeQuotedPrintableHeader(str_repeat('x', times: 57) . ' y', 'UTF-8'),
+        );
+    }
+
     #[DataProvider('headerLineLengthProvider')]
     #[Group('Laminas-1688')]
     #[Test]
