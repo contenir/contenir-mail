@@ -36,6 +36,7 @@ use function implode;
 use function is_array;
 use function is_dir;
 use function is_file;
+use function is_link;
 use function is_numeric;
 use function is_resource;
 use function link;
@@ -432,9 +433,10 @@ class Maildir extends Folder\Maildir implements WritableInterface
             $uniq = $this->createUniqueId();
             $path = $tmpdir . $uniq;
             // "x" creates the file only if nothing, not even a symlink, has that name yet
-            ErrorHandler::start(E_WARNING);
-            $fh = fopen($path, 'x');
-            ErrorHandler::stop();
+            if (! file_exists($path) && ! is_link($path)) {
+                $fh = fopen($path, 'x');
+            }
+
             if ($fh) {
                 break;
             }
