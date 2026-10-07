@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Storage;
 
-use Contenir\Mail\ConfigReader;
-
 use function preg_match;
 use function sprintf;
 use function str_contains;
@@ -35,22 +33,5 @@ final class LocalPath
         }
 
         return $path;
-    }
-
-    /**
-     * A setting the storage cannot work without.
-     *
-     * @throws Exception\InvalidArgumentException When the setting is missing.
-     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the setting is not a string.
-     */
-    public static function required(ConfigReader $reader, string $key, string $context): string
-    {
-        return (
-            $reader->nullableString($key) ?? throw new Exception\InvalidArgumentException(sprintf(
-                '%s: option "%s" is required',
-                $context,
-                $key,
-            ))
-        );
     }
 }

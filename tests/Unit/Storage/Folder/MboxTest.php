@@ -295,7 +295,7 @@ final class MboxTest extends TestCase
     #[Test]
     public function requiresDirname(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('Contenir\Mail\Storage\Folder\MboxConfig: option "dirname" is required');
 
         MboxConfig::fromIterable(['folder' => 'INBOX']);

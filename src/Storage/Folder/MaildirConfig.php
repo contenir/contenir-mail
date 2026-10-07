@@ -49,7 +49,7 @@ final readonly class MaildirConfig
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
         return new self(
-            dirname: LocalPath::required($reader, 'dirname', self::class),
+            dirname: $reader->requiredString('dirname'),
             delim: $reader->string('delim', default: '.'),
             folder: $reader->string('folder', default: 'INBOX'),
         );

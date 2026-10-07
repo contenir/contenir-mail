@@ -56,7 +56,7 @@ final readonly class Pop3Config
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),
-            user: LocalPath::required($reader, 'user', self::class),
+            user: $reader->requiredString('user'),
             password: $reader->string('password', default: ''),
         );
     }

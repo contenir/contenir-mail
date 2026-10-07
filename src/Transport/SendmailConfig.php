@@ -23,7 +23,6 @@ use function trim;
  * SendmailConfig::fromIterable(['parameters' => '-R hdrs']);
  * ```
  *
- * @mago-expect analysis:mixed-assignment Settings arrive untyped; ConfigReader reads them into types.
  */
 final readonly class SendmailConfig
 {
@@ -69,14 +68,9 @@ final readonly class SendmailConfig
      */
     public static function fromIterable(iterable $config): self
     {
-        $values = [];
-        foreach ($config as $key => $value) {
-            $values[$key] = 'parameters' === $key && is_string($value) ? [$value] : $value;
-        }
+        $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
-        $reader = ConfigReader::read(self::class, $values, self::KEYS);
-
-        return new self($reader->stringList('parameters', default: []));
+        return new self($reader->stringOrList('parameters', default: []));
     }
 
     /**

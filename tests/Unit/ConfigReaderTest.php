@@ -462,4 +462,178 @@ final class ConfigReaderTest extends TestCase
             'list with an int' => [['\Seen', 1], 'int'],
         ];
     }
+
+    #[Test]
+    public function readsRequiredString(): void
+    {
+        static::assertSame('mail.example.com', self::reader(['host' => 'mail.example.com'])->requiredString('host'));
+    }
+
+    #[Test]
+    #[DataProvider('missingProvider')]
+    public function rejectsMissingRequiredString(array $config): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Example: option "host" is required');
+
+        self::reader($config)->requiredString('host');
+    }
+
+    #[Test]
+    public function rejectsNonStringForRequiredString(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Example: option "host" must be a string, got int');
+
+        self::reader(['host' => 1])->requiredString('host');
+    }
+
+    #[Test]
+    public function readsRequiredInt(): void
+    {
+        static::assertSame(993, self::reader(['port' => '993'])->requiredInt('port'));
+    }
+
+    #[Test]
+    public function rejectsMissingRequiredInt(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Example: option "port" is required');
+
+        self::reader([])->requiredInt('port');
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function missingProvider(): array
+    {
+        return [
+            'absent' => [[]],
+            'null'   => [['host' => null]],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('stringOrBoolProvider')]
+    public function readsStringOrBool(mixed $value, string|bool|null $expected): void
+    {
+        static::assertSame($expected, self::reader(['security' => $value])->stringOrBool('security'));
+    }
+
+    /**
+     * @return array<string, array{mixed, string|bool|null}>
+     */
+    public static function stringOrBoolProvider(): array
+    {
+        return [
+            'string'      => ['ssl', 'ssl'],
+            'bool string' => ['true', 'true'],
+            'empty'       => ['', ''],
+            'true'        => [true, true],
+            'false'       => [false, false],
+            'one'         => [1, true],
+            'zero'        => [0, false],
+            'null'        => [null, null],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('invalidStringOrBoolProvider')]
+    public function rejectsValueThatIsNeitherStringNorBool(mixed $value, string $type): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Example: option \"security\" must be a string or a bool, got {$type}");
+
+        self::reader(['security' => $value])->stringOrBool('security');
+    }
+
+    /**
+     * @return array<string, array{mixed, string}>
+     */
+    public static function invalidStringOrBoolProvider(): array
+    {
+        return [
+            'array' => [[], 'array'],
+            'two'   => [2, 'int'],
+            'float' => [1.0, 'float'],
+        ];
+    }
+
+    #[Test]
+    public function readsCallableAsClosure(): void
+    {
+        $callable = self::reader(['connection' => 'strtoupper'])->callable('connection');
+
+        static::assertSame('ABC', null === $callable ? null : $callable('abc'));
+    }
+
+    #[Test]
+    public function keepsGivenClosure(): void
+    {
+        $closure = static fn(): string => 'x';
+
+        static::assertSame($closure, self::reader(['connection' => $closure])->callable('connection'));
+    }
+
+    #[Test]
+    public function readsAbsentCallableAsNull(): void
+    {
+        static::assertNull(self::reader([])->callable('connection'));
+    }
+
+    #[Test]
+    public function rejectsValueThatIsNotCallable(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Example: option "connection" must be a callable, got string');
+
+        self::reader(['connection' => 'not a function'])->callable('connection');
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[Test]
+    #[DataProvider('stringOrListProvider')]
+    public function readsStringOrList(mixed $value, array $expected): void
+    {
+        static::assertSame($expected, self::reader(['flags' => $value])->stringOrList('flags', default: ['\Seen']));
+    }
+
+    /**
+     * @return array<string, array{mixed, list<string>}>
+     */
+    public static function stringOrListProvider(): array
+    {
+        return [
+            'string'           => ['-R hdrs', ['-R', 'hdrs']],
+            'other whitespace' => [" -R\t\n hdrs  ", ['-R', 'hdrs']],
+            'blank string'     => [' ', []],
+            'list'             => [['-R', 'hdrs'], ['-R', 'hdrs']],
+            'keyed iterable'   => [new ArrayIterator(['a' => '-oi']), ['-oi']],
+            'null'             => [null, ['\Seen']],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('invalidStringOrListProvider')]
+    public function rejectsValueThatIsNeitherStringNorList(mixed $value, string $type): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Example: option \"flags\" must be a string or a list of strings, got {$type}");
+
+        self::reader(['flags' => $value])->stringOrList('flags', default: []);
+    }
+
+    /**
+     * @return array<string, array{mixed, string}>
+     */
+    public static function invalidStringOrListProvider(): array
+    {
+        return [
+            'int'              => [1, 'int'],
+            'list with an int' => [['-oi', 1], 'int'],
+        ];
+    }
 }

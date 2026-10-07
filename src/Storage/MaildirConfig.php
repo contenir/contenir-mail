@@ -38,6 +38,6 @@ final readonly class MaildirConfig
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
-        return new self(LocalPath::required($reader, 'dirname', self::class));
+        return new self($reader->requiredString('dirname'));
     }
 }

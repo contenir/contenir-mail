@@ -58,11 +58,7 @@ final class RemoteConnection
      */
     private static function legacySecurity(ConfigReader $reader, string $context): Security
     {
-        try {
-            $ssl = $reader->nullableString('ssl');
-        } catch (InvalidArgumentException) {
-            $ssl = $reader->bool('ssl', default: false);
-        }
+        $ssl = $reader->stringOrBool('ssl');
 
         try {
             return Security::fromLegacy($ssl);

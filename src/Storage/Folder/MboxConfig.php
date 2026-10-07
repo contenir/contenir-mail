@@ -45,7 +45,7 @@ final readonly class MboxConfig
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
 
         return new self(
-            dirname: LocalPath::required($reader, 'dirname', self::class),
+            dirname: $reader->requiredString('dirname'),
             folder: $reader->string('folder', default: 'INBOX'),
             format: $reader->enum('format', default: MboxFormat::Mboxo),
         );
