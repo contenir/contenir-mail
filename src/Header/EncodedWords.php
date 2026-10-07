@@ -43,6 +43,9 @@ final class EncodedWords
     /**
      * The value as encoded words, one per folded line, without a trailing line break.
      *
+     * The value starts with a folding line break when not even its first
+     * character fits on the first line after "Name: ".
+     *
      * @param int $firstLineGap Length of "Name: " before the first word.
      */
     public static function encode(string $value, int $firstLineGap): string
@@ -106,6 +109,11 @@ final class EncodedWords
      * after a space when the next run of characters does not fit, and
      * splitting a run between characters when it fits no word.
      *
+     * When not even the first character fits the first line, the first
+     * word is empty and the value starts with a folding line break, so the
+     * first line holds only "Name:". Every later word has room for any
+     * character, so only the first word can be empty.
+     *
      * @param non-empty-list<list<string>> $runs
      */
     private static function encodeWords(array $runs, int $room): string
@@ -120,7 +128,7 @@ final class EncodedWords
             }
 
             foreach ($run as $encoded) {
-                if ('' !== $current && (strlen($current) + strlen($encoded)) > $room) {
+                if ((strlen($current) + strlen($encoded)) > $room) {
                     $words[] = $current;
                     $current = '';
                     $room    = self::MAX_CONTENT;
@@ -133,7 +141,7 @@ final class EncodedWords
         $words[] = $current;
 
         return implode(Headers::FOLDING, array_map(
-            static fn(string $word): string => self::WORD_PREFIX . $word . self::WORD_SUFFIX,
+            static fn(string $word): string => '' === $word ? '' : self::WORD_PREFIX . $word . self::WORD_SUFFIX,
             $words,
         ));
     }

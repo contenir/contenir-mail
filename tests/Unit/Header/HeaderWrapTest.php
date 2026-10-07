@@ -469,6 +469,64 @@ final class HeaderWrapTest extends TestCase
         );
     }
 
+    /**
+     * "Name: " and the first character, as an encoded word, fill the first line to 78 characters.
+     */
+    #[Test]
+    public function keepsFirstCharacterThatFitsAfterTheName(): void
+    {
+        static::assertSame(
+            "=?UTF-8?Q?=C3=A9?=\r\n =?UTF-8?Q?=C3=A9?=",
+            HeaderWrap::fold(str_repeat('X', times: 58), "\u{E9}\u{E9}"),
+        );
+    }
+
+    #[Test]
+    public function startsValueOnNextLineWhenTheFirstCharacterDoesNotFit(): void
+    {
+        static::assertSame(
+            "\r\n =?UTF-8?Q?=C3=A9=C3=A9?=",
+            HeaderWrap::fold(str_repeat('X', times: 59), "\u{E9}\u{E9}"),
+        );
+    }
+
+    #[Test]
+    public function foldsEmptyValueAfterLongestNameToEmptyString(): void
+    {
+        static::assertSame('', HeaderWrap::fold(str_repeat('X', times: 997), ''));
+    }
+
+    #[Test]
+    public function encodesEmptyValueAsNothing(): void
+    {
+        static::assertSame('', HeaderWrap::mimeEncodeValue('', firstLineGapSize: 0));
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function lineProvider(): array
+    {
+        $longest = str_repeat('X', times: 997);
+
+        return [
+            'value on the first line'          => ['Subject', 'Hello', 'Subject: Hello'],
+            'value on the next line'           => ['X-Test', "\r\n =?UTF-8?Q?a?=", "X-Test:\r\n =?UTF-8?Q?a?="],
+            'empty value'                      => ['X-Test', '', 'X-Test: '],
+            'empty value after 996 characters' => [str_repeat('X', times: 996), '', str_repeat('X', times: 996) . ': '],
+            'empty value after 997 characters' => [$longest, '', "{$longest}:"],
+            'value after 997 characters'       => [$longest, "\r\n v", "{$longest}:\r\n v"],
+            'line break without white space'   => ['X-Test', "\r\nv", "X-Test: \r\nv"],
+        ];
+    }
+
+    #[DataProvider('lineProvider')]
+    #[Test]
+    public function joinsNameAndFoldedValueIntoALine(string $name, string $folded, string $expected): void
+    {
+        static::assertSame($expected, HeaderWrap::line($name, $folded));
+    }
+
     #[Test]
     public function decodesUnknownCharsetWithoutRaisingAWarning(): void
     {

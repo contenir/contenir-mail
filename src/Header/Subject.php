@@ -58,6 +58,6 @@ final readonly class Subject implements HeaderInterface
     #[Override]
     public function toString(): string
     {
-        return "Subject: {$this->getEncodedFieldValue()}";
+        return HeaderWrap::line('Subject', $this->getEncodedFieldValue());
     }
 }

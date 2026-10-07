@@ -200,35 +200,75 @@ final class HeadersTest extends TestCase
         static::assertInstanceOf(GenericHeader::class, Headers::fromIterable([$line])->toList()[0] ?? null);
     }
 
+    #[Test]
+    public function parsesBlockWithNameOfMaximumLength(): void
+    {
+        $block = str_repeat('X', HeaderName::MAX_LENGTH) . ": value\r\nSubject: Hello";
+
+        static::assertSame(
+            [str_repeat('X', HeaderName::MAX_LENGTH) => 'value', 'Subject' => 'Hello'],
+            Headers::fromString($block)->toArray(),
+        );
+    }
+
     /**
+     * Such a name leaves no room for the colon in a 998-character line.
+     *
      * @return array<string, array{int}>
      */
     public static function receivedLongNameProvider(): array
     {
         return [
-            'longer than the build limit' => [HeaderName::MAX_LENGTH + 10],
-            'longer than a line'          => [1200],
+            'one past the limit' => [HeaderName::MAX_LENGTH + 1],
+            'longer than a line' => [1200],
         ];
     }
 
     #[DataProvider('receivedLongNameProvider')]
     #[Test]
-    public function parsesBlockWithNameLongerThanBuildLimit(int $length): void
+    public function rejectsBlockWithNameLongerThanMaximumLength(int $length): void
     {
-        $block = str_repeat('X', $length) . ": value\r\nSubject: Hello";
+        $this->expectException(Header\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
 
-        static::assertSame(
-            [str_repeat('X', $length) => 'value', 'Subject' => 'Hello'],
-            Headers::fromString($block)->toArray(),
-        );
+        Headers::fromString(str_repeat('X', $length) . ": value\r\nSubject: Hello");
     }
 
-    #[Test]
-    public function writesReceivedNameLongerThanBuildLimitBackAsReceived(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function receivedLongLineProvider(): array
     {
-        $block = str_repeat('X', HeaderName::MAX_LENGTH + 10) . ": value\r\nSubject: Hello\r\n";
+        return [
+            'value filling the line'     => [str_repeat('X', times: 991) . ': value'],
+            'name and colon only'        => [str_repeat('X', HeaderName::MAX_LENGTH) . ':'],
+            'name, colon and space'      => [str_repeat('X', HeaderName::MAX_LENGTH - 1) . ': '],
+            'value on the next line'     => [str_repeat('X', HeaderName::MAX_LENGTH) . ":\r\n value"],
+            'encoded value on next line' => [str_repeat('X', HeaderName::MAX_LENGTH) . ":\r\n =?UTF-8?Q?caf=C3=A9?="],
+        ];
+    }
+
+    #[DataProvider('receivedLongLineProvider')]
+    #[Test]
+    public function writesReceivedLineWithLongNameBackAsReceived(string $line): void
+    {
+        $block = "{$line}\r\nSubject: Hello\r\n";
 
         static::assertSame($block, Headers::fromString($block)->toString());
+    }
+
+    /**
+     * A received line longer than 998 characters is written again, with its value on the next line.
+     */
+    #[Test]
+    public function rewritesReceivedLineTooLongToWriteBack(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame(
+            "{$name}:\r\n =?UTF-8?Q?value?=\r\n",
+            Headers::fromString("{$name}: value")->toString(),
+        );
     }
 
     /**
@@ -253,7 +293,7 @@ final class HeadersTest extends TestCase
     public function rejectsBuiltNameLongerThanLimit(iterable $headers): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be at most 972 characters');
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
 
         Headers::fromIterable($headers);
     }

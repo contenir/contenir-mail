@@ -16,10 +16,14 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_filter;
 use function array_map;
+use function array_slice;
 use function chr;
 use function explode;
+use function ltrim;
 use function max;
+use function preg_match;
 use function str_repeat;
 use function strlen;
 
@@ -314,44 +318,121 @@ final class GenericHeaderTest extends TestCase
     public function rejectsNameLongerThanMaximumLength(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be at most 972 characters');
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
 
         new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH + 1), 'value');
     }
 
     /**
-     * @return array<string, array{string}>
+     * The longest names, and values that fit after them or do not.
+     *
+     * @return array<string, array{int, string}>
      */
     public static function valueAfterLongestNameProvider(): array
     {
-        return [
-            'empty'                  => [''],
-            'one character'          => ['x'],
-            'words'                  => ['hello world'],
-            'long word'              => [str_repeat('a', times: 2000)],
-            'many words'             => [str_repeat('ab ', times: 400)],
-            'two-byte character'     => ["h\u{E9}llo"],
-            'four-byte characters'   => [str_repeat("\u{1F600}", times: 40)],
-            'leading space'          => [' lead'],
-            'encoded-word lookalike' => ['=?x?='],
+        $values = [
+            'empty'                   => '',
+            'one character'           => 'x',
+            'words'                   => 'hello world',
+            'long word'               => str_repeat('a', times: 2000),
+            'many words'              => str_repeat('ab ', times: 400),
+            'two-byte character'      => "h\u{E9}llo",
+            'four-byte characters'    => str_repeat("\u{1F600}", times: 40),
+            'mixed 2-, 3- and 4-byte' => str_repeat("\u{E9}\u{20AC}\u{1F600}", times: 20),
+            'leading space'           => ' lead',
+            'encoded-word lookalike'  => '=?x?=',
+            'injected header'         => "x\r\nBcc: evil@example.com",
         ];
+        $cases = [];
+        foreach ([HeaderName::MAX_LENGTH - 1, HeaderName::MAX_LENGTH] as $length) {
+            foreach ($values as $label => $value) {
+                $cases["{$label} after {$length}-character name"] = [$length, $value];
+            }
+        }
+
+        return $cases;
     }
 
     #[DataProvider('valueAfterLongestNameProvider')]
     #[Test]
-    public function writesNoLineLongerThan998WithNameOfMaximumLength(string $value): void
+    public function writesNoLineLongerThan998WithNameOfMaximumLength(int $length, string $value): void
     {
-        $header = new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH), $value);
+        $header = new GenericHeader(str_repeat('X', $length), $value);
 
         static::assertLessThanOrEqual(998, max(array_map(strlen(...), explode("\r\n", $header->toString()))));
     }
 
+    /**
+     * Every line after the first starts with white space, so no value can start a header of its own.
+     */
+    #[DataProvider('valueAfterLongestNameProvider')]
     #[Test]
-    public function fromStringKeepsReceivedNameLongerThanMaximumLength(): void
+    public function continuesEveryLaterLineWithWhiteSpaceAfterLongName(int $length, string $value): void
     {
-        $name = str_repeat('X', times: 990);
+        $lines = explode("\r\n", (new GenericHeader(str_repeat('X', $length), $value))->toString());
 
-        static::assertSame($name, GenericHeader::fromString("{$name}: value")->getFieldName());
+        static::assertSame([], array_filter(
+            array_slice($lines, offset: 1),
+            static fn(string $line): bool => 1 !== preg_match('/^ \S/', $line),
+        ));
+    }
+
+    /**
+     * Leading white space may or may not survive, as it does after a short name.
+     */
+    #[DataProvider('valueAfterLongestNameProvider')]
+    #[Test]
+    public function readsValueAfterLongestNameBack(int $length, string $value): void
+    {
+        $line = (new GenericHeader(str_repeat('X', $length), $value))->toString();
+
+        static::assertSame(ltrim($value), ltrim(GenericHeader::fromString($line)->getFieldValue()));
+    }
+
+    #[Test]
+    public function startsValueOnNextLineWhenNothingFitsAfterTheName(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame(
+            "{$name}:\r\n =?UTF-8?Q?value?=",
+            (new GenericHeader($name, 'value'))->toString(),
+        );
+    }
+
+    /**
+     * @return array<string, array{int, string}>
+     */
+    public static function emptyValueAfterLongNameProvider(): array
+    {
+        return [
+            '"Name: " fits'         => [HeaderName::MAX_LENGTH - 1, ': '],
+            '"Name: " does not fit' => [HeaderName::MAX_LENGTH, ':'],
+        ];
+    }
+
+    #[DataProvider('emptyValueAfterLongNameProvider')]
+    #[Test]
+    public function writesEmptyValueAfterLongNameWithinTheLine(int $length, string $separator): void
+    {
+        $name = str_repeat('X', $length);
+
+        static::assertSame($name . $separator, (new GenericHeader($name))->toString());
+    }
+
+    #[Test]
+    public function fromStringRejectsNameLongerThanMaximumLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 997 characters');
+
+        GenericHeader::fromString(str_repeat('X', HeaderName::MAX_LENGTH + 1) . ': value');
+    }
+
+    #[Test]
+    public function fromStringNormalisesTheName(): void
+    {
+        static::assertSame('Content-Type', GenericHeader::fromString('content_type: text/plain')->getFieldName());
     }
 
     #[Test]
