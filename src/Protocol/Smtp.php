@@ -40,7 +40,8 @@ use function substr;
  * ```
  *
  * STARTTLS is required unless the connection is TLS from the start or Security::None is
- * chosen explicitly; a server that does not offer it is refused. Credentials are only sent
+ * chosen explicitly; a server that does not offer it is refused. Without a port, STARTTLS
+ * connects to the submission port 587, TLS from the start to 465 and a plain connection to 25. Credentials are only sent
  * over TLS unless "allow_insecure_auth" is set.
  *
  * Every command argument is checked for CR, LF and NUL before it is sent, and message
@@ -151,7 +152,15 @@ final class Smtp extends AbstractProtocol
         $this->allowInsecureAuth = $reader->bool('allow_insecure_auth', default: false);
         $this->setNoValidateCert(! $settings->verifyPeer);
 
-        parent::__construct($settings->host, $settings->portOr(25, 465), $connection);
+        parent::__construct(
+            $settings->host,
+            $settings->portOr(
+                plain: 25,
+                tls: 465,
+                startTls: 587,
+            ),
+            $connection,
+        );
     }
 
     public function getConnectionConfig(): ConnectionConfig

@@ -70,9 +70,19 @@ final readonly class ConnectionConfig
 
     /**
      * The port to connect to: the configured one, or the standard one for the protocol and security.
+     *
+     * @param int $plain The port for a plain connection, and for STARTTLS unless $startTls is given.
+     * @param int $tls The port for TLS from the start.
+     * @param int|null $startTls The port for STARTTLS where it differs, as SMTP submission's 587 does.
      */
-    public function portOr(int $plain, int $tls): int
+    public function portOr(int $plain, int $tls, ?int $startTls = null): int
     {
-        return $this->port ?? (Security::Tls === $this->security ? $tls : $plain);
+        return (
+            $this->port ?? match ($this->security) {
+                Security::Tls      => $tls,
+                Security::StartTls => $startTls ?? $plain,
+                Security::None     => $plain,
+            }
+        );
     }
 }

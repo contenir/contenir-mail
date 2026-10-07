@@ -28,7 +28,8 @@ use function implode;
  * ```
  *
  * STARTTLS is required unless "security" says otherwise: "tls" for TLS from the start
- * (port 465), or "none" for a plain connection to a local relay.
+ * (port 465), or "none" for a plain connection to a local relay (port 25). Without a port,
+ * STARTTLS connects to the submission port 587 (RFC 6409).
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
  */
