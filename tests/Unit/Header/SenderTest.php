@@ -184,6 +184,7 @@ final class SenderTest extends TestCase
                 'Sender: =?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>',
                 ['ázÁZ09', 'foo@bar'],
             ],
+            'raw UTF-8 name'           => ['Sender: ázÁZ09 <foo@bar>', ['ázÁZ09', 'foo@bar']],
         ];
     }
 
@@ -212,9 +213,9 @@ final class SenderTest extends TestCase
                 $headerException,
                 'Invalid header value for Sender string',
             ],
-            'raw UTF-8'               => ['Sender: ázÁZ09-_', $headerException, 'Invalid header value detected'],
-            'raw UTF-8 name'          => [
-                'Sender: ázÁZ09 <foo@bar>',
+            'raw UTF-8 without at'    => ['Sender: ázÁZ09-_', $mailException, $invalidEmail],
+            'invalid UTF-8 name'      => [
+                "Sender: \xE1z <foo@bar>",
                 $headerException,
                 'Invalid header value detected',
             ],
