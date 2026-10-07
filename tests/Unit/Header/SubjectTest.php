@@ -158,4 +158,15 @@ final class SubjectTest extends TestCase
             'multiline'   => ["xxx\r\ny\r\nyy"],
         ];
     }
+
+    /**
+     * A leading space before a word too long for the first line folds the value onto the next line.
+     */
+    #[Test]
+    public function startsValueAfterLeadingSpaceOnNextLine(): void
+    {
+        $word = str_repeat('a', times: 80);
+
+        static::assertSame("Subject:\r\n {$word}", (new Subject(" {$word}"))->toString());
+    }
 }

@@ -18,12 +18,11 @@ final class HeaderName
      * Longest name a built header may have.
      *
      * Every written line must fit in 998 characters (RFC 5322, section
-     * 2.1.1), and the first line holds the name, ": " and at least the
-     * first word of the value. That word is at worst one four-byte
-     * character in an encoded word, "=?UTF-8?Q?=XX=XX=XX=XX?=", 24
-     * characters, as a word never splits a character: 998 - 2 - 24 = 972.
+     * 2.1.1). When nothing of the value fits after "Name: ", the value
+     * starts on the next line, so the first line need hold only the name
+     * and its colon: 998 - 1 = 997.
      */
-    public const int MAX_LENGTH = 972;
+    public const int MAX_LENGTH = HeaderLines::MAX_LINE_LENGTH - 1;
 
     private function __construct() {}
 

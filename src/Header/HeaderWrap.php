@@ -11,6 +11,7 @@ use Contenir\Mail\Utf8;
 use function preg_match;
 use function preg_replace;
 use function str_pad;
+use function str_starts_with;
 use function strlen;
 use function substr;
 use function wordwrap;
@@ -48,7 +49,11 @@ final class HeaderWrap
      * A printable word too long for one line is left whole, unless it would
      * make a line longer than the 998 characters RFC 5322 allows, such as a
      * long URL without spaces; the value is then written as encoded words,
-     * which may be split anywhere.
+     * which may be split between any characters.
+     *
+     * An encoded value starts with a folding line break when not even its
+     * first character fits on the first line, as after a long name; see
+     * line().
      */
     public static function fold(string $fieldName, string $value): string
     {
@@ -66,6 +71,23 @@ final class HeaderWrap
         }
 
         return substr($foldedHeaderLine, $headerNameColonSize);
+    }
+
+    /**
+     * The header line: the name, a colon, and the folded value.
+     *
+     * A space follows the colon, unless the value starts on the next line
+     * after a folding line break (RFC 5322, section 3.2.2, allows folding
+     * white space straight after the colon), or the value is empty and
+     * "Name: " would not fit in 998 characters.
+     */
+    public static function line(string $fieldName, string $foldedValue): string
+    {
+        $noSpace =
+            str_starts_with($foldedValue, Headers::FOLDING)
+            || ('' === $foldedValue && strlen("{$fieldName}: ") > HeaderLines::MAX_LINE_LENGTH);
+
+        return $fieldName . ($noSpace ? ':' : ': ') . $foldedValue;
     }
 
     /**

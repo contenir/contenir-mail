@@ -28,7 +28,7 @@ final readonly class HeaderParser
      * null where that text cannot be written back as it is.
      *
      * @return list<array{HeaderInterface, string|null}>
-     * @throws RuntimeException When the block is not a sequence of header lines.
+     * @throws RuntimeException When the block is not a sequence of header lines, or a name is longer than HeaderName::MAX_LENGTH.
      */
     public function parseBlock(string $block, string $eol): array
     {
@@ -41,9 +41,9 @@ final readonly class HeaderParser
     }
 
     /**
-     * Build headers from header objects, lines and name-value pairs. Unlike
-     * a parsed block, these are built here, so a name may be at most
-     * HeaderName::MAX_LENGTH long.
+     * Build headers from header objects, lines and name-value pairs. A name
+     * may be at most HeaderName::MAX_LENGTH long, as GenericHeader, which
+     * holds any header its class rejects, allows no longer name.
      *
      * @param iterable<int|string, HeaderInterface|string|array{string, string}> $headers
      * @return list<HeaderInterface>
@@ -63,7 +63,6 @@ final readonly class HeaderParser
                 is_int($name)    => $value,
                 default          => "{$name}: {$value}",
             };
-            HeaderName::assertLength(GenericHeader::splitHeaderLine($line)[0]);
             $parsed[] = $this->parseLine($line);
         }
 

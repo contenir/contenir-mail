@@ -69,7 +69,7 @@ final readonly class Headers implements Countable, IteratorAggregate
      * that class rejects is kept as a GenericHeader, so one malformed header
      * does not make the whole message unreadable.
      *
-     * @throws Exception\RuntimeException When the block is not a sequence of header lines.
+     * @throws Exception\RuntimeException When the block is not a sequence of header lines, or a name is longer than HeaderName::MAX_LENGTH.
      */
     public static function fromString(
         string $string,

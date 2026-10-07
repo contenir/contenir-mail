@@ -9,6 +9,7 @@ use Contenir\Mail\Exception\RuntimeException;
 use function count;
 use function preg_match;
 use function sprintf;
+use function strlen;
 use function trim;
 
 /**
@@ -29,8 +30,12 @@ final class HeaderBlock
      * is: when a line holds a bare CR or LF or a byte outside US-ASCII, or
      * when a line of only whitespace was dropped from the field.
      *
+     * A name longer than HeaderName::MAX_LENGTH leaves no room for even
+     * the colon in 998 characters (RFC 5322, section 2.1.1), and no header
+     * can hold it, so the block is rejected.
+     *
      * @return list<array{string, string|null}>
-     * @throws RuntimeException When a line is neither a header nor a continuation, or the block is too large.
+     * @throws RuntimeException When a line is neither a header nor a continuation, a name is too long, or the block is too large.
      */
     public static function fields(string $block, string $eol): array
     {
@@ -43,7 +48,9 @@ final class HeaderBlock
                 continue;
             }
 
-            if (1 === preg_match('/^[\x21-\x39\x3B-\x7E]+:/', $line)) {
+            $name = [];
+            if (1 === preg_match('/^([\x21-\x39\x3B-\x7E]+):/', $line, $name)) {
+                self::assertNameLength($name[1] ?? '');
                 $fields[] = $field;
                 $field    = [trim($line), [$line], true];
                 continue;
@@ -72,5 +79,18 @@ final class HeaderBlock
         }
 
         return $result;
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the name is longer than HeaderName::MAX_LENGTH.
+     */
+    private static function assertNameLength(string $name): void
+    {
+        if (strlen($name) > HeaderName::MAX_LENGTH) {
+            throw new Exception\RuntimeException(sprintf(
+                'Header name must be at most %d characters',
+                HeaderName::MAX_LENGTH,
+            ));
+        }
     }
 }
