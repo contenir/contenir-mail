@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
+use Contenir\Mail\Address;
+use Contenir\Mail\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Address;
-use Contenir\Mail\Exception;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Address::class)]
@@ -56,11 +56,11 @@ class AddressTest extends TestCase
             ["foo@bar\n", null],
             ["foo@bar\r", null],
             ["foo@bar\r\n", null],
-            ["foo@bar", "\r"],
-            ["foo@bar", "\n"],
-            ["foo@bar", "\r\n"],
-            ["foo@bar", "foo\r\nevilBody"],
-            ["foo@bar", "\r\nevilBody"],
+            ['foo@bar', "\r"],
+            ['foo@bar', "\n"],
+            ['foo@bar', "\r\n"],
+            ['foo@bar', "foo\r\nevilBody"],
+            ['foo@bar', "\r\nevilBody"],
         ];
     }
 

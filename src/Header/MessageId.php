@@ -24,7 +24,7 @@ class MessageId implements HeaderInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (strtolower($name) !== 'message-id') {
@@ -131,8 +131,8 @@ class MessageId implements HeaderInterface
 
         $rand = mt_rand();
 
-        if (isset($_SERVER["SERVER_NAME"])) {
-            $hostName = $_SERVER["SERVER_NAME"];
+        if (isset($_SERVER['SERVER_NAME'])) {
+            $hostName = $_SERVER['SERVER_NAME'];
         } else {
             $hostName = php_uname('n');
         }

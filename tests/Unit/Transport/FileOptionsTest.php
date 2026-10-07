@@ -2,9 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Transport\FileOptions;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function sys_get_temp_dir;
@@ -44,8 +44,7 @@ class FileOptionsTest extends TestCase
     public function testCallbackIsMutable(): void
     {
         $original = $this->options->getCallback();
-        $new      = static function ($transport): void {
-        };
+        $new      = static function ($transport): void {};
 
         $this->options->setCallback($new);
         $test = $this->options->getCallback();

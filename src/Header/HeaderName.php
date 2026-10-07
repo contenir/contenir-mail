@@ -10,9 +10,7 @@ final class HeaderName
     /**
      * No public constructor.
      */
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Filter the header name according to RFC 2822

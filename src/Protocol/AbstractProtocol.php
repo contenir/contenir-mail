@@ -96,8 +96,10 @@ abstract class AbstractProtocol
      * @param  int $port OPTIONAL Port number (default: null)
      * @throws Exception\RuntimeException
      */
-    public function __construct($host = '127.0.0.1', protected $port = null)
-    {
+    public function __construct(
+        $host = '127.0.0.1',
+        protected $port = null,
+    ) {
         $this->validHost = new Validator\ValidatorChain();
         $this->validHost->attach(new Validator\Hostname(Validator\Hostname::ALLOW_ALL));
 
@@ -220,7 +222,7 @@ abstract class AbstractProtocol
             static function ($error, $message = '') {
                 throw new Exception\RuntimeException(sprintf('Could not open socket: %s', $message), $error);
             },
-            E_WARNING
+            E_WARNING,
         );
         try {
             $this->socket = stream_socket_client($remote, $errorNum, $errorStr, self::TIMEOUT_CONNECTION);
@@ -342,7 +344,7 @@ abstract class AbstractProtocol
         }
 
         do {
-            $this->response[]   = $result = $this->_receive($timeout);
+            $this->response[] = $result = $this->_receive($timeout);
             [$cmd, $more, $msg] = preg_split('/([\s-]+)/', $result, 2, PREG_SPLIT_DELIM_CAPTURE);
 
             if ($errMsg !== '') {
@@ -351,7 +353,7 @@ abstract class AbstractProtocol
                 $errMsg = $msg;
             }
 
-        // The '-' message prefix indicates an information string instead of a response string.
+            // The '-' message prefix indicates an information string instead of a response string.
         } while (str_starts_with($more, '-'));
 
         if ($errMsg !== '') {

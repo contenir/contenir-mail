@@ -97,7 +97,7 @@ class Pop3
                 break;
             case 'tls':
                 $isTls = true;
-                // break intentionally omitted
+            // break intentionally omitted
             default:
                 if (! $port) {
                     $port = 110;
@@ -168,7 +168,7 @@ class Pop3
                     $line = substr($line, 1);
                 }
                 $message .= $line;
-                $line     = fgets($this->socket);
+                $line    = fgets($this->socket);
             }
         }
 
@@ -178,7 +178,7 @@ class Pop3
     /**
      * read a response
      * return extracted status / message from response
-
+     *
      * @throws Exception\RuntimeException
      */
     protected function readRemoteResponse(): Response
@@ -301,7 +301,7 @@ class Pop3
         $messages = [];
         $line     = strtok($result, "\n");
         while ($line) {
-            [$no, $size]         = explode(' ', trim($line));
+            [$no, $size] = explode(' ', trim($line));
             $messages[(int) $no] = (int) $size;
             $line                = strtok("\n");
         }
@@ -332,7 +332,7 @@ class Pop3
             if (! $line) {
                 continue;
             }
-            [$no, $id]           = explode(' ', trim($line), 2);
+            [$no, $id] = explode(' ', trim($line), 2);
             $messages[(int) $no] = $id;
         }
 

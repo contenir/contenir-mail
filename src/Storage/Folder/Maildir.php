@@ -230,7 +230,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
                 'seems like the maildir has vanished; I have rebuilt the folder tree; '
                 . 'search for another folder and try again',
                 0,
-                $e
+                $e,
             );
         }
     }

@@ -2,10 +2,10 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use ArrayIterator;
-use InvalidArgumentException;
 use Contenir\Mail\Storage\ParamsNormalizer;
+use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ParamsNormalizerTest extends TestCase
@@ -13,12 +13,12 @@ class ParamsNormalizerTest extends TestCase
     /** @psalm-return iterable<string, array{0: mixed}> */
     public static function invalidParams(): iterable
     {
-        yield 'null'         => [null];
-        yield 'bool'         => [true];
-        yield 'int'          => [1];
-        yield 'float'        => [1.1];
-        yield 'string'       => ['string'];
-        yield 'list'         => [[1, 2, 3]];
+        yield 'null' => [null];
+        yield 'bool' => [true];
+        yield 'int' => [1];
+        yield 'float' => [1.1];
+        yield 'string' => ['string'];
+        yield 'list' => [[1, 2, 3]];
     }
 
     #[DataProvider('invalidParams')]
@@ -56,7 +56,7 @@ class ParamsNormalizerTest extends TestCase
             'else'  => null,
             'here'  => (object) ['foo' => 'bar'],
         ];
-        $params      = new ArrayIterator($paramsArray);
+        $params = new ArrayIterator($paramsArray);
 
         self::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
     }
@@ -73,7 +73,7 @@ class ParamsNormalizerTest extends TestCase
             'else'  => null,
             'here'  => (object) ['foo' => 'bar'],
         ];
-        $params      = (object) $paramsArray;
+        $params = (object) $paramsArray;
 
         self::assertSame($paramsArray, ParamsNormalizer::normalizeParams($params));
     }

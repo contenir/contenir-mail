@@ -32,7 +32,7 @@ class Subject implements UnstructuredInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (strtolower($name) !== 'subject') {
@@ -118,7 +118,7 @@ class Subject implements UnstructuredInterface
 
         if (! HeaderWrap::canBeEncoded($subject)) {
             throw new Exception\InvalidArgumentException(
-                'Subject value must be composed of printable US-ASCII or UTF-8 characters.'
+                'Subject value must be composed of printable US-ASCII or UTF-8 characters.',
             );
         }
 

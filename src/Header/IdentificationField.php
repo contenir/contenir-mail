@@ -37,15 +37,15 @@ abstract class IdentificationField implements HeaderInterface
         if (strtolower($name) !== static::$type) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Invalid header line for "%s" string',
-                self::class
+                self::class,
             ));
         }
 
         $value = HeaderWrap::mimeDecodeValue($value);
 
         $messageIds = array_map(
-            [self::class, "trimMessageId"],
-            explode(" ", $value)
+            [self::class, 'trimMessageId'],
+            explode(' ', $value),
         );
 
         $header = new static();
@@ -122,7 +122,7 @@ abstract class IdentificationField implements HeaderInterface
             }
         }
 
-        $this->messageIds = array_map([self::class, "trimMessageId"], $ids);
+        $this->messageIds = array_map([self::class, 'trimMessageId'], $ids);
         return $this;
     }
 

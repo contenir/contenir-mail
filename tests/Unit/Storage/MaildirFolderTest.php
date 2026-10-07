@@ -176,7 +176,7 @@ class MaildirFolderTest extends TestCase
 
     public function testChangeFolder(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Folder\Maildir($this->params);
 
         $mail->selectFolder('subfolder.test');
@@ -195,7 +195,7 @@ class MaildirFolderTest extends TestCase
 
     public function testGlobalName(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Folder\Maildir($this->params);
 
         $this->assertEquals($mail->getFolders()->subfolder->__toString(), 'subfolder');
@@ -203,7 +203,7 @@ class MaildirFolderTest extends TestCase
 
     public function testLocalName(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Folder\Maildir($this->params);
 
         $this->assertEquals($mail->getFolders()->subfolder->key(), 'test');
@@ -211,7 +211,7 @@ class MaildirFolderTest extends TestCase
 
     public function testIterator(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
         // we search for this folder because we can't assume an order while iterating
@@ -220,7 +220,7 @@ class MaildirFolderTest extends TestCase
             'subfolder.test' => 'test',
             'INBOX'          => 'INBOX',
         ];
-        $foundFolders  = [];
+        $foundFolders = [];
 
         foreach ($iterator as $localName => $folder) {
             if (! isset($searchFolders[$folder->getGlobalName()])) {
@@ -236,7 +236,7 @@ class MaildirFolderTest extends TestCase
 
     public function testKeyLocalName(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
         // we search for this folder because we can't assume an order while iterating
@@ -245,7 +245,7 @@ class MaildirFolderTest extends TestCase
             'subfolder.test' => 'test',
             'INBOX'          => 'INBOX',
         ];
-        $foundFolders  = [];
+        $foundFolders = [];
 
         foreach ($iterator as $localName => $folder) {
             if (! isset($searchFolders[$folder->getGlobalName()])) {
@@ -261,11 +261,11 @@ class MaildirFolderTest extends TestCase
 
     public function testInboxEquals(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail     = new Folder\Maildir($this->params);
         $iterator = new RecursiveIteratorIterator(
             $mail->getFolders('INBOX.subfolder'),
-            RecursiveIteratorIterator::SELF_FIRST
+            RecursiveIteratorIterator::SELF_FIRST,
         );
         // we search for this folder because we can't assume an order while iterating
         $searchFolders = ['subfolder.test' => 'test'];
@@ -295,7 +295,7 @@ class MaildirFolderTest extends TestCase
 
     public function testCount(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Folder\Maildir($this->params);
 
         $count = $mail->countMessages();
@@ -308,7 +308,7 @@ class MaildirFolderTest extends TestCase
 
     public function testSize(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail        = new Folder\Maildir($this->params);
         $shouldSizes = [1 => 397, 89, 694, 452, 497];
 
@@ -322,7 +322,7 @@ class MaildirFolderTest extends TestCase
 
     public function testFetchHeader(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Folder\Maildir($this->params);
 
         $subject = $mail->getMessage(1)->subject;
@@ -335,15 +335,15 @@ class MaildirFolderTest extends TestCase
 
     public function testNotReadableFolder(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $stat = stat($this->params['dirname'] . '.subfolder');
         chmod($this->params['dirname'] . '.subfolder', 0);
         clearstatcache();
         $statcheck = stat($this->params['dirname'] . '.subfolder');
-        if ($statcheck['mode'] % (8 * 8 * 8) !== 0) {
+        if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
             chmod($this->params['dirname'] . '.subfolder', $stat['mode']);
             $this->markTestSkipped(
-                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)'
+                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
             return;
         }
@@ -353,6 +353,7 @@ class MaildirFolderTest extends TestCase
             $mail = new Folder\Maildir($this->params);
         } catch (\Exception) {
             $check = true;
+
             // test ok
         }
 

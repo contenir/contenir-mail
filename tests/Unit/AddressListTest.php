@@ -2,12 +2,12 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use Countable;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Header;
+use Countable;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Traversable;
 
@@ -113,7 +113,8 @@ class AddressListTest extends TestCase
 
     public function testCanAddFromStringFluently(): void
     {
-        $this->list->addFromString('test_fromstring_fluency1@example.com')
+        $this->list
+            ->addFromString('test_fromstring_fluency1@example.com')
             ->addFromString('test_fromstring_fluency2@example.com');
 
         $this->assertTrue($this->list->has('test_fromstring_fluency1@example.com'));
@@ -152,7 +153,8 @@ class AddressListTest extends TestCase
      */
     public function testSemicolonSeparator(): void
     {
-        $header = 'Some User <some.user@example.com>; uzer2.surname@example.org;'
+        $header =
+            'Some User <some.user@example.com>; uzer2.surname@example.org;'
             . ' asda.fasd@example.net, root@example.org';
 
         // In previous versions, this throws: 'The input exceeds the allowed

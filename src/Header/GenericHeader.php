@@ -35,7 +35,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = self::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
         return new static($name, $value);
     }
 
@@ -103,7 +103,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
 
         if (! HeaderName::isValid($fieldName)) {
             throw new InvalidArgumentException(
-                'Header name must be composed of printable US-ASCII characters, except colon.'
+                'Header name must be composed of printable US-ASCII characters, except colon.',
             );
         }
 
@@ -132,7 +132,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
 
         if (! HeaderWrap::canBeEncoded($fieldValue)) {
             throw new InvalidArgumentException(
-                'Header value must be composed of printable US-ASCII characters and valid folding sequences.'
+                'Header value must be composed of printable US-ASCII characters and valid folding sequences.',
             );
         }
 

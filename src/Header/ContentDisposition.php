@@ -48,7 +48,7 @@ class ContentDisposition implements UnstructuredInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (! in_array(strtolower($name), ['contentdisposition', 'content_disposition', 'content-disposition'])) {
@@ -75,7 +75,7 @@ class ContentDisposition implements UnstructuredInterface
                     [$name, $count] = explode('*', $name);
                     // allow optional count:
                     // Content-Disposition: attachment; filename*=UTF-8''%64%61%61%6D%69%2D%6D%C3%B5%72%76%2E%6A%70%67
-                    if ($count === "") {
+                    if ($count === '') {
                         $count = 0;
                     }
 
@@ -83,10 +83,10 @@ class ContentDisposition implements UnstructuredInterface
                         $type  = gettype($count);
                         $value = var_export($count, true);
                         throw new Exception\InvalidArgumentException(sprintf(
-                            "Invalid header line for Content-Disposition string"
-                            . " - count expected to be numeric, got %s with value %s",
+                            'Invalid header line for Content-Disposition string'
+                            . ' - count expected to be numeric, got %s with value %s',
                             $type,
-                            $value
+                            $value,
                         ));
                     }
                     if (! isset($continuedValues[$name])) {
@@ -104,7 +104,8 @@ class ContentDisposition implements UnstructuredInterface
                     if (! isset($values[$i])) {
                         throw new Exception\InvalidArgumentException(
                             'Invalid header line for Content-Disposition string - incomplete continuation'
-                            . '; HeaderLine: ' . $headerLine
+                            . '; HeaderLine: '
+                            . $headerLine,
                         );
                     }
                     $value .= $values[$i];
@@ -176,7 +177,7 @@ class ContentDisposition implements UnstructuredInterface
                         if ($valueIsEncoded) {
                             $sub = $this->getEncodedValue($sub);
                         }
-                        if ($attLen + mb_strlen($sub, 'UTF-8') >= self::MAX_PARAMETER_LENGTH) {
+                        if (($attLen + mb_strlen($sub, 'UTF-8')) >= self::MAX_PARAMETER_LENGTH) {
                             $subPos--;
                             break;
                         }
@@ -186,7 +187,7 @@ class ContentDisposition implements UnstructuredInterface
 
                     $value      = mb_substr($value, $subPos, null, 'UTF-8');
                     $fullLength = mb_strlen($value, 'UTF-8');
-                    $result    .= ';' . Headers::FOLDING . $attributePart . $valuePart . '"';
+                    $result     .= ';' . Headers::FOLDING . $attributePart . $valuePart . '"';
                 }
             }
         }
@@ -268,14 +269,14 @@ class ContentDisposition implements UnstructuredInterface
 
         if (! HeaderValue::isValid($name)) {
             throw new Exception\InvalidArgumentException(
-                'Invalid content-disposition parameter name detected'
+                'Invalid content-disposition parameter name detected',
             );
         }
         // '5' here is for the quotes & equal sign in `name="value"`,
         // and the space & semicolon for line folding
         if ((strlen($name) + 5) >= self::MAX_PARAMETER_LENGTH) {
             throw new Exception\InvalidArgumentException(
-                'Invalid content-disposition parameter name detected (too long)'
+                'Invalid content-disposition parameter name detected (too long)',
             );
         }
 

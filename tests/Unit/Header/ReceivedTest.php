@@ -2,13 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\Received;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\Received::class)]
@@ -117,13 +117,13 @@ class ReceivedTest extends TestCase
         $header2 = new Header\Received('test2');
         $this->assertEquals(
             "Received: test\r\nReceived: test2",
-            $header->toStringMultipleHeaders([$header2])
+            $header->toStringMultipleHeaders([$header2]),
         );
 
         $header3 = new Header\Received('test3');
         $this->assertEquals(
             "Received: test\r\nReceived: test2\r\nReceived: test3",
-            $header->toStringMultipleHeaders([$header2, $header3])
+            $header->toStringMultipleHeaders([$header2, $header3]),
         );
     }
 

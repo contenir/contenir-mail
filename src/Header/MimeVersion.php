@@ -18,7 +18,7 @@ class MimeVersion implements HeaderInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (! in_array(strtolower($name), ['mimeversion', 'mime_version', 'mime-version'])) {

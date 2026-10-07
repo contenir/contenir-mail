@@ -3,12 +3,12 @@
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
 // phpcs:ignore WebimpressCodingStandard.PHP.CorrectClassNameCase.Invalid
-use PHPUnit\Framework\Attributes\Depends;
-use Interop\Container\ContainerInterface;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\SmtpPluginManager;
 use Contenir\Mail\Protocol\SmtpPluginManagerFactory;
+use Interop\Container\ContainerInterface;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 

@@ -70,7 +70,7 @@ class File implements TransportInterface
         if (false === file_put_contents($file, $email)) {
             throw new Exception\RuntimeException(sprintf(
                 'Unable to write mail to file (directory "%s")',
-                $options->getPath()
+                $options->getPath(),
             ));
         }
 

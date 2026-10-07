@@ -3,8 +3,8 @@
 namespace Contenir\Mail\Storage\Writable;
 
 use Contenir\Mail\Message;
-use Contenir\Mail\Storage;
 use Contenir\Mail\Mime;
+use Contenir\Mail\Storage;
 
 interface WritableInterface
 {

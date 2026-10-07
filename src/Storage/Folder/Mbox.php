@@ -198,7 +198,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
                 'seems like the mbox file has vanished; I have rebuilt the folder tree; '
                 . 'search for another folder and try again',
                 0,
-                $e
+                $e,
             );
         }
     }

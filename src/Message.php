@@ -381,7 +381,7 @@ class Message
                 throw new Exception\InvalidArgumentException(sprintf(
                     '%s expects a string or object argument; received "%s"',
                     __METHOD__,
-                    gettype($body)
+                    gettype($body),
                 ));
             }
             if (! $body instanceof Mime\Message) {
@@ -391,7 +391,7 @@ class Message
                         . ' object of type "%s" received',
                         __METHOD__,
                         Mime\Message::class,
-                        $body::class
+                        $body::class,
                     ));
                 }
             }
@@ -498,7 +498,7 @@ class Message
         if (! $header instanceof Header\AbstractAddressList) {
             throw new Exception\DomainException(sprintf(
                 'Cannot grab address list from header of type "%s"; not an AbstractAddressList implementation',
-                $header::class
+                $header::class,
             ));
         }
         return $header->getAddressList();
@@ -531,7 +531,7 @@ class Message
                 '%s expects a string, AddressInterface, array, AddressList, or Traversable as its first argument;'
                 . ' received "%s"',
                 $callingMethod,
-                is_object($emailOrAddressOrList) ? $emailOrAddressOrList::class : gettype($emailOrAddressOrList)
+                is_object($emailOrAddressOrList) ? $emailOrAddressOrList::class : gettype($emailOrAddressOrList),
             ));
         }
 
@@ -552,8 +552,8 @@ class Message
     {
         $headers = $this->getHeaders();
         return $headers->toString()
-               . Headers::EOL
-               . $this->getBodyText();
+        . Headers::EOL
+        . $this->getBodyText();
     }
 
     /**
@@ -572,7 +572,7 @@ class Message
         $content = null;
         Mime\Decode::splitMessage($rawMessage, $headers, $content, Headers::EOL);
         // if ($headers->has('mime-version')) {
-            // todo - restore body to mime\message
+        // todo - restore body to mime\message
         // }
         $message->setHeaders($headers);
         $message->setBody($content);

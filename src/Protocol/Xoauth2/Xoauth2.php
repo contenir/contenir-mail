@@ -20,13 +20,13 @@ final class Xoauth2
     {
         return base64_encode(
             sprintf(
-                "user=%s%sauth=Bearer %s%s%s",
+                'user=%s%sauth=Bearer %s%s%s',
                 $targetMailbox,
                 chr(0x01),
                 $accessToken,
                 chr(0x01),
-                chr(0x01)
-            )
+                chr(0x01),
+            ),
         );
     }
 }

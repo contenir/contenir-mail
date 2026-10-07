@@ -2,13 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Message;
 use Contenir\Mail\MessageFactory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -85,7 +85,7 @@ class MessageFactoryTest extends TestCase
         $options = [
             'foo' => 'bar',
         ];
-        $mail    = MessageFactory::getInstance($options);
+        $mail = MessageFactory::getInstance($options);
         $this->assertInstanceOf(Message::class, $mail);
     }
 

@@ -37,7 +37,7 @@ class ContentType implements UnstructuredInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (! in_array(strtolower($name), ['contenttype', 'content_type', 'content-type'])) {
@@ -135,7 +135,7 @@ class ContentType implements UnstructuredInterface
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects a value in the format "type/subtype"; received "%s"',
                 __METHOD__,
-                (string) $type
+                (string) $type,
             ));
         }
         $this->type = $type;
@@ -171,7 +171,7 @@ class ContentType implements UnstructuredInterface
         }
         if (! HeaderWrap::canBeEncoded($value)) {
             throw new Exception\InvalidArgumentException(
-                'Parameter value must be composed of printable US-ASCII or UTF-8 characters.'
+                'Parameter value must be composed of printable US-ASCII or UTF-8 characters.',
             );
         }
 

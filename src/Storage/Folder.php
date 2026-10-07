@@ -34,7 +34,7 @@ class Folder implements RecursiveIterator, Stringable
         protected $localName,
         $globalName = '',
         protected $selectable = true,
-        protected array $folders = []
+        protected array $folders = [],
     ) {
         $this->globalName = $globalName ?: $localName;
     }

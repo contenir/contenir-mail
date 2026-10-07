@@ -33,7 +33,7 @@ final class ParamsNormalizer
         if (! is_array($params)) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Invalid $params provided; expected array|Traversable|object, received %s',
-                gettype($params)
+                gettype($params),
             ));
         }
 

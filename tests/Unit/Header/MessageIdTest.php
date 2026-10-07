@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Header;
-use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function sprintf;
@@ -16,7 +16,7 @@ class MessageIdTest extends TestCase
 {
     public function testSettingManually(): void
     {
-        $id        = "CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com";
+        $id        = 'CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com';
         $messageid = new Header\MessageId();
         $messageid->setId($id);
 

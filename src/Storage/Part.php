@@ -118,7 +118,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
                 $this->headers,
                 $this->content,
                 Mime\Mime::LINEEND,
-                $params['strict']
+                $params['strict'],
             );
         } elseif (isset($params['headers'])) {
             if (is_array($params['headers'])) {
@@ -235,8 +235,8 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
         }
 
         // if ($this->mail && $this->mail->hasFetchPart) {
-            // TODO: fetch part
-            // return
+        // TODO: fetch part
+        // return
         // }
 
         $this->cacheContent();
@@ -265,8 +265,8 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
         }
 
         // if ($this->mail && $this->mail->hasFetchPart) {
-            // TODO: fetch part
-            // return
+        // TODO: fetch part
+        // return
         // }
 
         $this->cacheContent();
@@ -295,7 +295,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
         }
         if (! $this->headers instanceof Headers) {
             throw new Exception\RuntimeException(
-                '$this->headers must be an instance of Headers'
+                '$this->headers must be an instance of Headers',
             );
         }
 
@@ -321,7 +321,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
             $header    = $this->getHeaders()->get($lowerName);
             if ($header === false) {
                 throw new Exception\InvalidArgumentException(
-                    "Header with Name $name or $lowerName not found"
+                    "Header with Name $name or $lowerName not found",
                 );
             }
         }
@@ -331,11 +331,16 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
                 if ($header instanceof HeaderInterface) {
                     $return = $header->getFieldValue(HeaderInterface::FORMAT_RAW);
                 } else {
-                    $return = trim(implode(
+                    $return = trim(
+                        implode(
+                            Mime\Mime::LINEEND,
+                            array_map(
+                                static fn($header): string => $header->getFieldValue(HeaderInterface::FORMAT_RAW),
+                                iterator_to_array($header),
+                            ),
+                        ),
                         Mime\Mime::LINEEND,
-                        array_map(static fn($header): string
-                            => $header->getFieldValue(HeaderInterface::FORMAT_RAW), iterator_to_array($header))
-                    ), Mime\Mime::LINEEND);
+                    );
                 }
                 break;
             case 'array':

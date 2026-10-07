@@ -2,13 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\UnstructuredInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\ContentType::class)]
@@ -26,9 +26,9 @@ class ContentTypeTest extends TestCase
     public function testTrailingSemiColonFromString(): void
     {
         $contentTypeHeader = ContentType::fromString(
-            'Content-Type: multipart/alternative; boundary="Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD";'
+            'Content-Type: multipart/alternative; boundary="Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD";',
         );
-        $params            = $contentTypeHeader->getParameters();
+        $params = $contentTypeHeader->getParameters();
         $this->assertEquals(['boundary' => 'Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD'], $params);
     }
 
@@ -96,7 +96,7 @@ class ContentTypeTest extends TestCase
     public function testFromStringThrowException(
         string $headerLine,
         string $expectedException,
-        string $exceptionMessage
+        string $exceptionMessage,
     ): void {
         $this->expectException($expectedException);
         $this->expectExceptionMessage($exceptionMessage);
@@ -132,7 +132,7 @@ class ContentTypeTest extends TestCase
         string $paramName,
         string $paramValue,
         string $expectedException,
-        string $exceptionMessage
+        string $exceptionMessage,
     ): void {
         $header = new ContentType();
         $header->setType('text/html');
@@ -154,12 +154,18 @@ class ContentTypeTest extends TestCase
         return [
             // Description => [$type, $parameters, $fieldValue, toString()]
             // @group #2728
-            'foo/a.b-c' => ['foo/a.b-c', [], 'foo/a.b-c', 'Content-Type: foo/a.b-c'],
-            'foo/a+b'   => ['foo/a+b'  , [], 'foo/a+b'  , 'Content-Type: foo/a+b'],
-            'foo/baz'   => ['foo/baz'  , [], 'foo/baz'  , 'Content-Type: foo/baz'],
-            'parameter use header folding' => ['foo/baz'  , ['charset' => 'us-ascii'], $foldingFieldValue, $foldingHeaderLine],
-            'encoded characters' => ['foo/baz'  , ['name' => 'Ó'], $encodedFieldValue, $encodedHeaderLine],
+            'foo/a.b-c'                    => ['foo/a.b-c', [], 'foo/a.b-c', 'Content-Type: foo/a.b-c'],
+            'foo/a+b'                      => ['foo/a+b', [], 'foo/a+b', 'Content-Type: foo/a+b'],
+            'foo/baz'                      => ['foo/baz', [], 'foo/baz', 'Content-Type: foo/baz'],
+            'parameter use header folding' => [
+                'foo/baz',
+                ['charset' => 'us-ascii'],
+                $foldingFieldValue,
+                $foldingHeaderLine,
+            ],
+            'encoded characters'           => ['foo/baz', ['name' => 'Ó'], $encodedFieldValue, $encodedHeaderLine],
         ];
+
         // @codingStandardsIgnoreEnd
     }
 
@@ -174,6 +180,7 @@ class ContentTypeTest extends TestCase
             // @group ZF2015-04
             'invalid name' => ["b\r\na\rr\n", 'baz', $invalidArgumentException, 'parameter name'],
         ];
+
         // @codingStandardsIgnoreEnd
     }
 
@@ -187,10 +194,15 @@ class ContentTypeTest extends TestCase
 
             // @group ZF2015-04
             'invalid name' => ['Content-Type' . chr(32) . ': text/html', $invalidArgumentException, 'header name'],
-            'newline'   => ["Content-Type: text/html;\nlevel=1", $invalidArgumentException, 'header value'],
-            'cr-lf'     => ["Content-Type: text/html\r\n;level=1", $invalidArgumentException, 'header value'],
-            'multiline' => ["Content-Type: text/html;\r\nlevel=1\r\nq=0.1", $invalidArgumentException, 'header value'],
+            'newline'      => ["Content-Type: text/html;\nlevel=1", $invalidArgumentException, 'header value'],
+            'cr-lf'        => ["Content-Type: text/html\r\n;level=1", $invalidArgumentException, 'header value'],
+            'multiline'    => [
+                "Content-Type: text/html;\r\nlevel=1\r\nq=0.1",
+                $invalidArgumentException,
+                'header value',
+            ],
         ];
+
         // @codingStandardsIgnoreEnd
     }
 

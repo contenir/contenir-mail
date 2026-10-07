@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Header;
-use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Header\MimeVersion::class)]
@@ -14,7 +14,7 @@ class MimeVersionTest extends TestCase
 {
     public function testSettingManually(): void
     {
-        $version = "2.0";
+        $version = '2.0';
         $mime    = new Header\MimeVersion();
         $mime->setVersion($version);
         $this->assertEquals($version, $mime->getFieldValue());
@@ -88,8 +88,8 @@ class MimeVersionTest extends TestCase
     {
         return [
             // Description => [header line, expected value]
-            'mimeversion'  => ["MIMEVersion: 1.0", "1.0"],
-            'mime_version' => ["MIME_Version: 1.0", "1.0"],
+            'mimeversion'  => ['MIMEVersion: 1.0', '1.0'],
+            'mime_version' => ['MIME_Version: 1.0', '1.0'],
         ];
     }
 

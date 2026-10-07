@@ -41,7 +41,7 @@ abstract class Factory
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects an array or Traversable argument; received "%s"',
                 __METHOD__,
-                is_object($spec) ? $spec::class : gettype($spec)
+                is_object($spec) ? $spec::class : gettype($spec),
             ));
         }
 
@@ -57,7 +57,7 @@ abstract class Factory
             throw new Exception\DomainException(sprintf(
                 '%s expects the "type" attribute to resolve to an existing class; received "%s"',
                 __METHOD__,
-                $type
+                $type,
             ));
         }
 
@@ -68,7 +68,7 @@ abstract class Factory
                 '%s expects the "type" attribute to resolve to a valid %s instance; received "%s"',
                 __METHOD__,
                 TransportInterface::class,
-                $type
+                $type,
             ));
         }
 

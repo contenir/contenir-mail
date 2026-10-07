@@ -2,8 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\ConfigProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;

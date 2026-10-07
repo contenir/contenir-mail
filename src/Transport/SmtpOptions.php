@@ -66,7 +66,7 @@ class SmtpOptions extends AbstractOptions
         if (! is_string($name) && $name !== null) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Name must be a string or null; argument of type "%s" provided',
-                is_object($name) ? $name::class : gettype($name)
+                is_object($name) ? $name::class : gettype($name),
             ));
         }
         $this->name = $name;
@@ -99,7 +99,7 @@ class SmtpOptions extends AbstractOptions
         if (! is_string($connectionClass) && $connectionClass !== null) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Connection class must be a string or null; argument of type "%s" provided',
-                is_object($connectionClass) ? $connectionClass::class : gettype($connectionClass)
+                is_object($connectionClass) ? $connectionClass::class : gettype($connectionClass),
             ));
         }
         $this->connectionClass = $connectionClass;
@@ -173,7 +173,7 @@ class SmtpOptions extends AbstractOptions
         if ($port < 1) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Port must be greater than 1; received "%d"',
-                $port
+                $port,
             ));
         }
         $this->port = $port;

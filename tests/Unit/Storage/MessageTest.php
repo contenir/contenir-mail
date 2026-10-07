@@ -2,19 +2,19 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Exception as GeneralException;
 use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\Exception as MailException;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\To;
 use Contenir\Mail\Headers;
+use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Exception as MimeException;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Message;
-use Contenir\Mail\Mime;
-use Contenir\Mail\Mime\Exception as MimeException;
+use Exception as GeneralException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -72,7 +72,7 @@ class MessageTest extends TestCase
 
     /**
      */
-        #[DataProvider('filesProvider')]
+    #[DataProvider('filesProvider')]
     public function testGetDecodedHeader(array $params): void
     {
         $message = new Message($params);
@@ -142,18 +142,19 @@ class MessageTest extends TestCase
 
         $this->assertEquals(
             'test' . Mime\Mime::LINEEND . 'test2' . Mime\Mime::LINEEND . 'multipart',
-            $message->getHeader('subject', 'string')
+            $message->getHeader('subject', 'string'),
         );
 
         $this->assertEquals(
             ['test', 'test2', 'multipart'],
-            $message->getHeader('subject', 'array')
+            $message->getHeader('subject', 'array'),
         );
     }
 
     public function testAllowWhitespaceInEmptySingleLineHeader(): void
     {
-        $src     = "From: user@example.com\n"
+        $src =
+            "From: user@example.com\n"
             . "To: userpal@example.net\n"
             . "Subject: This is your reminder\n  \n  about the football game tonight\n"
             . "Date: Wed, 20 Oct 2010 20:53:35 -0400\n\n"
@@ -162,13 +163,14 @@ class MessageTest extends TestCase
 
         $this->assertEquals(
             'This is your reminder about the football game tonight',
-            $message->getHeader('subject', 'string')
+            $message->getHeader('subject', 'string'),
         );
     }
 
     public function testAllowWhitespaceInEmptyMultiLineHeader(): void
     {
-        $src     = "From: user@example.com\nTo: userpal@example.net\n"
+        $src =
+            "From: user@example.com\nTo: userpal@example.net\n"
             . "Subject: This is your reminder\n  \n \n"
             . "  about the football game tonight\n"
             . "Date: Wed, 20 Oct 2010 20:53:35 -0400\n\n"
@@ -177,7 +179,7 @@ class MessageTest extends TestCase
 
         $this->assertEquals(
             'This is your reminder about the football game tonight',
-            $message->getHeader('subject', 'string')
+            $message->getHeader('subject', 'string'),
         );
     }
 
@@ -187,7 +189,7 @@ class MessageTest extends TestCase
 
         $this->assertEquals(
             Mime\Decode::splitContentType($message->ContentType),
-            ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart']
+            ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart'],
         );
     }
 
@@ -256,7 +258,7 @@ class MessageTest extends TestCase
         $body     = 'body';
         $newlines = ["\r\n", "\n\r", "\n", "\r"];
 
-        $decodedBody    = null; // "Declare" variable before first "read" usage to avoid IDEs warning
+        $decodedBody = null; // "Declare" variable before first "read" usage to avoid IDEs warning
         $decodedHeaders = null; // "Declare" variable before first "read" usage to avoid IDEs warning
 
         foreach ($newlines as $contentEol) {
@@ -297,7 +299,7 @@ class MessageTest extends TestCase
     {
         // @codingStandardsIgnoreStart
         $badMessage = unserialize(
-            "O:29:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
+            "O:29:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}",
         );
         // @codingStandardsIgnoreEnd
 
@@ -386,7 +388,7 @@ class MessageTest extends TestCase
             'foo' => 'bar',
             'baz' => 'bat',
         ];
-        $message   = new Message(['flags' => $origFlags]);
+        $message = new Message(['flags' => $origFlags]);
 
         $messageFlags = $message->getFlags();
         $this->assertTrue($message->hasFlag('bar'), var_export($messageFlags, true));

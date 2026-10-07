@@ -232,7 +232,7 @@ class MaildirTest extends TestCase
     {
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
@@ -398,11 +398,11 @@ class MaildirTest extends TestCase
     {
         rename(
             $this->maildir . '/cur/1000000000.P1.example.org:2,S',
-            $this->maildir . '/cur/1000000000.P1.example.org,S=123:2,S'
+            $this->maildir . '/cur/1000000000.P1.example.org,S=123:2,S',
         );
         rename(
             $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
-            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS'
+            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS',
         );
         $mail        = new Storage\Maildir(['dirname' => $this->maildir]);
         $shouldSizes = [1 => 123, 456, 694, 452, 497];
@@ -415,7 +415,7 @@ class MaildirTest extends TestCase
     {
         rename(
             $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
-            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS'
+            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS',
         );
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 

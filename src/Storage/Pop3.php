@@ -3,12 +3,12 @@
 namespace Contenir\Mail\Storage;
 
 use Contenir\Mail\Exception as MailException;
+use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Message;
-use Contenir\Mail\Mime;
 
 use function array_combine;
 use function array_key_exists;
@@ -34,7 +34,7 @@ class Pop3 extends AbstractStorage
      */
     public function countMessages()
     {
-        $count  = 0; // "Declare" variable before first usage.
+        $count = 0; // "Declare" variable before first usage.
         $octets = 0; // "Declare" variable since it's passed by reference
         $this->protocol->status($count, $octets);
         return (int) $count;
@@ -112,7 +112,7 @@ class Pop3 extends AbstractStorage
         $content = $this->protocol->retrieve($id);
         // TODO: find a way to avoid decoding the headers
         $headers = null; // "Declare" variable since it's passed by reference
-        $body    = null; // "Declare" variable before first usage.
+        $body = null; // "Declare" variable before first usage.
         Mime\Decode::splitMessage($content, $headers, $body);
         return $body;
     }

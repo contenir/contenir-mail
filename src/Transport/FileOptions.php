@@ -40,7 +40,7 @@ class FileOptions extends AbstractOptions
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects a valid path in which to write mail files; received "%s"',
                 __METHOD__,
-                (string) $path
+                (string) $path,
             ));
         }
         $this->path = $path;
@@ -75,7 +75,7 @@ class FileOptions extends AbstractOptions
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects a valid callback; received "%s"',
                 __METHOD__,
-                is_object($callback) ? $callback::class : gettype($callback)
+                is_object($callback) ? $callback::class : gettype($callback),
             ));
         }
         $this->callback = $callback;
