@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use ArrayObject;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Tests\Trait\UsesProcessTempDirTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,8 @@ use const INF;
 
 class MboxTest extends TestCase
 {
+    use UsesProcessTempDirTrait;
+
     /** @var string */
     protected $mboxOriginalFile;
     /** @var string */
@@ -52,7 +55,7 @@ class MboxTest extends TestCase
             if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
                 $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
-                $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
+                $this->tmpdir = self::processTempDir();
             }
             if (! file_exists($this->tmpdir)) {
                 mkdir($this->tmpdir);

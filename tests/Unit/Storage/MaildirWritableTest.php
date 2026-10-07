@@ -8,6 +8,7 @@ use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Writable;
 use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
+use Contenir\Mail\Tests\Trait\UsesProcessTempDirTrait;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -35,6 +36,7 @@ use const PHP_OS;
 class MaildirWritableTest extends TestCase
 {
     use ExtractsMaildirFixtureTrait;
+    use UsesProcessTempDirTrait;
 
     /** @var array */
     protected $params;
@@ -56,7 +58,7 @@ class MaildirWritableTest extends TestCase
             if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
                 $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
             } else {
-                $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
+                $this->tmpdir = self::processTempDir();
             }
             if (! file_exists($this->tmpdir)) {
                 mkdir($this->tmpdir);
