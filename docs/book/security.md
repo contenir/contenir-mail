@@ -171,7 +171,7 @@ Zend Framework's.
 | CVE-2023-51764/5/6 (SMTP smuggling) | Bare CR or LF ending DATA early | Not exposed: line endings normalised before dot-stuffing |
 | CVE-2011-0411 and "NO STARTTLS" (2021) | Pre-handshake bytes processed after TLS | Not exposed: buffered bytes refused |
 | CVE-2026-35538 (Roundcube) | IMAP command injection | Not exposed: validated arguments and literals |
-| CVE-2024-2961 (glibc iconv) | Overflow converting from ISO-2022-CN-EXT | **Depends on the system's iconv**: see open findings |
+| CVE-2024-2961 (glibc iconv) | Overflow converting from ISO-2022-CN-EXT | Not exposed: only charsets mail is written in reach iconv (`leavesTextInOtherCharsetsAsItIsAgainstConverterAbuse`) |
 | Mailsploit (2017) | Encoded words decoding to controls or addresses | Not exposed: structure parsed first, controls refused, addr-spec never decoded |
 | "Splitting the email atom" (2024) | Encoded words and legacy syntax inside addresses | Not exposed: addr-spec never decoded; obsolete routes are not parsed as addresses |
 
