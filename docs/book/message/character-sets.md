@@ -101,7 +101,7 @@ Convert the text, then name the character set. Headers are still written as
 UTF-8 encoded words, which mail clients decode independently of the body.
 
 ```php
-$mail->setText(mb_convert_encoding('Crème brûlée', 'ISO-8859-1', 'UTF-8'), 'ISO-8859-1');
+$mail->setText(iconv('UTF-8', 'ISO-8859-1', 'Crème brûlée'), 'ISO-8859-1');
 ```
 
 To choose the transfer encoding as well, create the part yourself. ISO-2022-JP
@@ -113,7 +113,7 @@ use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Mime\TransferEncoding;
 
 $mail->setBody(new Part(
-    mb_convert_encoding('明日の会議は十時からです。', 'ISO-2022-JP', 'UTF-8'),
+    iconv('UTF-8', 'ISO-2022-JP', '明日の会議は十時からです。'),
     type: Mime::TYPE_TEXT,
     encoding: TransferEncoding::SevenBit,
     charset: 'ISO-2022-JP',
