@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use Contenir\Mail\Utf8;
+
 use function base64_decode;
 use function iconv;
-use function mb_scrub;
 use function preg_match;
 use function preg_split;
 use function quoted_printable_decode;
@@ -111,6 +112,6 @@ final class EncodedWordDecoder
      */
     public static function scrub(string $value): string
     {
-        return mb_scrub($value, encoding: 'UTF-8');
+        return Utf8::scrub($value);
     }
 }

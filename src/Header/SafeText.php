@@ -6,10 +6,9 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
+use Contenir\Mail\Utf8;
 
 use function array_map;
-use function mb_scrub;
-use function mb_strcut;
 use function preg_replace;
 use function strlen;
 use function strrpos;
@@ -47,7 +46,7 @@ final class SafeText
      */
     public static function display(string $text): string
     {
-        $text = (string) preg_replace(self::UNSAFE, replacement: ' ', subject: mb_scrub($text, encoding: 'UTF-8'));
+        $text = (string) preg_replace(self::UNSAFE, replacement: ' ', subject: Utf8::scrub($text));
 
         return trim((string) preg_replace('/\s+/u', replacement: ' ', subject: $text));
     }
@@ -73,8 +72,9 @@ final class SafeText
         $extension = false !== $dot && (strlen($name) - $dot) <= self::MAX_EXTENSION_BYTES ? substr($name, $dot) : '';
         $base      = substr($name, offset: 0, length: strlen($name) - strlen($extension));
 
+        /** @mago-expect analysis:possibly-invalid-argument The extension is at most MAX_EXTENSION_BYTES long. */
         return (
-            mb_strcut($base, start: 0, length: self::MAX_FILENAME_BYTES - strlen($extension), encoding: 'UTF-8')
+            Utf8::cut($base, self::MAX_FILENAME_BYTES - strlen($extension))
                 . $extension
         );
     }

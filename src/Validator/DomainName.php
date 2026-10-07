@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Validator;
 
+use Contenir\Mail\Utf8;
+
 use function array_pop;
 use function count;
 use function explode;
 use function idn_to_ascii;
-use function mb_strlen;
 use function preg_match;
 
 use const IDNA_CHECK_BIDI;
@@ -57,7 +58,7 @@ final class DomainName
      */
     private static function isDnsName(string $value): bool
     {
-        $length = mb_strlen($value, encoding: 'UTF-8');
+        $length = Utf8::length($value);
         if ($length < 4 || $length > 253) {
             return false;
         }

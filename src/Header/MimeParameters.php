@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use Contenir\Mail\Utf8;
+
 use function count;
 use function implode;
-use function mb_check_encoding;
-use function mb_str_split;
 use function ord;
 use function preg_match;
 use function sprintf;
@@ -71,7 +71,7 @@ final class MimeParameters
      */
     public static function value(string $value): string
     {
-        if (! mb_check_encoding($value, encoding: 'UTF-8') || 1 === preg_match(self::CONTROL_CHARACTERS, $value)) {
+        if (! Utf8::isValid($value) || 1 === preg_match(self::CONTROL_CHARACTERS, $value)) {
             throw new Exception\InvalidArgumentException(
                 'Parameter value must be composed of printable US-ASCII or UTF-8 characters.',
             );
@@ -91,14 +91,14 @@ final class MimeParameters
     {
         if (1 === preg_match('/^[\x20-\x7E]*\z/', $value)) {
             return self::fit(
-                mb_str_split($value, encoding: 'UTF-8'),
+                Utf8::split($value),
                 static fn(string $text): string => sprintf('%s="%s"', $name, self::quote($text)),
                 static fn(int $index, string $text): string => sprintf('%s*%d="%s"', $name, $index, self::quote($text)),
             );
         }
 
         $characters = [];
-        foreach (mb_str_split($value, encoding: 'UTF-8') as $character) {
+        foreach (Utf8::split($value) as $character) {
             $characters[] = self::percentEncode($character);
         }
 
