@@ -4810,7 +4810,7 @@ count = 1
 file = "tests/Unit/Header/ReceivedTest.php"
 code = "assertion-style"
 message = "Inconsistent assertions style."
-count = 13
+count = 11
 
 [[issues]]
 file = "tests/Unit/Header/ReceivedTest.php"
@@ -4900,7 +4900,7 @@ count = 1
 file = "tests/Unit/Header/ReceivedTest.php"
 code = "strict-assertions"
 message = "Use strict assertions in PHPUnit tests."
-count = 6
+count = 5
 
 [[issues]]
 file = "tests/Unit/Header/ReceivedTest.php"
