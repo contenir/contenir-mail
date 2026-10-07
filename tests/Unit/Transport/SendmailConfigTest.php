@@ -33,6 +33,33 @@ final class SendmailConfigTest extends TestCase
     }
 
     #[Test]
+    public function usesMailFunctionByDefault(): void
+    {
+        static::assertNull((new SendmailConfig())->path);
+    }
+
+    #[Test]
+    public function readsPathFromSettings(): void
+    {
+        static::assertSame(
+            '/usr/sbin/sendmail',
+            SendmailConfig::fromIterable(['path' => '/usr/sbin/sendmail', 'parameters' => '-R hdrs'])->path,
+        );
+    }
+
+    #[DataProvider('invalidPathProvider')]
+    #[Test]
+    public function rejectsPathThatIsNotProgramPath(string $path): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'The sendmail path must be a program path, not empty and without control characters',
+        );
+
+        new SendmailConfig(path: $path);
+    }
+
+    #[Test]
     public function readsParameterStringFromSettings(): void
     {
         static::assertSame(['-R', 'hdrs'], SendmailConfig::fromIterable(['parameters' => '-R hdrs'])->parameters);
@@ -90,6 +117,20 @@ final class SendmailConfigTest extends TestCase
                 '-oi -fbounces+x=y@example.com -X/var/log/mail.log',
             ],
             'percent and colon'  => ['-O DeliveryMode=b -N%s:x,y', '-O DeliveryMode=b -N%s:x,y'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidPathProvider(): array
+    {
+        return [
+            'empty'           => [''],
+            'NUL'             => ["/usr/sbin/sendmail\0x"],
+            'line break'      => ["/usr/sbin/sendmail\n"],
+            'DEL'             => ["/usr/sbin/send\x7Fmail"],
+            'leading control' => ["\x01/usr/sbin/sendmail"],
         ];
     }
 
