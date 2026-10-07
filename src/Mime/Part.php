@@ -20,6 +20,7 @@ use function is_resource;
 use function is_string;
 use function rewind;
 use function rtrim;
+use function str_starts_with;
 use function stream_get_contents;
 use function strlen;
 use function substr;
@@ -177,7 +178,12 @@ final readonly class Part implements PartInterface
             return self::encodeStreamAsBase64($this->content);
         }
 
-        return Mime::encode($this->getContent(), $this->encoding, Headers::EOL);
+        return Mime::encode(
+            $this->getContent(),
+            $this->encoding,
+            Headers::EOL,
+            text: str_starts_with($this->type, 'text/'),
+        );
     }
 
     /**

@@ -445,7 +445,10 @@ final class MessageBodyTest extends TestCase
                 ['text', 'html'],
                 'multipart/alternative; boundary="{boundary}"',
             ],
-            'HTML and embedded'                    => [['html', 'embed'], 'multipart/related; boundary="{boundary}"'],
+            'HTML and embedded'                    => [
+                ['html', 'embed'],
+                'multipart/related; boundary="{boundary}"; type="text/html"',
+            ],
             'text, HTML, embedded and attachments' => [
                 ['text', 'html', 'embed', 'attach'],
                 'multipart/mixed; boundary="{boundary}"',

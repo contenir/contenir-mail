@@ -9,6 +9,7 @@ namespace Contenir\Mail\Tests\Unit\TestAsset;
  */
 enum Priority: int
 {
+    case None = 0;
     case Low  = 1;
     case High = 5;
 }

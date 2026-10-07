@@ -21,7 +21,7 @@ final readonly class Multipart implements PartInterface
     /** RFC 2046 boundary characters, 1 to 70 of them, not ending in a space */
     private const string BOUNDARY = '/^[0-9A-Za-z\'()+_,\-.\/:=? ]{0,69}[0-9A-Za-z\'()+_,\-.\/:=?]$/D';
 
-    /** @var list<PartInterface> */
+    /** @var non-empty-list<PartInterface> */
     private array $parts;
 
     private string $boundary;
@@ -61,10 +61,20 @@ final readonly class Multipart implements PartInterface
         return $this->boundary;
     }
 
+    /**
+     * The Content-Type with the boundary; multipart/related also names the
+     * type of its root part, as RFC 2387 requires.
+     */
     #[Override]
     public function getHeaders(): Headers
     {
-        return new Headers(new ContentType($this->type->contentType(), ['boundary' => $this->boundary]));
+        $parameters = ['boundary' => $this->boundary];
+        $root       = $this->parts[0]->getHeaders()->get('Content-Type');
+        if (MultipartType::Related === $this->type && $root instanceof ContentType) {
+            $parameters['type'] = $root->getType();
+        }
+
+        return new Headers(new ContentType($this->type->contentType(), $parameters));
     }
 
     #[Override]
