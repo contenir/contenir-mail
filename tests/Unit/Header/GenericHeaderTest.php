@@ -96,7 +96,11 @@ final class GenericHeaderTest extends TestCase
     #[Test]
     public function encodesLineBreaksInValueOnOutput(string $fieldValue): void
     {
-        static::assertStringNotContainsString("\n", (new GenericHeader('Foo', $fieldValue))->toString());
+        static::assertDoesNotMatchRegularExpression(
+            '/(?<!\r)\n|\n(?! )/',
+            (new GenericHeader('Foo', $fieldValue))->toString(),
+            'Only folding, a CRLF followed by a space, may break the line',
+        );
     }
 
     #[DataProvider('injectedValueProvider')]
@@ -104,7 +108,11 @@ final class GenericHeaderTest extends TestCase
     #[Test]
     public function encodesCarriageReturnsInValueOnOutput(string $fieldValue): void
     {
-        static::assertStringNotContainsString("\r", (new GenericHeader('Foo', $fieldValue))->toString());
+        static::assertDoesNotMatchRegularExpression(
+            '/\r(?!\n )/',
+            (new GenericHeader('Foo', $fieldValue))->toString(),
+            'Only folding, a CRLF followed by a space, may break the line',
+        );
     }
 
     #[DataProvider('validFieldValueProvider')]

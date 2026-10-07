@@ -373,9 +373,9 @@ final class MessageTest extends TestCase
             . "\r\n"
             . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
 
-        static::assertStringContainsString(
-            'Subject: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
-            Message::fromString($rawMessage)->toString(),
+        static::assertSame(
+            'Subject: ' . self::ENCODED_NON_ASCII_VALUE,
+            Message::fromString($rawMessage)->getHeaders()->get('Subject')?->toString(),
         );
     }
 
@@ -640,6 +640,27 @@ final class MessageTest extends TestCase
             ->setBody($body);
 
         static::assertSame($message->toString(), Message::fromString($message->toString())->toString());
+    }
+
+    #[Test]
+    public function writesParsedMessageBackByteForByte(): void
+    {
+        $raw =
+            "DKIM-Signature: v=1; a=rsa-sha256; d=example.org;\r\n\th=from:subject; b=abc\r\n"
+            . "from: Example <a@example.org>\r\n"
+            . "Subject: =?ISO-8859-1?Q?Gr=FC=DFe?=\r\n"
+            . "\r\n"
+            . "Hello\r\n";
+
+        static::assertSame($raw, Message::fromString($raw)->toString());
+    }
+
+    #[Test]
+    public function writesChangedHeaderOfParsedMessageFromItsValue(): void
+    {
+        $message = Message::fromString("Subject: =?ISO-8859-1?Q?Gr=FC=DFe?=\r\nX-Id: 1\r\n\r\nHello")->setSubject('Hi');
+
+        static::assertSame("Subject: Hi\r\nX-Id: 1\r\n\r\nHello", $message->toString());
     }
 
     #[Test]

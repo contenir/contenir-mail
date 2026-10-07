@@ -8,10 +8,10 @@ use Override;
 use Random\RandomException;
 
 use function bin2hex;
-use function gethostname;
 use function preg_match;
 use function random_bytes;
 use function sprintf;
+use function str_contains;
 use function strtolower;
 use function trim;
 
@@ -20,6 +20,9 @@ use function trim;
  */
 final readonly class MessageId implements HeaderInterface
 {
+    /** The domain of generated IDs when none is given: reserved, so it names no real host (RFC 2606) */
+    public const string DEFAULT_DOMAIN = 'localhost.invalid';
+
     private string $id;
 
     /**
@@ -36,15 +39,21 @@ final readonly class MessageId implements HeaderInterface
     }
 
     /**
-     * A new globally unique ID on the given host, or on this machine's host name.
+     * A new globally unique ID: 128 random bits at the given domain.
      *
+     * Pass the sender's domain. The default, "localhost.invalid", names no
+     * real host, so the ID never reveals the name of the machine that sent it.
+     *
+     * @throws Exception\InvalidArgumentException When the domain would make an invalid ID.
      * @throws RandomException When the system has no source of randomness.
      */
-    public static function generate(?string $host = null): self
+    public static function generate(string $domain = self::DEFAULT_DOMAIN): self
     {
-        $host ??= gethostname();
+        if (str_contains($domain, '@')) {
+            throw new Exception\InvalidArgumentException('Invalid ID detected');
+        }
 
-        return new self(sprintf('%s@%s', bin2hex(random_bytes(16)), false === $host ? 'localhost' : $host));
+        return new self(sprintf('%s@%s', bin2hex(random_bytes(16)), $domain));
     }
 
     #[Override]

@@ -6,7 +6,10 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
-use Contenir\Mail\Header\HeaderParameters;
+use Contenir\Mail\Header\MimeParameterParser;
+use Contenir\Mail\Header\MimeParameters;
+use Contenir\Mail\Header\ParameterText;
+use Contenir\Mail\Header\SafeText;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,7 +19,10 @@ use PHPUnit\Framework\TestCase;
 use function chr;
 
 #[CoversClass(ContentType::class)]
-#[CoversClass(HeaderParameters::class)]
+#[CoversClass(MimeParameters::class)]
+#[CoversClass(MimeParameterParser::class)]
+#[CoversClass(ParameterText::class)]
+#[CoversClass(SafeText::class)]
 #[Group('unit')]
 final class ContentTypeTest extends TestCase
 {
@@ -112,7 +118,7 @@ final class ContentTypeTest extends TestCase
     public function encodedFieldValueEncodesNonAsciiParameter(): void
     {
         static::assertSame(
-            "foo/baz;\r\n name=\"=?UTF-8?Q?=C3=93?=\"",
+            "foo/baz;\r\n name*=UTF-8''%C3%93",
             (new ContentType('foo/baz', ['name' => 'Ó']))->getEncodedFieldValue(),
         );
     }
@@ -158,7 +164,7 @@ final class ContentTypeTest extends TestCase
      */
     #[DataProvider('parameterWrappingProvider')]
     #[Test]
-    public function keepsRfc2231ParameterAsWritten(string $headerLine, array $parameters): void
+    public function decodesRfc2231ExtendedParameter(string $headerLine, array $parameters): void
     {
         static::assertSame($parameters, ContentType::fromString($headerLine)->getParameters());
     }
@@ -202,6 +208,12 @@ final class ContentTypeTest extends TestCase
         $this->expectExceptionMessage('Parameter value must be composed of printable US-ASCII or UTF-8 characters.');
 
         new ContentType('text/html', ['name' => "\xFF\xFE"]);
+    }
+
+    #[Test]
+    public function trimsParameterNames(): void
+    {
+        static::assertSame(['charset' => 'x'], (new ContentType('text/plain', [' Charset ' => 'x']))->getParameters());
     }
 
     #[Test]
@@ -345,25 +357,121 @@ final class ContentTypeTest extends TestCase
         static::assertSame('Content-Type', ContentType::fromString($headerLine)->getFieldName());
     }
 
+    /**
+     * Header injection: type and subtype are RFC 2045 tokens.
+     */
+    #[DataProvider('injectedTypeProvider')]
     #[Test]
-    public function parsesNoParametersFromEmptyList(): void
+    public function rejectsTypeCarryingInjection(string $type): void
     {
-        static::assertSame([], HeaderParameters::parse(''));
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content-Type expects a value in the format "type/subtype"');
+
+        new ContentType($type);
     }
 
+    /**
+     * Header injection: parameter names are RFC 2045 tokens.
+     */
+    #[DataProvider('invalidParameterNameProvider')]
     #[Test]
-    public function parsesParameterPairsInOrder(): void
+    public function rejectsParameterNameThatIsNotAToken(string $name): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid content-type parameter name detected');
+
+        new ContentType('text/plain', [$name => 'x']);
+    }
+
+    /**
+     * Header injection: a value that would end the quoted string early is escaped.
+     */
+    #[Test]
+    public function escapesQuoteInCharset(): void
     {
         static::assertSame(
-            [['b', '2'], ['a', '1']],
-            HeaderParameters::parse('b="2"; a=1'),
+            "Content-Type: text/plain;\r\n charset=\"x\\\"; boundary=\\\"y\"",
+            (new ContentType('text/plain', ['charset' => 'x"; boundary="y']))->toString(),
         );
     }
 
     #[Test]
-    public function joinsValueWithoutParameters(): void
+    public function rejectsParameterValueWithLineBreak(): void
     {
-        static::assertSame('text/plain', HeaderParameters::join('text/plain', []));
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Parameter value must be composed of printable US-ASCII or UTF-8 characters.');
+
+        new ContentType('text/plain', ['charset' => "UTF-8\r\nBcc: victim@example.com"]);
+    }
+
+    /**
+     * RFC 2047 text is decoded only after the parameters are split, so what it
+     * decodes to cannot add a parameter or end a value.
+     */
+    #[DataProvider('smuggledStructureProvider')]
+    #[Test]
+    public function decodesEncodedWordsOnlyInsideParameterValues(string $headerLine, array $expected): void
+    {
+        static::assertSame($expected, ContentType::fromString($headerLine)->getParameters());
+    }
+
+    #[Test]
+    public function keepsEncodedWordInTypeAsWrittenSoTheTypeIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content-Type expects a value in the format "type/subtype"');
+
+        ContentType::fromString('Content-Type: =?UTF-8?Q?text/html=3B_charset=3Dx?=');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function injectedTypeProvider(): array
+    {
+        return [
+            'line break in subtype' => ["text/html\r\nBcc: victim@example.com"],
+            'parameter in subtype'  => ['text/html; charset=x'],
+            'quote in type'         => ['te"xt/html'],
+            'empty subtype'         => ['text/'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidParameterNameProvider(): array
+    {
+        return [
+            'equals sign'     => ['a=b'],
+            'semicolon'       => ['a;b'],
+            'quote'           => ['a"b'],
+            'space'           => ['a b'],
+            'RFC 2231 marker' => ['name*'],
+            'empty'           => [''],
+            'non-ASCII'       => ['näme'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, array<string, string>}>
+     */
+    public static function smuggledStructureProvider(): array
+    {
+        return [
+            'semicolon and equals in encoded word' => [
+                'Content-Type: text/plain; name="=?UTF-8?Q?a=3B_charset=3Devil?="',
+                ['name' => 'a; charset=evil'],
+            ],
+            'quote in encoded word'                => [
+                'Content-Type: text/plain; name="=?UTF-8?Q?a=22?="; charset=x',
+                ['name' => 'a"', 'charset' => 'x'],
+            ],
+            'line break in extended value'         => [
+                "Content-Type: text/plain; name*=UTF-8''a%0D%0ABcc:%20x",
+                ['name' => 'aBcc: x'],
+            ],
+        ];
     }
 
     /**
@@ -403,7 +511,7 @@ final class ContentTypeTest extends TestCase
                 'foo/baz',
                 ['name' => 'Ó'],
                 'foo/baz; name="Ó"',
-                "Content-Type: foo/baz;\r\n name=\"=?UTF-8?Q?=C3=93?=\"",
+                "Content-Type: foo/baz;\r\n name*=UTF-8''%C3%93",
             ],
         ];
     }
@@ -435,7 +543,7 @@ final class ContentTypeTest extends TestCase
         return [
             'example from RFC 2231' => [
                 "Content-Type: application/x-stuff; title*=us-ascii'en-us'This%20is%20%2A%2A%2Afun%2A%2A%2A",
-                ['title*' => "us-ascii'en-us'This%20is%20%2A%2A%2Afun%2A%2A%2A"],
+                ['title' => 'This is ***fun***'],
             ],
         ];
     }

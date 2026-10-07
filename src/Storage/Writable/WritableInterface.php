@@ -1,83 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Writable;
 
-use Contenir\Mail\Storage;
+use Contenir\Mail\Message as ComposedMessage;
+use Contenir\Mail\Storage\Exception\ExceptionInterface;
+use Contenir\Mail\Storage\Flag;
+use Contenir\Mail\Storage\Folder;
+use Contenir\Mail\Storage\Message;
 
+/**
+ * A storage that can create folders and store messages.
+ *
+ * @api
+ */
 interface WritableInterface
 {
     /**
-     * create a new folder
+     * Create a folder, and its parents where needed.
      *
-     * This method also creates parent folders if necessary. Some mail storages
-     * may restrict, which folder may be used as parent or which chars may be
-     * used in the folder name
-     *
-     * @param string $name global name of folder, local name if $parentFolder
-     *     is set.
-     * @param string|Storage\Folder $parentFolder parent folder for new folder,
-     *     else root folder is parent.
-     * @throws Storage\Exception\ExceptionInterface
+     * @param string $name The global name, or the local name when a parent is given.
+     * @throws ExceptionInterface When the folder exists or the name is not allowed.
      */
-    public function createFolder($name, $parentFolder = null);
+    public function createFolder(string $name, Folder|string|null $parentFolder = null): void;
 
     /**
-     * remove a folder
-     *
-     * @param string|Storage\Folder $name name or instance of folder.
-     * @throws Storage\Exception\ExceptionInterface
+     * @throws ExceptionInterface When the folder does not exist, has subfolders or cannot be removed.
      */
-    public function removeFolder($name);
+    public function removeFolder(Folder|string $name): void;
 
     /**
-     * rename and/or move folder
+     * Rename or move a folder; the new name has the same rules as in createFolder().
      *
-     * The new name has the same restrictions as in createFolder()
-     *
-     * @param string|Storage\Folder $oldName name or instance of folder.
-     * @param string $newName new global name of folder.
-     * @throws Storage\Exception\ExceptionInterface
+     * @throws ExceptionInterface When the folder does not exist or cannot be renamed.
      */
-    public function renameFolder($oldName, $newName);
+    public function renameFolder(Folder|string $oldName, string $newName): void;
 
     /**
-     * append a new message to mail storage
+     * Store a message.
      *
-     * @param  string|resource $message the raw message, or a stream holding it
-     * @param  null|string|Storage\Folder $folder folder for new message, else
-     *     current folder is taken.
-     * @param  null|array $flags set flags for new message, else a default set
-     *     is used.
-     * @throws Storage\Exception\ExceptionInterface
+     * @param string|resource|Message|ComposedMessage $message The raw message, a stream holding it, or a message.
+     * @param Folder|string|null $folder The current folder when null.
+     * @param iterable<Flag|string>|null $flags Seen when null.
+     * @throws ExceptionInterface When the message cannot be stored.
      */
-    public function appendMessage($message, $folder = null, $flags = null);
+    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): void;
 
     /**
-     * copy an existing message
-     *
-     * @param  int $id number of message
-     * @param  string|Storage\Folder $folder name or instance of target folder
-     * @throws Storage\Exception\ExceptionInterface
+     * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function copyMessage($id, $folder);
+    public function copyMessage(int $id, Folder|string $folder): void;
 
     /**
-     * move an existing message
-     *
-     * @param  int $id number of message
-     * @param  string|Storage\Folder $folder name or instance of target folder
-     * @throws Storage\Exception\ExceptionInterface
+     * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function moveMessage($id, $folder);
+    public function moveMessage(int $id, Folder|string $folder): void;
 
     /**
-     * set flags for message
+     * Replace a message's flags. Recent cannot be set.
      *
-     * NOTE: this method can't set the recent flag.
-     *
-     * @param int $id number of message
-     * @param array $flags new flags for message
-     * @throws Storage\Exception\ExceptionInterface
+     * @param iterable<Flag|string> $flags
+     * @throws ExceptionInterface When there is no such message or a flag cannot be set.
      */
-    public function setFlags($id, $flags);
+    public function setFlags(int $id, iterable $flags): void;
 }

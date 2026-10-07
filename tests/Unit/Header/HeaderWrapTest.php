@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header\EncodedWordDecoder;
+use Contenir\Mail\Header\EncodedWords;
 use Contenir\Mail\Header\HeaderWrap;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,6 +19,7 @@ use function error_clear_last;
 use function error_get_last;
 use function explode;
 use function iconv_mime_decode;
+use function max;
 use function str_repeat;
 use function strlen;
 use function substr;
@@ -25,6 +27,7 @@ use function substr;
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 
 #[CoversClass(HeaderWrap::class)]
+#[CoversClass(EncodedWords::class)]
 #[CoversClass(EncodedWordDecoder::class)]
 #[Group('unit')]
 final class HeaderWrapTest extends TestCase
@@ -70,8 +73,8 @@ final class HeaderWrapTest extends TestCase
         $value = str_repeat('foobarblahblahblah baz bat', times: 3) . 'ä';
 
         static::assertSame(
-            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20?=\r\n"
-                . ' =?UTF-8?Q?baz=20batfoobarblahblahblah=20baz=20bat=C3=A4?=',
+            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
+                . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat=C3=A4?=',
             HeaderWrap::fold('Subject', $value),
         );
     }
@@ -87,7 +90,7 @@ final class HeaderWrapTest extends TestCase
         static::assertSame(
             "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
                 . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=',
-            HeaderWrap::mimeEncodeValue($value, lineLength: 78),
+            HeaderWrap::mimeEncodeValue($value, firstLineGapSize: 0),
         );
     }
 
@@ -95,7 +98,7 @@ final class HeaderWrapTest extends TestCase
     public function mimeEncodedLongValueDecodesWithIconv(): void
     {
         $value   = str_repeat('foobarblahblahblah baz bat', times: 3);
-        $encoded = HeaderWrap::mimeEncodeValue($value, lineLength: 78);
+        $encoded = HeaderWrap::mimeEncodeValue($value, firstLineGapSize: 0);
 
         static::assertSame(
             $value,
@@ -109,13 +112,16 @@ final class HeaderWrapTest extends TestCase
     #[Test]
     public function mimeEncodesUmlautAsUtf8(): void
     {
-        static::assertSame('=?UTF-8?Q?Umlauts:=20=C3=A4?=', HeaderWrap::mimeEncodeValue('Umlauts: ä', lineLength: 78));
+        static::assertSame('=?UTF-8?Q?Umlauts:=20=C3=A4?=', HeaderWrap::mimeEncodeValue(
+            'Umlauts: ä',
+            firstLineGapSize: 0,
+        ));
     }
 
     #[Test]
     public function mimeEncodedUmlautDecodesWithIconv(): void
     {
-        $encoded = HeaderWrap::mimeEncodeValue('Umlauts: ä', lineLength: 78);
+        $encoded = HeaderWrap::mimeEncodeValue('Umlauts: ä', firstLineGapSize: 0);
 
         static::assertSame(
             'Umlauts: ä',
@@ -300,32 +306,85 @@ final class HeaderWrapTest extends TestCase
     {
         static::assertSame(
             "=?UTF-8?Q?=C3=A9=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20?=\r\n"
-                . ' =?UTF-8?Q?ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab?=',
+                . " =?UTF-8?Q?ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20?=\r\n"
+                . ' =?UTF-8?Q?ab=20ab?=',
             HeaderWrap::fold('Subject', 'é' . str_repeat(' ab', times: 23)),
         );
     }
 
     /**
-     * @param list<int> $lineLengths
+     * RFC 2047, section 2: an encoded word is at most 75 characters, so long
+     * values, with or without spaces, are split over several words.
      */
-    #[DataProvider('defaultLineLengthProvider')]
+    #[DataProvider('longValueProvider')]
     #[Test]
-    public function encodesWithinNineHundredNinetyEightCharacterLines(string $value, array $lineLengths): void
+    public function keepsEveryEncodedWordWithinSeventyFiveCharacters(string $value): void
+    {
+        $lengths = array_map(strlen(...), explode("\r\n ", HeaderWrap::mimeEncodeValue($value, firstLineGapSize: 0)));
+
+        static::assertLessThanOrEqual(75, max($lengths));
+    }
+
+    #[DataProvider('longValueProvider')]
+    #[Test]
+    public function splitsLongValueOnlyBetweenCharacters(string $value): void
     {
         static::assertSame(
-            $lineLengths,
-            array_map(strlen(...), explode("\r\n ", HeaderWrap::mimeEncodeValue($value))),
+            $value,
+            HeaderWrap::mimeDecodeValue(HeaderWrap::mimeEncodeValue($value, firstLineGapSize: 0)),
         );
     }
 
+    #[Test]
+    public function keepsEveryEncodedPhraseWordWithinSeventyFiveCharacters(): void
+    {
+        $lengths = array_map(strlen(...), explode("\r\n ", HeaderWrap::encodePhrase(str_repeat('é<>', times: 40))));
+
+        static::assertLessThanOrEqual(75, max($lengths));
+    }
+
+    #[Test]
+    public function fillsFirstLineToExactlySeventyEightCharacters(): void
+    {
+        $first = explode("\r\n", HeaderWrap::fold('Subject', 'é' . str_repeat('a', times: 100)))[0];
+
+        static::assertSame(78, strlen("Subject: {$first}"));
+    }
+
+    #[Test]
+    public function fillsLaterWordsToExactlySeventyFiveCharacters(): void
+    {
+        $second = explode("\r\n ", HeaderWrap::fold('Subject', 'é' . str_repeat('a', times: 200)))[1];
+
+        static::assertSame(75, strlen($second));
+    }
+
+    #[Test]
+    public function fillsPhraseWordsToExactlySeventyFiveCharacters(): void
+    {
+        $first = explode("\r\n ", HeaderWrap::encodePhrase('é' . str_repeat('a', times: 200)))[0];
+
+        static::assertSame(75, strlen($first));
+    }
+
+    #[Test]
+    public function fitsFirstEncodedWordAfterTheHeaderName(): void
+    {
+        $first = explode("\r\n", HeaderWrap::fold('X-A-Rather-Long-Header-Name', str_repeat('é', times: 40)))[0];
+
+        static::assertLessThanOrEqual(78, strlen("X-A-Rather-Long-Header-Name: {$first}"));
+    }
+
     /**
-     * @return array<string, array{string, list<int>}>
+     * @return array<string, array{string}>
      */
-    public static function defaultLineLengthProvider(): array
+    public static function longValueProvider(): array
     {
         return [
-            'one line at the limit'        => ['éy' . str_repeat(' ab', times: 196), [999]],
-            'one character past the limit' => ['éyy' . str_repeat(' ab', times: 196), [993, 19]],
+            'spaced'                => ['éy' . str_repeat(' ab', times: 196)],
+            'no spaces'             => [str_repeat('é', times: 200)],
+            'long run after spaces' => ['ab cd ' . str_repeat('x', times: 150) . 'é'],
+            'four-byte characters'  => [str_repeat('😀', times: 60)],
         ];
     }
 

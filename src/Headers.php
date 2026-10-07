@@ -12,6 +12,7 @@ use Contenir\Mail\Header\HeaderParser;
 use Countable;
 use IteratorAggregate;
 use Override;
+use WeakMap;
 
 use function array_filter;
 use function array_map;
@@ -25,6 +26,12 @@ use function strtolower;
  *
  * Names are matched case-insensitively and ignoring "-", "_", "." and spaces,
  * so "Content-Type" and "content_type" name the same header.
+ *
+ * Headers parsed by fromString() keep the text they were written with, and
+ * toString() writes that text back unchanged, folding and encoding
+ * included, for as long as the header itself is kept. A header replaced by
+ * with() is written from its value. This keeps forwarded and DKIM-signed
+ * headers byte for byte.
  *
  * @mago-expect lint:too-many-methods A collection: construction, with/without, lookup, output and iteration.
  * @implements IteratorAggregate<int, HeaderInterface>
@@ -40,9 +47,19 @@ final readonly class Headers implements Countable, IteratorAggregate
     /** @var list<HeaderInterface> */
     private array $headers;
 
+    /**
+     * The text each parsed header was written with, CRLF-folded.
+     *
+     * Filled only by the factory methods, before the new instance is returned.
+     *
+     * @var WeakMap<HeaderInterface, string|null>
+     */
+    private WeakMap $wireText;
+
     public function __construct(HeaderInterface ...$headers)
     {
-        $this->headers = array_values($headers);
+        $this->headers  = array_values($headers);
+        $this->wireText = new WeakMap();
     }
 
     /**
@@ -59,7 +76,15 @@ final readonly class Headers implements Countable, IteratorAggregate
         string $eol = self::EOL,
         HeaderLocatorInterface $locator = new HeaderLocator(),
     ): self {
-        return new self(...(new HeaderParser($locator))->parseBlock($string, $eol));
+        /** @var WeakMap<HeaderInterface, string|null> $wireText */
+        $wireText = new WeakMap();
+        $headers  = [];
+        foreach ((new HeaderParser($locator))->parseBlock($string, $eol) as [$header, $text]) {
+            $headers[]         = $header;
+            $wireText[$header] = $text;
+        }
+
+        return self::build($headers, $wireText);
     }
 
     /**
@@ -98,7 +123,7 @@ final readonly class Headers implements Countable, IteratorAggregate
             $headers[] = $header;
         }
 
-        return new self(...$headers);
+        return $this->derive($headers);
     }
 
     /**
@@ -106,17 +131,17 @@ final readonly class Headers implements Countable, IteratorAggregate
      */
     public function withAdded(HeaderInterface $header): self
     {
-        return new self(...[...$this->headers, $header]);
+        return $this->derive([...$this->headers, $header]);
     }
 
     public function without(string $name): self
     {
         $key = self::normalise($name);
 
-        return new self(...array_filter(
+        return $this->derive(array_values(array_filter(
             $this->headers,
             static fn(HeaderInterface $header): bool => self::normalise($header->getFieldName()) !== $key,
-        ));
+        )));
     }
 
     /**
@@ -149,12 +174,14 @@ final readonly class Headers implements Countable, IteratorAggregate
 
     /**
      * The header block, one line per header, each ending with a CRLF.
+     *
+     * A parsed header is written with the text it was read with.
      */
     public function toString(): string
     {
         $result = '';
         foreach ($this->headers as $header) {
-            $line = $header->toString();
+            $line = $this->wireText[$header] ?? $header->toString();
             if ('' !== $line) {
                 $result .= $line . self::EOL;
             }
@@ -207,6 +234,30 @@ final readonly class Headers implements Countable, IteratorAggregate
     public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->headers);
+    }
+
+    /**
+     * A new collection of these headers, keeping the written text of those that came from this one.
+     *
+     * @param list<HeaderInterface> $headers
+     */
+    private function derive(array $headers): self
+    {
+        return self::build($headers, $this->wireText);
+    }
+
+    /**
+     * @param list<HeaderInterface> $headers
+     * @param WeakMap<HeaderInterface, string|null> $wireText
+     */
+    private static function build(array $headers, WeakMap $wireText): self
+    {
+        $built = new self(...$headers);
+        foreach ($headers as $header) {
+            $built->wireText[$header] = $wireText[$header] ?? null;
+        }
+
+        return $built;
     }
 
     private static function normalise(string $name): string

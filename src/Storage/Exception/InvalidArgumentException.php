@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Exception;
 
 use Contenir\Mail\Exception;
 
 /**
- * Exception for Contenir\Mail component.
+ * Thrown by the mail storages.
+ *
+ * @api
  */
-class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface {}
+final class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface {}
