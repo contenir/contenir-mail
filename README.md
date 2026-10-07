@@ -281,6 +281,19 @@ message unreadable.
 - Headers read from stored mail write back the exact text they were read with
   until they are changed, so forwarded and DKIM-signed headers survive.
 - Generated Message-IDs use a reserved domain rather than the machine's host name.
+- Without a port, SMTP connects to 587, the submission port, when using STARTTLS
+  (the default); 465 for TLS and 25 for a plain connection.
+- `Sendmail` can run the sendmail program directly, with no shell, when given a
+  `path`; without one it uses `mail()` as before.
+- The container's transport configuration must name its `type`; it no longer
+  defaults to sendmail.
+- `XOAuth2` accepts a Closure that returns a fresh access token at each AUTH.
+- A header word too long to fold within 998 characters is written as encoded
+  words, so no header line ever exceeds the RFC 5322 limit.
+- Raw UTF-8 header values (RFC 6532) in stored or received mail are read into
+  their header classes. Header values refuse control characters other than tab.
+- A missing required storage setting (`dirname`, `filename`, `user`) throws
+  `Contenir\Mail\Exception\InvalidArgumentException`.
 - Display names are quoted when they contain RFC 5322 specials, and encoded with
   those specials escaped when they are not ASCII, so a name can never add
   recipients.

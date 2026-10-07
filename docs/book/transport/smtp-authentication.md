@@ -32,6 +32,14 @@ $transport = new Smtp(new SmtpConfig(
 ));
 ```
 
+Access tokens expire. For a long-running worker, pass a Closure instead of the
+token, or a callable under `access_token`. It is called for a fresh token at
+each AUTH:
+
+```php
+new XOAuth2('jo@example.com', static fn(): string => $tokens->fresh());
+```
+
 The session authenticates after EHLO and STARTTLS, and only:
 
 - over TLS: with `security` set to `none`, configuring `auth` throws unless

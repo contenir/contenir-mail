@@ -6,7 +6,7 @@ method, `send(Message $message): void`, and four transports implement it:
 Transport   | Delivers by                                   | Settings
 ----------- | --------------------------------------------- | --------
 `Smtp`      | An SMTP server, with STARTTLS and AUTH        | [`SmtpConfig`](smtp-options.md)
-`Sendmail`  | PHP's `mail()` and the local sendmail program | `SendmailConfig`
+`Sendmail`  | The local sendmail program, run directly or through PHP's `mail()` | `SendmailConfig`
 `File`      | Writing each message to a new file            | [`FileConfig`](file-options.md)
 `InMemory`  | Keeping the last message, for tests           | none
 
@@ -49,7 +49,9 @@ $transport->send($message);
 **STARTTLS is required by default.** A server that does not offer STARTTLS, or
 refuses it, is refused; the session never continues in plain text. Use
 `security: Security::Tls` (`'security' => 'tls'`) for TLS from the start on port
-465, or `Security::None` explicitly for a local relay without TLS. See
+465, or `Security::None` explicitly for a local relay without TLS. Without a
+port, SMTP connects to 587 for STARTTLS (the submission port), 465 for
+`Security::Tls` and 25 for `Security::None`. See
 [SMTP options](smtp-options.md), [SMTP authentication](smtp-authentication.md)
 and [sending several messages](smtp-multiple-send.md).
 
@@ -58,14 +60,24 @@ and [sending several messages](smtp-multiple-send.md).
 ```php
 use Contenir\Mail\Transport\Sendmail;
 
-$transport = new Sendmail();
-$transport = new Sendmail(['parameters' => '-R hdrs']);   // SendmailConfig settings
-$transport = new Sendmail('-R hdrs');                     // the laminas-mail form
+$transport = new Sendmail(['path' => '/usr/sbin/sendmail']); // run sendmail without a shell
+$transport = new Sendmail();                                  // through PHP's mail()
+$transport = new Sendmail(['parameters' => '-R hdrs']);       // SendmailConfig settings
+$transport = new Sendmail('-R hdrs');                         // the laminas-mail form
 $transport->send($message);
 ```
 
-The envelope sender is passed to sendmail as `-f` and taken from the message's
-Sender, or else its first From address. PHP runs sendmail through a shell and
+**With a `path`** (`new SendmailConfig(path: '/usr/sbin/sendmail')`), the
+program is run directly through `proc_open()`, with no shell involved. It is run
+as `path [parameters] -oi -f sender -- recipients`, with the message on standard
+input. The recipients are the To, Cc and Bcc addresses, and the Bcc header is
+left out of the message. A sender starting with `-` is refused, and a non-zero
+exit status throws `Transport\Exception\RuntimeException` with what the program
+wrote to standard error. This is the recommended way to use sendmail.
+
+**Without a `path`**, PHP's `mail()` is used. The envelope sender is passed to
+sendmail as `-f` and taken from the message's Sender, or else its first From
+address. PHP runs sendmail through a shell and
 escapes the parameters itself, so the sender is only passed when it consists of
 letters, digits and `. _ + = -` before the `@`; any other sender throws rather
 than being quoted. Give `-f` in the parameters to choose the envelope sender
@@ -121,7 +133,7 @@ registers the same for laminas-mvc.
 return [
     'mail' => [
         'transport' => [
-            'type' => 'smtp',          // smtp, sendmail (the default), file or in-memory
+            'type' => 'smtp',          // required: smtp, sendmail, file or in-memory
             'host' => 'smtp.example.com',
             'port' => 587,
             'auth' => [
@@ -133,6 +145,9 @@ return [
     ],
 ];
 ```
+
+`type` is required. Without it the factory throws rather than quietly sending
+through the local sendmail. The other keys are the chosen transport's settings.
 
 ```php
 $transport = $container->get(Contenir\Mail\Transport\TransportInterface::class);
