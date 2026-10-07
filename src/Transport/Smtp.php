@@ -298,7 +298,7 @@ class Smtp implements TransportInterface
         }
 
         $sender = $message->getSender();
-        if ($sender instanceof Address\AddressInterface) {
+        if ($sender instanceof Address) {
             return $sender->getEmail();
         }
 
@@ -311,9 +311,7 @@ class Smtp implements TransportInterface
             ));
         }
 
-        $from->rewind();
-        $sender = $from->current();
-        return $sender->getEmail();
+        return $from->first()?->getEmail() ?? '';
     }
 
     /**
@@ -348,9 +346,7 @@ class Smtp implements TransportInterface
      */
     protected function prepareHeaders(Message $message)
     {
-        $headers = clone $message->getHeaders();
-        $headers->removeHeader('Bcc');
-        return $headers->toString();
+        return $message->getHeaders()->without('Bcc')->toString();
     }
 
     /**

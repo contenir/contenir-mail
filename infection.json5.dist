@@ -14,6 +14,11 @@
     },
     "mutators": {
         "@default": true,
+        "CastString": {
+            // Address has validated the domain through the same UTS #46 conversion, so
+            // idn_to_ascii() cannot return false here and the cast never applies.
+            "ignore": ["Contenir\\Mail\\Header\\AddressEncoder::asciiEmail"]
+        },
         "DecrementInteger": {
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a

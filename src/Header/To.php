@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-class To extends AbstractAddressList
+final readonly class To extends AbstractAddressList
 {
-    /** @var string */
-    protected $fieldName = 'To';
-    /** @var string */
-    protected static $type = 'to';
+    protected const string FIELD_NAME = 'To';
+
+    protected const array FIELD_NAMES = ['to'];
 }

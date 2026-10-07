@@ -1,150 +1,89 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use Override;
+use Random\RandomException;
 
-use function getmypid;
-use function mt_rand;
-use function php_uname;
+use function bin2hex;
+use function gethostname;
 use function preg_match;
-use function sha1;
+use function random_bytes;
 use function sprintf;
 use function strtolower;
-use function time;
 use function trim;
 
-class MessageId implements HeaderInterface
+/**
+ * The unique identifier of a message (RFC 5322, section 3.6.4), held without its angle brackets.
+ */
+final readonly class MessageId implements HeaderInterface
 {
-    /** @var string */
-    protected $messageId;
+    private string $id;
 
     /**
-     * @param string $headerLine
-     * @return static
+     * @throws Exception\InvalidArgumentException When the ID is empty or contains invalid characters.
      */
-    #[Override]
-    public static function fromString($headerLine)
+    public function __construct(string $id)
     {
-        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (strtolower($name) !== 'message-id') {
-            throw new Exception\InvalidArgumentException('Invalid header line for Message-ID string');
+        $id = trim($id, characters: " \t<>");
+        if ('' === $id || ! HeaderValue::isValid($id) || 1 === preg_match("/[\r\n\\s<>]/", $id)) {
+            throw new Exception\InvalidArgumentException('Invalid ID detected');
         }
 
-        $header = new static();
-        $header->setId($value);
-
-        return $header;
+        $this->id = $id;
     }
 
     /**
-     * @return string
+     * A new globally unique ID on the given host, or on this machine's host name.
+     *
+     * @throws RandomException When the system has no source of randomness.
      */
+    public static function generate(?string $host = null): self
+    {
+        $host ??= gethostname();
+
+        return new self(sprintf('%s@%s', bin2hex(random_bytes(16)), false === $host ? 'localhost' : $host));
+    }
+
     #[Override]
-    public function getFieldName()
+    public static function fromString(string $headerLine): static
+    {
+        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
+        if ('message-id' !== strtolower($name)) {
+            throw new Exception\InvalidArgumentException('Invalid header line for Message-ID string');
+        }
+
+        return new self(HeaderWrap::mimeDecodeValue($value));
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    #[Override]
+    public function getFieldName(): string
     {
         return 'Message-ID';
     }
 
-    /**
-     * @inheritDoc
-     */
     #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
+    public function getFieldValue(): string
     {
-        return $this->messageId;
+        return "<{$this->id}>";
     }
 
-    /**
-     * @param string $encoding
-     * @return self
-     */
     #[Override]
-    public function setEncoding($encoding)
+    public function getEncodedFieldValue(): string
     {
-        // This header must be always in US-ASCII
-        return $this;
+        return $this->getFieldValue();
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function getEncoding()
-    {
-        return 'ASCII';
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function toString()
+    public function toString(): string
     {
         return "Message-ID: {$this->getFieldValue()}";
-    }
-
-    /**
-     * Set the message id
-     *
-     * @param string|null $id
-     * @return MessageId
-     */
-    public function setId($id = null)
-    {
-        if (null === $id) {
-            $id = $this->createMessageId();
-        } else {
-            $id = trim($id, '<>');
-        }
-
-        if (
-            ! HeaderValue::isValid($id)
-            || preg_match("/[\r\n]/", $id)
-        ) {
-            throw new Exception\InvalidArgumentException('Invalid ID detected');
-        }
-
-        $this->messageId = sprintf('<%s>', $id);
-        return $this;
-    }
-
-    /**
-     * Retrieve the message id
-     *
-     * @return string
-     */
-    public function getId()
-    {
-        return $this->messageId;
-    }
-
-    /**
-     * Creates the Message-ID
-     *
-     * @return string
-     */
-    public function createMessageId()
-    {
-        $time = time();
-
-        if (isset($_SERVER['REMOTE_ADDR'])) {
-            $user = $_SERVER['REMOTE_ADDR'];
-        } else {
-            $user = getmypid();
-        }
-
-        $rand = mt_rand();
-
-        if (isset($_SERVER['SERVER_NAME'])) {
-            $hostName = $_SERVER['SERVER_NAME'];
-        } else {
-            $hostName = php_uname('n');
-        }
-
-        return sha1($time . $user . $rand) . '@' . $hostName;
     }
 }

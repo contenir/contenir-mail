@@ -105,4 +105,10 @@ class HeaderValueTest extends TestCase
         $this->expectExceptionMessage('Invalid');
         HeaderValue::assertValid($value);
     }
+
+    #[Test]
+    public function rejectsCarriageReturnLineFeedWithoutFoldingWhitespace(): void
+    {
+        static::assertFalse(HeaderValue::isValid("a\r\n"));
+    }
 }

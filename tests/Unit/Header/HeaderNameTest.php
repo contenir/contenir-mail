@@ -52,6 +52,7 @@ class HeaderNameTest extends TestCase
             ['Subject' . chr(33), 'assertTrue'],
             ['Subject' . chr(126), 'assertTrue'],
             ['Subject' . chr(127), 'assertFalse'],
+            ['', 'assertFalse'],
         ];
     }
 

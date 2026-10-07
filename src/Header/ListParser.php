@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use function in_array;
@@ -8,20 +10,19 @@ use function strlen;
 /**
  * @internal
  */
-class ListParser
+final class ListParser
 {
-    public const CHAR_QUOTES = ['\'', '"'];
-    public const CHAR_DELIMS = [',', ';'];
-    public const CHAR_ESCAPE = '\\';
+    public const array CHAR_QUOTES = ['\'', '"'];
+    public const array CHAR_DELIMS = [',', ';'];
+    public const string CHAR_ESCAPE = '\\';
 
     /**
-     * @param string $value
-     * @param array $delims Delimiters allowed between values; parser will
-     *     split on these, as long as they are not within quotes. Defaults
-     *     to ListParser::CHAR_DELIMS.
-     * @return array
+     * Split a list on its delimiters, ignoring delimiters inside quotes or after a backslash.
+     *
+     * @param list<string> $delims
+     * @return list<string>
      */
-    public static function parse($value, array $delims = self::CHAR_DELIMS)
+    public static function parse(string $value, array $delims = self::CHAR_DELIMS): array
     {
         $values            = [];
         $length            = strlen($value);
@@ -42,7 +43,7 @@ class ListParser
 
             // If we are not in a quoted string, and have a delimiter, append
             // the current value to the list, and reset the current value.
-            if (in_array($char, $delims, true) && ! $inQuote) {
+            if (in_array($char, $delims, strict: true) && ! $inQuote) {
                 $values[]     = $currentValue;
                 $currentValue = '';
                 continue;
@@ -59,7 +60,7 @@ class ListParser
 
             // If the character is not a quote character, we are done
             // processing it.
-            if (! in_array($char, self::CHAR_QUOTES)) {
+            if (! in_array($char, self::CHAR_QUOTES, strict: true)) {
                 continue;
             }
 

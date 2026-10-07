@@ -7,294 +7,473 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Header\AbstractAddressList;
+use Contenir\Mail\Header\AddressEncoder;
+use Contenir\Mail\Header\AddressListCodec;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\Cc;
+use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\From;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\To;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function count;
-use function sprintf;
+use function array_map;
 
-class AddressListHeaderTest extends TestCase
+#[CoversClass(AbstractAddressList::class)]
+#[CoversClass(AddressListCodec::class)]
+#[CoversClass(AddressEncoder::class)]
+#[CoversClass(Bcc::class)]
+#[CoversClass(Cc::class)]
+#[CoversClass(From::class)]
+#[CoversClass(ReplyTo::class)]
+#[CoversClass(To::class)]
+#[Group('unit')]
+final class AddressListHeaderTest extends TestCase
 {
-    public static function getHeaderInstances(): array
+    private const string FIELD_VALUE =
+        'Example Test <test@example.com>, list@example.com, '
+            . 'Example Announce List <announce@example.com>, "Last, First" <first@last.example.com>';
+
+    private const string ENCODED_FIELD_VALUE =
+        "Example Test <test@example.com>,\r\n list@example.com,\r\n"
+            . " Example Announce List <announce@example.com>,\r\n \"Last, First\" <first@last.example.com>";
+
+    private const array EXPECTED_RECIPIENTS = [
+        'test@example.com'       => 'Example Test',
+        'list@example.com'       => null,
+        'announce@example.com'   => 'Example Announce List',
+        'first@last.example.com' => 'Last, First',
+    ];
+
+    /**
+     * @param class-string<AbstractAddressList> $class
+     */
+    #[DataProvider('headerClassProvider')]
+    #[Test]
+    public function hasCanonicalFieldName(string $class, string $fieldName): void
     {
-        return [
-            [new Bcc(), 'Bcc'],
-            [new Cc(), 'Cc'],
-            [new From(), 'From'],
-            [new ReplyTo(), 'Reply-To'],
-            [new To(), 'To'],
-        ];
+        static::assertSame($fieldName, (new $class())->getFieldName());
     }
 
+    /**
+     * @param class-string<AbstractAddressList> $class
+     */
+    #[DataProvider('headerClassProvider')]
     #[Test]
-    #[DataProvider('getHeaderInstances')]
-    public function concreteHeadersExtendAbstractAddressListHeader(AbstractAddressList $header): void
+    public function startsWithEmptyAddressList(string $class): void
     {
-        static::assertInstanceOf(AbstractAddressList::class, $header);
+        static::assertTrue((new $class())->getAddressList()->isEmpty());
     }
 
+    /**
+     * @param class-string<AbstractAddressList> $class
+     */
+    #[DataProvider('headerClassProvider')]
     #[Test]
-    #[DataProvider('getHeaderInstances')]
-    public function concreteHeaderFieldNamesAreDiscrete(AbstractAddressList $header, string $type): void
+    public function writesNoHeaderForEmptyList(string $class): void
     {
-        static::assertSame($type, $header->getFieldName());
-    }
-
-    #[Test]
-    #[DataProvider('getHeaderInstances')]
-    public function concreteHeadersComposeAddressLists(AbstractAddressList $header): void
-    {
-        $list = $header->getAddressList();
-        static::assertInstanceOf(AddressList::class, $list);
+        static::assertSame('', (new $class())->toString());
     }
 
     #[Test]
     public function fieldValueIsEmptyByDefault(): void
     {
-        $header = new To();
-        static::assertSame('', $header->getFieldValue());
+        static::assertSame('', (new To())->getFieldValue());
+    }
+
+    #[Test]
+    public function encodedFieldValueIsEmptyByDefault(): void
+    {
+        static::assertSame('', (new To())->getEncodedFieldValue());
+    }
+
+    #[Test]
+    public function keepsGivenAddressList(): void
+    {
+        $list = self::makeAddressList();
+
+        static::assertSame($list, (new To($list))->getAddressList());
     }
 
     #[Test]
     public function fieldValueIsCreatedFromAddressList(): void
     {
-        $header = new To();
-        $list   = $header->getAddressList();
-        $this->populateAddressList($list);
-        $expected = self::getExpectedFieldValue();
-        static::assertSame($expected, $header->getFieldValue());
-    }
-
-    public function populateAddressList(AddressList $list): void
-    {
-        $address = new Address('test@example.com', 'Example Test');
-        $list->add($address);
-        $list->add('list@example.com');
-        $list->add('announce@example.com', 'Example Announce List');
-        $list->add('first@last.example.com', 'Last, First');
-    }
-
-    public static function getExpectedFieldValue(): string
-    {
-        // @codingStandardsIgnoreStart
-        return "Example Test <test@example.com>,\r\n list@example.com,\r\n Example Announce List <announce@example.com>,\r\n \"Last, First\" <first@last.example.com>";
-
-        // @codingStandardsIgnoreEnd
+        static::assertSame(self::FIELD_VALUE, (new To(self::makeAddressList()))->getFieldValue());
     }
 
     #[Test]
-    #[DataProvider('getHeaderInstances')]
-    public function stringRepresentationIncludesHeaderAndFieldValue(AbstractAddressList $header, string $type): void
+    public function foldsEncodedFieldValueAfterEachAddress(): void
     {
-        $this->populateAddressList($header->getAddressList());
-        $expected = sprintf('%s: %s', $type, self::getExpectedFieldValue());
-        static::assertSame($expected, $header->toString());
-    }
-
-    public static function getStringHeaders(): array
-    {
-        $value = self::getExpectedFieldValue();
-        return [
-            'cc'       => ["Cc: {$value}", Cc::class],
-            'bcc'      => ["Bcc: {$value}", Bcc::class],
-            'from'     => ["From: {$value}", From::class],
-            'reply-to' => ["Reply-To: {$value}", ReplyTo::class],
-            'to'       => ["To: {$value}", To::class],
-        ];
+        static::assertSame(self::ENCODED_FIELD_VALUE, (new To(self::makeAddressList()))->getEncodedFieldValue());
     }
 
     /**
-     * @param class-string $class
+     * @param class-string<AbstractAddressList> $class
      */
+    #[DataProvider('headerClassProvider')]
     #[Test]
-    #[DataProvider('getStringHeaders')]
-    public function deserializationFromString(string $headerLine, string $class): void
+    public function stringRepresentationIncludesHeaderAndFieldValue(string $class, string $fieldName): void
     {
-        $callback = sprintf('%s::fromString', $class);
-        $header   = $callback($headerLine);
-        static::assertInstanceOf($class, $header);
-        $list = $header->getAddressList();
-        static::assertSame(4, count($list));
-        static::assertTrue($list->has('test@example.com'));
-        static::assertTrue($list->has('list@example.com'));
-        static::assertTrue($list->has('announce@example.com'));
-        static::assertTrue($list->has('first@last.example.com'));
-        $address = $list->get('test@example.com');
-        static::assertSame('Example Test', $address->getName());
-        $address = $list->get('list@example.com');
-        static::assertNull($address->getName());
-        $address = $list->get('announce@example.com');
-        static::assertSame('Example Announce List', $address->getName());
-        $address = $list->get('first@last.example.com');
-        static::assertSame('Last, First', $address->getName());
-    }
-
-    public static function getStringHeadersWithNoWhitespaceSeparator(): array
-    {
-        $value = self::getExpectedFieldValue();
-        return [
-            'cc'       => ["Cc:{$value}", Cc::class],
-            'bcc'      => ["Bcc:{$value}", Bcc::class],
-            'from'     => ["From:{$value}", From::class],
-            'reply-to' => ["Reply-To:{$value}", ReplyTo::class],
-            'to'       => ["To:{$value}", To::class],
-        ];
+        static::assertSame(
+            "{$fieldName}: " . self::ENCODED_FIELD_VALUE,
+            (new $class(self::makeAddressList()))->toString(),
+        );
     }
 
     #[Test]
-    #[DataProvider('getHeadersWithComments')]
-    public function deserializationFromStringWithComments(string $value): void
+    public function withAddressListReturnsHeaderWithNewList(): void
     {
-        $header = From::fromString($value);
-        $list   = $header->getAddressList();
-        static::assertSame(1, count($list));
-        static::assertTrue($list->has('user@example.com'));
-    }
+        $list = self::makeAddressList();
 
-    public static function getHeadersWithComments(): array
-    {
-        return [
-            ['From: user@example.com (Comment)'],
-            ['From: user@example.com (Comm\\)ent)'],
-            ['From: (Comment\\\\)user@example.com(Another)'],
-        ];
+        static::assertSame(
+            $list,
+            (new Cc())->withAddressList($list)
+                ->getAddressList(),
+        );
     }
 
     #[Test]
-    #[DataProvider('getHeadersWithSurroundingSingleQuotes')]
-    public function trimSurroundingSingleQuotes(string $value): void
+    public function withAddressListKeepsHeaderType(): void
     {
-        $header = To::fromString($value);
-        $list   = $header->getAddressList();
-        static::assertSame(1, count($list));
-        static::assertTrue($list->has('foo@example.com'));
+        static::assertInstanceOf(Cc::class, (new Cc())->withAddressList(self::makeAddressList()));
+    }
+
+    #[Test]
+    public function withAddressListLeavesOriginalUnchanged(): void
+    {
+        $header = new Cc();
+        $header->withAddressList(self::makeAddressList());
+
+        static::assertTrue($header->getAddressList()->isEmpty());
     }
 
     /**
-     * @return string[][]
+     * @param class-string<AbstractAddressList> $class
      */
-    public static function getHeadersWithSurroundingSingleQuotes(): array
+    #[DataProvider('headerClassProvider')]
+    #[Test]
+    public function parsesOwnHeaderLine(string $class, string $fieldName): void
     {
-        return [
-            ['To: <\'foo@example.com\'>'],
-            ['To: Foo Bar <\'foo@example.com\'>'],
-            ['To: \'foo@example.com\''],
-        ];
+        static::assertInstanceOf($class, $class::fromString("{$fieldName}: " . self::FIELD_VALUE));
     }
 
     /**
-     * @param class-string $class
+     * @param class-string<AbstractAddressList> $class
      */
+    #[DataProvider('headerClassProvider')]
     #[Test]
+    public function readsAddressesFromHeaderLine(string $class, string $fieldName): void
+    {
+        $list = $class::fromString("{$fieldName}: " . self::FIELD_VALUE)->getAddressList();
+
+        static::assertSame(self::EXPECTED_RECIPIENTS, self::recipients($list));
+    }
+
+    /**
+     * @param class-string<AbstractAddressList> $class
+     */
+    #[DataProvider('headerClassProvider')]
     #[Group('3789')]
-    #[DataProvider('getStringHeadersWithNoWhitespaceSeparator')]
-    public function allowsNoWhitespaceBetweenHeaderAndValue(string $headerLine, string $class): void
+    #[Test]
+    public function allowsNoWhitespaceBetweenHeaderAndValue(string $class, string $fieldName): void
     {
-        $callback = sprintf('%s::fromString', $class);
-        $header   = $callback($headerLine);
-        static::assertInstanceOf($class, $header);
-        $list = $header->getAddressList();
-        static::assertSame(4, count($list));
-        static::assertTrue($list->has('test@example.com'));
-        static::assertTrue($list->has('list@example.com'));
-        static::assertTrue($list->has('announce@example.com'));
-        static::assertTrue($list->has('first@last.example.com'));
-        $address = $list->get('test@example.com');
-        static::assertSame('Example Test', $address->getName());
-        $address = $list->get('list@example.com');
-        static::assertNull($address->getName());
-        $address = $list->get('announce@example.com');
-        static::assertSame('Example Announce List', $address->getName());
-        $address = $list->get('first@last.example.com');
-        static::assertSame('Last, First', $address->getName());
+        $list = $class::fromString("{$fieldName}:" . self::FIELD_VALUE)->getAddressList();
+
+        static::assertSame(self::EXPECTED_RECIPIENTS, self::recipients($list));
     }
 
     /**
-     * @param null|string $sample
+     * @param class-string<AbstractAddressList> $class
      */
+    #[DataProvider('headerClassProvider')]
     #[Test]
-    #[DataProvider('getAddressListsWithGroup')]
-    public function addressListWithGroup(string $input, int $count, $sample): void
+    public function rejectsHeaderLineOfAnotherHeader(string $class, string $fieldName): void
     {
-        $header = To::fromString($input);
-        $list   = $header->getAddressList();
-        static::assertSame($count, count($list));
-        if ($count > 0) {
-            static::assertTrue($list->has($sample));
-        }
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid header line for \"{$fieldName}\" string");
+
+        $class::fromString('Subject: test@example.com');
     }
 
-    public static function getAddressListsWithGroup(): array
+    /**
+     * @param array<string, ?string> $expected
+     */
+    #[DataProvider('commentProvider')]
+    #[Test]
+    public function ignoresCommentsAroundAddress(string $headerLine, array $expected): void
+    {
+        static::assertSame($expected, self::recipients(From::fromString($headerLine)->getAddressList()));
+    }
+
+    #[Test]
+    public function keepsCommentOnAddress(): void
+    {
+        static::assertSame(
+            'Comment',
+            From::fromString('From: user@example.com (Comment)')->getAddressList()->first()?->getComment(),
+        );
+    }
+
+    #[Test]
+    public function joinsCommentsOnBothSidesOfAddress(): void
+    {
+        static::assertSame(
+            'First, Second',
+            From::fromString('From: (First)user@example.com(Second)')->getAddressList()->first()?->getComment(),
+        );
+    }
+
+    #[DataProvider('surroundingSingleQuotesProvider')]
+    #[Test]
+    public function trimsSurroundingSingleQuotes(string $headerLine): void
+    {
+        static::assertSame(
+            ['foo@example.com'],
+            array_map(
+                static fn(Address $address): string => $address->getEmail(),
+                To::fromString($headerLine)->getAddressList()->toArray(),
+            ),
+        );
+    }
+
+    /**
+     * @param array<string, ?string> $expected
+     */
+    #[DataProvider('groupProvider')]
+    #[Test]
+    public function flattensGroupsIntoTheirMembers(string $headerLine, array $expected): void
+    {
+        static::assertSame($expected, self::recipients(To::fromString($headerLine)->getAddressList()));
+    }
+
+    /**
+     * @param array<string, ?string> $expected
+     */
+    #[DataProvider('specialCharHeaderProvider')]
+    #[Test]
+    public function decodesSpecialCharactersInNames(string $headerLine, array $expected): void
+    {
+        static::assertSame($expected, self::recipients(To::fromString($headerLine)->getAddressList()));
+    }
+
+    #[DataProvider('unconventionalHeaderLinesProvider')]
+    #[Test]
+    public function acceptsUnconventionalReplyToNames(string $headerLine): void
+    {
+        static::assertSame('test@example.com', ReplyTo::fromString($headerLine)->getFieldValue());
+    }
+
+    #[DataProvider('unconventionalHeaderLinesProvider')]
+    #[Test]
+    public function writesCanonicalReplyToName(string $headerLine): void
+    {
+        static::assertSame('Reply-To', ReplyTo::fromString($headerLine)->getFieldName());
+    }
+
+    #[DataProvider('encodedAddressProvider')]
+    #[Test]
+    public function encodesAddressForTheWire(Address $address, string $expected): void
+    {
+        static::assertSame($expected, (new To(new AddressList($address)))->toString());
+    }
+
+    #[DataProvider('encodedAddressProvider')]
+    #[Test]
+    public function codecEncodesSingleAddress(Address $address, string $expected): void
+    {
+        static::assertSame($expected, 'To: ' . AddressEncoder::encode($address));
+    }
+
+    #[Test]
+    public function fieldValueKeepsNonAsciiDomainAndName(): void
+    {
+        $header = new To(new AddressList(new Address('local-part@ä-umlaut.de', 'Jösé')));
+
+        static::assertSame('Jösé <local-part@ä-umlaut.de>', $header->getFieldValue());
+    }
+
+    #[Test]
+    public function decodesRfc2047EncodedName(): void
+    {
+        $list = To::fromString('To: =?UTF-8?Q?J=C3=B6s=C3=A9?= <jose@example.com>')->getAddressList();
+
+        static::assertSame(['jose@example.com' => 'Jösé'], self::recipients($list));
+    }
+
+    #[Test]
+    public function decodesFoldedHeaderLine(): void
+    {
+        $list = AddressListCodec::decode("one@example.com,\r\n two@example.com");
+
+        static::assertSame(['one@example.com' => null, 'two@example.com' => null], self::recipients($list));
+    }
+
+    #[Test]
+    public function decodesEmptyValueAsEmptyList(): void
+    {
+        static::assertTrue(AddressListCodec::decode('')->isEmpty());
+    }
+
+    /**
+     * @return array<string, array{class-string<AbstractAddressList>, string}>
+     */
+    public static function headerClassProvider(): array
     {
         return [
-            ['To: undisclosed-recipients:;',                                                0, null],
-            ['To: friends: john@example.com; enemies: john@example.net, bart@example.net;', 3, 'john@example.net'],
+            'Bcc'      => [Bcc::class, 'Bcc'],
+            'Cc'       => [Cc::class, 'Cc'],
+            'From'     => [From::class, 'From'],
+            'Reply-To' => [ReplyTo::class, 'Reply-To'],
+            'To'       => [To::class, 'To'],
         ];
     }
 
+    /**
+     * @return array<string, array{string, array<string, ?string>}>
+     */
+    public static function commentProvider(): array
+    {
+        return [
+            'comment after address'       => ['From: user@example.com (Comment)', ['user@example.com' => null]],
+            'escaped paren in comment'    => ['From: user@example.com (Comm\\)ent)', ['user@example.com' => null]],
+            'comments on both sides'      => [
+                'From: (Comment\\\\)user@example.com(Another)',
+                ['user@example.com' => null],
+            ],
+            'comment after named address' => [
+                'From: Example User <user@example.com> (work)',
+                ['user@example.com' => 'Example User'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function surroundingSingleQuotesProvider(): array
+    {
+        return [
+            'inside angle brackets'      => ["To: <'foo@example.com'>"],
+            'inside named angle bracket' => ["To: Foo Bar <'foo@example.com'>"],
+            'bare'                       => ["To: 'foo@example.com'"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, array<string, ?string>}>
+     */
+    public static function groupProvider(): array
+    {
+        return [
+            'empty group'             => ['To: undisclosed-recipients:;', []],
+            'two groups'              => [
+                'To: friends: john@example.com; enemies: john@example.net, bart@example.net;',
+                ['john@example.com' => null, 'john@example.net' => null, 'bart@example.net' => null],
+            ],
+            'group with named member' => [
+                'To: Team: Jo <jo@example.com>, al@example.com;',
+                ['jo@example.com' => 'Jo', 'al@example.com' => null],
+            ],
+            'address after a group'   => [
+                'To: Team: one@example.com;, solo@example.com',
+                ['one@example.com' => null, 'solo@example.com' => null],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, array<string, ?string>}>
+     */
     public static function specialCharHeaderProvider(): array
     {
         return [
-            [
+            'RFC 2047 name with a comma'         => [
                 'To: =?UTF-8?B?dGVzdCxsYWJlbA==?= <john@example.com>, john2@example.com',
                 ['john@example.com' => 'test,label', 'john2@example.com' => null],
-                'UTF-8',
             ],
-            [
+            'quoted name with escaped quote'     => [
                 'To: "TEST\",QUOTE" <john@example.com>, john2@example.com',
                 ['john@example.com' => 'TEST",QUOTE', 'john2@example.com' => null],
-                'ASCII',
             ],
-        ];
-    }
-
-    #[Test]
-    #[DataProvider('specialCharHeaderProvider')]
-    public function deserializationFromSpecialCharString(
-        string $headerLine,
-        array $expected,
-        string $encoding,
-    ): void {
-        $header = To::fromString($headerLine);
-
-        $expectedTo  = new To();
-        $addressList = $expectedTo->getAddressList();
-        $addressList->addMany($expected);
-        $expectedTo->setEncoding($encoding);
-        static::assertEquals($expectedTo, $header);
-        foreach ($expected as $k => $v) {
-            static::assertTrue($addressList->has($k));
-            static::assertSame($addressList->get($k)->getName(), $v);
-        }
-    }
-
-    public static function unconventionalHeaderLinesProvider(): array
-    {
-        return [
-            // Description => [header line, expected]
-            'replyto'  => ['ReplyTo: test@example.com', ReplyTo::class, 'test@example.com'],
-            'reply_to' => ['Reply_To: test@example.com', ReplyTo::class, 'test@example.com'],
+            'quoted name with escaped backslash' => [
+                'To: "Back \\\\ Slash" <john@example.com>',
+                ['john@example.com' => 'Back \\ Slash'],
+            ],
         ];
     }
 
     /**
-     * @param class-string $class
+     * @return array<string, array{string}>
      */
-    #[Test]
-    #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function fromStringHandlesUnconventionalNames(string $headerLine, string $class, string $expected): void
+    public static function unconventionalHeaderLinesProvider(): array
     {
-        $callback = sprintf('%s::fromString', $class);
-        $header   = $callback($headerLine);
-        static::assertInstanceOf($class, $header);
-        static::assertSame('Reply-To', $header->getFieldName());
-        static::assertSame($expected, $header->getFieldValue());
+        return [
+            'replyto'  => ['ReplyTo: test@example.com'],
+            'reply_to' => ['Reply_To: test@example.com'],
+            'reply-to' => ['reply-to: test@example.com'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{Address, string}>
+     */
+    public static function encodedAddressProvider(): array
+    {
+        return [
+            'bare ASCII address'             => [new Address('test@example.com'), 'To: test@example.com'],
+            'ASCII name is not encoded'      => [
+                new Address('test@example.com', 'Example Test'),
+                'To: Example Test <test@example.com>',
+            ],
+            'ASCII name with specials'       => [
+                new Address('test@example.com', 'Last, First'),
+                'To: "Last, First" <test@example.com>',
+            ],
+            'non-ASCII name'                 => [
+                new Address('test@example.com', 'Jösé'),
+                'To: =?UTF-8?Q?J=C3=B6s=C3=A9?= <test@example.com>',
+            ],
+            'IDN domain becomes punycode'    => [
+                new Address('local-part@ä-umlaut.de'),
+                'To: local-part@xn---umlaut-4wa.de',
+            ],
+            'IDN domain with non-ASCII name' => [
+                new Address('local-part@ä-umlaut.de', 'Jösé'),
+                'To: =?UTF-8?Q?J=C3=B6s=C3=A9?= <local-part@xn---umlaut-4wa.de>',
+            ],
+        ];
+    }
+
+    private static function makeAddressList(): AddressList
+    {
+        return new AddressList(
+            new Address('test@example.com', 'Example Test'),
+            new Address('list@example.com'),
+            new Address('announce@example.com', 'Example Announce List'),
+            new Address('first@last.example.com', 'Last, First'),
+        );
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private static function recipients(AddressList $list): array
+    {
+        $recipients = [];
+        foreach ($list as $address) {
+            $recipients[$address->getEmail()] = $address->getName();
+        }
+
+        return $recipients;
+    }
+
+    #[Test]
+    public function keepsAsciiDomainCaseOnTheWire(): void
+    {
+        static::assertSame('User@Example.COM', AddressEncoder::encode(new Address('User@Example.COM')));
     }
 }

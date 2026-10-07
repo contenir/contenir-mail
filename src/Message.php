@@ -1,457 +1,279 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail;
 
-use ArrayIterator;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\Cc;
 use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\From;
+use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\MimeVersion;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\Sender;
+use Contenir\Mail\Header\Subject;
 use Contenir\Mail\Header\To;
-use Traversable;
+use DateTimeImmutable;
+use Stringable;
 
 use function array_shift;
-use function count;
-use function date;
-use function gettype;
-use function is_array;
-use function is_object;
 use function is_string;
-use function method_exists;
-use function sprintf;
 
-class Message
+/**
+ * An e-mail message, built step by step.
+ *
+ * The message is mutable, but everything it holds (headers, addresses) is
+ * an immutable value, so a cloned message can be changed without touching
+ * the original.
+ *
+ * @mago-expect lint:too-many-methods The builder exposes set, add and get for each address header, as in Zend_Mail.
+ */
+final class Message
 {
-    /**
-     * Content of the message
-     *
-     * @var string|object|Mime\Message
-     */
-    protected $body;
+    private Headers $headers;
 
-    /** @var null|Headers */
-    protected $headers;
+    private string|Stringable|Mime\Message|null $body = null;
 
-    /**
-     * Message encoding
-     *
-     * Used to determine whether or not to encode headers; defaults to ASCII.
-     *
-     * @var string
-     */
-    protected $encoding = 'ASCII';
+    private string $encoding = 'ASCII';
 
-    /**
-     * Is the message valid?
-     *
-     * If we don't any From addresses, we're invalid, according to RFC2822.
-     *
-     * @return bool
-     */
-    public function isValid()
+    public function __construct(?Headers $headers = null)
     {
-        $from = $this->getFrom();
-        if (! $from instanceof AddressList) {
-            return false;
-        }
-        return (bool) count($from);
+        $this->headers = $headers ?? new Headers(new Date(new DateTimeImmutable()));
     }
 
     /**
-     * Set the message encoding
-     *
-     * @param  string $encoding
-     * @return Message
+     * A message needs at least one From address to be valid (RFC 5322, section 3.6).
      */
-    public function setEncoding($encoding)
+    public function isValid(): bool
+    {
+        return ! $this->getFrom()->isEmpty();
+    }
+
+    /**
+     * The character set of the body. Headers choose their own encoding.
+     */
+    public function setEncoding(string $encoding): self
     {
         $this->encoding = $encoding;
-        $this->getHeaders()->setEncoding($encoding);
+
         return $this;
     }
 
-    /**
-     * Get the message encoding
-     *
-     * @return string
-     */
-    public function getEncoding()
+    public function getEncoding(): string
     {
         return $this->encoding;
     }
 
-    /**
-     * Give the clone its own headers, so changing one message leaves the other alone.
-     */
-    public function __clone(): void
-    {
-        if (null !== $this->headers) {
-            $this->headers = clone $this->headers;
-        }
-    }
-
-    /**
-     * Compose headers
-     *
-     * @return Message
-     */
-    public function setHeaders(Headers $headers)
+    public function setHeaders(Headers $headers): self
     {
         $this->headers = $headers;
-        $headers->setEncoding($this->getEncoding());
+
+        return $this;
+    }
+
+    public function getHeaders(): Headers
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Set a header, replacing any headers of the same name.
+     */
+    public function setHeader(HeaderInterface $header): self
+    {
+        $this->headers = $this->headers->with($header);
+
         return $this;
     }
 
     /**
-     * Access headers collection
-     *
-     * Lazy-loads if not already attached.
-     *
-     * @return Headers
+     * Add a header, keeping any of the same name.
      */
-    public function getHeaders()
+    public function addHeader(HeaderInterface $header): self
     {
-        $headers = $this->headers;
-        if (null === $headers) {
-            $headers = new Headers();
-            $this->setHeaders($headers);
-            $headers->addHeader(Header\Date::fromString('Date: ' . date('r')));
-        }
-        return $headers;
+        $this->headers = $this->headers->withAdded($header);
+
+        return $this;
     }
 
-    /**
-     * Set (overwrite) From addresses
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressList
-     * @param  string|null $name
-     * @return Message
-     */
-    public function setFrom($emailOrAddressList, $name = null)
+    public function removeHeader(string $name): self
     {
-        $this->clearHeaderByName('from');
-        return $this->addFrom($emailOrAddressList, $name);
-    }
+        $this->headers = $this->headers->without($name);
 
-    /**
-     * Add a "From" address
-     *
-     * @param  string|Address|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  string|null $name
-     * @return Message
-     */
-    public function addFrom($emailOrAddressOrList, $name = null)
-    {
-        $addressList = $this->getFrom();
-        $this->updateAddressList($addressList, $emailOrAddressOrList, $name, __METHOD__);
         return $this;
     }
 
     /**
-     * Retrieve list of From senders
-     *
-     * @return AddressList
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function getFrom()
+    public function setFrom(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->getAddressListFromHeader('from', From::class);
+        return $this->setAddressList(new From(self::toAddressList($addresses, $name)));
     }
 
     /**
-     * Overwrite the address list in the To recipients
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressList
-     * @param  null|string $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setTo($emailOrAddressList, $name = null)
+    public function addFrom(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $this->clearHeaderByName('to');
-        return $this->addTo($emailOrAddressList, $name);
+        return $this->setAddressList(new From($this->getFrom()->withList(self::toAddressList($addresses, $name))));
+    }
+
+    public function getFrom(): AddressList
+    {
+        return $this->getAddressList('From');
     }
 
     /**
-     * Add one or more addresses to the To recipients
-     *
-     * Appends to the list.
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  null|string $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addTo($emailOrAddressOrList, $name = null)
+    public function setTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $addressList = $this->getTo();
-        $this->updateAddressList($addressList, $emailOrAddressOrList, $name, __METHOD__);
-        return $this;
+        return $this->setAddressList(new To(self::toAddressList($addresses, $name)));
     }
 
     /**
-     * Access the address list of the To header
-     *
-     * @return AddressList
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function getTo()
+    public function addTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->getAddressListFromHeader('to', To::class);
+        return $this->setAddressList(new To($this->getTo()->withList(self::toAddressList($addresses, $name))));
+    }
+
+    public function getTo(): AddressList
+    {
+        return $this->getAddressList('To');
     }
 
     /**
-     * Set (overwrite) CC addresses
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressList
-     * @param  string|null $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setCc($emailOrAddressList, $name = null)
+    public function setCc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $this->clearHeaderByName('cc');
-        return $this->addCc($emailOrAddressList, $name);
+        return $this->setAddressList(new Cc(self::toAddressList($addresses, $name)));
     }
 
     /**
-     * Add a "Cc" address
-     *
-     * @param  string|Address|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  string|null $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addCc($emailOrAddressOrList, $name = null)
+    public function addCc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $addressList = $this->getCc();
-        $this->updateAddressList($addressList, $emailOrAddressOrList, $name, __METHOD__);
-        return $this;
+        return $this->setAddressList(new Cc($this->getCc()->withList(self::toAddressList($addresses, $name))));
+    }
+
+    public function getCc(): AddressList
+    {
+        return $this->getAddressList('Cc');
     }
 
     /**
-     * Retrieve list of CC recipients
-     *
-     * @return AddressList
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function getCc()
+    public function setBcc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->getAddressListFromHeader('cc', Cc::class);
+        return $this->setAddressList(new Bcc(self::toAddressList($addresses, $name)));
     }
 
     /**
-     * Set (overwrite) BCC addresses
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressList
-     * @param  string|null $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setBcc($emailOrAddressList, $name = null)
+    public function addBcc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $this->clearHeaderByName('bcc');
-        return $this->addBcc($emailOrAddressList, $name);
+        return $this->setAddressList(new Bcc($this->getBcc()->withList(self::toAddressList($addresses, $name))));
+    }
+
+    public function getBcc(): AddressList
+    {
+        return $this->getAddressList('Bcc');
     }
 
     /**
-     * Add a "Bcc" address
-     *
-     * @param  string|Address|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  string|null $name
-     * @return Message
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addBcc($emailOrAddressOrList, $name = null)
+    public function setReplyTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        $addressList = $this->getBcc();
-        $this->updateAddressList($addressList, $emailOrAddressOrList, $name, __METHOD__);
-        return $this;
+        return $this->setAddressList(new ReplyTo(self::toAddressList($addresses, $name)));
     }
 
     /**
-     * Retrieve list of BCC recipients
-     *
-     * @return AddressList
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function getBcc()
+    public function addReplyTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->getAddressListFromHeader('bcc', Bcc::class);
+        $addressList = $this->getReplyTo()->withList(self::toAddressList($addresses, $name));
+
+        return $this->setAddressList(new ReplyTo($addressList));
+    }
+
+    public function getReplyTo(): AddressList
+    {
+        return $this->getAddressList('Reply-To');
+    }
+
+    public function setSender(Address|string $emailOrAddress, ?string $name = null): self
+    {
+        $address = is_string($emailOrAddress) ? new Address($emailOrAddress, $name) : $emailOrAddress;
+
+        return $this->setHeader(new Sender($address));
+    }
+
+    public function getSender(): ?Address
+    {
+        $header = $this->headers->get('Sender');
+
+        return $header instanceof Sender ? $header->getAddress() : null;
+    }
+
+    public function setSubject(string $subject): self
+    {
+        return $this->setHeader(new Subject($subject));
+    }
+
+    public function getSubject(): ?string
+    {
+        return $this->headers->get('Subject')?->getFieldValue();
     }
 
     /**
-     * Overwrite the address list in the Reply-To recipients
+     * Set the body as text, a MIME message, or any object that can be cast to a string.
      *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressList
-     * @param  null|string $name
-     * @return Message
+     * A MIME message also sets MIME-Version, and the Content-Type of a
+     * multipart body or the content headers of a single part.
      */
-    public function setReplyTo($emailOrAddressList, $name = null)
+    public function setBody(string|Stringable|Mime\Message|null $body): self
     {
-        $this->clearHeaderByName('reply-to');
-        return $this->addReplyTo($emailOrAddressList, $name);
-    }
-
-    /**
-     * Add one or more addresses to the Reply-To recipients
-     *
-     * Appends to the list.
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  null|string $name
-     * @return Message
-     */
-    public function addReplyTo($emailOrAddressOrList, $name = null)
-    {
-        $addressList = $this->getReplyTo();
-        $this->updateAddressList($addressList, $emailOrAddressOrList, $name, __METHOD__);
-        return $this;
-    }
-
-    /**
-     * Access the address list of the Reply-To header
-     *
-     * @return AddressList
-     */
-    public function getReplyTo()
-    {
-        return $this->getAddressListFromHeader('reply-to', ReplyTo::class);
-    }
-
-    /**
-     * setSender
-     *
-     * @return Message
-     */
-    public function setSender(mixed $emailOrAddress, mixed $name = null)
-    {
-        /** @var Sender $header */
-        $header = $this->getHeaderByName('sender', Sender::class);
-        $header->setAddress($emailOrAddress, $name);
-        return $this;
-    }
-
-    /**
-     * Retrieve the sender address, if any
-     *
-     * @return null|Address\AddressInterface
-     */
-    public function getSender()
-    {
-        $headers = $this->getHeaders();
-        if (! $headers->has('sender')) {
-            return null;
-        }
-
-        /** @var Sender $header */
-        $header = $this->getHeaderByName('sender', Sender::class);
-        return $header->getAddress();
-    }
-
-    /**
-     * Set the message subject header value
-     *
-     * @param  string $subject
-     * @return Message
-     */
-    public function setSubject($subject)
-    {
-        $headers = $this->getHeaders();
-        if (! $headers->has('subject')) {
-            $header = new Header\Subject();
-            $headers->addHeader($header);
-        } else {
-            $header = $headers->get('subject');
-        }
-        $header->setSubject($subject);
-        $header->setEncoding($this->getEncoding());
-        return $this;
-    }
-
-    /**
-     * Get the message subject header value
-     *
-     * @return null|string
-     */
-    public function getSubject()
-    {
-        $headers = $this->getHeaders();
-        if (! $headers->has('subject')) {
-            return;
-        }
-        $header = $headers->get('subject');
-        return $header->getFieldValue();
-    }
-
-    /**
-     * Set the message body
-     *
-     * @param  null|string|\Contenir\Mail\Mime\Message|object $body
-     * @throws Exception\InvalidArgumentException
-     * @return Message
-     */
-    public function setBody($body)
-    {
-        if (! is_string($body) && null !== $body) {
-            if (! is_object($body)) {
-                throw new Exception\InvalidArgumentException(sprintf(
-                    '%s expects a string or object argument; received "%s"',
-                    __METHOD__,
-                    gettype($body),
-                ));
-            }
-            if (! $body instanceof Mime\Message) {
-                if (! method_exists($body, '__toString')) {
-                    throw new Exception\InvalidArgumentException(sprintf(
-                        '%s expects object arguments of type %s or implementing __toString();'
-                            . ' object of type "%s" received',
-                        __METHOD__,
-                        Mime\Message::class,
-                        $body::class,
-                    ));
-                }
-            }
-        }
         $this->body = $body;
-
-        if (! $this->body instanceof Mime\Message) {
+        if (! $body instanceof Mime\Message) {
             return $this;
         }
 
-        // Get headers, and set Mime-Version header
-        $headers = $this->getHeaders();
-        $this->getHeaderByName('mime-version', MimeVersion::class);
+        $this->setHeader(new MimeVersion());
 
-        // Multipart content headers
-        if ($this->body->isMultiPart()) {
-            $mime = $this->body->getMime();
-
-            /** @var ContentType $header */
-            $header = $this->getHeaderByName('content-type', ContentType::class);
-            $header->setType('multipart/mixed');
-            $header->addParameter('boundary', $mime->boundary());
-            return $this;
+        if ($body->isMultiPart()) {
+            return $this->setHeader(new ContentType('multipart/mixed', ['boundary' => $body->getMime()->boundary()]));
         }
 
-        // MIME single part headers
-        $parts = $this->body->getParts();
-        if (! empty($parts)) {
-            $part = array_shift($parts);
-            $headers->addHeaders($part->getHeadersArray("\r\n"));
+        $parts = $body->getParts();
+        $part  = array_shift($parts);
+        if (null !== $part) {
+            /** @var list<array{string, string}> $partHeaders */
+            $partHeaders = $part->getHeadersArray(Headers::EOL);
+            foreach (Headers::fromIterable($partHeaders) as $header) {
+                $this->setHeader($header);
+            }
         }
+
         return $this;
     }
 
-    /**
-     * Return the currently set message body
-     *
-     * @return object|string|Mime\Message
-     */
-    public function getBody()
+    public function getBody(): string|Stringable|Mime\Message|null
     {
         return $this->body;
     }
 
-    /**
-     * Get the string-serialized message body text
-     *
-     * @return string
-     */
-    public function getBodyText()
+    public function getBodyText(): string
     {
         if ($this->body instanceof Mime\Message) {
             return $this->body->generateMessage(Headers::EOL);
@@ -460,132 +282,53 @@ class Message
         return (string) $this->body;
     }
 
-    /**
-     * Retrieve a header by name
-     *
-     * If not found, instantiates one based on $headerClass.
-     *
-     * @param  string $headerName
-     * @param  string $headerClass
-     * @return Header\HeaderInterface|ArrayIterator header instance or collection of headers
-     */
-    protected function getHeaderByName($headerName, $headerClass)
+    public function toString(): string
     {
-        $headers = $this->getHeaders();
-        if ($headers->has($headerName)) {
-            $header = $headers->get($headerName);
-        } else {
-            $header = new $headerClass();
-            $headers->addHeader($header);
-        }
-        return $header;
+        return $this->headers->toString() . Headers::EOL . $this->getBodyText();
     }
 
     /**
-     * Clear a header by name
-     *
-     * @param  string $headerName
+     * Parse a raw message into its headers and body text.
      */
-    protected function clearHeaderByName($headerName)
+    public static function fromString(string $rawMessage): self
     {
-        $this->getHeaders()->removeHeader($headerName);
-    }
-
-    /**
-     * Retrieve the AddressList from a named header
-     *
-     * Used with To, From, Cc, Bcc, and ReplyTo headers. If the header does not
-     * exist, instantiates it.
-     *
-     * @param  string $headerName
-     * @param  string $headerClass
-     * @throws Exception\DomainException
-     * @return AddressList
-     */
-    protected function getAddressListFromHeader($headerName, $headerClass)
-    {
-        $header = $this->getHeaderByName($headerName, $headerClass);
-        if (! $header instanceof Header\AbstractAddressList) {
-            throw new Exception\DomainException(sprintf(
-                'Cannot grab address list from header of type "%s"; not an AbstractAddressList implementation',
-                $header::class,
-            ));
-        }
-        return $header->getAddressList();
-    }
-
-    /**
-     * Update an address list
-     *
-     * Proxied to this from addFrom, addTo, addCc, addBcc, and addReplyTo.
-     *
-     * @param  string|Address\AddressInterface|array|AddressList|Traversable $emailOrAddressOrList
-     * @param  null|string $name
-     * @param  string $callingMethod
-     * @throws Exception\InvalidArgumentException
-     */
-    protected function updateAddressList(AddressList $addressList, $emailOrAddressOrList, $name, $callingMethod)
-    {
-        if ($emailOrAddressOrList instanceof Traversable) {
-            foreach ($emailOrAddressOrList as $address) {
-                $addressList->add($address);
-            }
-            return;
-        }
-        if (is_array($emailOrAddressOrList)) {
-            $addressList->addMany($emailOrAddressOrList);
-            return;
-        }
-        if (! is_string($emailOrAddressOrList) && ! $emailOrAddressOrList instanceof Address\AddressInterface) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                '%s expects a string, AddressInterface, array, AddressList, or Traversable as its first argument;'
-                    . ' received "%s"',
-                $callingMethod,
-                is_object($emailOrAddressOrList) ? $emailOrAddressOrList::class : gettype($emailOrAddressOrList),
-            ));
-        }
-
-        if (is_string($emailOrAddressOrList) && null === $name) {
-            $addressList->addFromString($emailOrAddressOrList);
-            return;
-        }
-
-        $addressList->add($emailOrAddressOrList, $name);
-    }
-
-    /**
-     * Serialize to string
-     *
-     * @return string
-     */
-    public function toString()
-    {
-        $headers = $this->getHeaders();
-        return $headers->toString()
-            . Headers::EOL
-            . $this->getBodyText();
-    }
-
-    /**
-     * Instantiate from raw message string
-     *
-     * @todo   Restore body to Mime\Message
-     * @param  string $rawMessage
-     * @return Message
-     */
-    public static function fromString($rawMessage)
-    {
-        $message = new static();
-
-        /** @var Headers $headers */
-        $headers = null;
-        $content = null;
+        $headers = new Headers();
+        $content = '';
         Mime\Decode::splitMessage($rawMessage, $headers, $content, Headers::EOL);
-        // if ($headers->has('mime-version')) {
-        // todo - restore body to mime\message
-        // }
-        $message->setHeaders($headers);
-        $message->setBody($content);
-        return $message;
+
+        return (new self($headers))->setBody($content);
+    }
+
+    private function getAddressList(string $headerName): AddressList
+    {
+        $header = $this->headers->get($headerName);
+
+        return $header instanceof Header\AbstractAddressList ? $header->getAddressList() : new AddressList();
+    }
+
+    private function setAddressList(Header\AbstractAddressList $header): self
+    {
+        return $this->setHeader($header);
+    }
+
+    /**
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @throws Exception\InvalidArgumentException When a name is given with anything but an e-mail address string.
+     */
+    private static function toAddressList(Address|AddressList|string|iterable $addresses, ?string $name): AddressList
+    {
+        if (null !== $name && ! is_string($addresses)) {
+            throw new Exception\InvalidArgumentException(
+                'A display name can only be given with a single e-mail address',
+            );
+        }
+
+        return match (true) {
+            $addresses instanceof AddressList => $addresses,
+            $addresses instanceof Address => new AddressList($addresses),
+            is_string($addresses) && null !== $name => new AddressList(new Address($addresses, $name)),
+            is_string($addresses) => new AddressList(Address::fromString($addresses)),
+            default               => AddressList::fromIterable($addresses),
+        };
     }
 }

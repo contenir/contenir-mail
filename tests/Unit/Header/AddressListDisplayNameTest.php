@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
 use Contenir\Mail\Header\AbstractAddressList;
-use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\AddressEncoder;
+use Contenir\Mail\Header\AddressListCodec;
 use Contenir\Mail\Header\To;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -14,14 +17,17 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(AbstractAddressList::class)]
+#[CoversClass(AddressListCodec::class)]
+#[CoversClass(AddressEncoder::class)]
+#[CoversClass(Address::class)]
 #[Group('unit')]
 final class AddressListDisplayNameTest extends TestCase
 {
     #[DataProvider('hostileNameProvider')]
     #[Test]
-    public function displayNameCannotAddRecipientsWhenReparsed(string $name, string $encoding): void
+    public function displayNameCannotAddRecipientsWhenReparsed(string $name): void
     {
-        $reparsed = To::fromString($this->makeHeader($name, $encoding)->toString());
+        $reparsed = To::fromString(self::makeHeader($name)->toString());
 
         $recipients = [];
         foreach ($reparsed->getAddressList() as $address) {
@@ -37,7 +43,7 @@ final class AddressListDisplayNameTest extends TestCase
     {
         static::assertSame(
             $expected,
-            $this->makeHeader($name, 'ASCII')->getFieldValue(HeaderInterface::FORMAT_ENCODED),
+            self::makeHeader($name)->getEncodedFieldValue(),
         );
     }
 
@@ -47,7 +53,22 @@ final class AddressListDisplayNameTest extends TestCase
     {
         static::assertSame(
             "{$name} <victim@example.com>",
-            $this->makeHeader($name, 'ASCII')->getFieldValue(HeaderInterface::FORMAT_ENCODED),
+            self::makeHeader($name)->getEncodedFieldValue(),
+        );
+    }
+
+    /**
+     * RFC 2047, section 5 (3): an encoded-word in a phrase may not hold a raw
+     * double quote, so a non-ASCII name with specials must not be quoted and
+     * then encoded with the quotes inside the encoded-word.
+     */
+    #[DataProvider('nonAsciiSpecialsNameProvider')]
+    #[Test]
+    public function encodedDisplayNameHoldsNoRawDoubleQuote(string $name): void
+    {
+        static::assertDoesNotMatchRegularExpression(
+            '/=\\?UTF-8\\?Q\\?[^?]*"/',
+            self::makeHeader($name)->getEncodedFieldValue(),
         );
     }
 
@@ -92,7 +113,7 @@ final class AddressListDisplayNameTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, string}>
+     * @return array<string, array{string}>
      */
     public static function hostileNameProvider(): array
     {
@@ -105,8 +126,8 @@ final class AddressListDisplayNameTest extends TestCase
 
         $cases = [];
         foreach ($names as $label => $name) {
-            $cases["{$label} (ASCII)"] = [$name, 'ASCII'];
-            $cases["{$label} (UTF-8)"] = [$name, 'UTF-8'];
+            $cases["{$label} (ASCII)"]     = [$name];
+            $cases["{$label} (non-ASCII)"] = ["Jösé {$name}"];
         }
 
         return $cases;
@@ -130,6 +151,18 @@ final class AddressListDisplayNameTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
+    public static function nonAsciiSpecialsNameProvider(): array
+    {
+        return [
+            'comma'        => ['Jösé, Jr'],
+            'double quote' => ['Jösé "Boss"'],
+            'colon'        => ['Re: Jösé'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
     public static function plainNameProvider(): array
     {
         return [
@@ -139,12 +172,8 @@ final class AddressListDisplayNameTest extends TestCase
         ];
     }
 
-    private function makeHeader(string $name, string $encoding): To
+    private static function makeHeader(string $name): To
     {
-        $header = new To();
-        $header->setEncoding($encoding);
-        $header->getAddressList()->add('victim@example.com', $name);
-
-        return $header;
+        return new To(new AddressList(new Address('victim@example.com', $name)));
     }
 }
