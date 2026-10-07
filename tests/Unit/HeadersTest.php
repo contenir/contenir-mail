@@ -11,6 +11,7 @@ use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderBlock;
+use Contenir\Mail\Header\HeaderLines;
 use Contenir\Mail\Header\HeaderLocator;
 use Contenir\Mail\Header\HeaderParser;
 use Contenir\Mail\Headers;
@@ -26,6 +27,7 @@ use function iterator_to_array;
 #[CoversClass(Headers::class)]
 #[CoversClass(HeaderParser::class)]
 #[CoversClass(HeaderBlock::class)]
+#[CoversClass(HeaderLines::class)]
 #[Group('unit')]
 final class HeadersTest extends TestCase
 {
@@ -470,7 +472,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=');
 
-        static::assertSame("Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=\r\n", $headers->toString());
+        static::assertSame('Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=', $headers->get('Subject')?->toString());
     }
 
     /**
@@ -521,7 +523,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('To: "=?UTF-8?Q?=C3=B5lu?= <bar" <foo.bar@test.com>');
 
-        static::assertSame("To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>\r\n", $headers->toString());
+        static::assertSame('To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>', $headers->get('To')?->toString());
     }
 
     #[Test]
@@ -612,6 +614,115 @@ final class HeadersTest extends TestCase
             'name and value' => [['Fake' => "foo-bar\r\n\r\nevilContent"]],
             'pair'           => [[['Fake', "foo-bar\r\n\r\nevilContent"]]],
             'bare line feed' => [['Fake' => "foo-bar\nBcc: evil@example.com"]],
+        ];
+    }
+
+    #[DataProvider('wireTextProvider')]
+    #[Test]
+    public function writesParsedHeadersWithTheTextTheyWereReadWith(string $block, string $eol, string $expected): void
+    {
+        static::assertSame($expected, Headers::fromString($block, $eol)->toString());
+    }
+
+    #[DataProvider('rewrittenTextProvider')]
+    #[Test]
+    public function writesParsedHeaderFromItsValueWhenItsTextCannotBeKept(string $block, string $eol): void
+    {
+        static::assertSame("Subject: a b\r\n", Headers::fromString($block, $eol)->toString());
+    }
+
+    #[Test]
+    public function writesReplacedHeaderFromItsValue(): void
+    {
+        $headers = Headers::fromString("subject:   =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n")->with(new Header\Subject('Grüße'));
+
+        static::assertSame("Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftInPlaceByWith(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->with(new GenericHeader('X-Id', '2'));
+
+        static::assertSame("subject:  Hello\r\nX-Id: 2\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfParsedHeaderSetAgainWithWith(): void
+    {
+        $parsed = Headers::fromString("subject:  Hello\r\n");
+        $header = $parsed->get('Subject');
+        static::assertNotNull($header);
+
+        static::assertSame("subject:  Hello\r\n", $parsed->with($header)->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftByWithout(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->without('X-Id');
+
+        static::assertSame("subject:  Hello\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersBeforeOneAddedWithWithAdded(): void
+    {
+        $headers = Headers::fromString("received:  from a\r\n")->withAdded(new Header\Received('from b'));
+
+        static::assertSame("received:  from a\r\nReceived: from b\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function writesHeadersBuiltFromIterableFromTheirValues(): void
+    {
+        static::assertSame("Subject: Hello\r\n", Headers::fromIterable(['subject:   Hello'])->toString());
+    }
+
+    #[Test]
+    public function keepsUnfoldedValueOfParsedHeader(): void
+    {
+        $headers = Headers::fromString("Subject: Hello\r\n\tworld\r\n");
+
+        static::assertSame('Hello world', $headers->get('Subject')?->getFieldValue());
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function wireTextProvider(): array
+    {
+        return [
+            'encoded word'          => [
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+                "\r\n",
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+            ],
+            'folding'               => [
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+                "\r\n",
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+            ],
+            'name case and spacing' => ["subject:Hello  \r\n", "\r\n", "subject:Hello  \r\n"],
+            'line feeds'            => [
+                "Subject: a\n b\nTo: x@example.com\n",
+                "\n",
+                "Subject: a\r\n b\r\nTo: x@example.com\r\n",
+            ],
+            'crlf read as lf'       => ["Subject: a\r\n b\r\n\r\n", "\n", "Subject: a\r\n b\r\n"],
+            'blank line first'      => ["  \r\nSubject: a\r\n", "\r\n", "Subject: a\r\n"],
+            'empty group'           => ["To: undisclosed-recipients:;\r\n", "\r\n", "To: undisclosed-recipients:;\r\n"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function rewrittenTextProvider(): array
+    {
+        return [
+            'whitespace-only continuation' => ["Subject: a\r\n \r\n b\r\n", "\r\n"],
+            'stray carriage return'        => ["Subject: a\r\r\n b\r\n", "\r\n"],
         ];
     }
 
