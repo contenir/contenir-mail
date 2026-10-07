@@ -59,7 +59,7 @@ class ContentTransferEncodingTest extends TestCase
     public function contentTransferEncodingGetFieldNameReturnsHeaderName(): void
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
-        static::assertEquals('Content-Transfer-Encoding', $contentTransferEncodingHeader->getFieldName());
+        static::assertSame('Content-Transfer-Encoding', $contentTransferEncodingHeader->getFieldName());
     }
 
     #[Test]
@@ -68,8 +68,8 @@ class ContentTransferEncodingTest extends TestCase
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        static::assertEquals($encoding, $contentTransferEncodingHeader->getFieldValue());
-        static::assertEquals($encoding, $contentTransferEncodingHeader->getTransferEncoding());
+        static::assertSame($encoding, $contentTransferEncodingHeader->getFieldValue());
+        static::assertSame($encoding, $contentTransferEncodingHeader->getTransferEncoding());
     }
 
     #[Test]
@@ -78,7 +78,7 @@ class ContentTransferEncodingTest extends TestCase
     {
         $header = new ContentTransferEncoding();
         $header->setTransferEncoding(strtoupper(substr($encoding, 0, 4)) . substr($encoding, 4));
-        static::assertEquals(strtolower($encoding), strtolower($header->getFieldValue()));
+        static::assertSame(strtolower($encoding), strtolower($header->getFieldValue()));
     }
 
     #[Test]
@@ -87,7 +87,7 @@ class ContentTransferEncodingTest extends TestCase
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        static::assertEquals('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
+        static::assertSame('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
     }
 
     #[Test]
@@ -183,7 +183,7 @@ class ContentTransferEncodingTest extends TestCase
     {
         $header = ContentTransferEncoding::fromString($headerLine);
         static::assertInstanceOf(ContentTransferEncoding::class, $header);
-        static::assertEquals('Content-Transfer-Encoding', $header->getFieldName());
-        static::assertEquals($expected, $header->getFieldValue());
+        static::assertSame('Content-Transfer-Encoding', $header->getFieldName());
+        static::assertSame($expected, $header->getFieldValue());
     }
 }

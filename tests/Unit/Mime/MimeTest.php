@@ -56,7 +56,7 @@ class MimeTest extends TestCase
         // check instantiating with arbitrary boundary string
         $myBoundary = 'mySpecificBoundary';
         $m3         = new Mime\Mime($myBoundary);
-        static::assertEquals($m3->boundary(), $myBoundary);
+        static::assertSame($m3->boundary(), $myBoundary);
     }
 
     #[Test]
@@ -83,7 +83,7 @@ class MimeTest extends TestCase
             . ', long, long, long, long and with ����';
 
         $qp = Mime\Mime::encodeQuotedPrintable($text);
-        static::assertEquals(quoted_printable_decode($qp), $text);
+        static::assertSame(quoted_printable_decode($qp), $text);
     }
 
     #[Test]
@@ -94,7 +94,7 @@ class MimeTest extends TestCase
 
         $expected = str_repeat('a', Mime\Mime::LINELENGTH) . "=\n=2Ebbb";
 
-        static::assertEquals($expected, $qp);
+        static::assertSame($expected, $qp);
     }
 
     #[Test]
@@ -108,7 +108,7 @@ class MimeTest extends TestCase
             . "=20=\n=2E"
             . str_repeat('.', Mime\Mime::LINELENGTH - 1);
 
-        static::assertEquals($expected, $qp);
+        static::assertSame($expected, $qp);
     }
 
     #[Test]
@@ -119,7 +119,7 @@ class MimeTest extends TestCase
 
         $expected = str_repeat('a', Mime\Mime::LINELENGTH - 2) . "=\n=3D.bbb";
 
-        static::assertEquals($expected, $qp);
+        static::assertSame($expected, $qp);
     }
 
     #[Test]
@@ -127,7 +127,7 @@ class MimeTest extends TestCase
     {
         $content = str_repeat("\x88\xAA\xAF\xBF\x29\x88\xAA\xAF\xBF\x29\x88\xAA\xAF", 4);
         $encoded = Mime\Mime::encodeBase64($content);
-        static::assertEquals($content, base64_decode($encoded));
+        static::assertSame($content, base64_decode($encoded));
     }
 
     #[Test]
@@ -143,7 +143,7 @@ class MimeTest extends TestCase
     #[DataProvider('dataTestEncodeMailHeaderQuotedPrintable')]
     public function encodeMailHeaderQuotedPrintable(string $str, string $charset, string $result): void
     {
-        static::assertEquals($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
+        static::assertSame($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
@@ -194,7 +194,7 @@ class MimeTest extends TestCase
         int $headerLength,
     ): void {
         $actualResult = Mime\Mime::encodeQuotedPrintableHeader($str, $charset, 78, Mime\Mime::LINEEND, $headerLength);
-        static::assertEquals($expectedResult, $actualResult);
+        static::assertSame($expectedResult, $actualResult);
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string, 3: int}> */
@@ -239,7 +239,7 @@ class MimeTest extends TestCase
     #[DataProvider('dataTestEncodeMailHeaderBase64')]
     public function encodeMailHeaderBase64(string $str, string $charset, string $result): void
     {
-        static::assertEquals($result, Mime\Mime::encodeBase64Header($str, $charset));
+        static::assertSame($result, Mime\Mime::encodeBase64Header($str, $charset));
     }
 
     /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
@@ -266,19 +266,19 @@ class MimeTest extends TestCase
     #[DataProvider('dataTestEncodeMailHeaderBase64wrap')]
     public function encodeMailHeaderBase64Wrap(string $str): void
     {
-        static::assertEquals(
+        static::assertSame(
             $str,
             Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 20)),
         );
-        static::assertEquals(
+        static::assertSame(
             $str,
             Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 21)),
         );
-        static::assertEquals(
+        static::assertSame(
             $str,
             Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 22)),
         );
-        static::assertEquals(
+        static::assertSame(
             $str,
             Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 23)),
         );
@@ -422,7 +422,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     #[DataProvider('dataTestCharsetDetection')]
     public function charsetDetection(string $expected, string $string): void
     {
-        static::assertEquals($expected, Mime\Mime::mimeDetectCharset($string));
+        static::assertSame($expected, Mime\Mime::mimeDetectCharset($string));
     }
 
     #[Test]

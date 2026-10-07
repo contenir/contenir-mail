@@ -54,7 +54,7 @@ class MessageTest extends TestCase
         $date   = substr($date, 0, 16);
         $test   = $header->getFieldValue();
         $test   = substr($test, 0, 16);
-        static::assertEquals($date, $test);
+        static::assertSame($date, $test);
     }
 
     #[Test]
@@ -199,7 +199,7 @@ class MessageTest extends TestCase
         $this->message->setSender('test@example.com', 'Example Test');
         $sender = $this->message->getSender();
         static::assertInstanceOf(Address::class, $sender);
-        static::assertEquals('Example Test', $sender->getName());
+        static::assertSame('Example Test', $sender->getName());
     }
 
     #[Test]
@@ -226,10 +226,10 @@ class MessageTest extends TestCase
     {
         $this->message->addFrom('test@example.com', 'Example Test');
         $addresses = $this->message->getFrom();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $address = $addresses->current();
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -237,10 +237,10 @@ class MessageTest extends TestCase
     {
         $this->message->addFrom('Example Test <test@example.com>');
         $addresses = $this->message->getFrom();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $address = $addresses->current();
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -250,7 +250,7 @@ class MessageTest extends TestCase
         $this->message->addFrom($address);
 
         $addresses = $this->message->getFrom();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $test = $addresses->current();
         static::assertSame($address, $test);
     }
@@ -266,7 +266,7 @@ class MessageTest extends TestCase
         $this->message->addFrom($addresses);
 
         $from = $this->message->getFrom();
-        static::assertEquals(3, count($from));
+        static::assertSame(3, count($from));
 
         static::assertTrue($from->has('test@example.com'));
         static::assertTrue($from->has('list@example.com'));
@@ -282,7 +282,7 @@ class MessageTest extends TestCase
         $this->message->addFrom('announce@example.com');
         $this->message->addFrom($list);
         $from = $this->message->getFrom();
-        static::assertEquals(2, count($from));
+        static::assertSame(2, count($from));
         static::assertTrue($from->has('announce@example.com'));
         static::assertTrue($from->has('test@example.com'));
     }
@@ -296,7 +296,7 @@ class MessageTest extends TestCase
         $this->message->addFrom('announce@example.com');
         $this->message->setFrom($list);
         $from = $this->message->getFrom();
-        static::assertEquals(1, count($from));
+        static::assertSame(1, count($from));
         static::assertFalse($from->has('announce@example.com'));
         static::assertTrue($from->has('test@example.com'));
     }
@@ -306,10 +306,10 @@ class MessageTest extends TestCase
     {
         $this->message->addCc('test@example.com', 'Example Test');
         $addresses = $this->message->getCc();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $address = $addresses->current();
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -319,7 +319,7 @@ class MessageTest extends TestCase
         $this->message->addCc($address);
 
         $addresses = $this->message->getCc();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $test = $addresses->current();
         static::assertSame($address, $test);
     }
@@ -335,7 +335,7 @@ class MessageTest extends TestCase
         $this->message->addCc($addresses);
 
         $cc = $this->message->getCc();
-        static::assertEquals(3, count($cc));
+        static::assertSame(3, count($cc));
 
         static::assertTrue($cc->has('test@example.com'));
         static::assertTrue($cc->has('list@example.com'));
@@ -351,7 +351,7 @@ class MessageTest extends TestCase
         $this->message->addCc('announce@example.com');
         $this->message->addCc($list);
         $cc = $this->message->getCc();
-        static::assertEquals(2, count($cc));
+        static::assertSame(2, count($cc));
         static::assertTrue($cc->has('announce@example.com'));
         static::assertTrue($cc->has('test@example.com'));
     }
@@ -365,7 +365,7 @@ class MessageTest extends TestCase
         $this->message->addCc('announce@example.com');
         $this->message->setCc($list);
         $cc = $this->message->getCc();
-        static::assertEquals(1, count($cc));
+        static::assertSame(1, count($cc));
         static::assertFalse($cc->has('announce@example.com'));
         static::assertTrue($cc->has('test@example.com'));
     }
@@ -375,10 +375,10 @@ class MessageTest extends TestCase
     {
         $this->message->addBcc('test@example.com', 'Example Test');
         $addresses = $this->message->getBcc();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $address = $addresses->current();
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -388,7 +388,7 @@ class MessageTest extends TestCase
         $this->message->addBcc($address);
 
         $addresses = $this->message->getBcc();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $test = $addresses->current();
         static::assertSame($address, $test);
     }
@@ -404,7 +404,7 @@ class MessageTest extends TestCase
         $this->message->addBcc($addresses);
 
         $bcc = $this->message->getBcc();
-        static::assertEquals(3, count($bcc));
+        static::assertSame(3, count($bcc));
 
         static::assertTrue($bcc->has('test@example.com'));
         static::assertTrue($bcc->has('list@example.com'));
@@ -420,7 +420,7 @@ class MessageTest extends TestCase
         $this->message->addBcc('announce@example.com');
         $this->message->addBcc($list);
         $bcc = $this->message->getBcc();
-        static::assertEquals(2, count($bcc));
+        static::assertSame(2, count($bcc));
         static::assertTrue($bcc->has('announce@example.com'));
         static::assertTrue($bcc->has('test@example.com'));
     }
@@ -434,7 +434,7 @@ class MessageTest extends TestCase
         $this->message->addBcc('announce@example.com');
         $this->message->setBcc($list);
         $bcc = $this->message->getBcc();
-        static::assertEquals(1, count($bcc));
+        static::assertSame(1, count($bcc));
         static::assertFalse($bcc->has('announce@example.com'));
         static::assertTrue($bcc->has('test@example.com'));
     }
@@ -444,10 +444,10 @@ class MessageTest extends TestCase
     {
         $this->message->addReplyTo('test@example.com', 'Example Test');
         $addresses = $this->message->getReplyTo();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $address = $addresses->current();
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -457,7 +457,7 @@ class MessageTest extends TestCase
         $this->message->addReplyTo($address);
 
         $addresses = $this->message->getReplyTo();
-        static::assertEquals(1, count($addresses));
+        static::assertSame(1, count($addresses));
         $test = $addresses->current();
         static::assertSame($address, $test);
     }
@@ -473,7 +473,7 @@ class MessageTest extends TestCase
         $this->message->addReplyTo($addresses);
 
         $replyTo = $this->message->getReplyTo();
-        static::assertEquals(3, count($replyTo));
+        static::assertSame(3, count($replyTo));
 
         static::assertTrue($replyTo->has('test@example.com'));
         static::assertTrue($replyTo->has('list@example.com'));
@@ -489,7 +489,7 @@ class MessageTest extends TestCase
         $this->message->addReplyTo('announce@example.com');
         $this->message->addReplyTo($list);
         $replyTo = $this->message->getReplyTo();
-        static::assertEquals(2, count($replyTo));
+        static::assertSame(2, count($replyTo));
         static::assertTrue($replyTo->has('announce@example.com'));
         static::assertTrue($replyTo->has('test@example.com'));
     }
@@ -503,7 +503,7 @@ class MessageTest extends TestCase
         $this->message->addReplyTo('announce@example.com');
         $this->message->setReplyTo($list);
         $replyTo = $this->message->getReplyTo();
-        static::assertEquals(1, count($replyTo));
+        static::assertSame(1, count($replyTo));
         static::assertFalse($replyTo->has('announce@example.com'));
         static::assertTrue($replyTo->has('test@example.com'));
     }
@@ -519,7 +519,7 @@ class MessageTest extends TestCase
     {
         $this->message->setSubject('test subject');
         $subject = $this->message->getSubject();
-        static::assertEquals('test subject', $subject);
+        static::assertSame('test subject', $subject);
     }
 
     #[Test]
@@ -538,7 +538,7 @@ class MessageTest extends TestCase
         static::assertInstanceOf(Headers::class, $headers);
         static::assertTrue($headers->has('subject'));
         $header = $headers->get('subject');
-        static::assertEquals('test subject', $header->getFieldValue());
+        static::assertSame('test subject', $header->getFieldValue());
     }
 
     #[Test]
@@ -551,7 +551,7 @@ class MessageTest extends TestCase
     public function maySetBodyFromString(): void
     {
         $this->message->setBody('body');
-        static::assertEquals('body', $this->message->getBody());
+        static::assertSame('body', $this->message->getBody());
     }
 
     #[Test]
@@ -560,7 +560,7 @@ class MessageTest extends TestCase
         $object = new TestAsset\StringSerializableObject('body');
         $this->message->setBody($object);
         static::assertSame($object, $this->message->getBody());
-        static::assertEquals('body', $this->message->getBodyText());
+        static::assertSame('body', $this->message->getBodyText());
     }
 
     #[Test]
@@ -614,11 +614,11 @@ class MessageTest extends TestCase
 
         static::assertTrue($headers->has('mime-version'));
         $header = $headers->get('mime-version');
-        static::assertEquals('1.0', $header->getFieldValue());
+        static::assertSame('1.0', $header->getFieldValue());
 
         static::assertTrue($headers->has('content-type'));
         $header = $headers->get('content-type');
-        static::assertEquals('text/html', $header->getFieldValue());
+        static::assertSame('text/html', $header->getFieldValue());
     }
 
     #[Test]
@@ -666,11 +666,11 @@ class MessageTest extends TestCase
 
         static::assertTrue($headers->has('mime-version'));
         $header = $headers->get('mime-version');
-        static::assertEquals('1.0', $header->getFieldValue());
+        static::assertSame('1.0', $header->getFieldValue());
 
         static::assertTrue($headers->has('content-type'));
         $header = $headers->get('content-type');
-        static::assertEquals("multipart/mixed;\r\n boundary=\"foo-bar\"", $header->getFieldValue());
+        static::assertSame("multipart/mixed;\r\n boundary=\"foo-bar\"", $header->getFieldValue());
     }
 
     #[Test]
@@ -689,7 +689,7 @@ class MessageTest extends TestCase
         $this->message->setBody($body);
 
         $text = $this->message->getBodyText();
-        static::assertEquals($body->generateMessage(Headers::EOL), $text);
+        static::assertSame($body->generateMessage(Headers::EOL), $text);
         static::assertStringContainsString('--foo-bar', $text);
         static::assertStringContainsString('--foo-bar--', $text);
         static::assertStringContainsString('Content-Type: text/plain', $text);
@@ -699,14 +699,14 @@ class MessageTest extends TestCase
     #[Test]
     public function encodingIsAsciiByDefault(): void
     {
-        static::assertEquals('ASCII', $this->message->getEncoding());
+        static::assertSame('ASCII', $this->message->getEncoding());
     }
 
     #[Test]
     public function encodingIsMutable(): void
     {
         $this->message->setEncoding('UTF-8');
-        static::assertEquals('UTF-8', $this->message->getEncoding());
+        static::assertSame('UTF-8', $this->message->getEncoding());
     }
 
     #[Test]
@@ -714,7 +714,7 @@ class MessageTest extends TestCase
     {
         $this->message->setSubject('This is a subject');
         $this->message->setEncoding('UTF-8');
-        static::assertEquals('This is a subject', $this->message->getSubject());
+        static::assertSame('This is a subject', $this->message->getSubject());
     }
 
     #[Test]
@@ -762,7 +762,7 @@ class MessageTest extends TestCase
         $date    = substr($date, 0, 16);
         $test    = $header->getFieldValue();
         $test    = substr($test, 0, 16);
-        static::assertEquals($date, $test);
+        static::assertSame($date, $test);
     }
 
     #[Test]
@@ -775,7 +775,7 @@ class MessageTest extends TestCase
         $this->message->setBody('foo');
         $serialized      = $this->message->toString();
         $restoredMessage = Message::fromString($serialized);
-        static::assertEquals($serialized, $restoredMessage->toString());
+        static::assertSame($serialized, $restoredMessage->toString());
     }
 
     #[Test]
@@ -789,7 +789,7 @@ class MessageTest extends TestCase
         $this->message->setBody("foo\n\ntest");
         $serialized      = $this->message->toString();
         $restoredMessage = Message::fromString($serialized);
-        static::assertEquals($serialized, $restoredMessage->toString());
+        static::assertSame($serialized, $restoredMessage->toString());
     }
 
     /**
@@ -802,7 +802,7 @@ class MessageTest extends TestCase
         $mimeMessage->setParts([]);
 
         $this->message->setBody($mimeMessage);
-        static::assertEquals('', $this->message->getBodyText());
+        static::assertSame('', $this->message->getBodyText());
     }
 
     public static function messageRecipients(): array
@@ -911,7 +911,7 @@ class MessageTest extends TestCase
         static::assertTrue($headers->has('Auto-Submitted'));
 
         $contentType = $headers->get('Content-Type');
-        static::assertEquals('multipart/report', $contentType->getType());
+        static::assertSame('multipart/report', $contentType->getType());
     }
 
     #[Test]

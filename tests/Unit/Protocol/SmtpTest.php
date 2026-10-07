@@ -52,7 +52,7 @@ class SmtpTest extends TestCase
 
         $this->transport->send($message);
 
-        static::assertEquals($expectedMessage, $this->connection->getLog());
+        static::assertSame($expectedMessage, $this->connection->getLog());
     }
 
     #[Test]
@@ -82,7 +82,7 @@ class SmtpTest extends TestCase
 
         $this->transport->send($message);
 
-        static::assertEquals($expectedMessage, $this->connection->getLog());
+        static::assertSame($expectedMessage, $this->connection->getLog());
     }
 
     #[Test]

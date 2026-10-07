@@ -29,7 +29,7 @@ class MboxInterfaceTest extends TestCase
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $count = count($list);
-        static::assertEquals(7, $count);
+        static::assertSame(7, $count);
     }
 
     #[Test]
@@ -54,7 +54,7 @@ class MboxInterfaceTest extends TestCase
         $list = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $list[1]->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -73,7 +73,7 @@ class MboxInterfaceTest extends TestCase
         $pos  = 1;
 
         foreach ($list as $key => $message) {
-            static::assertEquals($key, $pos, "wrong key in iteration $pos");
+            static::assertSame($key, $pos, "wrong key in iteration $pos");
             ++$pos;
         }
     }
@@ -102,7 +102,7 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        static::assertEquals(7, $count);
+        static::assertSame(7, $count);
     }
 
     #[Test]
@@ -115,7 +115,7 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        static::assertEquals(3, $count);
+        static::assertSame(3, $count);
     }
 
     #[Test]
@@ -128,7 +128,7 @@ class MboxInterfaceTest extends TestCase
             ++$count;
         }
 
-        static::assertEquals(5, $count);
+        static::assertSame(5, $count);
     }
 
     #[Test]

@@ -23,9 +23,9 @@ class MessageIdTest extends TestCase
         $messageid->setId($id);
 
         $expected = sprintf('<%s>', $id);
-        static::assertEquals($expected, $messageid->getFieldValue());
-        static::assertEquals($expected, $messageid->getId());
-        static::assertEquals("Message-ID: $expected", $messageid->toString());
+        static::assertSame($expected, $messageid->getFieldValue());
+        static::assertSame($expected, $messageid->getId());
+        static::assertSame("Message-ID: $expected", $messageid->toString());
     }
 
     #[Test]

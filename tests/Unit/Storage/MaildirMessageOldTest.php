@@ -107,7 +107,7 @@ class MaildirMessageOldTest extends TestCase
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -116,7 +116,7 @@ class MaildirMessageOldTest extends TestCase
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -126,7 +126,7 @@ class MaildirMessageOldTest extends TestCase
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
     }
 
     #[Test]
@@ -154,13 +154,13 @@ class MaildirMessageOldTest extends TestCase
     public function fetchPart(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
-        static::assertEquals($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
+        static::assertSame($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
     }
 
     #[Test]
     public function partSize(): void
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
-        static::assertEquals($mail->getMessage(4)->getPart(2)->getSize(), 80);
+        static::assertSame($mail->getMessage(4)->getPart(2)->getSize(), 80);
     }
 }

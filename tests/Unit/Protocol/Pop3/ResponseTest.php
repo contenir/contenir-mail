@@ -20,9 +20,9 @@ class ResponseTest extends TestCase
         $response = new Response('+OK', 'Auth');
 
         /** @psalm-suppress InternalMethod */
-        static::assertEquals('+OK', $response->status());
+        static::assertSame('+OK', $response->status());
 
         /** @psalm-suppress InternalMethod */
-        static::assertEquals('Auth', $response->message());
+        static::assertSame('Auth', $response->message());
     }
 }

@@ -30,7 +30,7 @@ class ContentDispositionTest extends TestCase
             'Content-Disposition: attachment; filename="test-case.txt";',
         );
         $params = $contentTypeHeader->getParameters();
-        static::assertEquals(['filename' => 'test-case.txt'], $params);
+        static::assertSame(['filename' => 'test-case.txt'], $params);
     }
 
     public static function getLiteralData(): array
@@ -56,7 +56,7 @@ class ContentDispositionTest extends TestCase
     public function handlesLiterals(array $expected, string $header): void
     {
         $header = ContentDisposition::fromString('Content-Disposition: ' . $header);
-        static::assertEquals($expected, $header->getParameters());
+        static::assertSame($expected, $header->getParameters());
     }
 
     #[Test]
@@ -70,11 +70,11 @@ class ContentDispositionTest extends TestCase
         $header = ContentDisposition::fromString($expectedToString);
 
         static::assertInstanceOf(ContentDisposition::class, $header);
-        static::assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
-        static::assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
-        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertSame('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertSame($disposition, $header->getDisposition(), 'getDisposition() value not match');
+        static::assertSame($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
         static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertSame($expectedToString, $header->toString(), 'toString() value not match');
     }
 
     #[Test]
@@ -92,11 +92,11 @@ class ContentDispositionTest extends TestCase
             $header->setParameter($name, $value);
         }
 
-        static::assertEquals('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
-        static::assertEquals($disposition, $header->getDisposition(), 'getDisposition() value not match');
-        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
-        static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertSame('Content-Disposition', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertSame($disposition, $header->getDisposition(), 'getDisposition() value not match');
+        static::assertSame($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertSame($parameters, $header->getParameters(), 'getParameters() value not match');
+        static::assertSame($expectedToString, $header->toString(), 'toString() value not match');
     }
 
     #[Test]
@@ -105,13 +105,13 @@ class ContentDispositionTest extends TestCase
         $header = new ContentDisposition();
 
         // default value
-        static::assertEquals('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
 
         $header->setEncoding('UTF-8');
-        static::assertEquals('UTF-8', $header->getEncoding());
+        static::assertSame('UTF-8', $header->getEncoding());
 
         $header->setEncoding('ASCII');
-        static::assertEquals('ASCII', $header->getEncoding());
+        static::assertSame('ASCII', $header->getEncoding());
     }
 
     /**
@@ -133,8 +133,8 @@ class ContentDispositionTest extends TestCase
     public function fromStringHandlesContinuations(): void
     {
         $header = ContentDisposition::fromString("Content-Disposition: attachment;\r\n level=1");
-        static::assertEquals('attachment', $header->getDisposition());
-        static::assertEquals(['level' => '1'], $header->getParameters());
+        static::assertSame('attachment', $header->getDisposition());
+        static::assertSame(['level' => '1'], $header->getParameters());
     }
 
     /**
@@ -148,8 +148,8 @@ class ContentDispositionTest extends TestCase
     {
         $header = ContentDisposition::fromString($input);
 
-        static::assertEquals($disposition, $header->getDisposition());
-        static::assertEquals($parameters, $header->getParameters());
+        static::assertSame($disposition, $header->getDisposition());
+        static::assertSame($parameters, $header->getParameters());
     }
 
     #[Test]
@@ -185,7 +185,7 @@ class ContentDispositionTest extends TestCase
     public function getParameter(string $fromString, string $paramName, ?string $paramValue): void
     {
         $header = ContentDisposition::fromString($fromString);
-        static::assertEquals($paramValue, $header->getParameter($paramName));
+        static::assertSame($paramValue, $header->getParameter($paramName));
     }
 
     #[Test]
@@ -193,10 +193,10 @@ class ContentDispositionTest extends TestCase
     {
         $header = ContentDisposition::fromString('Content-Disposition: inline');
 
-        static::assertEquals(false, $header->removeParameter('no-such-parameter'));
+        static::assertSame(false, $header->removeParameter('no-such-parameter'));
 
         $header->setParameter('name', 'value');
-        static::assertEquals(true, $header->removeParameter('name'));
+        static::assertSame(true, $header->removeParameter('name'));
     }
 
     public static function setDispositionProvider(): array
@@ -420,7 +420,7 @@ class ContentDispositionTest extends TestCase
     {
         $header = ContentDisposition::fromString($headerLine);
         static::assertInstanceOf(ContentDisposition::class, $header);
-        static::assertEquals('Content-Disposition', $header->getFieldName());
-        static::assertEquals($expected, $header->getFieldValue());
+        static::assertSame('Content-Disposition', $header->getFieldName());
+        static::assertSame($expected, $header->getFieldValue());
     }
 }

@@ -39,7 +39,7 @@ class HeaderValueTest extends TestCase
     #[Group('ZF2015-04')]
     public function filterValue(string $value, string $expected): void
     {
-        static::assertEquals($expected, HeaderValue::filter($value));
+        static::assertSame($expected, HeaderValue::filter($value));
     }
 
     public static function validateValues(): array

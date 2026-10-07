@@ -34,7 +34,7 @@ class HeaderLocatorTest extends TestCase
     #[DataProvider('provideHeaderNames')]
     public function headerIsProperlyLoaded(string $name, ?string $expected, ?string $default = null): void
     {
-        static::assertEquals($expected, $this->headerLocator->get($name, $default));
+        static::assertSame($expected, $this->headerLocator->get($name, $default));
     }
 
     #[Test]
@@ -95,6 +95,6 @@ class HeaderLocatorTest extends TestCase
     #[DataProvider('expectedHeaders')]
     public function defaultHeadersMapResolvesProperHeader($name, $class): void
     {
-        static::assertEquals($class, $this->headerLocator->get($name));
+        static::assertSame($class, $this->headerLocator->get($name));
     }
 }

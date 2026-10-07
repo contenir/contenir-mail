@@ -33,7 +33,7 @@ class HeaderWrapTest extends TestCase
         $expected = wordwrap($string, 78, "\r\n ");
 
         $test = HeaderWrap::wrap($string, $header);
-        static::assertEquals($expected, $test);
+        static::assertSame($expected, $test);
     }
 
     /**
@@ -52,8 +52,8 @@ class HeaderWrapTest extends TestCase
             . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
 
         $test = HeaderWrap::wrap($string, $header);
-        static::assertEquals($expected, $test);
-        static::assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertSame($expected, $test);
+        static::assertSame($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
     }
 
     #[Test]
@@ -74,8 +74,8 @@ class HeaderWrapTest extends TestCase
         $expected = '=?UTF-8?Q?Umlauts:=20=C3=A4?=';
 
         $test = HeaderWrap::mimeEncodeValue($string, 'UTF-8', 78);
-        static::assertEquals($expected, $test);
-        static::assertEquals($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertSame($expected, $test);
+        static::assertSame($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
     }
 
     #[Test]
@@ -87,7 +87,7 @@ class HeaderWrapTest extends TestCase
 
         $decoded = HeaderWrap::mimeDecodeValue($encoded);
 
-        static::assertEquals($expected, $decoded);
+        static::assertSame($expected, $decoded);
     }
 
     /**
@@ -112,7 +112,7 @@ class HeaderWrapTest extends TestCase
         $headers->toString();
 
         $header = $headers->get('DKIM-Signature');
-        static::assertEquals(
+        static::assertSame(
             'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org;'
                 . ' h= content-language:content-type:content-type:in-reply-to',
             $header->getFieldValue(),
@@ -141,14 +141,14 @@ class HeaderWrapTest extends TestCase
     {
         $originalValue = 'аф';
 
-        static::assertEquals(strlen($originalValue), 4);
+        static::assertSame(strlen($originalValue), 4);
 
         $part1 = base64_encode(substr($originalValue, 0, 3));
         $part2 = base64_encode(substr($originalValue, 3));
 
         $header = '=?utf-8?B?' . $part1 . '?==?utf-8?B?' . $part2 . '?=';
 
-        static::assertEquals(
+        static::assertSame(
             $originalValue,
             HeaderWrap::mimeDecodeValue($header),
         );

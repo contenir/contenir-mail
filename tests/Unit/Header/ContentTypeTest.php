@@ -32,14 +32,14 @@ class ContentTypeTest extends TestCase
             'Content-Type: multipart/alternative; boundary="Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD";',
         );
         $params = $contentTypeHeader->getParameters();
-        static::assertEquals(['boundary' => 'Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD'], $params);
+        static::assertSame(['boundary' => 'Apple-Mail=_1B852F10-F9C6-463D-AADD-CD503A5428DD'], $params);
     }
 
     #[Test]
     public function extractsExtraInformationWithoutBeingConfusedByTrailingSemicolon(): void
     {
         $header = ContentType::fromString('Content-Type: application/pdf;name="foo.pdf";');
-        static::assertEquals($header->getParameters(), ['name' => 'foo.pdf']);
+        static::assertSame($header->getParameters(), ['name' => 'foo.pdf']);
     }
 
     public static function getLiteralData(): array
@@ -61,7 +61,7 @@ class ContentTypeTest extends TestCase
     public function handlesLiterals(array $expected, string $header): void
     {
         $header = ContentType::fromString('Content-Type: ' . $header);
-        static::assertEquals($expected, $header->getParameters());
+        static::assertSame($expected, $header->getParameters());
     }
 
     #[Test]
@@ -71,11 +71,11 @@ class ContentTypeTest extends TestCase
         $header = ContentType::fromString($expectedToString);
 
         static::assertInstanceOf(ContentType::class, $header);
-        static::assertEquals('Content-Type', $header->getFieldName(), 'getFieldName() value not match');
-        static::assertEquals($type, $header->getType(), 'getType() value not match');
-        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
-        static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertSame('Content-Type', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertSame($type, $header->getType(), 'getType() value not match');
+        static::assertSame($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertSame($parameters, $header->getParameters(), 'getParameters() value not match');
+        static::assertSame($expectedToString, $header->toString(), 'toString() value not match');
     }
 
     #[Test]
@@ -89,11 +89,11 @@ class ContentTypeTest extends TestCase
             $header->addParameter($name, $value);
         }
 
-        static::assertEquals('Content-Type', $header->getFieldName(), 'getFieldName() value not match');
-        static::assertEquals($type, $header->getType(), 'getType() value not match');
-        static::assertEquals($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
-        static::assertEquals($parameters, $header->getParameters(), 'getParameters() value not match');
-        static::assertEquals($expectedToString, $header->toString(), 'toString() value not match');
+        static::assertSame('Content-Type', $header->getFieldName(), 'getFieldName() value not match');
+        static::assertSame($type, $header->getType(), 'getType() value not match');
+        static::assertSame($fieldValue, $header->getFieldValue(), 'getFieldValue() value not match');
+        static::assertSame($parameters, $header->getParameters(), 'getParameters() value not match');
+        static::assertSame($expectedToString, $header->toString(), 'toString() value not match');
     }
 
     /**
@@ -116,8 +116,8 @@ class ContentTypeTest extends TestCase
     public function fromStringHandlesContinuations(): void
     {
         $header = ContentType::fromString("Content-Type: text/html;\r\n level=1");
-        static::assertEquals('text/html', $header->getType());
-        static::assertEquals(['level' => '1'], $header->getParameters());
+        static::assertSame('text/html', $header->getType());
+        static::assertSame(['level' => '1'], $header->getParameters());
     }
 
     /**
@@ -131,7 +131,7 @@ class ContentTypeTest extends TestCase
     {
         $header = ContentType::fromString($input);
 
-        static::assertEquals($parameters, $header->getParameters());
+        static::assertSame($parameters, $header->getParameters());
     }
 
     /**
@@ -307,7 +307,7 @@ class ContentTypeTest extends TestCase
     {
         $header = ContentType::fromString($headerLine);
         static::assertInstanceOf(ContentType::class, $header);
-        static::assertEquals('Content-Type', $header->getFieldName());
-        static::assertEquals($expected, $header->getFieldValue());
+        static::assertSame('Content-Type', $header->getFieldName());
+        static::assertSame($expected, $header->getFieldValue());
     }
 }

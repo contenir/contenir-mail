@@ -32,7 +32,7 @@ class SenderTest extends TestCase
     public function getFieldNameReturnsHeaderName(): void
     {
         $sender = new Header\Sender();
-        static::assertEquals('Sender', $sender->getFieldName());
+        static::assertSame('Sender', $sender->getFieldName());
     }
 
     #[Test]
@@ -42,8 +42,8 @@ class SenderTest extends TestCase
     {
         $header = Header\Sender::fromString('Sender:' . $encodedValue);
 
-        static::assertEquals($expectedFieldValue, $header->getFieldValue());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($expectedFieldValue, $header->getFieldValue());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     /**
@@ -76,9 +76,9 @@ class SenderTest extends TestCase
         $header = new Header\Sender();
         $header->setAddress($email, $name);
 
-        static::assertEquals($expectedFieldValue, $header->getFieldValue());
-        static::assertEquals('Sender: ' . $encodedValue, $header->toString());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($expectedFieldValue, $header->getFieldValue());
+        static::assertSame('Sender: ' . $encodedValue, $header->toString());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     /**
@@ -113,9 +113,9 @@ class SenderTest extends TestCase
         $header->setAddress($address);
 
         static::assertSame($address, $header->getAddress());
-        static::assertEquals($expectedFieldValue, $header->getFieldValue());
-        static::assertEquals('Sender: ' . $encodedValue, $header->toString());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($expectedFieldValue, $header->getFieldValue());
+        static::assertSame('Sender: ' . $encodedValue, $header->toString());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     public static function validSenderDataProvider(): array

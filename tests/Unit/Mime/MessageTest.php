@@ -53,7 +53,7 @@ class MessageTest extends TestCase
         $msg->setMime($mime);
         $m2 = $msg->getMime();
         static::assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m2);
-        static::assertEquals('1234', $m2->boundary());
+        static::assertSame('1234', $m2->boundary());
     }
 
     #[Test]
@@ -106,16 +106,16 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
-        static::assertEquals(2, count($parts));
+        static::assertSame(2, count($parts));
 
         $part1 = $parts[0];
-        static::assertEquals('application/octet-stream', $part1->type);
-        static::assertEquals('8bit', $part1->encoding);
+        static::assertSame('application/octet-stream', $part1->type);
+        static::assertSame('8bit', $part1->encoding);
 
         $part2 = $parts[1];
-        static::assertEquals('image/gif', $part2->type);
-        static::assertEquals('base64', $part2->encoding);
-        static::assertEquals('12', $part2->id);
+        static::assertSame('image/gif', $part2->type);
+        static::assertSame('base64', $part2->encoding);
+        static::assertSame('12', $part2->id);
     }
 
     /**
@@ -142,7 +142,7 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
-        static::assertEquals(2, count($parts));
+        static::assertSame(2, count($parts));
 
         $part1        = $parts[0];
         $part1Content = $part1->getRawContent();
@@ -150,7 +150,7 @@ class MessageTest extends TestCase
         static::assertStringContainsString('End content', $part1Content);
 
         $part2 = $parts[1];
-        static::assertEquals('image/gif', $part2->type);
+        static::assertSame('image/gif', $part2->type);
     }
 
     /**
@@ -167,12 +167,12 @@ class MessageTest extends TestCase
         $res = Mime\Message::createFromMessage($text);
 
         $parts = $res->getParts();
-        static::assertEquals(1, count($parts));
+        static::assertSame(1, count($parts));
 
         $part1        = $parts[0];
         $part1Content = $part1->getRawContent();
-        static::assertEquals('This is a test', $part1Content);
-        static::assertEquals('image/gif', $part1->type);
+        static::assertSame('This is a test', $part1Content);
+        static::assertSame('image/gif', $part1->type);
     }
 
     #[Test]
@@ -195,7 +195,7 @@ class MessageTest extends TestCase
         $mimeMessage = new Mime\Message();
         $mimeMessage->setParts([]);
 
-        static::assertEquals('', $mimeMessage->generateMessage());
+        static::assertSame('', $mimeMessage->generateMessage());
     }
 
     #[Test]
@@ -235,7 +235,7 @@ class MessageTest extends TestCase
         $message = Message::createFromMessage($fixture, '=_af4357ef34b786aae1491b0a2d14399f', $eol);
         $parts   = $message->getParts();
 
-        static::assertEquals(1, count($parts));
-        static::assertEquals('attachment; filename="test.txt"', $parts[0]->getDisposition());
+        static::assertSame(1, count($parts));
+        static::assertSame('attachment; filename="test.txt"', $parts[0]->getDisposition());
     }
 }

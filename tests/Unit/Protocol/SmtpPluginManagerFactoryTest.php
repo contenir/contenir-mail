@@ -31,7 +31,7 @@ class SmtpPluginManagerFactoryTest extends TestCase
             $creationContextProperty = $reflectionClass->getProperty('creationContext');
 
             // laminas-servicemanager v3
-            static::assertEquals($container, $creationContextProperty->getValue($plugins));
+            static::assertSame($container, $creationContextProperty->getValue($plugins));
         } else {
             // laminas-servicemanager v2
             static::assertSame($container, $plugins->getServiceLocator());

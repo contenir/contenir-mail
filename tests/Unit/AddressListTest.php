@@ -33,21 +33,21 @@ class AddressListTest extends TestCase
     #[Test]
     public function isEmptyByDefault(): void
     {
-        static::assertEquals(0, count($this->list));
+        static::assertSame(0, count($this->list));
     }
 
     #[Test]
     public function addingEmailsIncreasesCount(): void
     {
         $this->list->add('test@example.com');
-        static::assertEquals(1, count($this->list));
+        static::assertSame(1, count($this->list));
     }
 
     #[Test]
     public function addingEmailFromStringIncreasesCount(): void
     {
         $this->list->addFromString('test@example.com');
-        static::assertEquals(1, count($this->list));
+        static::assertSame(1, count($this->list));
     }
 
     #[Test]
@@ -97,7 +97,7 @@ class AddressListTest extends TestCase
         $this->list->add('test@example.com');
         $address = $this->list->get('test@example.com');
         static::assertInstanceOf(Address::class, $address);
-        static::assertEquals('test@example.com', $address->getEmail());
+        static::assertSame('test@example.com', $address->getEmail());
     }
 
     #[Test]
@@ -106,8 +106,8 @@ class AddressListTest extends TestCase
         $this->list->add('test@example.com', 'Example Test');
         $address = $this->list->get('test@example.com');
         static::assertInstanceOf(Address::class, $address);
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
@@ -119,7 +119,7 @@ class AddressListTest extends TestCase
             new Address('announce@example.com', 'Announce List'),
         ];
         $this->list->addMany($addresses);
-        static::assertEquals(3, count($this->list));
+        static::assertSame(3, count($this->list));
         static::assertTrue($this->list->has('test@example.com'));
         static::assertTrue($this->list->has('list@example.com'));
         static::assertTrue($this->list->has('announce@example.com'));
@@ -144,9 +144,9 @@ class AddressListTest extends TestCase
         $to          = Header\To::fromString('To:' . $header);
         $addressList = $to->getAddressList();
         $address     = $addressList->get('support@example.org');
-        static::assertEquals('Supports', $address->getName());
-        static::assertEquals('E-mail', $address->getComment());
-        static::assertEquals('support@example.org', $address->getEmail());
+        static::assertSame('Supports', $address->getName());
+        static::assertSame('E-mail', $address->getComment());
+        static::assertSame('support@example.org', $address->getEmail());
     }
 
     #[Test]
@@ -157,7 +157,7 @@ class AddressListTest extends TestCase
             new Address('test@example.com', 'Example Test'),
         ];
         $this->list->addMany($addresses);
-        static::assertEquals(1, count($this->list));
+        static::assertSame(1, count($this->list));
         static::assertTrue($this->list->has('test@example.com'));
         $address = $this->list->get('test@example.com');
         static::assertNull($address->getName());
@@ -184,7 +184,7 @@ class AddressListTest extends TestCase
         }
         $addressList = $to->getAddressList();
 
-        static::assertEquals('Some User', $addressList->get('some.user@example.com')->getName());
+        static::assertSame('Some User', $addressList->get('some.user@example.com')->getName());
         static::assertTrue($addressList->has('uzer2.surname@example.org'));
         static::assertTrue($addressList->has('asda.fasd@example.net'));
         static::assertTrue($addressList->has('root@example.org'));
@@ -197,7 +197,7 @@ class AddressListTest extends TestCase
         $this->list->add('one@example.net');
         $otherList->add('two@example.org');
         $this->list->merge($otherList);
-        static::assertEquals(2, count($this->list));
+        static::assertSame(2, count($this->list));
     }
 
     #[Test]
@@ -205,7 +205,7 @@ class AddressListTest extends TestCase
     {
         $this->list->add('test@example.com');
         static::assertTrue($this->list->delete('test@example.com'));
-        static::assertEquals(0, count($this->list));
+        static::assertSame(0, count($this->list));
     }
 
     #[Test]
@@ -249,6 +249,6 @@ class AddressListTest extends TestCase
         $addressList = $to->getAddressList();
         static::assertTrue($addressList->has('bob@example.com'));
         static::assertTrue($addressList->has('blah@example.com'));
-        static::assertEquals("Bob O'Reilly", $addressList->get('bob@example.com')->getName());
+        static::assertSame("Bob O'Reilly", $addressList->get('bob@example.com')->getName());
     }
 }

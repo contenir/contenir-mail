@@ -157,7 +157,7 @@ class MboxFolderTest extends TestCase
 
         $mail->selectFolder(DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test');
 
-        static::assertEquals(
+        static::assertSame(
             $mail->getCurrentFolder(),
             DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test',
         );
@@ -184,7 +184,7 @@ class MboxFolderTest extends TestCase
     {
         $mail = new Folder\Mbox($this->params);
 
-        static::assertEquals($mail->getFolders()->subfolder->__toString(), DIRECTORY_SEPARATOR . 'subfolder');
+        static::assertSame($mail->getFolders()->subfolder->__toString(), DIRECTORY_SEPARATOR . 'subfolder');
     }
 
     #[Test]
@@ -192,7 +192,7 @@ class MboxFolderTest extends TestCase
     {
         $mail = new Folder\Mbox($this->params);
 
-        static::assertEquals($mail->getFolders()->subfolder->key(), 'test');
+        static::assertSame($mail->getFolders()->subfolder->key(), 'test');
     }
 
     #[Test]
@@ -218,7 +218,7 @@ class MboxFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        static::assertEquals($searchFolders, $foundFolders);
+        static::assertSame($searchFolders, $foundFolders);
     }
 
     #[Test]
@@ -243,7 +243,7 @@ class MboxFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        static::assertEquals($searchFolders, $foundFolders);
+        static::assertSame($searchFolders, $foundFolders);
     }
 
     #[Test]
@@ -253,7 +253,7 @@ class MboxFolderTest extends TestCase
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
 
         foreach ($iterator as $localName => $folder) {
-            static::assertEquals($localName, $folder->getLocalName());
+            static::assertSame($localName, $folder->getLocalName());
         }
     }
 
@@ -263,11 +263,11 @@ class MboxFolderTest extends TestCase
         $mail = new Folder\Mbox($this->params);
 
         $count = $mail->countMessages();
-        static::assertEquals(7, $count);
+        static::assertSame(7, $count);
 
         $mail->selectFolder(DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test');
         $count = $mail->countMessages();
-        static::assertEquals(1, $count);
+        static::assertSame(1, $count);
     }
 
     #[Test]
@@ -277,11 +277,11 @@ class MboxFolderTest extends TestCase
         $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
 
         $sizes = $mail->getSize();
-        static::assertEquals($shouldSizes, $sizes);
+        static::assertSame($shouldSizes, $sizes);
 
         $mail->selectFolder(DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test');
         $sizes = $mail->getSize();
-        static::assertEquals([1 => 410], $sizes);
+        static::assertSame([1 => 410], $sizes);
     }
 
     #[Test]
@@ -290,11 +290,11 @@ class MboxFolderTest extends TestCase
         $mail = new Folder\Mbox($this->params);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
 
         $mail->selectFolder(DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test');
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Message in subfolder', $subject);
+        static::assertSame('Message in subfolder', $subject);
     }
 
     #[Test]
@@ -309,12 +309,12 @@ class MboxFolderTest extends TestCase
         $serialzed = serialize($mail);
         $mail      = unserialize($serialzed);
 
-        static::assertEquals($mail->countMessages(), $count);
-        static::assertEquals($mail->getMessage(1)->getContent(), $content);
+        static::assertSame($mail->countMessages(), $count);
+        static::assertSame($mail->getMessage(1)->getContent(), $content);
 
         $mail->selectFolder(DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test');
-        static::assertEquals($mail->countMessages(), $count);
-        static::assertEquals($mail->getMessage(1)->getContent(), $content);
+        static::assertSame($mail->countMessages(), $count);
+        static::assertSame($mail->getMessage(1)->getContent(), $content);
     }
 
     #[Test]

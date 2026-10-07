@@ -67,6 +67,6 @@ class DateTest extends TestCase
     public function rendersHeaderLine(): void
     {
         $header = new Header\Date('today');
-        static::assertEquals('Date: today', $header->toString());
+        static::assertSame('Date: today', $header->toString());
     }
 }

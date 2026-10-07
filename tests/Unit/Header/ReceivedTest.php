@@ -27,7 +27,7 @@ class ReceivedTest extends TestCase
     public function getFieldNameReturnsHeaderName(): void
     {
         $receivedHeader = new Header\Received();
-        static::assertEquals('Received', $receivedHeader->getFieldName());
+        static::assertSame('Received', $receivedHeader->getFieldName());
     }
 
     #[Test]
@@ -121,23 +121,23 @@ class ReceivedTest extends TestCase
     public function rendersHeaderLine(): void
     {
         $header = new Header\Received('test');
-        static::assertEquals('Received: test', $header->toString());
+        static::assertSame('Received: test', $header->toString());
     }
 
     #[Test]
     public function toStringMultipleHeaders(): void
     {
         $header = new Header\Received('test');
-        static::assertEquals('Received: test', $header->toStringMultipleHeaders([]));
+        static::assertSame('Received: test', $header->toStringMultipleHeaders([]));
 
         $header2 = new Header\Received('test2');
-        static::assertEquals(
+        static::assertSame(
             "Received: test\r\nReceived: test2",
             $header->toStringMultipleHeaders([$header2]),
         );
 
         $header3 = new Header\Received('test3');
-        static::assertEquals(
+        static::assertSame(
             "Received: test\r\nReceived: test2\r\nReceived: test3",
             $header->toStringMultipleHeaders([$header2, $header3]),
         );
