@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Exception\RuntimeException;
 
 use function is_array;
@@ -11,7 +12,8 @@ use function is_int;
 
 /**
  * Turns header text into header objects, using the class a locator names
- * for each header and falling back to GenericHeader when that class rejects it.
+ * for each header and falling back to GenericHeader when that class rejects it,
+ * such as an address header whose address is invalid.
  *
  * @internal Used by Contenir\Mail\Headers.
  */
@@ -68,7 +70,7 @@ final readonly class HeaderParser
         try {
             /** @mago-expect analysis:possibly-static-access-on-interface The locator maps names to concrete header classes. */
             return $class::fromString($line);
-        } catch (Exception\ExceptionInterface) {
+        } catch (ExceptionInterface) {
             return GenericHeader::fromString($line);
         }
     }
