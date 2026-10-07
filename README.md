@@ -108,6 +108,10 @@ Behaviour changes:
 - Cloning a `Message` clones its headers, so changing the clone leaves the
   original untouched.
 - `Imap` no longer hangs on a server response with two spaces in a row.
+- `Storage\Writable\Maildir` quota checks no longer fail on the blank line after
+  the last entry of a `maildirsize` file, which every rewrite of that file left.
+- Maildir folders without a `new/` directory, which `Storage\Maildir` already
+  accepted as valid, can now be opened and selected.
 - Internationalised host names given to a protocol (SMTP, POP3, IMAP) are accepted
   whenever they convert to ASCII under UTS #46, not only under the TLDs
   laminas-validator kept character tables for.
