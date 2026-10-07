@@ -20,6 +20,7 @@
         "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
         "ext-iconv": "*",
         "laminas/laminas-stdlib": "^3.21",
+        "psr/clock": "^1.0",
         "symfony/polyfill-intl-idn": "^1.27.0",
         "symfony/polyfill-mbstring": "^1.27.0",
         "webmozart/assert": "^1.11.0"

@@ -6,7 +6,6 @@ namespace Contenir\Mail;
 
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\Cc;
-use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\From;
 use Contenir\Mail\Header\HeaderInterface;
@@ -15,10 +14,9 @@ use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\Sender;
 use Contenir\Mail\Header\Subject;
 use Contenir\Mail\Header\To;
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Stringable;
 
-use function array_shift;
 use function is_string;
 
 /**
@@ -32,15 +30,25 @@ use function is_string;
  */
 final class Message
 {
+    /** Shown by mail readers that do not understand MIME, ahead of the first part */
+    private const string PREAMBLE = 'This is a multi-part message in MIME format.';
+
     private Headers $headers;
 
-    private string|Stringable|Mime\Message|null $body = null;
+    private string|Stringable|Mime\PartInterface|null $body = null;
 
-    private string $encoding = 'ASCII';
+    private Mime\Body $parts;
 
-    public function __construct(?Headers $headers = null)
+    /** The MIME tree built from $parts, kept so its boundaries stay the same */
+    private ?Mime\PartInterface $composed = null;
+
+    /**
+     * @param Headers|null $headers The headers to start from; a Date header from the clock when none are given.
+     */
+    public function __construct(?Headers $headers = null, ClockInterface $clock = new SystemClock())
     {
-        $this->headers = $headers ?? new Headers(new Date(new DateTimeImmutable()));
+        $this->headers = $headers ?? new Headers(new Date($clock->now()));
+        $this->parts   = new Mime\Body();
     }
 
     /**
@@ -51,21 +59,6 @@ final class Message
         return ! $this->getFrom()->isEmpty();
     }
 
-    /**
-     * The character set of the body. Headers choose their own encoding.
-     */
-    public function setEncoding(string $encoding): self
-    {
-        $this->encoding = $encoding;
-
-        return $this;
-    }
-
-    public function getEncoding(): string
-    {
-        return $this->encoding;
-    }
-
     public function setHeaders(Headers $headers): self
     {
         $this->headers = $headers;
@@ -73,9 +66,24 @@ final class Message
         return $this;
     }
 
+    /**
+     * The message headers, with MIME-Version and the content headers of a MIME body added.
+     *
+     * @throws Mime\Exception\RuntimeException When embed() was used without setHtml().
+     */
     public function getHeaders(): Headers
     {
-        return $this->headers;
+        $body = $this->getBody();
+        if (! $body instanceof Mime\PartInterface) {
+            return $this->headers;
+        }
+
+        $headers = $this->headers->with(new MimeVersion());
+        foreach ($body->getHeaders() as $header) {
+            $headers = $headers->with($header);
+        }
+
+        return $headers;
     }
 
     /**
@@ -237,54 +245,86 @@ final class Message
     }
 
     /**
-     * Set the body as text, a MIME message, or any object that can be cast to a string.
-     *
-     * A MIME message also sets MIME-Version, and the Content-Type of a
-     * multipart body or the content headers of a single part.
+     * The plain-text body. With HTML as well, the two become alternatives.
      */
-    public function setBody(string|Stringable|Mime\Message|null $body): self
+    public function setText(string $text, string $charset = 'UTF-8'): self
+    {
+        return $this->setParts($this->parts->withText(Mime\Part::text($text, $charset)));
+    }
+
+    /**
+     * The HTML body. With text as well, the two become alternatives.
+     */
+    public function setHtml(string $html, string $charset = 'UTF-8'): self
+    {
+        return $this->setParts($this->parts->withHtml(Mime\Part::html($html, $charset)));
+    }
+
+    /**
+     * Attach a file, such as one built with Mime\Attachment::fromPath().
+     */
+    public function attach(Mime\Part $attachment): self
+    {
+        return $this->setParts($this->parts->withAttachment($attachment));
+    }
+
+    /**
+     * Embed a resource the HTML refers to as "cid:…", such as one built with Mime\Attachment::inline().
+     *
+     * @throws Mime\Exception\InvalidArgumentException When the part has no Content-ID.
+     */
+    public function embed(Mime\Part $resource): self
+    {
+        return $this->setParts($this->parts->withEmbedded($resource));
+    }
+
+    /**
+     * Set the body directly, as text or a MIME tree, in place of the parts
+     * given to setText(), setHtml(), attach() and embed().
+     *
+     * A text body is sent as it is, so declare its Content-Type yourself if it is not ASCII.
+     */
+    public function setBody(string|Stringable|Mime\PartInterface|null $body): self
     {
         $this->body = $body;
-        if (! $body instanceof Mime\Message) {
-            return $this;
-        }
-
-        $this->setHeader(new MimeVersion());
-
-        if ($body->isMultiPart()) {
-            return $this->setHeader(new ContentType('multipart/mixed', ['boundary' => $body->getMime()->boundary()]));
-        }
-
-        $parts = $body->getParts();
-        $part  = array_shift($parts);
-        if (null !== $part) {
-            /** @var list<array{string, string}> $partHeaders */
-            $partHeaders = $part->getHeadersArray(Headers::EOL);
-            foreach (Headers::fromIterable($partHeaders) as $header) {
-                $this->setHeader($header);
-            }
-        }
 
         return $this;
     }
 
-    public function getBody(): string|Stringable|Mime\Message|null
+    /**
+     * The body set with setBody(), or else the MIME tree built from the
+     * text, HTML, embedded resources and attachments; null when there is none.
+     *
+     * @throws Mime\Exception\RuntimeException When embed() was used without setHtml().
+     */
+    public function getBody(): string|Stringable|Mime\PartInterface|null
     {
-        return $this->body;
+        return $this->body ?? ($this->composed ??= $this->parts->toPart());
     }
 
+    /**
+     * @throws Mime\Exception\RuntimeException When a multipart set with setBody() has no boundary,
+     *     or embed() was used without setHtml().
+     */
     public function getBodyText(): string
     {
-        if ($this->body instanceof Mime\Message) {
-            return $this->body->generateMessage(Headers::EOL);
+        $body = $this->getBody();
+        if (! $body instanceof Mime\PartInterface) {
+            return (string) $body;
         }
 
-        return (string) $this->body;
+        $text = Mime\PartWriter::body($body);
+
+        return $body->isMultipart() ? self::PREAMBLE . Headers::EOL . Headers::EOL . $text : $text;
     }
 
+    /**
+     * @throws Mime\Exception\RuntimeException When a multipart set with setBody() has no boundary,
+     *     or embed() was used without setHtml().
+     */
     public function toString(): string
     {
-        return $this->headers->toString() . Headers::EOL . $this->getBodyText();
+        return $this->getHeaders()->toString() . Headers::EOL . $this->getBodyText();
     }
 
     /**
@@ -297,6 +337,14 @@ final class Message
         Mime\Decode::splitMessage($rawMessage, $headers, $content, Headers::EOL);
 
         return (new self($headers))->setBody($content);
+    }
+
+    private function setParts(Mime\Body $parts): self
+    {
+        $this->parts    = $parts;
+        $this->composed = null;
+
+        return $this;
     }
 
     private function getAddressList(string $headerName): AddressList

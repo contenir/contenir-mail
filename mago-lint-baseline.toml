@@ -217,66 +217,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Mime/Message.php"
-code = "kan-defect"
-message = "Class has a high kan defect score."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "literal-named-argument"
-message = "Literal argument `'<>'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "method-name"
-message = "Method name `_disassembleMime` should be in camel case."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "no-else-clause"
-message = "Avoid `else` clauses."
-count = 2
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "no-empty"
-message = "Use of the `empty` construct."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "no-isset"
-message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "strict-behavior"
-message = "Call to `base64_decode` must enforce strict comparison."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "variable-name"
-message = "Variable name `$EOL` should be in camel case."
-count = 4
-
-[[issues]]
 file = "src/Mime/Mime.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
@@ -290,27 +230,9 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
-code = "kan-defect"
-message = "Class has a high kan defect score."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
 code = "literal-named-argument"
 message = "Literal argument `'='` should be passed as a named argument for clarity."
-count = 3
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "literal-named-argument"
-message = "Literal argument `'=09'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "literal-named-argument"
-message = "Literal argument `'=20'` should be passed as a named argument for clarity."
-count = 1
+count = 2
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -328,7 +250,7 @@ count = 3
 file = "src/Mime/Mime.php"
 code = "literal-named-argument"
 message = "Literal argument `1` should be passed as a named argument for clarity."
-count = 4
+count = 2
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -338,15 +260,9 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
-code = "method-name"
-message = "Method name `_encodeQuotedPrintable` should be in camel case."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
-count = 4
+count = 3
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -359,84 +275,6 @@ file = "src/Mime/Mime.php"
 code = "no-insecure-comparison"
 message = "Insecure comparison of sensitive data."
 count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "str-starts-with"
-message = "Consider replacing `strpos` with `str_starts_with` for improved readability and intent clarity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "too-many-methods"
-message = "Class has too many methods."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "variable-name"
-message = "Variable name `$EOL` should be in camel case."
-count = 3
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "cyclomatic-complexity"
-message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "kan-defect"
-message = "Class has a high kan defect score."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "literal-named-argument"
-message = "Literal argument `'convert.base64-encode'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "literal-named-argument"
-message = "Literal argument `'convert.quoted-printable-encode'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "no-isset"
-message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "too-many-properties"
-message = "Class has too many properties."
-count = 1
-
-[[issues]]
-file = "src/Mime/Part.php"
-code = "variable-name"
-message = "Variable name `$EOL` should be in camel case."
-count = 4
 
 [[issues]]
 file = "src/Module.php"
@@ -2003,60 +1841,6 @@ file = "src/Transport/TransportInterface.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Mime/MessageTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "literal-named-argument"
-message = "Literal argument `200_000` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "literal-named-argument"
-message = "Literal argument `4` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "method-name"
-message = "Method name `dataTestEncodeMailHeaderBase64wrap` should be in camel case."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "strict-behavior"
-message = "Call to `base64_decode` must enforce strict comparison."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "literal-named-argument"
-message = "Literal argument `'rb'` should be passed as a named argument for clarity."
-count = 4
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "no-redundant-variable"
-message = "Variable `$original` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "strict-behavior"
-message = "Call to `base64_decode` must enforce strict comparison."
-count = 2
 
 [[issues]]
 file = "tests/Unit/Protocol/HttpStatusService/index.php"

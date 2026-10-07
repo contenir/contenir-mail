@@ -6,6 +6,9 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Multipart;
+use Contenir\Mail\Mime\MultipartType;
+use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\Sendmail;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -66,9 +69,9 @@ final class SendmailTest extends TestCase
     }
 
     #[Test]
-    public function leavesAsciiSubjectUnencodedWhenBodyEncodingIsUtf8(): void
+    public function leavesAsciiSubjectUnencodedWithNonAsciiTextBody(): void
     {
-        $message = $this->makeMessage()->setEncoding('UTF-8');
+        $message = $this->makeMessage()->setBody(null)->setText('Grüße');
 
         $mail = $this->send($this->makeUnixTransport(), $message);
 
@@ -82,6 +85,40 @@ final class SendmailTest extends TestCase
         $mail = $this->send($this->makeTransport($system), $this->makeMessage());
 
         static::assertSame('This is only a test.', $mail['body']);
+    }
+
+    #[DataProvider('mimeHeaderProvider')]
+    #[Test]
+    public function passesMimeHeadersOfBuiltBodyAsAdditionalHeaders(string $expected): void
+    {
+        $mail = $this->send($this->makeUnixTransport(), $this->makeMimeMessage());
+
+        static::assertStringContainsString($expected, $mail['headers']);
+    }
+
+    #[Test]
+    public function passesWrittenMultipartAsBody(): void
+    {
+        $mail = $this->send($this->makeUnixTransport(), $this->makeMimeMessage());
+
+        static::assertSame(
+            "This is a multi-part message in MIME format.\r\n"
+                . "\r\n"
+                . "--alt\r\n"
+                . "Content-Type: text/plain;\r\n"
+                . " charset=\"UTF-8\"\r\n"
+                . "Content-Transfer-Encoding: quoted-printable\r\n"
+                . "\r\n"
+                . "Hello\r\n"
+                . "--alt\r\n"
+                . "Content-Type: text/html;\r\n"
+                . " charset=\"UTF-8\"\r\n"
+                . "Content-Transfer-Encoding: quoted-printable\r\n"
+                . "\r\n"
+                . "<p>Hello</p>\r\n"
+                . '--alt--',
+            $mail['body'],
+        );
     }
 
     #[Test]
@@ -326,6 +363,17 @@ final class SendmailTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
+    public static function mimeHeaderProvider(): array
+    {
+        return [
+            'MIME-Version' => ["MIME-Version: 1.0\r\n"],
+            'Content-Type' => ["Content-Type: multipart/alternative;\r\n boundary=\"alt\"\r\n"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
     public static function fromSwitchProvider(): array
     {
         return [
@@ -358,6 +406,13 @@ final class SendmailTest extends TestCase
             ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
             ->setBody('This is only a test.')
             ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
+    }
+
+    private function makeMimeMessage(): Message
+    {
+        return $this->makeMessage()->setBody(
+            new Multipart(MultipartType::Alternative, [Part::text('Hello'), Part::html('<p>Hello</p>')], 'alt'),
+        );
     }
 
     private function makeTransport(string $system): Sendmail

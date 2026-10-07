@@ -1,552 +1,214 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Mime;
 
-use function array_key_exists;
-use function gettype;
-use function is_object;
+use Contenir\Mail\Header\ContentDisposition;
+use Contenir\Mail\Header\ContentTransferEncoding;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Headers;
+use Override;
+
+use function base64_encode;
+use function chunk_split;
+use function feof;
+use function fread;
+use function get_resource_type;
 use function is_resource;
 use function is_string;
 use function rewind;
-use function sprintf;
-use function stream_filter_append;
-use function stream_filter_remove;
+use function rtrim;
 use function stream_get_contents;
-use function stream_get_meta_data;
-
-use const STREAM_FILTER_READ;
+use function strlen;
+use function substr;
 
 /**
- * Class representing a MIME part.
+ * A leaf of a MIME tree: text, HTML, an attachment or an inline resource.
+ *
+ * Content is a string, or a readable stream for large files. A stream is
+ * read from the start each time the part is written, and base64 content
+ * is encoded in chunks rather than read into memory in one piece.
+ *
+ * @mago-expect lint:excessive-parameter-list A value object built with named arguments; every field is an optional MIME header.
  */
-class Part
+final readonly class Part implements PartInterface
 {
-    /** @var string */
-    public $type = Mime::TYPE_OCTETSTREAM;
+    /** Bytes in one 72-character line of base64 */
+    private const int BASE64_CHUNK = 54;
 
-    /** @var string */
-    public $encoding = Mime::ENCODING_8BIT;
-
-    /** @var null|string */
-    public $id;
-
-    /** @var null|string */
-    public $disposition;
-
-    /** @var null|string */
-    public $filename;
-
-    /** @var null|string */
-    public $description;
-
-    /** @var null|string */
-    public $charset;
-
-    /** @var null|string */
-    public $boundary;
-
-    /** @var null|string */
-    public $location;
-
-    /** @var null|string */
-    public $language;
+    /** @var string|resource */
+    private mixed $content;
 
     /**
-     * String or stream containing the content
-     *
-     * @var string|resource
+     * @param string|resource $content
+     * @throws Exception\InvalidArgumentException When the content is neither a string nor a stream.
      */
-    protected $content;
+    public function __construct(
+        mixed $content,
+        private string $type = Mime::TYPE_OCTETSTREAM,
+        private TransferEncoding $encoding = TransferEncoding::Base64,
+        private ?string $charset = null,
+        private ?Disposition $disposition = null,
+        private ?string $filename = null,
+        private ?string $id = null,
+        private ?string $description = null,
+        private ?string $location = null,
+        private ?string $language = null,
+    ) {
+        if (! is_string($content) && ! (is_resource($content) && 'stream' === get_resource_type($content))) {
+            throw new Exception\InvalidArgumentException('Content must be a string or a stream');
+        }
 
-    /** @var bool */
-    protected $isStream = false;
-
-    /** @var array<array-key, resource> */
-    protected $filters = [];
-
-    /**
-     * create a new Mime Part.
-     * The (unencoded) content of the Part as passed
-     * as a string or stream
-     *
-     * @param mixed $content  String or Stream containing the content
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct($content = '')
-    {
-        $this->setContent($content);
+        $this->content = $content;
     }
 
     /**
-     * @todo error checking for setting $type
-     * @todo error checking for setting $encoding
+     * Plain text, quoted-printable encoded.
      */
-
-    /**
-     * Set type
-     *
-     * @param string $type
-     * @return self
-     */
-    public function setType($type = Mime::TYPE_OCTETSTREAM)
+    public static function text(string $text, string $charset = 'UTF-8'): self
     {
-        $this->type = $type;
-        return $this;
+        return new self($text, Mime::TYPE_TEXT, TransferEncoding::QuotedPrintable, $charset);
     }
 
     /**
-     * Get type
-     *
-     * @return string
+     * HTML, quoted-printable encoded.
      */
-    public function getType()
+    public static function html(string $html, string $charset = 'UTF-8'): self
+    {
+        return new self($html, Mime::TYPE_HTML, TransferEncoding::QuotedPrintable, $charset);
+    }
+
+    public function getType(): string
     {
         return $this->type;
     }
 
-    /**
-     * Set encoding
-     *
-     * @param string $encoding
-     * @return self
-     */
-    public function setEncoding($encoding = Mime::ENCODING_8BIT)
-    {
-        $this->encoding = $encoding;
-        return $this;
-    }
-
-    /**
-     * Get encoding
-     *
-     * @return string
-     */
-    public function getEncoding()
+    public function getTransferEncoding(): TransferEncoding
     {
         return $this->encoding;
     }
 
-    /**
-     * Set id
-     *
-     * @param string $id
-     * @return self
-     */
-    public function setId($id)
+    public function getCharset(): ?string
     {
-        $this->id = $id;
-        return $this;
+        return $this->charset;
     }
 
-    /**
-     * Get id
-     *
-     * @return string
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set disposition
-     *
-     * @param string $disposition
-     * @return self
-     */
-    public function setDisposition($disposition)
-    {
-        $this->disposition = $disposition;
-        return $this;
-    }
-
-    /**
-     * Get disposition
-     *
-     * @return string
-     */
-    public function getDisposition()
+    public function getDisposition(): ?Disposition
     {
         return $this->disposition;
     }
 
-    /**
-     * Set description
-     *
-     * @param string $description
-     * @return self
-     */
-    public function setDescription($description)
-    {
-        $this->description = $description;
-        return $this;
-    }
-
-    /**
-     * Get description
-     *
-     * @return string
-     */
-    public function getDescription()
-    {
-        return $this->description;
-    }
-
-    /**
-     * Set filename
-     *
-     * @param string $fileName
-     * @return self
-     */
-    public function setFileName($fileName)
-    {
-        $this->filename = $fileName;
-        return $this;
-    }
-
-    /**
-     * Get filename
-     *
-     * @return string
-     */
-    public function getFileName()
+    public function getFilename(): ?string
     {
         return $this->filename;
     }
 
     /**
-     * Set charset
-     *
-     * @param string $charset
-     * @return self
+     * The Content-ID, without angle brackets, that HTML refers to as "cid:…".
      */
-    public function setCharset($charset)
+    public function getId(): ?string
     {
-        $this->charset = $charset;
-        return $this;
+        return $this->id;
     }
 
-    /**
-     * Get charset
-     *
-     * @return string
-     */
-    public function getCharset()
+    #[Override]
+    public function getHeaders(): Headers
     {
-        return $this->charset;
-    }
+        $headers = [
+            new ContentType($this->type, null === $this->charset ? [] : ['charset' => $this->charset]),
+            new ContentTransferEncoding($this->encoding),
+        ];
 
-    /**
-     * Set boundary
-     *
-     * @param string $boundary
-     * @return self
-     */
-    public function setBoundary($boundary)
-    {
-        $this->boundary = $boundary;
-        return $this;
-    }
-
-    /**
-     * Get boundary
-     *
-     * @return string
-     */
-    public function getBoundary()
-    {
-        return $this->boundary;
-    }
-
-    /**
-     * Set location
-     *
-     * @param string $location
-     * @return self
-     */
-    public function setLocation($location)
-    {
-        $this->location = $location;
-        return $this;
-    }
-
-    /**
-     * Get location
-     *
-     * @return string
-     */
-    public function getLocation()
-    {
-        return $this->location;
-    }
-
-    /**
-     * Set language
-     *
-     * @param string $language
-     * @return self
-     */
-    public function setLanguage($language)
-    {
-        $this->language = $language;
-        return $this;
-    }
-
-    /**
-     * Get language
-     *
-     * @return string
-     */
-    public function getLanguage()
-    {
-        return $this->language;
-    }
-
-    /**
-     * Set content
-     *
-     * @param mixed $content  String or Stream containing the content
-     * @throws Exception\InvalidArgumentException
-     * @return self
-     */
-    public function setContent($content)
-    {
-        if (! is_string($content) && ! is_resource($content)) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                'Content must be string or resource; received "%s"',
-                is_object($content) ? $content::class : gettype($content),
-            ));
-        }
-        $this->content = $content;
-        if (is_resource($content)) {
-            $this->isStream = true;
+        if (null !== $this->id) {
+            $headers[] = new GenericHeader('Content-ID', "<{$this->id}>");
         }
 
-        return $this;
-    }
-
-    /**
-     * Set isStream
-     *
-     * @param bool $isStream
-     * @return self
-     */
-    public function setIsStream($isStream = false)
-    {
-        $this->isStream = (bool) $isStream;
-        return $this;
-    }
-
-    /**
-     * Get isStream
-     *
-     * @return bool
-     */
-    public function getIsStream()
-    {
-        return $this->isStream;
-    }
-
-    /**
-     * Set filters
-     *
-     * @param array<array-key, resource> $filters
-     * @return self
-     */
-    public function setFilters($filters = [])
-    {
-        $this->filters = $filters;
-        return $this;
-    }
-
-    /**
-     * Get Filters
-     *
-     * @return array<array-key, resource>
-     */
-    public function getFilters()
-    {
-        return $this->filters;
-    }
-
-    /**
-     * check if this part can be read as a stream.
-     * if true, getEncodedStream can be called, otherwise
-     * only getContent can be used to fetch the encoded
-     * content of the part
-     *
-     * @return bool
-     */
-    public function isStream()
-    {
-        return $this->isStream;
-    }
-
-    // phpcs:disable WebimpressCodingStandard.NamingConventions.ValidVariableName.NotCamelCaps
-
-    /**
-     * if this was created with a stream, return a filtered stream for
-     * reading the content. very useful for large file attachments.
-     *
-     * @param string $EOL
-     * @return resource
-     * @throws Exception\RuntimeException If not a stream or unable to append filter.
-     */
-    public function getEncodedStream($EOL = Mime::LINEEND)
-    {
-        if (! $this->isStream) {
-            throw new Exception\RuntimeException('Attempt to get a stream from a string part');
+        if (null !== $this->disposition) {
+            $parameters = null === $this->filename ? [] : ['filename' => $this->filename];
+            $headers[]  = new ContentDisposition($this->disposition->value, $parameters);
         }
 
-        //stream_filter_remove(); // ??? is that right?
-        switch ($this->encoding) {
-            case Mime::ENCODING_QUOTEDPRINTABLE:
-                if (array_key_exists(Mime::ENCODING_QUOTEDPRINTABLE, $this->filters)) {
-                    stream_filter_remove($this->filters[Mime::ENCODING_QUOTEDPRINTABLE]);
-                }
-                $filter = stream_filter_append(
-                    $this->content,
-                    'convert.quoted-printable-encode',
-                    STREAM_FILTER_READ,
-                    [
-                        'line-length'      => 76,
-                        'line-break-chars' => $EOL,
-                    ],
-                );
-                $this->filters[Mime::ENCODING_QUOTEDPRINTABLE] = $filter;
-                if (! is_resource($filter)) {
-                    throw new Exception\RuntimeException('Failed to append quoted-printable filter');
-                }
-                break;
-            case Mime::ENCODING_BASE64:
-                if (array_key_exists(Mime::ENCODING_BASE64, $this->filters)) {
-                    stream_filter_remove($this->filters[Mime::ENCODING_BASE64]);
-                }
-                $filter = stream_filter_append(
-                    $this->content,
-                    'convert.base64-encode',
-                    STREAM_FILTER_READ,
-                    [
-                        'line-length'      => 76,
-                        'line-break-chars' => $EOL,
-                    ],
-                );
-                $this->filters[Mime::ENCODING_BASE64] = $filter;
-                if (! is_resource($filter)) {
-                    throw new Exception\RuntimeException('Failed to append base64 filter');
-                }
-                break;
-            default:
-        }
-        return $this->content;
-    }
-
-    /**
-     * Get the Content of the current Mime Part in the given encoding.
-     *
-     * @param string $EOL
-     * @return string
-     */
-    public function getContent($EOL = Mime::LINEEND)
-    {
-        if ($this->isStream) {
-            $encodedStream         = $this->getEncodedStream($EOL);
-            $encodedStreamContents = stream_get_contents($encodedStream);
-            $streamMetaData        = stream_get_meta_data($encodedStream);
-
-            if (isset($streamMetaData['seekable']) && $streamMetaData['seekable']) {
-                rewind($encodedStream);
+        $optional = [
+            'Content-Description' => $this->description,
+            'Content-Location'    => $this->location,
+            'Content-Language'    => $this->language,
+        ];
+        foreach ($optional as $name => $value) {
+            if (null === $value) {
+                continue;
             }
 
-            return $encodedStreamContents;
+            $headers[] = new GenericHeader($name, $value);
         }
-        return Mime::encode($this->content, $this->encoding, $EOL);
+
+        return new Headers(...$headers);
+    }
+
+    #[Override]
+    public function isMultipart(): bool
+    {
+        return false;
+    }
+
+    #[Override]
+    public function getParts(): array
+    {
+        return [];
+    }
+
+    #[Override]
+    public function getContent(): string
+    {
+        if (is_string($this->content)) {
+            return $this->content;
+        }
+
+        rewind($this->content);
+
+        return (string) stream_get_contents($this->content);
+    }
+
+    #[Override]
+    public function getEncodedContent(): string
+    {
+        if (TransferEncoding::Base64 === $this->encoding && ! is_string($this->content)) {
+            return self::encodeStreamAsBase64($this->content);
+        }
+
+        return Mime::encode($this->getContent(), $this->encoding, Headers::EOL);
     }
 
     /**
-     * Get the RAW unencoded content from this part
+     * Encode whole 54-byte groups as they are read, so padding only ever
+     * appears at the very end, however the stream splits its reads.
      *
-     * @return string
+     * @param resource $stream
+     *
+     * @mago-expect analysis:missing-parameter-type Streams have no native parameter type.
      */
-    public function getRawContent()
+    private static function encodeStreamAsBase64($stream): string
     {
-        if ($this->isStream) {
-            return stream_get_contents($this->content);
+        rewind($stream);
+
+        $encoded = '';
+        $buffer  = '';
+        while (! feof($stream)) {
+            $buffer  .= (string) fread($stream, self::BASE64_CHUNK * 1024);
+            $whole   = strlen($buffer) - (strlen($buffer) % self::BASE64_CHUNK);
+            $encoded .= self::base64Lines(substr($buffer, offset: 0, length: $whole));
+            $buffer  = substr($buffer, $whole);
         }
-        return $this->content;
+
+        return rtrim($encoded . self::base64Lines($buffer), Headers::EOL);
     }
 
     /**
-     * Create and return the array of headers for this MIME part
-     *
-     * @access public
-     * @param string $EOL
-     * @return array
+     * Base64 in 72-character lines, each ending with a CRLF; nothing for no bytes.
      */
-    public function getHeadersArray($EOL = Mime::LINEEND)
+    private static function base64Lines(string $bytes): string
     {
-        $headers = [];
-
-        $contentType = $this->type;
-        if ($this->charset) {
-            $contentType .= "; charset={$this->charset}";
-        }
-
-        if ($this->boundary) {
-            $contentType .=
-                ';'
-                . $EOL
-                . ' boundary="'
-                . $this->boundary
-                . '"';
-        }
-
-        $headers[] = ['Content-Type', $contentType];
-
-        if ($this->encoding) {
-            $headers[] = ['Content-Transfer-Encoding', $this->encoding];
-        }
-
-        if ($this->id) {
-            $headers[] = ['Content-ID', "<{$this->id}>"];
-        }
-
-        if ($this->disposition) {
-            $disposition = $this->disposition;
-            if ($this->filename) {
-                $disposition .= '; filename="' . $this->filename . '"';
-            }
-            $headers[] = ['Content-Disposition', $disposition];
-        }
-
-        if ($this->description) {
-            $headers[] = ['Content-Description', $this->description];
-        }
-
-        if ($this->location) {
-            $headers[] = ['Content-Location', $this->location];
-        }
-
-        if ($this->language) {
-            $headers[] = ['Content-Language', $this->language];
-        }
-
-        return $headers;
-    }
-
-    /**
-     * Return the headers for this part as a string
-     *
-     * @param string $EOL
-     * @return String
-     */
-    public function getHeaders($EOL = Mime::LINEEND)
-    {
-        $res = '';
-        foreach ($this->getHeadersArray($EOL) as $header) {
-            $res .= "{$header[0]}: {$header[1]}{$EOL}";
-        }
-
-        return $res;
+        return '' === $bytes ? '' : chunk_split(base64_encode($bytes), Mime::LINELENGTH, Headers::EOL);
     }
 }
