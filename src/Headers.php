@@ -91,6 +91,7 @@ final readonly class Headers implements Countable, IteratorAggregate
      * Build headers from header objects, complete lines, `[name, value]` pairs or `name => value` entries.
      *
      * @param iterable<int|string, HeaderInterface|string|array{string, string}> $headers
+     * @throws Header\Exception\InvalidArgumentException When a line is malformed or a name is longer than HeaderName::MAX_LENGTH.
      */
     public static function fromIterable(iterable $headers, HeaderLocatorInterface $locator = new HeaderLocator()): self
     {

@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
+use function str_repeat;
 
 #[CoversClass(HeaderName::class)]
 class HeaderNameTest extends TestCase
@@ -88,5 +89,22 @@ class HeaderNameTest extends TestCase
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('Invalid');
         HeaderName::assertValid($name);
+    }
+
+    #[Test]
+    public function acceptsNameOfMaximumLength(): void
+    {
+        $this->expectNotToPerformAssertions();
+
+        HeaderName::assertLength(str_repeat('X', HeaderName::MAX_LENGTH));
+    }
+
+    #[Test]
+    public function rejectsNameLongerThanMaximumLength(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 981 characters');
+
+        HeaderName::assertLength(str_repeat('X', HeaderName::MAX_LENGTH + 1));
     }
 }

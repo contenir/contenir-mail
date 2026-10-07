@@ -13,6 +13,7 @@ use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderBlock;
 use Contenir\Mail\Header\HeaderLines;
 use Contenir\Mail\Header\HeaderLocator;
+use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderParser;
 use Contenir\Mail\Header\MimeParameterParser;
 use Contenir\Mail\Headers;
@@ -197,6 +198,72 @@ final class HeadersTest extends TestCase
     public function fallsBackToGenericHeaderWhenGivenLineHasInvalidAddress(string $line): void
     {
         static::assertInstanceOf(GenericHeader::class, Headers::fromIterable([$line])->toList()[0] ?? null);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function receivedLongNameProvider(): array
+    {
+        return [
+            'longer than the build limit' => [HeaderName::MAX_LENGTH + 10],
+            'longer than a line'          => [1200],
+        ];
+    }
+
+    #[DataProvider('receivedLongNameProvider')]
+    #[Test]
+    public function parsesBlockWithNameLongerThanBuildLimit(int $length): void
+    {
+        $block = str_repeat('X', $length) . ": value\r\nSubject: Hello";
+
+        static::assertSame(
+            [str_repeat('X', $length) => 'value', 'Subject' => 'Hello'],
+            Headers::fromString($block)->toArray(),
+        );
+    }
+
+    #[Test]
+    public function writesReceivedNameLongerThanBuildLimitBackAsReceived(): void
+    {
+        $block = str_repeat('X', HeaderName::MAX_LENGTH + 10) . ": value\r\nSubject: Hello\r\n";
+
+        static::assertSame($block, Headers::fromString($block)->toString());
+    }
+
+    /**
+     * @return array<string, array{iterable<int|string, string|array{string, string}>}>
+     */
+    public static function builtLongNameProvider(): array
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH + 1);
+
+        return [
+            'name => value' => [[$name => 'value']],
+            '[name, value]' => [[[$name, 'value']]],
+            'line'          => [["{$name}: value"]],
+        ];
+    }
+
+    /**
+     * @param iterable<int|string, string|array{string, string}> $headers
+     */
+    #[DataProvider('builtLongNameProvider')]
+    #[Test]
+    public function rejectsBuiltNameLongerThanLimit(iterable $headers): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be at most 981 characters');
+
+        Headers::fromIterable($headers);
+    }
+
+    #[Test]
+    public function buildsNameOfMaximumLength(): void
+    {
+        $name = str_repeat('X', HeaderName::MAX_LENGTH);
+
+        static::assertSame([$name => 'value'], Headers::fromIterable([$name => 'value'])->toArray());
     }
 
     #[Test]
