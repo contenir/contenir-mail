@@ -29,20 +29,24 @@ class ReceivedTest extends TestCase
 
     public function testReceivedGetFieldValueReturnsProperValue(): void
     {
-        $this->markTestIncomplete('Received needs to be completed');
-
-        $receivedHeader = new Header\Received();
-        $this->assertEquals('xxx', $receivedHeader->getFieldValue());
+        $receivedHeader = new Header\Received(
+            'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
+        );
+        $this->assertSame(
+            'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
+            $receivedHeader->getFieldValue(),
+        );
     }
 
     public function testReceivedToStringReturnsHeaderFormattedString(): void
     {
-        $this->markTestIncomplete('Received needs to be completed');
-
-        $receivedHeader = new Header\Received();
-
-        // @todo set some values, then test output
-        $this->assertEmpty('Received: xxx', $receivedHeader->toString());
+        $receivedHeader = new Header\Received(
+            'from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
+        );
+        $this->assertSame(
+            'Received: from mail.example.com by mx.example.org; Mon, 1 Jan 2024 00:00:00 +0000',
+            $receivedHeader->toString(),
+        );
     }
 
     /** Implementation specific tests here */
