@@ -9,60 +9,17 @@ use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\GenericMultiHeader;
 use Countable;
-use ErrorException;
 use Iterator;
-use Laminas\Loader\PluginClassLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
 use function implode;
-use function restore_error_handler;
-use function set_error_handler;
-
-use const E_USER_DEPRECATED;
 
 #[CoversClass(\Contenir\Mail\Headers::class)]
 class HeadersTest extends TestCase
 {
-    private bool $errorHandlerSet = false;
-
-    public function tearDown(): void
-    {
-        $this->restoreErrorHandler();
-    }
-
-    /**
-     * Handle deprecation errors and throw them.
-     *
-     * This is necessary as we are silencing the trigger_error call. This is
-     * done so that there is no impact on users, but, if they are logging errors
-     * using an error handler, they will see them in their logs. As such, we
-     * cannot rely on PHPUnit to catch them, and need to instead handle them
-     * ourselves in a similar fashion.
-     */
-    public function setDeprecationErrorHandler(): void
-    {
-        $this->errorHandlerSet = true;
-        set_error_handler(
-            static function (int $errno, string $errstr, string $errfile, int $errline): void {
-                throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-            },
-            E_USER_DEPRECATED,
-        );
-    }
-
-    public function restoreErrorHandler(): void
-    {
-        if (! $this->errorHandlerSet) {
-            return;
-        }
-
-        restore_error_handler();
-        $this->errorHandlerSet = false;
-    }
-
     public function testHeadersImplementsProperClasses(): void
     {
         $headers = new Mail\Headers();
@@ -593,31 +550,6 @@ class HeadersTest extends TestCase
         $headers->addHeader($subject);
         // now UTF-8 via addHeader() call
         $this->assertSame('UTF-8', $subject->getEncoding());
-    }
-
-    /**
-     * @todo Remove for 3.0.0
-     */
-    public function testGetPluginClassLoaderEmitsDeprecationNotice(): void
-    {
-        $this->setDeprecationErrorHandler();
-        $headers = new Mail\Headers();
-
-        $this->expectExceptionMessage('getPluginClassLoader is deprecated');
-        $headers->getPluginClassLoader();
-    }
-
-    /**
-     * @todo Remove for 3.0.0
-     */
-    public function testSetPluginClassLoaderEmitsDeprecationNotice(): void
-    {
-        $this->setDeprecationErrorHandler();
-        $headers = new Mail\Headers();
-        $loader  = $this->createMock(PluginClassLocator::class);
-
-        $this->expectExceptionMessage('deprecated');
-        $headers->setPluginClassLoader($loader);
     }
 
     public function testGetHeaderLocatorReturnsHeaderLocatorInstanceByDefault(): void
