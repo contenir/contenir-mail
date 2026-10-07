@@ -165,18 +165,6 @@ count = 1
 [[issues]]
 file = "src/Header/AbstractAddressList.php"
 code = "literal-named-argument"
-message = "Literal argument `' '` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Header/AbstractAddressList.php"
-code = "literal-named-argument"
-message = "Literal argument `'$1,'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "src/Header/AbstractAddressList.php"
-code = "literal-named-argument"
 message = "Literal argument `''` should be passed as a named argument for clarity."
 count = 1
 
@@ -214,12 +202,6 @@ count = 1
 file = "src/Header/AbstractAddressList.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Header/AbstractAddressList.php"
-code = "tagged-fixme"
-message = "FIXME comment should be tagged with (@username) or (#issue)."
 count = 1
 
 [[issues]]
@@ -512,12 +494,6 @@ count = 1
 
 [[issues]]
 file = "src/Header/HeaderInterface.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Header/HeaderLoader.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -908,12 +884,6 @@ count = 1
 
 [[issues]]
 file = "src/Headers.php"
-code = "no-error-control-operator"
-message = "Unsafe use of error control operator `@`."
-count = 2
-
-[[issues]]
-file = "src/Headers.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 1
@@ -934,12 +904,6 @@ count = 1
 file = "src/Headers.php"
 code = "no-redundant-variable"
 message = "Variable `$item` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "src/Headers.php"
-code = "no-shorthand-ternary"
-message = "Use of the shorthand ternary operator."
 count = 1
 
 [[issues]]
@@ -5289,12 +5253,6 @@ count = 1
 [[issues]]
 file = "tests/Unit/HeadersTest.php"
 code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetPluginClassLoaderEmitsDeprecationNotice`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
 message = "Use `#[Test]` attribute instead of `test` prefix on method `testGetReturnsArrayIterator`."
 count = 1
 
@@ -5511,12 +5469,6 @@ count = 1
 [[issues]]
 file = "tests/Unit/HeadersTest.php"
 code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testSetPluginClassLoaderEmitsDeprecationNotice`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "prefer-test-attribute"
 message = "Use `#[Test]` attribute instead of `test` prefix on method `testStrictKeyComparisonInGet`."
 count = 1
 
@@ -5561,12 +5513,6 @@ file = "tests/Unit/HeadersTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
 count = 2
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "tagged-fixme"
-message = "FIXME comment should be tagged with (@username) or (#issue)."
-count = 1
 
 [[issues]]
 file = "tests/Unit/MessageFactoryTest.php"
@@ -7412,15 +7358,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "no-empty-catch-clause"
-message = "Do not use empty `catch` blocks."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 2
+count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7582,7 +7522,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 24
+count = 20
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -7595,12 +7535,6 @@ file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "assertion-style"
 message = "Inconsistent assertions style."
 count = 11
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "cyclomatic-complexity"
-message = "Class has high complexity."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
@@ -7642,12 +7576,6 @@ count = 1
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "no-empty-catch-clause"
-message = "Do not use empty `catch` blocks."
 count = 1
 
 [[issues]]
@@ -7714,7 +7642,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 5
+count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
@@ -7793,18 +7721,6 @@ file = "tests/Unit/Storage/MaildirTest.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "no-empty-catch-clause"
-message = "Do not use empty `catch` blocks."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
@@ -8020,7 +7936,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 24
+count = 21
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
@@ -8098,7 +8014,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "no-empty-catch-clause"
 message = "Do not use empty `catch` blocks."
-count = 3
+count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -8110,7 +8026,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
-count = 3
+count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -8350,7 +8266,7 @@ count = 1
 file = "tests/Unit/Storage/MaildirWritableTest.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 18
+count = 15
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirWritableTest.php"
@@ -9064,7 +8980,7 @@ count = 1
 file = "tests/Unit/Storage/MessageTest.php"
 code = "assertion-style"
 message = "Inconsistent assertions style."
-count = 68
+count = 64
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
@@ -9273,12 +9189,6 @@ count = 1
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
 code = "prefer-test-attribute"
-message = "Use `#[Test]` attribute instead of `test` prefix on method `testHeadersLosesNameQuoting`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-test-attribute"
 message = "Use `#[Test]` attribute instead of `test` prefix on method `testInvalidFile`."
 count = 1
 
@@ -9418,7 +9328,7 @@ count = 1
 file = "tests/Unit/Storage/MessageTest.php"
 code = "strict-assertions"
 message = "Use strict assertions in PHPUnit tests."
-count = 33
+count = 31
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"

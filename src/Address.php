@@ -2,8 +2,7 @@
 
 namespace Contenir\Mail;
 
-use Laminas\Validator\EmailAddress as EmailAddressValidator;
-use Laminas\Validator\Hostname;
+use Contenir\Mail\Validator\EmailAddressValidator;
 
 use function array_shift;
 use function is_string;
@@ -69,7 +68,7 @@ class Address implements Address\AddressInterface
      */
     public function __construct($email, $name = null, $comment = null)
     {
-        $emailAddressValidator = new EmailAddressValidator(Hostname::ALLOW_DNS | Hostname::ALLOW_LOCAL);
+        $emailAddressValidator = new EmailAddressValidator();
         if (! is_string($email) || empty($email)) {
             throw new Exception\InvalidArgumentException('Email must be a valid email address');
         }

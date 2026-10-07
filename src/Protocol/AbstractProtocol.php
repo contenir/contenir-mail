@@ -2,8 +2,7 @@
 
 namespace Contenir\Mail\Protocol;
 
-use Laminas\Validator;
-use Laminas\Validator\ValidatorChain;
+use Contenir\Mail\Validator\HostnameValidator;
 
 use function array_shift;
 use function count;
@@ -59,9 +58,9 @@ abstract class AbstractProtocol
     protected $host;
 
     /**
-     * Instance of Laminas\Validator\ValidatorChain to check hostnames
+     * Validates the remote and HELO host names
      *
-     * @var ValidatorChain
+     * @var HostnameValidator
      */
     protected $validHost;
 
@@ -100,8 +99,7 @@ abstract class AbstractProtocol
         $host = '127.0.0.1',
         protected $port = null,
     ) {
-        $this->validHost = new Validator\ValidatorChain();
-        $this->validHost->attach(new Validator\Hostname(Validator\Hostname::ALLOW_ALL));
+        $this->validHost = HostnameValidator::forConnection();
 
         if (! $this->validHost->isValid($host)) {
             throw new Exception\RuntimeException(implode(', ', $this->validHost->getMessages()));
