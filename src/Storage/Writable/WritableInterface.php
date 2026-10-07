@@ -2,8 +2,6 @@
 
 namespace Contenir\Mail\Storage\Writable;
 
-use Contenir\Mail\Message;
-use Contenir\Mail\Mime;
 use Contenir\Mail\Storage;
 
 interface WritableInterface
@@ -45,8 +43,7 @@ interface WritableInterface
     /**
      * append a new message to mail storage
      *
-     * @param  string|Message|Mime\Message $message message as string or
-     *     instance of message class.
+     * @param  string|resource $message the raw message, or a stream holding it
      * @param  null|string|Storage\Folder $folder folder for new message, else
      *     current folder is taken.
      * @param  null|array $flags set flags for new message, else a default set

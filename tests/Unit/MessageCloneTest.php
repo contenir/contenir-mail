@@ -88,6 +88,17 @@ final class MessageCloneTest extends TestCase
     }
 
     #[Test]
+    public function addingTextToCloneLeavesOriginalBodyUnchanged(): void
+    {
+        $original = (new Message(new Headers()))->setHtml('<p>Original</p>');
+        $copy     = clone $original;
+
+        $copy->setText('Copy');
+
+        static::assertSame('<p>Original</p>', $original->getBodyText());
+    }
+
+    #[Test]
     public function cloneKeepsHeadersOfOriginal(): void
     {
         $original = $this->makeMessage();

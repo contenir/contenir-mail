@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Attachment;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -85,6 +86,36 @@ final class FileTest extends TestCase
         $test = file_get_contents($file);
 
         static::assertSame($message->toString(), $test);
+    }
+
+    #[Test]
+    public function writesCompleteMimeMessage(): void
+    {
+        $message = $this->makeMessage()
+            ->setBody(null)
+            ->setText('Hello')
+            ->setHtml('<p>Hello</p>')
+            ->attach(Attachment::fromString('abc', 'a.txt', 'text/plain'));
+
+        $this->transport->send($message);
+
+        static::assertSame(
+            "{$message->getHeaders()->toString()}\r\n{$message->getBodyText()}",
+            file_get_contents($this->transport->getLastFile()),
+        );
+    }
+
+    #[Test]
+    public function writesMimeHeadersOfBuiltBody(): void
+    {
+        $message = $this->makeMessage()->setBody(null)->setText('Hello');
+
+        $this->transport->send($message);
+
+        static::assertStringContainsString(
+            "MIME-Version: 1.0\r\nContent-Type: text/plain;\r\n charset=\"UTF-8\"\r\n",
+            (string) file_get_contents($this->transport->getLastFile()),
+        );
     }
 
     #[Test]

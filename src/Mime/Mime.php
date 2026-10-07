@@ -1,70 +1,69 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Mime;
 
+use function array_map;
 use function base64_encode;
 use function chunk_split;
 use function count;
+use function explode;
 use function implode;
-use function max;
-use function md5;
-use function microtime;
 use function ord;
 use function preg_match;
 use function rtrim;
 use function sprintf;
+use function str_ends_with;
 use function str_replace;
+use function str_starts_with;
 use function strcspn;
 use function strlen;
-use function strpos;
 use function strrpos;
 use function strtoupper;
 use function substr;
-use function substr_replace;
 use function trim;
 
 /**
  * Support class for MultiPart Mime Messages
+ *
+ * @mago-expect lint:too-many-methods The RFC 2045 and 2047 encoders kept from laminas-mime, as one static utility.
  */
-class Mime
+final class Mime
 {
     // phpcs:disable Generic.Files.LineLength.TooLong
-    public const TYPE_OCTETSTREAM         = 'application/octet-stream';
-    public const TYPE_TEXT                = 'text/plain';
-    public const TYPE_HTML                = 'text/html';
-    public const TYPE_ENRICHED            = 'text/enriched';
-    public const TYPE_XML                 = 'text/xml';
-    public const ENCODING_7BIT            = '7bit';
-    public const ENCODING_8BIT            = '8bit';
-    public const ENCODING_QUOTEDPRINTABLE = 'quoted-printable';
-    public const ENCODING_BASE64          = 'base64';
-    public const DISPOSITION_ATTACHMENT   = 'attachment';
-    public const DISPOSITION_INLINE       = 'inline';
-    public const LINELENGTH               = 72;
-    public const LINEEND                  = "\n";
-    public const MULTIPART_ALTERNATIVE    = 'multipart/alternative';
-    public const MULTIPART_MIXED          = 'multipart/mixed';
-    public const MULTIPART_RELATED        = 'multipart/related';
-    public const MULTIPART_RELATIVE       = 'multipart/relative';
-    public const MULTIPART_REPORT         = 'multipart/report';
-    public const MESSAGE_RFC822           = 'message/rfc822';
-    public const MESSAGE_DELIVERY_STATUS  = 'message/delivery-status';
-    public const CHARSET_REGEX            = '#=\?(?P<charset>[\x21\x23-\x26\x2a\x2b\x2d\x5e\5f\60\x7b-\x7ea-zA-Z0-9]+)\?(?P<encoding>[\x21\x23-\x26\x2a\x2b\x2d\x5e\5f\60\x7b-\x7ea-zA-Z0-9]+)\?(?P<text>[\x21-\x3e\x40-\x7e]+)#';
+    public const string TYPE_OCTETSTREAM         = 'application/octet-stream';
+    public const string TYPE_TEXT                = 'text/plain';
+    public const string TYPE_HTML                = 'text/html';
+    public const string TYPE_ENRICHED            = 'text/enriched';
+    public const string TYPE_XML                 = 'text/xml';
+    public const string ENCODING_7BIT            = '7bit';
+    public const string ENCODING_8BIT            = '8bit';
+    public const string ENCODING_QUOTEDPRINTABLE = 'quoted-printable';
+    public const string ENCODING_BASE64          = 'base64';
+    public const string DISPOSITION_ATTACHMENT   = 'attachment';
+    public const string DISPOSITION_INLINE       = 'inline';
+    public const int LINELENGTH               = 72;
+    public const string LINEEND                  = "\n";
+    public const string MULTIPART_ALTERNATIVE    = 'multipart/alternative';
+    public const string MULTIPART_MIXED          = 'multipart/mixed';
+    public const string MULTIPART_RELATED        = 'multipart/related';
+    public const string MULTIPART_RELATIVE       = 'multipart/relative';
+    public const string MULTIPART_REPORT         = 'multipart/report';
+    public const string MESSAGE_RFC822           = 'message/rfc822';
+    public const string MESSAGE_DELIVERY_STATUS  = 'message/delivery-status';
+    public const string CHARSET_REGEX            = '#=\?(?P<charset>[\x21\x23-\x26\x2a\x2b\x2d\x5e\5f\60\x7b-\x7ea-zA-Z0-9]+)\?(?P<encoding>[\x21\x23-\x26\x2a\x2b\x2d\x5e\5f\60\x7b-\x7ea-zA-Z0-9]+)\?(?P<text>[\x21-\x3e\x40-\x7e]+)#';
 
     // phpcs:enable
-
-    /** @var null|string */
-    protected $boundary;
-
-    /** @var int */
-    protected static $makeUnique = 0;
 
     /**
      * Lookup-tables for QuotedPrintable
      *
      * @var string[]
      */
-    public static $qpKeys = [
+    private function __construct() {}
+
+    private const array QP_KEYS = [
         "\x00",
         "\x01",
         "\x02",
@@ -229,7 +228,7 @@ class Mime
     ];
 
     /** @var string[] */
-    public static $qpReplaceValues = [
+    private const array QP_REPLACE_VALUES = [
         '=00',
         '=01',
         '=02',
@@ -393,7 +392,7 @@ class Mime
         '=FF',
     ];
     // @codingStandardsIgnoreStart
-    public static $qpKeysString = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xB0\xB1\xB2\xB3\xB4\xB5\xB6\xB7\xB8\xB9\xBA\xBB\xBC\xBD\xBE\xBF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF";
+    private const string QP_KEYS_STRING = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xB0\xB1\xB2\xB3\xB4\xB5\xB6\xB7\xB8\xB9\xBA\xBB\xBC\xBD\xBE\xBF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF";
 
     // @codingStandardsIgnoreEnd
 
@@ -406,9 +405,34 @@ class Mime
      * @param string $str
      * @return bool
      */
-    public static function isPrintable($str)
+    public static function isPrintable(string $str): bool
     {
-        return strcspn($str, static::$qpKeysString) === strlen($str);
+        return strcspn($str, self::QP_KEYS_STRING) === strlen($str);
+    }
+
+    /**
+     * Encode text as quoted-printable with its line breaks written as hard
+     * line breaks, as RFC 2045 section 6.7 requires for text.
+     *
+     * CRLF, CR and LF all count as line breaks, and each line is wrapped
+     * with soft line breaks on its own, keeping trailing whitespace.
+     */
+    public static function encodeQuotedPrintableText(
+        string $text,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+    ): string {
+        return implode($lineEnd, array_map(
+            static fn(string $line): string => self::encodeQuotedPrintable($line, $lineLength, $lineEnd),
+            explode(
+                separator: "\n",
+                string: str_replace(
+                    search: ["\r\n", "\r"],
+                    replace: "\n",
+                    subject: $text,
+                ),
+            ),
+        ));
     }
 
     /**
@@ -420,24 +444,19 @@ class Mime
      * @return string
      */
     public static function encodeQuotedPrintable(
-        $str,
-        $lineLength = self::LINELENGTH,
-        $lineEnd = self::LINEEND,
-    ) {
+        string $str,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+    ): string {
         $out = '';
-        $str = self::_encodeQuotedPrintable($str);
+        $str = self::encodeQuotedPrintableCharacters($str);
 
         // Split encoded text into separate lines
         $initialPtr = 0;
         $strLength  = strlen($str);
         while ($initialPtr < $strLength) {
-            $continueAt = $strLength - $initialPtr;
-
-            if ($continueAt > $lineLength) {
-                $continueAt = $lineLength;
-            }
-
-            $chunk = substr($str, $initialPtr, $continueAt);
+            $continueAt = $lineLength;
+            $chunk      = substr($str, $initialPtr, $continueAt);
 
             // Ensure we are not splitting across an encoded character
             $endingMarkerPos = strrpos($chunk, '=');
@@ -450,14 +469,9 @@ class Mime
                 $chunk = '=2E' . substr($chunk, 1);
             }
 
-            // copied from swiftmailer https://git.io/vAXU1
-            switch (ord(substr($chunk, strlen($chunk) - 1))) {
-                case 0x09: // Horizontal Tab
-                    $chunk = substr_replace($chunk, '=09', strlen($chunk) - 1, 1);
-                    break;
-                case 0x20: // Space
-                    $chunk = substr_replace($chunk, '=20', strlen($chunk) - 1, 1);
-                    break;
+            // A trailing space would be lost; tabs were already encoded as =09
+            if (str_ends_with($chunk, ' ')) {
+                $chunk = substr($chunk, offset: 0, length: -1) . '=20';
             }
 
             // Add string and continue
@@ -476,12 +490,11 @@ class Mime
      * @return string
      */
     // @codingStandardsIgnoreStart
-    private static function _encodeQuotedPrintable($str)
+    private static function encodeQuotedPrintableCharacters(string $str): string
     {
         // @codingStandardsIgnoreEnd
         $str = str_replace('=', '=3D', $str);
-        $str = str_replace(static::$qpKeys, static::$qpReplaceValues, $str);
-        return rtrim($str);
+        return str_replace(self::QP_KEYS, self::QP_REPLACE_VALUES, $str);
     }
 
     /**
@@ -501,17 +514,17 @@ class Mime
      * @return string
      */
     public static function encodeQuotedPrintableHeader(
-        $str,
-        $charset,
-        $lineLength = self::LINELENGTH,
-        $lineEnd = self::LINEEND,
-        $headerNameSize = 0,
-    ) {
+        string $str,
+        string $charset,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+        int $headerNameSize = 0,
+    ): string {
         // Reduce line-length by the length of the required delimiter, charsets and encoding
         $prefix     = sprintf('=?%s?Q?', $charset);
         $lineLength = $lineLength - strlen($prefix) - 3;
 
-        $str = self::_encodeQuotedPrintable($str);
+        $str = rtrim(self::encodeQuotedPrintableCharacters($str));
 
         // Mail-Header required chars have to be encoded also:
         $str = str_replace(['?', ',', ' ', '_'], ['=3F', '=2C', '=20', '=5F'], $str);
@@ -522,8 +535,8 @@ class Mime
         // Split encoded text into separate lines
         $tmp = '';
         while (strlen($str) > 0) {
-            $currentLine = max(count($lines) - 1, 0);
-            $token       = static::getNextQuotedPrintableToken($str);
+            $currentLine = count($lines) - 1;
+            $token       = self::getNextQuotedPrintableToken($str);
             $substr      = substr($str, strlen($token));
             $str         = false === $substr ? '' : $substr;
 
@@ -531,22 +544,22 @@ class Mime
             if ('=20' === $token) {
                 // only if we have a single char token or space, we can append the
                 // tempstring it to the current line or start a new line if necessary.
+                $line              = $lines[$currentLine] ?? '';
+                $currentLineLength = strlen($line) + strlen($tmp);
                 if (0 === $currentLine) {
                     // The size of the first line should be calculated with the header name.
-                    $currentLineLength = strlen($lines[$currentLine] . $tmp) + $headerNameSize;
-                } else {
-                    $currentLineLength = strlen($lines[$currentLine] . $tmp);
+                    $currentLineLength += $headerNameSize;
                 }
 
                 $lineLimitReached = $currentLineLength > $lineLength;
-                $noCurrentLine    = '' === $lines[$currentLine];
+                $noCurrentLine    = '' === $line;
                 if ($noCurrentLine && $lineLimitReached) {
                     $lines[$currentLine]     = $tmp;
                     $lines[$currentLine + 1] = '';
                 } elseif ($lineLimitReached) {
                     $lines[$currentLine + 1] = $tmp;
                 } else {
-                    $lines[$currentLine] .= $tmp;
+                    $lines[$currentLine] = $line . $tmp;
                 }
                 $tmp = '';
             }
@@ -569,9 +582,9 @@ class Mime
      * @param  string $str
      * @return string
      */
-    private static function getNextQuotedPrintableToken($str)
+    private static function getNextQuotedPrintableToken(string $str): string
     {
-        if (0 === strpos($str, '=')) {
+        if (str_starts_with($str, '=')) {
             $token = substr($str, 0, 3);
         } else {
             $token = substr($str, 0, 1);
@@ -589,16 +602,16 @@ class Mime
      * @return string
      */
     public static function encodeBase64Header(
-        $str,
-        $charset,
-        $lineLength = self::LINELENGTH,
-        $lineEnd = self::LINEEND,
-    ) {
+        string $str,
+        string $charset,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+    ): string {
         $prefix          = "=?{$charset}?B?";
         $suffix          = '?=';
         $remainingLength = $lineLength - strlen($prefix) - strlen($suffix);
 
-        $encodedValue = static::encodeBase64($str, $remainingLength, $lineEnd);
+        $encodedValue = self::encodeBase64($str, $remainingLength, $lineEnd);
         $encodedValue = str_replace($lineEnd, "{$suffix}{$lineEnd} {$prefix}", $encodedValue);
         return $prefix . $encodedValue . $suffix;
     }
@@ -613,90 +626,41 @@ class Mime
      * @return string
      */
     public static function encodeBase64(
-        $str,
-        $lineLength = self::LINELENGTH,
-        $lineEnd = self::LINEEND,
-    ) {
+        string $str,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+    ): string {
         $lineLength -= $lineLength % 4;
         return rtrim(chunk_split(base64_encode($str), $lineLength, $lineEnd));
-    }
-
-    /**
-     * Constructor
-     *
-     * @param null|string $boundary
-     * @access public
-     */
-    public function __construct($boundary = null)
-    {
-        // This string needs to be somewhat unique
-        if (null === $boundary) {
-            $this->boundary = '=_' . md5(microtime(1) . static::$makeUnique++);
-        } else {
-            $this->boundary = $boundary;
-        }
     }
 
     // phpcs:disable WebimpressCodingStandard.NamingConventions.ValidVariableName.NotCamelCaps
 
     /**
-     * Encode the given string with the given encoding.
+     * Apply a Content-Transfer-Encoding; 7bit, 8bit and binary content is returned as it is.
      *
-     * @param string $str
-     * @param string $encoding
-     * @param string $EOL EOL string; defaults to {@link LINEEND}
-     * @return string
+     * @param bool $text Whether the content is text, whose line breaks quoted-printable writes as hard line breaks.
      */
-    public static function encode($str, $encoding, $EOL = self::LINEEND)
-    {
-        switch ($encoding) {
-            case self::ENCODING_BASE64:
-                return static::encodeBase64($str, self::LINELENGTH, $EOL);
-
-            case self::ENCODING_QUOTEDPRINTABLE:
-                return static::encodeQuotedPrintable($str, self::LINELENGTH, $EOL);
-
-            default:
-                /**
-                 * @todo 7Bit and 8Bit is currently handled the same way.
-                 */
-                return $str;
-        }
-    }
-
-    /**
-     * Return a MIME boundary
-     *
-     * @access public
-     * @return string
-     */
-    public function boundary()
-    {
-        return $this->boundary;
-    }
-
-    /**
-     * Return a MIME boundary line
-     *
-     * @param string $EOL Defaults to {@link LINEEND}
-     * @access public
-     * @return string
-     */
-    public function boundaryLine($EOL = self::LINEEND)
-    {
-        return "{$EOL}--{$this->boundary}{$EOL}";
-    }
-
-    /**
-     * Return MIME ending
-     *
-     * @param string $EOL Defaults to {@link LINEEND}
-     * @access public
-     * @return string
-     */
-    public function mimeEnd($EOL = self::LINEEND)
-    {
-        return "{$EOL}--{$this->boundary}--{$EOL}";
+    public static function encode(
+        string $str,
+        TransferEncoding $encoding,
+        string $eol = self::LINEEND,
+        bool $text = false,
+    ): string {
+        return match (true) {
+            TransferEncoding::Base64 === $encoding => self::encodeBase64($str, self::LINELENGTH, $eol),
+            TransferEncoding::QuotedPrintable === $encoding && $text => self::encodeQuotedPrintableText(
+                $str,
+                self::LINELENGTH,
+                $eol,
+            ),
+            TransferEncoding::QuotedPrintable === $encoding => self::encodeQuotedPrintable(
+                $str,
+                self::LINELENGTH,
+                $eol,
+            ),
+            default => $str,
+        };
     }
 
     /**
@@ -707,10 +671,11 @@ class Mime
      * @param string $str
      * @return string
      */
-    public static function mimeDetectCharset($str)
+    public static function mimeDetectCharset(string $str): string
     {
-        if (preg_match(self::CHARSET_REGEX, $str, $matches)) {
-            return strtoupper($matches['charset']);
+        $matches = [];
+        if (1 === preg_match(self::CHARSET_REGEX, $str, $matches)) {
+            return strtoupper($matches['charset'] ?? '');
         }
 
         return 'ASCII';

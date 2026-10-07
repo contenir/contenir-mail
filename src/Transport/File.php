@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime;
 use Override;
 
 use function file_put_contents;
@@ -60,6 +61,7 @@ class File implements TransportInterface
      * Saves e-mail message to a file
      *
      * @throws Exception\RuntimeException On not writable target directory or on file_put_contents() failure.
+     * @throws Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
     public function send(Message $message)

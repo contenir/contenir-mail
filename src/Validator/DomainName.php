@@ -11,7 +11,9 @@ use function idn_to_ascii;
 use function mb_strlen;
 use function preg_match;
 
-use const IDNA_DEFAULT;
+use const IDNA_CHECK_BIDI;
+use const IDNA_CHECK_CONTEXTJ;
+use const IDNA_NONTRANSITIONAL_TO_ASCII;
 use const INTL_IDNA_VARIANT_UTS46;
 
 /**
@@ -25,6 +27,14 @@ use const INTL_IDNA_VARIANT_UTS46;
  */
 final class DomainName
 {
+    /**
+     * UTS #46 options for converting names to ASCII: IDNA2008 (non-transitional)
+     * mapping, so "ß" and "ς" are kept rather than folded, and the bidi and
+     * CONTEXTJ rules that reject labels mixing directions or misusing joiners,
+     * which are common in look-alike (homograph) domains.
+     */
+    public const int IDNA_OPTIONS = IDNA_NONTRANSITIONAL_TO_ASCII | IDNA_CHECK_BIDI | IDNA_CHECK_CONTEXTJ;
+
     /** laminas-validator's local network name pattern, kept verbatim for compatibility */
     private const string LOCAL_NAME = '/^(([a-zA-Z0-9\x2d]{1,63}\x2e)*[a-zA-Z0-9\x2d]{1,63}[\x2e]{0,1}){1,254}$/';
 
@@ -52,7 +62,7 @@ final class DomainName
             return false;
         }
 
-        $ascii = idn_to_ascii($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        $ascii = idn_to_ascii($value, self::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46);
         if (false === $ascii) {
             return false;
         }

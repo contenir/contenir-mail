@@ -1,67 +1,62 @@
 # Contenir\\Mail\\Mime\\Part
 
-`Contenir\Mail\Mime\Part` represents a single part of a MIME message. It contains the
-actual content of the message part, plus information about its encoding,
-content type, and original filename. Finally, it provides a method for
-generating a string from the stored data.
-
-`Contenir\Mail\Mime\Part` objects can be added to [Contenir\Mail\Mime\Message](message.md)
-instances to assemble a complete multipart message.
-
-## Instantiation
-
-`Contenir\Mail\Mime\Part` is instantiated with a string representing the message part's
-content. The type is assumed to be OCTET-STREAM, with an 8-bit encoding. After
-instantiating a `Contenir\Mail\Mime\Part`, meta information can be set directly on its
-attributes:
+`Contenir\Mail\Mime\Part` is a single leaf of a MIME body: text, HTML, an
+attachment or an inline resource. It is an immutable value; everything about it
+is given to its constructor, usually by name.
 
 ```php
-public $type = Contenir\Mail\Mime\Mime::TYPE_OCTETSTREAM;
-public $encoding = Contenir\Mail\Mime\Mime::ENCODING_8BIT;
-public $id;
-public $disposition;
-public $filename;
-public $description;
-public $charset;
-public $boundary;
-public $location;
-public $language;
+use Contenir\Mail\Mime\Disposition;
+use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\TransferEncoding;
+
+$part = new Part(
+    $content,                                  // string, or a readable stream
+    type: 'application/pdf',                   // default application/octet-stream
+    encoding: TransferEncoding::Base64,        // the default
+    charset: null,                             // for text types
+    disposition: Disposition::Attachment,
+    filename: 'report.pdf',
+    id: null,                                  // Content-ID, without < >
+    description: 'Third quarter',
+    location: null,
+    language: 'en',
+);
 ```
 
-## Methods for rendering the message part to a string
+`Part::text($text, $charset = 'UTF-8')` and `Part::html($html, $charset = 'UTF-8')`
+create quoted-printable text parts. `Contenir\Mail\Mime\Attachment` creates
+attachment and inline parts; see [Adding Attachments](../message/attachments.md).
 
-`getContent()` returns the encoded content of the `Contenir\Mail\Mime\Part` as a string
-using the encoding specified in the attribute `$encoding`. Valid values are
-`Contenir\Mail\Mime\Mime::ENCODING_*`. Character set conversions are not performed.
+## Streams
 
-`getHeaders()` returns the MIME headers for the `Part` as generated from the
-information in the publicly accessible attributes. The attributes of the object
-need to be set correctly before this method is called.
+The content can be a readable stream instead of a string, for large files.
+A stream is read from its start each time the part is written, and base64
+content is encoded as it is read rather than loaded into memory first.
+`Attachment::fromPath()` opens the file this way.
 
-- `$charset` has to be set to the actual charset of the content if it is a text
-  type (text or HTML).
-- `$id` may be set to identify a Content-ID for inline images in an HTML mail.
-- `$filename` specifies the name of the file at the time of creation.
-- `$disposition` defines if the file should be treated as an attachment or if
-  it is used inside the (HTML) mail (inline).
-- `$description` is only used for informational purposes.
-- `$boundary` defines the string to use as a part boundary.
-- `$location` can be used as resource URI that has relation to the content.
-- `$language` defines the content language.
+## Headers
+
+`getHeaders()` returns the part's content headers, built from its fields:
+
+```text
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="report.pdf"
+Content-Description: Third quarter
+Content-Language: en
+```
+
+A `charset` is added to `Content-Type`, an `id` becomes `Content-ID: <id>`, and
+a long or non-ASCII filename is encoded under RFC 2231. Fields left as `null`
+add no header.
 
 ## Available methods
 
-A `Contenir\Mail\Mime\Part` object has the following methods:
-
-- `isStream`: Check if this `Part` can be read as a stream. You can specify a
-  PHP stream resource when creating the content in order to reduce CPU and/or
-  memory overhead; if you do, this value will be toggled to `true`.
-- `getEncodedStream`: If the `Part` was created with a stream, return a
-  filtered stream for reading the content. Useful for large file attachments.
-- `getContent($EOL = Contenir\Mail\Mime\Mime::LINEEND)`: Get the content of the current
-  `Contenir\Mail\Mime\Part` in the given encoding.
-- `getRawContent`: Get the raw, unencoded content for the current `Part`.
-- `getHeadersArray($EOL = Contenir\Mail\Mime\Mime::LINEEND)`: Create and return the
-  array of headers for the current `Part`.
-- `getHeaders($EOL = Contenir\Mail\Mime\Mime::LINEEND)`: Return the headers for the
-  current `Part` as a string.
+- `getType()`, `getTransferEncoding()`, `getCharset()`, `getDisposition()`,
+  `getFilename()`, `getId()`: The fields given to the constructor.
+- `getHeaders()`: The content headers, as a `Contenir\Mail\Headers` collection.
+- `getContent()`: The content as given, unencoded.
+- `getEncodedContent()`: The content after its transfer encoding, with CRLF
+  line endings.
+- `isMultipart()`: Always `false`.
+- `getParts()`: Always an empty list.
