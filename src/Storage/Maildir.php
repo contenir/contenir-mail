@@ -307,6 +307,11 @@ class Maildir extends AbstractStorage
         $this->getMaildirFiles($dh, $dirname . '/cur/');
         closedir($dh);
 
+        // isMaildir() accepts a maildir without new/; it just has no recent mail
+        if (! file_exists("{$dirname}/new")) {
+            return;
+        }
+
         ErrorHandler::start(E_WARNING);
         $dh    = opendir($dirname . '/new/');
         $error = ErrorHandler::stop();

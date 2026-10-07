@@ -965,11 +965,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
                 }
             }
             unset($maildirsize[0]);
-            foreach ($maildirsize as $line) {
-                [$size, $count] = explode(' ', trim($line));
-                $totalSize += $size;
-                $messages  += $count;
-            }
+            [$totalSize, $messages] = self::sumQuotaEntries($maildirsize);
         }
 
         $overQuota = false;
@@ -1000,6 +996,31 @@ class Maildir extends Folder\Maildir implements WritableInterface
             'quota'      => $quota,
             'over_quota' => $overQuota,
         ];
+    }
+
+    /**
+     * Sum the "size count" lines of a maildirsize file, skipping blank lines
+     * such as the one after its final newline.
+     *
+     * @param array<array-key, string> $lines
+     * @return array{int, int} total size and message count
+     */
+    private static function sumQuotaEntries(array $lines): array
+    {
+        $size  = 0;
+        $count = 0;
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ('' === $line) {
+                continue;
+            }
+
+            $entry = explode(' ', $line);
+            $size  += (int) $entry[0];
+            $count += (int) ($entry[1] ?? 0);
+        }
+
+        return [$size, $count];
     }
 
     /**
