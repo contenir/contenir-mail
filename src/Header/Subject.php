@@ -1,145 +1,63 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-use Contenir\Mail\Mime\Mime;
 use Override;
 
 use function strtolower;
-use function strtoupper;
 
-/**
- * Subject header class methods.
- *
- * @see https://tools.ietf.org/html/rfc2822 RFC 2822
- * @see https://tools.ietf.org/html/rfc2047 RFC 2047
- */
-class Subject implements UnstructuredInterface
+final readonly class Subject implements HeaderInterface
 {
-    /** @var string */
-    protected $subject = '';
+    private string $subject;
 
     /**
-     * Header encoding
-     *
-     * @var null|string
+     * @throws Exception\InvalidArgumentException When the subject cannot be encoded.
      */
-    protected $encoding;
-
-    /**
-     * @param string $headerLine
-     * @return static
-     */
-    #[Override]
-    public static function fromString($headerLine)
+    public function __construct(string $subject)
     {
-        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (strtolower($name) !== 'subject') {
-            throw new Exception\InvalidArgumentException('Invalid header line for Subject string');
-        }
-
-        $header = new static();
-        $header->setSubject($value);
-
-        return $header;
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function getFieldName()
-    {
-        return 'Subject';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
-    {
-        if (HeaderInterface::FORMAT_ENCODED === $format) {
-            return HeaderWrap::wrap($this->subject, $this);
-        }
-
-        return $this->subject;
-    }
-
-    /**
-     * @param string $encoding
-     * @return self
-     */
-    #[Override]
-    public function setEncoding($encoding)
-    {
-        if ($encoding === $this->encoding) {
-            return $this;
-        }
-
-        if (null === $encoding) {
-            $this->encoding = null;
-            return $this;
-        }
-
-        $encoding = strtoupper($encoding);
-        if ('UTF-8' === $encoding) {
-            $this->encoding = $encoding;
-            return $this;
-        }
-
-        if ('ASCII' === $encoding && Mime::isPrintable($this->subject)) {
-            $this->encoding = $encoding;
-            return $this;
-        }
-
-        $this->encoding = null;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function getEncoding()
-    {
-        if (! $this->encoding) {
-            $this->encoding = Mime::isPrintable($this->subject) ? 'ASCII' : 'UTF-8';
-        }
-
-        return $this->encoding;
-    }
-
-    /**
-     * @param string $subject
-     * @return self
-     */
-    public function setSubject($subject)
-    {
-        $subject = (string) $subject;
-
         if (! HeaderWrap::canBeEncoded($subject)) {
             throw new Exception\InvalidArgumentException(
                 'Subject value must be composed of printable US-ASCII or UTF-8 characters.',
             );
         }
 
-        $this->subject  = $subject;
-        $this->encoding = null;
-
-        return $this;
+        $this->subject = $subject;
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function toString()
+    public static function fromString(string $headerLine): static
     {
-        return "Subject: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
+        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
+        if ('subject' !== strtolower($name)) {
+            throw new Exception\InvalidArgumentException('Invalid header line for Subject string');
+        }
+
+        return new self(HeaderWrap::mimeDecodeValue($value));
+    }
+
+    #[Override]
+    public function getFieldName(): string
+    {
+        return 'Subject';
+    }
+
+    #[Override]
+    public function getFieldValue(): string
+    {
+        return $this->subject;
+    }
+
+    #[Override]
+    public function getEncodedFieldValue(): string
+    {
+        return HeaderWrap::fold('Subject', $this->subject);
+    }
+
+    #[Override]
+    public function toString(): string
+    {
+        return "Subject: {$this->getEncodedFieldValue()}";
     }
 }

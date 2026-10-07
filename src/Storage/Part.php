@@ -17,7 +17,6 @@ use function count;
 use function current;
 use function implode;
 use function is_array;
-use function iterator_to_array;
 use function preg_replace;
 use function stripos;
 use function strlen;
@@ -123,8 +122,9 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
             );
         } elseif (isset($params['headers'])) {
             if (is_array($params['headers'])) {
-                $this->headers = new Headers();
-                $this->headers->addHeaders($params['headers']);
+                /** @var array<int|string, string|array{string, string}> $headerList */
+                $headerList    = $params['headers'];
+                $this->headers = Headers::fromIterable($headerList);
             } else {
                 if (empty($params['noToplines'])) {
                     Mime\Decode::splitMessage($params['headers'], $this->headers, $this->topLines);
@@ -323,49 +323,24 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     #[Override]
     public function getHeader($name, $format = null)
     {
-        $header = $this->getHeaders()->get($name);
-        if (false === $header) {
-            $lowerName = strtolower(preg_replace('%([a-z])([A-Z])%', '\1-\2', $name));
-            $header    = $this->getHeaders()->get($lowerName);
-            if (false === $header) {
+        $headers = $this->getHeaders()->all($name);
+        if ([] === $headers) {
+            $lowerName = strtolower((string) preg_replace('%([a-z])([A-Z])%', '\1-\2', $name));
+            $headers   = $this->getHeaders()->all($lowerName);
+            if ([] === $headers) {
                 throw new Exception\InvalidArgumentException(
                     "Header with Name {$name} or {$lowerName} not found",
                 );
             }
         }
 
-        switch ($format) {
-            case 'string':
-                if ($header instanceof HeaderInterface) {
-                    $return = $header->getFieldValue(HeaderInterface::FORMAT_RAW);
-                } else {
-                    $return = trim(
-                        implode(
-                            Mime\Mime::LINEEND,
-                            array_map(
-                                static fn($header): string => $header->getFieldValue(HeaderInterface::FORMAT_RAW),
-                                iterator_to_array($header),
-                            ),
-                        ),
-                        Mime\Mime::LINEEND,
-                    );
-                }
-                break;
-            case 'array':
-                if ($header instanceof HeaderInterface) {
-                    $return = [$header->getFieldValue()];
-                } else {
-                    $return = [];
-                    foreach ($header as $h) {
-                        $return[] = $h->getFieldValue(HeaderInterface::FORMAT_RAW);
-                    }
-                }
-                break;
-            default:
-                $return = $header;
-        }
+        $values = array_map(static fn(HeaderInterface $header): string => $header->getFieldValue(), $headers);
 
-        return $return;
+        return match ($format) {
+            'string' => trim(implode(Mime\Mime::LINEEND, $values), Mime\Mime::LINEEND),
+            'array'  => $values,
+            default  => 1 === count($headers) ? $headers[0] : new ArrayIterator($headers),
+        };
     }
 
     /**

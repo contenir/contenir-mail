@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\MessageId;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -13,106 +12,187 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function sprintf;
+use function gethostname;
+use function preg_quote;
 
 #[CoversClass(MessageId::class)]
-class MessageIdTest extends TestCase
+#[Group('unit')]
+final class MessageIdTest extends TestCase
 {
-    #[Test]
-    public function settingManually(): void
-    {
-        $id        = 'CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com';
-        $messageid = new Header\MessageId();
-        $messageid->setId($id);
+    private const string ID = 'CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com';
 
-        $expected = sprintf('<%s>', $id);
-        static::assertSame($expected, $messageid->getFieldValue());
-        static::assertSame($expected, $messageid->getId());
-        static::assertSame("Message-ID: {$expected}", $messageid->toString());
+    #[Test]
+    public function reportsFieldName(): void
+    {
+        static::assertSame('Message-ID', (new MessageId(self::ID))->getFieldName());
+    }
+
+    #[DataProvider('idProvider')]
+    #[Test]
+    public function holdsIdWithoutAngleBrackets(string $id): void
+    {
+        static::assertSame(self::ID, (new MessageId($id))->getId());
+    }
+
+    #[DataProvider('idProvider')]
+    #[Test]
+    public function rendersIdInAngleBrackets(string $id): void
+    {
+        static::assertSame('<' . self::ID . '>', (new MessageId($id))->getFieldValue());
     }
 
     #[Test]
-    public function autoGeneration(): void
+    public function rendersEncodedFieldValueInAngleBrackets(): void
     {
-        $messageid = new Header\MessageId();
-        $messageid->setId();
-
-        static::assertStringContainsString('@', $messageid->getFieldValue());
+        static::assertSame('<' . self::ID . '>', (new MessageId(self::ID))->getEncodedFieldValue());
     }
 
     #[Test]
-    public function autoGenerationWithServerVars(): void
+    public function rendersHeaderLine(): void
     {
-        $serverBeforeTest       = $_SERVER;
-        $_SERVER['REMOTE_ADDR'] = '172.16.0.1';
-        $_SERVER['SERVER_NAME'] = 'server-name.test';
-        $messageid              = new Header\MessageId();
-        $messageid->setId();
-
-        static::assertStringContainsString('@server-name.test', $messageid->getFieldValue());
-        $_SERVER = $serverBeforeTest;
+        static::assertSame('Message-ID: <' . self::ID . '>', (new MessageId(self::ID))->toString());
     }
 
-    public static function headerLines(): array
+    #[DataProvider('headerLineProvider')]
+    #[Test]
+    public function parsesIdFromString(string $headerLine): void
     {
-        return [
-            'newline'   => ["Message-ID: foo\nbar"],
-            'cr-lf'     => ["Message-ID: bar\r\nfoo"],
-            'cr-lf-wsp' => ["Message-ID: bar\r\n\r\n baz"],
-            'multiline' => ["Message-ID: baz\r\nbar\r\nbau"],
-        ];
+        static::assertSame('a@example.com', MessageId::fromString($headerLine)->getId());
     }
 
     #[Test]
-    #[DataProvider('headerLines')]
+    public function generatesRandomIdOnGivenHost(): void
+    {
+        static::assertMatchesRegularExpression(
+            '/^[0-9a-f]{32}@example\.org$/',
+            MessageId::generate('example.org')->getId(),
+        );
+    }
+
+    #[Test]
+    public function generatesIdOnThisMachineByDefault(): void
+    {
+        $host = (string) gethostname();
+
+        static::assertMatchesRegularExpression(
+            '/^[0-9a-f]{32}@' . preg_quote($host, delimiter: '/') . '$/',
+            MessageId::generate()->getId(),
+        );
+    }
+
+    #[Test]
+    public function generatesDifferentIdEachTime(): void
+    {
+        static::assertNotSame(
+            MessageId::generate('example.org')->getId(),
+            MessageId::generate('example.org')->getId(),
+        );
+    }
+
+    #[DataProvider('invalidIdProvider')]
     #[Group('ZF2015-04')]
-    public function fromStringPreventsCrlfInjectionOnDetection(string $header): void
+    #[Test]
+    public function rejectsInvalidId(string $id): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
-        $messageid = Header\MessageId::fromString($header);
-    }
+        $this->expectExceptionMessage('Invalid ID detected');
 
-    public static function invalidIdentifiers(): array
-    {
-        return [
-            'newline'   => ["foo\nbar"],
-            'cr-lf'     => ["bar\r\nfoo"],
-            'cr-lf-wsp' => ["bar\r\n\r\n baz"],
-            'multiline' => ["baz\r\nbar\r\nbau"],
-            'folding'   => ["bar\r\n baz"],
-        ];
+        new MessageId($id);
     }
 
     #[Test]
-    #[DataProvider('invalidIdentifiers')]
-    #[Group('ZF2015-04')]
-    public function invalidIdentifierRaisesException(string $id): void
+    public function rejectsHostThatWouldMakeInvalidId(): void
     {
-        $header = new Header\MessageId();
         $this->expectException(Exception\InvalidArgumentException::class);
-        $header->setId($id);
+        $this->expectExceptionMessage('Invalid ID detected');
+
+        MessageId::generate("example.org\r\nBcc: attacker@example.net");
+    }
+
+    #[DataProvider('injectedHeaderLineProvider')]
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function rejectsHeaderLineWithLineBreaksInValue(string $headerLine): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid header value detected');
+
+        MessageId::fromString($headerLine);
     }
 
     #[Test]
-    public function fromStringRaisesExceptionOnInvalidHeader(): void
+    public function rejectsEmptyIdFromString(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid ID detected');
+
+        MessageId::fromString('Message-ID: <>');
+    }
+
+    #[Test]
+    public function rejectsHeaderLineOfAnotherHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for Message-ID string');
-        Header\MessageId::fromString('Foo: bar');
+
+        MessageId::fromString('Foo: bar');
     }
 
-    #[Test]
-    public function defaultEncoding(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function idProvider(): array
     {
-        $header = new Header\MessageId();
-        static::assertSame('ASCII', $header->getEncoding());
+        return [
+            'bare'               => [self::ID],
+            'in angle brackets'  => ['<' . self::ID . '>'],
+            'surrounding spaces' => [' <' . self::ID . '> '],
+        ];
     }
 
-    #[Test]
-    public function setEncodingHasNoEffect(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function headerLineProvider(): array
     {
-        $header = new Header\MessageId();
-        $header->setEncoding('UTF-8');
-        static::assertSame('ASCII', $header->getEncoding());
+        return [
+            'in angle brackets'      => ['Message-ID: <a@example.com>'],
+            'bare'                   => ['Message-ID: a@example.com'],
+            'lower-case header name' => ['message-id: <a@example.com>'],
+            'upper-case header name' => ['MESSAGE-ID: <a@example.com>'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidIdProvider(): array
+    {
+        return [
+            'newline'             => ["foo\nbar"],
+            'cr-lf'               => ["bar\r\nfoo"],
+            'cr-lf twice'         => ["bar\r\n\r\n baz"],
+            'multiline'           => ["baz\r\nbar\r\nbau"],
+            'folding'             => ["bar\r\n baz"],
+            'trailing cr-lf'      => ["a@example.com\r\n"],
+            'space'               => ['a b@example.com'],
+            'inner angle bracket' => ['a<b@example.com'],
+            'non-ASCII'           => ['á@example.com'],
+            'empty'               => [''],
+            'only angle brackets' => ['<>'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function injectedHeaderLineProvider(): array
+    {
+        return [
+            'newline'     => ["Message-ID: foo\nbar"],
+            'cr-lf'       => ["Message-ID: bar\r\nfoo"],
+            'cr-lf twice' => ["Message-ID: bar\r\n\r\n baz"],
+            'multiline'   => ["Message-ID: baz\r\nbar\r\nbau"],
+        ];
     }
 }

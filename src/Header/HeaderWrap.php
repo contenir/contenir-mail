@@ -1,218 +1,100 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
 
-use function base64_decode;
-use function explode;
-use function iconv;
-use function iconv_mime_decode;
 use function iconv_mime_encode;
-use function implode;
-use function preg_match_all;
-use function quoted_printable_decode;
-use function str_contains;
+use function mb_check_encoding;
+use function preg_replace;
 use function str_pad;
-use function str_replace;
-use function str_starts_with;
 use function strlen;
-use function strpos;
-use function strtoupper;
+use function strtr;
 use function substr;
-use function trim;
 use function wordwrap;
-
-use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
-use const PREG_OFFSET_CAPTURE;
-use const PREG_SET_ORDER;
 
 /**
  * Utility class used for creating wrapped or MIME-encoded versions of header
  * values.
  */
 // phpcs:ignore WebimpressCodingStandard.NamingConventions.AbstractClass.Prefix
-abstract class HeaderWrap
+final class HeaderWrap
 {
+    /** Characters escaped in addition inside an encoded phrase */
+    private const array PHRASE_SPECIALS = [
+        '"'  => '=22',
+        '('  => '=28',
+        ')'  => '=29',
+        '.'  => '=2E',
+        ':'  => '=3A',
+        ';'  => '=3B',
+        '<'  => '=3C',
+        '>'  => '=3E',
+        '@'  => '=40',
+        '['  => '=5B',
+        '\\' => '=5C',
+        ']'  => '=5D',
+    ];
+
+    private function __construct() {}
+
     /**
-     * Wrap a long header line
-     *
-     * @param  string          $value
-     * @return string
+     * Fold a free-text header value to 78 characters, or RFC 2047 encode it as
+     * UTF-8 when it is not printable US-ASCII.
      */
-    public static function wrap($value, HeaderInterface $header)
+    public static function fold(string $fieldName, string $value): string
     {
-        if ($header instanceof UnstructuredInterface) {
-            return static::wrapUnstructuredHeader($value, $header);
+        $headerNameColonSize = strlen("{$fieldName}: ");
+
+        if (! Mime::isPrintable($value)) {
+            return self::mimeEncodeValue($value, lineLength: 78, firstLineGapSize: $headerNameColonSize);
         }
 
-        if ($header instanceof StructuredInterface) {
-            return static::wrapStructuredHeader($value, $header);
-        }
-        return $value;
-    }
+        // Pad the value by the length of "Name: " so the first line folds at the right column.
+        $headerLine       = str_pad('0', $headerNameColonSize, pad_string: '0') . $value;
+        $foldedHeaderLine = wordwrap($headerLine, width: 78, break: Headers::FOLDING);
 
-    /**
-     * Wrap an unstructured header line
-     *
-     * Wrap at 78 characters or before, based on whitespace.
-     *
-     * @param string          $value
-     * @return string
-     */
-    protected static function wrapUnstructuredHeader($value, HeaderInterface $header)
-    {
-        $headerNameColonSize = strlen("{$header->getFieldName()}: ");
-        $encoding            = $header->getEncoding();
-
-        if ('ASCII' == $encoding) {
-            /*
-             * Before folding the header line, it is necessary to calculate the length of the
-             * entire header (including the name and colon). We need to put a stub at the
-             * beginning of the value so that the folding is performed correctly.
-             */
-            $headerLine       = str_pad('0', $headerNameColonSize, '0') . $value;
-            $foldedHeaderLine = wordwrap($headerLine, 78, Headers::FOLDING);
-
-            // Remove the stub and return the header folded value.
-            return substr($foldedHeaderLine, $headerNameColonSize);
-        }
-
-        return static::mimeEncodeValue($value, $encoding, 78, $headerNameColonSize);
+        return substr($foldedHeaderLine, $headerNameColonSize);
     }
 
     /**
-     * Wrap a structured header line
+     * RFC 2047 encode a UTF-8 value as quoted-printable encoded words, without a trailing line break.
      *
-     * @param  string              $value
-     * @return string
+     * @param int<0, max> $firstLineGapSize Length of "Name: " before the value, so the first line folds in time.
      */
-    protected static function wrapStructuredHeader($value, StructuredInterface $header)
+    public static function mimeEncodeValue(string $value, int $lineLength = 998, int $firstLineGapSize = 0): string
     {
-        $delimiter = $header->getDelimiter();
-
-        $length = strlen($value);
-        $lines  = [];
-        $temp   = '';
-        for ($i = 0; $i < $length; $i++) {
-            $temp .= $value[$i];
-            if ($value[$i] == $delimiter) {
-                $lines[] = $temp;
-                $temp    = '';
-            }
-        }
-        return implode(Headers::FOLDING, $lines);
-    }
-
-    /**
-     * MIME-encode a value
-     *
-     * Performs quoted-printable encoding on a value, setting maximum
-     * line-length to 998.
-     *
-     * @param string            $value
-     * @param string            $encoding
-     * @param int               $lineLength         Maximum line-length, by default 998
-     * @param positive-int|0    $firstLineGapSize   When folding a line, it is necessary to calculate
-     *                                              the length of the entire line (together with the
-     *                                              header name). Therefore, you can specify the header
-     *                                              name and colon length in this argument to fold the
-     *                                              string properly.
-     * @return string Returns the mime encode value without the last line ending
-     */
-    public static function mimeEncodeValue($value, $encoding, $lineLength = 998, $firstLineGapSize = 0)
-    {
-        return Mime::encodeQuotedPrintableHeader($value, $encoding, $lineLength, Headers::EOL, $firstLineGapSize);
-    }
-
-    /**
-     * MIME-decode a value
-     *
-     * Performs quoted-printable decoding on a value.
-     *
-     * @param  string $value
-     * @return string Returns the mime encode value without the last line ending
-     */
-    public static function mimeDecodeValue($value)
-    {
-        // unfold first, because iconv_mime_decode is discarding "\n" with no apparent reason
-        // making the resulting value no longer valid.
-
-        // see https://tools.ietf.org/html/rfc2822#section-2.2.3 about unfolding
-        $parts = explode(Headers::FOLDING, $value);
-        $value = implode(' ', $parts);
-
-        $decodedValue = iconv_mime_decode($value, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8');
-
-        // iconv cannot decode a multibyte character split across adjacent encoded words
-        if (self::isNotDecoded($value, $decodedValue)) {
-            return self::decodeEncodedWords($value);
-        }
-
-        return $decodedValue;
-    }
-
-    /**
-     * Decode RFC 2047 encoded words, joining adjacent words of the same charset
-     * before conversion so that multibyte characters split across them survive.
-     */
-    private static function decodeEncodedWords(string $value): string
-    {
-        $pattern = '/=\?([^?*]+)(?:\*[^?]*)?\?([BbQq])\?([^?]*)\?=/';
-        if (! preg_match_all($pattern, $value, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
-            return $value;
-        }
-
-        $result  = '';
-        $buffer  = '';
-        $charset = null;
-        $offset  = 0;
-
-        foreach ($matches as $match) {
-            $between = substr($value, $offset, $match[0][1] - $offset);
-            $offset  = $match[0][1] + strlen($match[0][0]);
-
-            // Whitespace between adjacent encoded words is not displayed (RFC 2047, section 6.2)
-            if (null === $charset || trim($between) !== '') {
-                $result  .= self::convertToUtf8($buffer, $charset) . $between;
-                $buffer  = '';
-                $charset = null;
-            }
-
-            $wordCharset = strtoupper($match[1][0]);
-            if (null !== $charset && $wordCharset !== $charset) {
-                $result .= self::convertToUtf8($buffer, $charset);
-                $buffer = '';
-            }
-
-            $charset = $wordCharset;
-            $buffer  .= strtoupper($match[2][0]) === 'B'
-                ? (string) base64_decode($match[3][0])
-                : quoted_printable_decode(str_replace('_', ' ', $match[3][0]));
-        }
-
-        return $result . self::convertToUtf8($buffer, $charset) . substr($value, $offset);
-    }
-
-    private static function convertToUtf8(string $value, ?string $charset): string
-    {
-        if ('' === $value || null === $charset || 'UTF-8' === $charset) {
-            return $value;
-        }
-
-        $converted = iconv($charset, 'UTF-8', $value);
-
-        return false === $converted ? $value : $converted;
-    }
-
-    private static function isNotDecoded(string $originalValue, string $value): bool
-    {
-        return (
-            str_starts_with($value, '=?')
-                && (strlen($value) - 2) === strpos($value, '?=')
-                && str_contains($originalValue, $value)
+        return Mime::encodeQuotedPrintableHeader(
+            $value,
+            charset: 'UTF-8',
+            lineLength: $lineLength,
+            lineEnd: Headers::EOL,
+            headerNameSize: $firstLineGapSize,
         );
+    }
+
+    /**
+     * RFC 2047 encode a display name or other phrase.
+     *
+     * Besides what mimeEncodeValue() escapes, the RFC 5322 specials are
+     * escaped too, because an encoded word in a phrase may hold only letters,
+     * digits and "!*+-/=_" (RFC 2047, section 5).
+     */
+    public static function encodePhrase(string $value): string
+    {
+        return strtr(self::mimeEncodeValue($value), self::PHRASE_SPECIALS);
+    }
+
+    /**
+     * Unfold a header value and decode any RFC 2047 encoded words in it to UTF-8.
+     */
+    public static function mimeDecodeValue(string $value): string
+    {
+        // Unfold first (RFC 5322, section 2.2.3): a line break followed by a space or tab joins the lines
+        return EncodedWordDecoder::decode((string) preg_replace('/\r\n[ \t]/', replacement: ' ', subject: $value));
     }
 
     /**
@@ -221,8 +103,12 @@ abstract class HeaderWrap
      * @param string $value
      * @return bool
      */
-    public static function canBeEncoded($value)
+    public static function canBeEncoded(string $value): bool
     {
+        if (! mb_check_encoding($value, encoding: 'UTF-8')) {
+            return false;
+        }
+
         // avoid any wrapping by specifying line length long enough
         // "test" -> 4
         // "x-test: =?ISO-8859-1?B?dGVzdA==?=" -> 33

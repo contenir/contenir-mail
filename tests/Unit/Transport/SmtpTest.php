@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use Contenir\Mail\Header\Date;
+use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
@@ -14,11 +16,15 @@ use Contenir\Mail\Transport\Envelope;
 use Contenir\Mail\Transport\Exception;
 use Contenir\Mail\Transport\Smtp;
 use Contenir\Mail\Transport\SmtpOptions;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
+use function array_filter;
 use function explode;
 use function str_repeat;
 use function strlen;
@@ -26,382 +32,477 @@ use function substr;
 use function time;
 
 #[CoversClass(Smtp::class)]
-class SmtpTest extends TestCase
+#[Group('unit')]
+final class SmtpTest extends TestCase
 {
-    /** @var Smtp */
-    public $transport;
-    /** @var SmtpProtocolSpy */
-    public $connection;
+    private const string TEST_AUTH_VALUE = 'not-real';
 
-    public function setUp(): void
+    private ?Smtp $transport;
+
+    private SmtpProtocolSpy $connection;
+
+    protected function setUp(): void
     {
         $this->transport  = new Smtp();
         $this->connection = new SmtpProtocolSpy();
         $this->transport->setConnection($this->connection);
     }
 
-    public function getMessage(): Message
-    {
-        $message = new Message();
-        $message->addTo('test@example.com', 'Example Test');
-        $message->addCc('matthew@example.com');
-        $message->addBcc('list@example.com', 'Example List');
-        $message->addFrom([
-            'test@example.com',
-            'matthew@example.com' => 'Matthew',
-        ]);
-        $message->setSender('ralph@example.com', 'Ralph Schindler');
-        $message->setSubject('Testing Contenir\Mail\Transport\Sendmail');
-        $message->setBody('This is only a test.');
-
-        $message->getHeaders()
-            ->addHeaders([
-                'X-Foo-Bar' => 'Matthew',
-            ]);
-
-        return $message;
-    }
-
     /**
-     *  Per RFC 2822 3.6
+     * Per RFC 2822 3.6
      */
     #[Test]
-    public function sendMailWithoutMinimalHeaders(): void
+    public function rejectsMessageWithoutSenderOrFrom(): void
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage(
             'transport expects either a Sender or at least one From address in the Message; none provided',
         );
-        $message = new Message();
-        $this->transport->send($message);
+
+        $this->getTransport()->send(new Message());
     }
 
     /**
-     *  Per RFC 2821 3.3 (page 18)
-     *  - RCPT (recipient) must be called before DATA (headers or body)
+     * Per RFC 2821 3.3 (page 18): RCPT must be called before DATA.
      */
     #[Test]
-    public function sendMailWithoutRecipient(): void
+    public function rejectsMessageWithoutRecipient(): void
     {
+        $message = (new Message())->setSender('ralph@example.com', 'Ralph Schindler');
+
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('at least one recipient if the message has at least one header or body');
-        $message = new Message();
-        $message->setSender('ralph@example.com', 'Ralph Schindler');
-        $this->transport->send($message);
+
+        $this->getTransport()->send($message);
+    }
+
+    #[DataProvider('envelopeFromLogProvider')]
+    #[Test]
+    public function usesEnvelopeFromAndMessageRecipients(string $expected): void
+    {
+        $this->getTransport()->setEnvelope(new Envelope(['from' => 'mailer@example.com']));
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
+    }
+
+    #[DataProvider('envelopeToLogProvider')]
+    #[Test]
+    public function usesEnvelopeToAndMessageSender(string $expected): void
+    {
+        $this->getTransport()->setEnvelope(new Envelope(['to' => 'users@example.com']));
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
     }
 
     #[Test]
-    public function sendMailWithEnvelopeFrom(): void
+    public function deliversOnlyToEnvelopeRecipients(): void
     {
-        $message  = $this->getMessage();
-        $envelope = new Envelope([
-            'from' => 'mailer@example.com',
-        ]);
-        $this->transport->setEnvelope($envelope);
-        $this->transport->send($message);
-
-        $data = $this->connection->getLog();
-        static::assertStringContainsString('MAIL FROM:<mailer@example.com>', $data);
-        static::assertStringContainsString('RCPT TO:<matthew@example.com>', $data);
-        static::assertStringContainsString('RCPT TO:<list@example.com>', $data);
-        static::assertStringContainsString("From: test@example.com,\r\n Matthew <matthew@example.com>\r\n", $data);
-    }
-
-    #[Test]
-    public function sendMailWithEnvelopeTo(): void
-    {
-        $message  = $this->getMessage();
-        $envelope = new Envelope([
-            'to' => 'users@example.com',
-        ]);
-        $this->transport->setEnvelope($envelope);
-        $this->transport->send($message);
-
-        $data = $this->connection->getLog();
-        static::assertStringContainsString('MAIL FROM:<ralph@example.com>', $data);
-        static::assertStringContainsString('RCPT TO:<users@example.com>', $data);
-        static::assertStringContainsString('To: Example Test <test@example.com>', $data);
-    }
-
-    #[Test]
-    public function sendMailWithEnvelope(): void
-    {
-        $message  = $this->getMessage();
-        $to       = ['users@example.com', 'dev@example.com'];
-        $envelope = new Envelope([
-            'from' => 'mailer@example.com',
-            'to'   => $to,
-        ]);
-        $this->transport->setEnvelope($envelope);
-        $this->transport->send($message);
+        $to = ['users@example.com', 'dev@example.com'];
+        $this->getTransport()->setEnvelope(new Envelope(['from' => 'mailer@example.com', 'to' => $to]));
+        $this->getTransport()->send($this->makeMessage());
 
         static::assertSame($to, $this->connection->getRecipients());
+    }
 
-        $data = $this->connection->getLog();
-        static::assertStringContainsString('MAIL FROM:<mailer@example.com>', $data);
-        static::assertStringContainsString('RCPT TO:<users@example.com>', $data);
-        static::assertStringContainsString('RCPT TO:<dev@example.com>', $data);
+    #[DataProvider('envelopeLogProvider')]
+    #[Test]
+    public function usesEnvelopeFromAndTo(string $expected): void
+    {
+        $this->getTransport()->setEnvelope(new Envelope([
+            'from' => 'mailer@example.com',
+            'to'   => ['users@example.com', 'dev@example.com'],
+        ]));
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
     }
 
     #[Test]
-    public function sendMinimalMail(): void
+    public function sendsMinimalMessageWithSender(): void
     {
-        $headers = new Headers();
-        $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
+        $message = $this->makeDatedMessage()
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setBody('testSendMailWithoutMinimalHeaders')
+            ->addTo('test@example.com', 'Example Test');
 
-        $message = new Message();
-        $message->setHeaders($headers);
-        $message->setSender('ralph@example.com', 'Ralph Schindler');
-        $message->setBody('testSendMailWithoutMinimalHeaders');
-        $message->addTo('test@example.com', 'Example Test');
+        $this->getTransport()->send($message);
 
-        $expectedMessage =
+        static::assertStringContainsString(
             "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
-            . "Sender: Ralph Schindler <ralph@example.com>\r\n"
-            . "To: Example Test <test@example.com>\r\n"
-            . "\r\n"
-            . 'testSendMailWithoutMinimalHeaders';
-
-        $this->transport->send($message);
-
-        static::assertStringContainsString($expectedMessage, $this->connection->getLog());
+                . "Sender: Ralph Schindler <ralph@example.com>\r\n"
+                . "To: Example Test <test@example.com>\r\n"
+                . "\r\n"
+                . 'testSendMailWithoutMinimalHeaders',
+            $this->connection->getLog(),
+        );
     }
 
     #[Test]
-    public function sendMinimalMailWithoutSender(): void
+    public function sendsMinimalMessageWithoutSender(): void
     {
-        $headers = new Headers();
-        $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
+        $message = $this->makeDatedMessage()
+            ->setFrom('ralph@example.com', 'Ralph Schindler')
+            ->setBody('testSendMinimalMailWithoutSender')
+            ->addTo('test@example.com', 'Example Test');
 
-        $message = new Message();
-        $message->setHeaders($headers);
-        $message->setFrom('ralph@example.com', 'Ralph Schindler');
-        $message->setBody('testSendMinimalMailWithoutSender');
-        $message->addTo('test@example.com', 'Example Test');
+        $this->getTransport()->send($message);
 
-        $expectedMessage =
+        static::assertStringContainsString(
             "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
-            . "From: Ralph Schindler <ralph@example.com>\r\n"
-            . "To: Example Test <test@example.com>\r\n"
-            . "\r\n"
-            . 'testSendMinimalMailWithoutSender';
-
-        $this->transport->send($message);
-
-        static::assertStringContainsString($expectedMessage, $this->connection->getLog());
+                . "From: Ralph Schindler <ralph@example.com>\r\n"
+                . "To: Example Test <test@example.com>\r\n"
+                . "\r\n"
+                . 'testSendMinimalMailWithoutSender',
+            $this->connection->getLog(),
+        );
     }
 
     #[Test]
-    public function receivesMailArtifacts(): void
+    public function deliversToToCcAndBccRecipients(): void
     {
-        $message = $this->getMessage();
-        $this->transport->send($message);
+        $this->getTransport()->send($this->makeMessage());
 
-        $expectedRecipients = ['test@example.com', 'matthew@example.com', 'list@example.com'];
-        static::assertSame($expectedRecipients, $this->connection->getRecipients());
+        static::assertSame(
+            ['test@example.com', 'matthew@example.com', 'list@example.com'],
+            $this->connection->getRecipients(),
+        );
+    }
 
-        $data = $this->connection->getLog();
-        static::assertStringContainsString('MAIL FROM:<ralph@example.com>', $data);
-        static::assertStringContainsString('To: Example Test <test@example.com>', $data);
-        static::assertStringContainsString('Subject: Testing Contenir\Mail\Transport\Sendmail', $data);
-        static::assertStringContainsString("Cc: matthew@example.com\r\n", $data);
-        static::assertStringNotContainsString("Bcc: \"Example List\" <list@example.com>\r\n", $data);
-        static::assertStringContainsString("From: test@example.com,\r\n Matthew <matthew@example.com>\r\n", $data);
-        static::assertStringContainsString("X-Foo-Bar: Matthew\r\n", $data);
-        static::assertStringContainsString("Sender: Ralph Schindler <ralph@example.com>\r\n", $data);
-        static::assertStringContainsString("\r\n\r\nThis is only a test.", $data, $data);
+    #[Test]
+    public function deliversToEachRecipientOnce(): void
+    {
+        $message = $this->makeMessage()->addCc('test@example.com');
+
+        $this->getTransport()->send($message);
+
+        static::assertSame(
+            ['test@example.com', 'matthew@example.com', 'list@example.com'],
+            $this->connection->getRecipients(),
+        );
+    }
+
+    #[DataProvider('messageLogProvider')]
+    #[Test]
+    public function writesMessageToConnection(string $expected): void
+    {
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
+    }
+
+    #[Test]
+    public function doesNotSendBccHeader(): void
+    {
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringNotContainsString('Bcc:', $this->connection->getLog());
+    }
+
+    #[Test]
+    public function keepsBccOnMessageAfterSending(): void
+    {
+        $message = $this->makeMessage();
+
+        $this->getTransport()->send($message);
+
+        static::assertTrue($message->getHeaders()->has('Bcc'));
+    }
+
+    #[DataProvider('encodedHeaderProvider')]
+    #[Test]
+    public function encodesNonAsciiHeadersOnTheWire(string $expected): void
+    {
+        $message = $this->makeMessage()
+            ->setSubject('Grüße aus Köln')
+            ->setTo('test@example.com', 'Jösé');
+
+        $this->getTransport()->send($message);
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
     }
 
     /**
-     * Fold long lines during smtp communication in Protocol\Smtp class.
-     * Test folding of long lines following RFC 5322 section-2.2.3
+     * Fold long lines during SMTP communication, following RFC 5322 section 2.2.3.
      *
      * @see https://github.com/laminas/laminas-mail/pull/140
      */
     #[Test]
-    public function longLinesFoldingRFC5322(): void
+    public function foldsHeaderLinesLongerThanLineLimit(): void
     {
-        $message = 'The folding logic expects exactly 1 byte after \r\n in folding';
-        static::assertSame("\r\n ", Headers::FOLDING, $message);
+        $this->getTransport()->send($this->makeMessageWithLongHeaders());
 
-        $message = $this->getMessage();
-        // Create buffer of 8192 bytes (PHP_SOCK_CHUNK_SIZE)
-        $buffer = str_repeat('0123456789abcdef', 512);
-
-        $maxLen                         = SmtpProtocol::SMTP_LINE_LIMIT;
-        $headerWithLargeValue           = $buffer;
-        $headerWithExactlyMaxLineLength = substr($buffer, 0, $maxLen - strlen('X-Exact-Length: '));
-        $message->getHeaders()
-            ->addHeaders([
-                'X-Ms-Exchange-Antispam-Messagedata' => $headerWithLargeValue,
-                'X-Exact-Length'                     => $headerWithExactlyMaxLineLength,
-            ]);
-
-        $this->transport->send($message);
-        $data = $this->connection->getLog();
-
-        $lines = explode("\r\n", $data);
-        static::assertCount(28, $lines);
-
-        foreach ($lines as $line) {
-            static::assertLessThanOrEqual($maxLen, strlen($line), "Line is too long: {$line}");
-        }
-
-        static::assertStringNotContainsString(
-            $headerWithLargeValue,
-            $data,
-            "The original header can't be present if it's wrapped",
+        static::assertSame(
+            [],
+            array_filter(
+                explode("\r\n", $this->connection->getLog()),
+                static fn(string $line): bool => strlen($line) > SmtpProtocol::SMTP_LINE_LIMIT,
+            ),
         );
-        static::assertStringContainsString(
-            $headerWithExactlyMaxLineLength,
-            $data,
-            'Header with exact length is not wrapped',
-        );
+    }
+
+    #[Test]
+    public function writesExpectedNumberOfLinesForLongHeaders(): void
+    {
+        $this->getTransport()->send($this->makeMessageWithLongHeaders());
+
+        static::assertCount(28, explode("\r\n", $this->connection->getLog()));
+    }
+
+    #[Test]
+    public function wrapsHeaderLongerThanLineLimit(): void
+    {
+        $this->getTransport()->send($this->makeMessageWithLongHeaders());
+
+        static::assertStringNotContainsString(self::longHeaderValue(), $this->connection->getLog());
+    }
+
+    #[Test]
+    public function leavesHeaderOfExactlyLineLimitUnwrapped(): void
+    {
+        $this->getTransport()->send($this->makeMessageWithLongHeaders());
+
+        static::assertStringContainsString(self::exactLengthHeaderValue(), $this->connection->getLog());
     }
 
     #[Test]
     public function canUseAuthenticationExtensionsViaPluginManager(): void
     {
-        $options = new SmtpOptions([
-            'connection_class' => 'login',
-        ]);
+        $options    = new SmtpOptions(['connection_class' => 'login']);
         $transport  = new Smtp($options);
         $connection = $transport->plugin($options->getConnectionClass(), [
             'username' => 'matthew',
-            'password' => 'password',
+            'password' => self::TEST_AUTH_VALUE,
             'host'     => 'localhost',
         ]);
+
         static::assertInstanceOf(Login::class, $connection);
-        static::assertSame('matthew', $connection->getUsername());
-        static::assertSame('password', $connection->getPassword());
+        static::assertSame(['matthew', self::TEST_AUTH_VALUE], [
+            $connection->getUsername(),
+            $connection->getPassword(),
+        ]);
     }
 
     #[Test]
-    public function setAutoDisconnect(): void
+    public function autoDisconnectCanBeTurnedOff(): void
     {
-        $this->transport->setAutoDisconnect(false);
-        static::assertFalse($this->transport->getAutoDisconnect());
+        $this->getTransport()->setAutoDisconnect(false);
+
+        static::assertFalse($this->getTransport()->getAutoDisconnect());
     }
 
     #[Test]
-    public function getDefaultAutoDisconnectValue(): void
+    public function autoDisconnectIsOnByDefault(): void
     {
-        static::assertTrue($this->transport->getAutoDisconnect());
+        static::assertTrue($this->getTransport()->getAutoDisconnect());
     }
 
     #[Test]
-    public function autoDisconnectTrue(): void
+    public function destructorEndsSessionWithAutoDisconnect(): void
     {
         $this->connection->connect();
-        unset($this->transport);
+        $this->transport = null;
+
         static::assertFalse($this->connection->hasSession());
     }
 
     #[Test]
-    public function autoDisconnectFalse(): void
+    public function destructorKeepsConnectionWithoutAutoDisconnect(): void
     {
         $this->connection->connect();
-        $this->transport->setAutoDisconnect(false);
-        unset($this->transport);
+        $this->getTransport()->setAutoDisconnect(false);
+        $this->transport = null;
+
         static::assertTrue($this->connection->isConnected());
     }
 
     #[Test]
-    public function disconnect(): void
+    public function disconnectClosesConnection(): void
     {
         $this->connection->connect();
-        static::assertTrue($this->connection->isConnected());
-        $this->transport->disconnect();
+        $this->getTransport()->disconnect();
+
         static::assertFalse($this->connection->isConnected());
     }
 
     #[Test]
-    public function disconnectSendReconnects(): void
+    public function sendingStartsSession(): void
     {
-        static::assertFalse($this->connection->hasSession());
-        $this->transport->send($this->getMessage());
-        static::assertTrue($this->connection->hasSession());
-        $this->connection->disconnect();
+        $this->getTransport()->send($this->makeMessage());
 
-        static::assertFalse($this->connection->hasSession());
-        $this->transport->send($this->getMessage());
         static::assertTrue($this->connection->hasSession());
     }
 
     #[Test]
-    public function autoReconnect(): void
+    public function sendingAfterDisconnectStartsNewSession(): void
+    {
+        $this->getTransport()->send($this->makeMessage());
+        $this->connection->disconnect();
+
+        $this->getTransport()->send($this->makeMessage());
+
+        static::assertTrue($this->connection->hasSession());
+    }
+
+    #[Test]
+    public function reconnectsWhenConnectionTimeLimitIsReached(): void
     {
         $options = new SmtpOptions();
         $options->setConnectionTimeLimit(5 * 3600);
 
-        $this->transport->setOptions($options);
+        $transport = $this->getTransport();
+        $transport->setOptions($options);
 
-        // Mock the connection
         $connectionMock = $this->getMockBuilder(SmtpProtocol::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['connect', 'helo', 'hasSession', 'mail', 'rcpt', 'data', 'rset'])
             ->getMock();
 
-        $connectionMock->expects(self::exactly(2))
-            ->method('hasSession')
-            ->willReturnOnConsecutiveCalls(
-                false,
-                true,
-            );
+        $connectionMock->expects(self::exactly(2))->method('hasSession')->willReturnOnConsecutiveCalls(false, true);
+        $connectionMock->expects(self::exactly(2))->method('connect');
+        $connectionMock->expects(self::exactly(2))->method('helo');
+        $connectionMock->expects(self::exactly(3))->method('mail');
+        $connectionMock->expects(self::exactly(9))->method('rcpt');
+        $connectionMock->expects(self::exactly(3))->method('data');
+        $connectionMock->expects(self::exactly(1))->method('rset');
 
-        $connectionMock->expects(self::exactly(2))
-            ->method('connect');
+        $transport->setConnection($connectionMock);
 
-        $connectionMock->expects(self::exactly(2))
-            ->method('helo');
-
-        $connectionMock->expects(self::exactly(3))
-            ->method('mail');
-
-        $connectionMock->expects(self::exactly(9))
-            ->method('rcpt');
-
-        $connectionMock->expects(self::exactly(3))
-            ->method('data');
-
-        $connectionMock->expects(self::exactly(1))
-            ->method('rset');
-
-        $this->transport->setConnection($connectionMock);
-
-        // Mock the plugin manager so that lazyLoadConnection() works
         $pluginManagerMock = $this->getMockBuilder(SmtpPluginManager::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['get'])
             ->getMock();
+        $pluginManagerMock->expects(self::once())->method('get')->willReturn($connectionMock);
 
-        $pluginManagerMock->expects(self::once())
-            ->method('get')
-            ->willReturn($connectionMock);
+        $transport->setPluginManager($pluginManagerMock);
 
-        $this->transport->setPluginManager($pluginManagerMock);
+        $transport->send($this->makeMessage());
 
-        // Send the first email - first connect()
-        $this->transport->send($this->getMessage());
-
-        // Check that the connectedTime was set properly
-        $reflClass             = new ReflectionClass($this->transport);
-        $connectedTimeProperty = $reflClass->getProperty('connectedTime');
-
-        static::assertNotNull($connectedTimeProperty);
-        $connectedTimeAfterFirstMail = $connectedTimeProperty->getValue($this->transport);
+        $connectedTimeProperty       = (new ReflectionClass($transport))->getProperty('connectedTime');
+        $connectedTimeAfterFirstMail = $connectedTimeProperty->getValue($transport);
         static::assertNotNull($connectedTimeAfterFirstMail);
 
-        // Send the second email - no new connect()
-        $this->transport->send($this->getMessage());
+        $transport->send($this->makeMessage());
+        static::assertSame($connectedTimeAfterFirstMail, $connectedTimeProperty->getValue($transport));
 
-        // Make sure that there was no new connect() (and no new timestamp was written)
-        static::assertSame($connectedTimeAfterFirstMail, $connectedTimeProperty->getValue($this->transport));
+        $connectedTimeProperty->setValue($transport, time() - (10 * 3600));
+        $transport->send($this->makeMessage());
+    }
 
-        // Manipulate the timestamp to trigger the auto-reconnect
-        $connectedTimeProperty->setValue($this->transport, time() - (10 * 3600));
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function envelopeFromLogProvider(): array
+    {
+        return [
+            'envelope sender'     => ['MAIL FROM:<mailer@example.com>'],
+            'Cc recipient'        => ['RCPT TO:<matthew@example.com>'],
+            'Bcc recipient'       => ['RCPT TO:<list@example.com>'],
+            'From header in DATA' => ["From: test@example.com,\r\n Matthew <matthew@example.com>\r\n"],
+        ];
+    }
 
-        // Send the third email - it should trigger a new connect()
-        $this->transport->send($this->getMessage());
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function envelopeToLogProvider(): array
+    {
+        return [
+            'message sender'     => ['MAIL FROM:<ralph@example.com>'],
+            'envelope recipient' => ['RCPT TO:<users@example.com>'],
+            'To header in DATA'  => ['To: Example Test <test@example.com>'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function envelopeLogProvider(): array
+    {
+        return [
+            'envelope sender'           => ['MAIL FROM:<mailer@example.com>'],
+            'first envelope recipient'  => ['RCPT TO:<users@example.com>'],
+            'second envelope recipient' => ['RCPT TO:<dev@example.com>'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function messageLogProvider(): array
+    {
+        return [
+            'envelope sender from Sender' => ['MAIL FROM:<ralph@example.com>'],
+            'To'                          => ["To: Example Test <test@example.com>\r\n"],
+            'Subject'                     => ["Subject: Testing Contenir\\Mail\\Transport\\Sendmail\r\n"],
+            'Cc'                          => ["Cc: matthew@example.com\r\n"],
+            'From'                        => ["From: test@example.com,\r\n Matthew <matthew@example.com>\r\n"],
+            'X-Foo-Bar'                   => ["X-Foo-Bar: Matthew\r\n"],
+            'Sender'                      => ["Sender: Ralph Schindler <ralph@example.com>\r\n"],
+            'body after blank line'       => ["\r\n\r\nThis is only a test."],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function encodedHeaderProvider(): array
+    {
+        return [
+            'Subject'      => ["Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe=20aus=20K=C3=B6ln?=\r\n"],
+            'To with name' => ["To: =?UTF-8?Q?J=C3=B6s=C3=A9?= <test@example.com>\r\n"],
+        ];
+    }
+
+    private function getTransport(): Smtp
+    {
+        static::assertNotNull($this->transport);
+
+        return $this->transport;
+    }
+
+    private function makeMessage(): Message
+    {
+        return (new Message())->addTo('test@example.com', 'Example Test')
+            ->addCc('matthew@example.com')
+            ->addBcc('list@example.com', 'Example List')
+            ->addFrom([
+                'test@example.com',
+                'matthew@example.com' => 'Matthew',
+            ])
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.')
+            ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
+    }
+
+    private function makeDatedMessage(): Message
+    {
+        return new Message(new Headers(new Date(new DateTimeImmutable('Sun, 10 Jun 2012 20:07:24 +0200'))));
+    }
+
+    private function makeMessageWithLongHeaders(): Message
+    {
+        return $this->makeMessage()
+            ->addHeader(new GenericHeader('X-Ms-Exchange-Antispam-Messagedata', self::longHeaderValue()))
+            ->addHeader(new GenericHeader('X-Exact-Length', self::exactLengthHeaderValue()));
+    }
+
+    /**
+     * A value the size of PHP_SOCK_CHUNK_SIZE (8192 bytes).
+     */
+    private static function longHeaderValue(): string
+    {
+        return str_repeat('0123456789abcdef', times: 512);
+    }
+
+    private static function exactLengthHeaderValue(): string
+    {
+        return substr(
+            self::longHeaderValue(),
+            offset: 0,
+            length: SmtpProtocol::SMTP_LINE_LIMIT - strlen('X-Exact-Length: '),
+        );
     }
 }

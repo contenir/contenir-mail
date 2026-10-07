@@ -5,19 +5,16 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 /**
- * Interface detailing how to resolve header names to classes.
+ * Maps header names to the classes that parse them.
+ *
+ * @api
  */
 interface HeaderLocatorInterface
 {
     /**
-     * @param class-string<HeaderInterface>|null $default
      * @return class-string<HeaderInterface>|null
      */
-    public function get(string $name, ?string $default = null): ?string;
+    public function get(string $name): ?string;
 
     public function has(string $name): bool;
-
-    public function add(string $name, string $class): void;
-
-    public function remove(string $name): void;
 }

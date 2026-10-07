@@ -3,15 +3,11 @@
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail;
-use Contenir\Mail\Address\AddressInterface;
-use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Transport\Exception\InvalidArgumentException;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Override;
 use Traversable;
 
-use function assert;
-use function count;
 use function escapeshellarg;
 use function gettype;
 use function implode;
@@ -130,6 +126,8 @@ class Sendmail implements TransportInterface
 
     /**
      * Send a message
+     *
+     * @throws RuntimeException When the message has no recipients or its From header is unsafe.
      */
     #[Override]
     public function send(Mail\Message $message)
@@ -173,21 +171,19 @@ class Sendmail implements TransportInterface
             return '';
         }
 
-        /** @var Mail\Header\To $to */
-        $to   = $headers->get('to');
-        $list = $to->getAddressList();
-        if (0 == count($list)) {
+        $to = $headers->get('to');
+        if (! $to instanceof Mail\Header\To || $to->getAddressList()->isEmpty()) {
             throw new RuntimeException('Invalid "To" header; contains no addresses');
         }
 
         // If not on Windows, return normal string
         if (! $this->isWindowsOs()) {
-            return $to->getFieldValue(HeaderInterface::FORMAT_ENCODED);
+            return $to->getEncodedFieldValue();
         }
 
         // Otherwise, return list of emails
         $addresses = [];
-        foreach ($list as $address) {
+        foreach ($to->getAddressList() as $address) {
             $addresses[] = $address->getEmail();
         }
         return implode(', ', $addresses);
@@ -200,14 +196,7 @@ class Sendmail implements TransportInterface
      */
     protected function prepareSubject(Mail\Message $message)
     {
-        $headers = $message->getHeaders();
-        if (! $headers->has('subject')) {
-            return '';
-        }
-        $header     = $headers->get('subject');
-        $fieldValue = $header->getFieldValue(HeaderInterface::FORMAT_ENCODED);
-        assert(is_string($fieldValue));
-        return $fieldValue;
+        return $message->getHeaders()->get('subject')?->getEncodedFieldValue() ?? '';
     }
 
     /**
@@ -234,21 +223,14 @@ class Sendmail implements TransportInterface
      */
     protected function prepareHeaders(Mail\Message $message)
     {
-        // Strip the "to" and "subject" headers
-        $headers = clone $message->getHeaders();
-        $headers->removeHeader('To');
-        $headers->removeHeader('Subject');
-
-        /** @var Mail\Header\From $from Sanitize the From header*/
-        $from = $headers->get('From');
-        if ($from) {
-            foreach ($from->getAddressList() as $address) {
-                if (str_contains($address->getEmail(), '\\"')) {
-                    throw new RuntimeException('Potential code injection in From header');
-                }
+        // mail() takes To and Subject as separate arguments
+        foreach ($message->getFrom() as $address) {
+            if (str_contains($address->getEmail(), '\\"')) {
+                throw new RuntimeException('Potential code injection in From header');
             }
         }
-        return $headers->toString();
+
+        return $message->getHeaders()->without('To')->without('Subject')->toString();
     }
 
     /**
@@ -271,15 +253,13 @@ class Sendmail implements TransportInterface
         }
 
         $sender = $message->getSender();
-        if ($sender instanceof AddressInterface) {
+        if ($sender instanceof Mail\Address) {
             return $parameters . ' -f' . escapeshellarg($sender->getEmail());
         }
 
-        $from = $message->getFrom();
-        if (count($from)) {
-            $from->rewind();
-            $sender = $from->current();
-            return $parameters . ' -f' . escapeshellarg($sender->getEmail());
+        $from = $message->getFrom()->first();
+        if (null !== $from) {
+            return $parameters . ' -f' . escapeshellarg($from->getEmail());
         }
 
         return $parameters;

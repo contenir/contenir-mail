@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use function in_array;
@@ -21,7 +23,7 @@ final class HeaderValue
      * @param  string $value
      * @return string
      */
-    public static function filter($value)
+    public static function filter(string $value): string
     {
         $result = '';
         $total  = strlen($value);
@@ -65,7 +67,7 @@ final class HeaderValue
      * @param string $value
      * @return bool
      */
-    public static function isValid($value)
+    public static function isValid(string $value): bool
     {
         $total = strlen($value);
         for ($i = 0; $i < $total; $i += 1) {
@@ -84,7 +86,7 @@ final class HeaderValue
                 $lf = ord($value[$i + 1]);
                 $sp = ord($value[$i + 2]);
 
-                if (10 !== $lf || ! in_array($sp, [9, 32], true)) {
+                if (10 !== $lf || ! in_array($sp, [9, 32], strict: true)) {
                     return false;
                 }
 
@@ -105,7 +107,7 @@ final class HeaderValue
      * @throws Exception\RuntimeException
      * @return void
      */
-    public static function assertValid($value)
+    public static function assertValid(string $value): void
     {
         if (! self::isValid($value)) {
             throw new Exception\RuntimeException('Invalid header value detected');

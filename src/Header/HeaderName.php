@@ -1,66 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use function ord;
 use function strlen;
 
+/**
+ * Header field names: printable US-ASCII except the colon (RFC 5322, section 3.6.8).
+ */
 final class HeaderName
 {
-    /**
-     * No public constructor.
-     */
     private function __construct() {}
 
-    /**
-     * Filter the header name according to RFC 2822
-     *
-     * @see    http://www.rfc-base.org/txt/rfc-2822.txt (section 2.2)
-     *
-     * @param  string $name
-     * @return string
-     */
-    public static function filter($name)
+    public static function filter(string $name): string
     {
         $result = '';
-        $tot    = strlen($name);
-        for ($i = 0; $i < $tot; $i += 1) {
+        $total  = strlen($name);
+        for ($i = 0; $i < $total; ++$i) {
             $ord = ord($name[$i]);
             if ($ord > 32 && $ord < 127 && 58 !== $ord) {
                 $result .= $name[$i];
             }
         }
+
         return $result;
     }
 
-    /**
-     * Determine if the header name contains any invalid characters.
-     *
-     * @param string $name
-     * @return bool
-     */
-    public static function isValid($name)
+    public static function isValid(string $name): bool
     {
-        $tot = strlen($name);
-        for ($i = 0; $i < $tot; $i += 1) {
+        $total = strlen($name);
+        if (0 === $total) {
+            return false;
+        }
+
+        for ($i = 0; $i < $total; ++$i) {
             $ord = ord($name[$i]);
             if ($ord < 33 || $ord > 126 || 58 === $ord) {
                 return false;
             }
         }
+
         return true;
     }
 
     /**
-     * Assert that the header name is valid.
-     *
-     * Raises an exception if invalid.
-     *
-     * @param string $name
      * @throws Exception\RuntimeException
-     * @return void
      */
-    public static function assertValid($name)
+    public static function assertValid(string $name): void
     {
         if (! self::isValid($name)) {
             throw new Exception\RuntimeException('Invalid header name detected');

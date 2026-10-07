@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\MimeVersion;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -14,103 +13,120 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(MimeVersion::class)]
-class MimeVersionTest extends TestCase
+#[Group('unit')]
+final class MimeVersionTest extends TestCase
 {
     #[Test]
-    public function settingManually(): void
+    public function defaultsToVersionOne(): void
     {
-        $version = '2.0';
-        $mime    = new Header\MimeVersion();
-        $mime->setVersion($version);
-        static::assertSame($version, $mime->getFieldValue());
+        static::assertSame('1.0', (new MimeVersion())->getVersion());
     }
 
     #[Test]
-    public function defaultVersion(): void
+    public function rendersDefaultHeaderLine(): void
     {
-        $mime = new Header\MimeVersion();
-        static::assertSame('1.0', $mime->getVersion());
-        static::assertSame('MIME-Version: 1.0', $mime->toString());
-    }
-
-    public static function headerLines(): array
-    {
-        return [
-            'newline'   => ["MIME-Version: 5.0\nbar"],
-            'cr-lf'     => ["MIME-Version: 2.0\r\n"],
-            'cr-lf-wsp' => ["MIME-Version: 3\r\n\r\n.1"],
-            'multiline' => ["MIME-Version: baz\r\nbar\r\nbau"],
-        ];
+        static::assertSame('MIME-Version: 1.0', (new MimeVersion())->toString());
     }
 
     #[Test]
-    #[DataProvider('headerLines')]
+    public function reportsFieldName(): void
+    {
+        static::assertSame('MIME-Version', (new MimeVersion())->getFieldName());
+    }
+
+    #[Test]
+    public function keepsVersionItWasGiven(): void
+    {
+        static::assertSame('2.0', (new MimeVersion('2.0'))->getFieldValue());
+    }
+
+    #[Test]
+    public function rendersVersionAsEncodedFieldValue(): void
+    {
+        static::assertSame('2.0', (new MimeVersion('2.0'))->getEncodedFieldValue());
+    }
+
+    #[DataProvider('invalidVersionProvider')]
     #[Group('ZF2015-04')]
-    public function fromStringRaisesExceptionOnDetectionOfCrlfInjection(string $header): void
+    #[Test]
+    public function rejectsInvalidVersion(string $version): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
-        $mime = Header\MimeVersion::fromString($header);
+        $this->expectExceptionMessage('Invalid MIME-Version value detected');
+
+        new MimeVersion($version);
     }
 
-    public static function invalidVersions(): array
-    {
-        return [
-            'no-decimal'    => ['1'],
-            'multi-decimal' => ['1.0.0'],
-            'alpha'         => ['X.Y'],
-            'non-alnum'     => ['Version 1.0'],
-        ];
-    }
-
+    #[DataProvider('headerLineProvider')]
     #[Test]
-    #[DataProvider('invalidVersions')]
+    public function parsesVersionFromString(string $headerLine, string $expected): void
+    {
+        static::assertSame($expected, MimeVersion::fromString($headerLine)->getVersion());
+    }
+
+    #[DataProvider('injectedHeaderLineProvider')]
     #[Group('ZF2015-04')]
-    public function raisesExceptionOnInvalidVersionFromSetVersion(string $value): void
+    #[Test]
+    public function rejectsHeaderLineWithLineBreaksInValue(string $headerLine): void
     {
-        $header = new Header\MimeVersion();
         $this->expectException(Exception\InvalidArgumentException::class);
-        $header->setVersion($value);
+        $this->expectExceptionMessage('Invalid header value detected');
+
+        MimeVersion::fromString($headerLine);
     }
 
     #[Test]
-    public function fromStringRaisesExceptionOnInvalidHeader(): void
+    public function rejectsHeaderLineOfAnotherHeader(): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header line for MIME-Version string');
-        Header\MimeVersion::fromString('Foo: bar');
+
+        MimeVersion::fromString('Foo: bar');
     }
 
-    #[Test]
-    public function defaultEncoding(): void
-    {
-        $header = new Header\MimeVersion();
-        static::assertSame('ASCII', $header->getEncoding());
-    }
-
-    #[Test]
-    public function setEncodingHasNoEffect(): void
-    {
-        $header = new Header\MimeVersion();
-        $header->setEncoding('UTF-8');
-        static::assertSame('ASCII', $header->getEncoding());
-    }
-
-    public static function unconventionalHeaderLinesProvider(): array
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidVersionProvider(): array
     {
         return [
-            // Description => [header line, expected value]
-            'mimeversion'  => ['MIMEVersion: 1.0', '1.0'],
-            'mime_version' => ['MIME_Version: 1.0', '1.0'],
+            'no decimal'       => ['1'],
+            'several decimals' => ['1.0.0'],
+            'letters'          => ['X.Y'],
+            'leading word'     => ['Version 1.0'],
+            'zero major'       => ['0.9'],
+            'empty'            => [''],
+            'trailing cr-lf'   => ["1.0\r\n"],
         ];
     }
 
-    #[Test]
-    #[DataProvider('unconventionalHeaderLinesProvider')]
-    public function fromStringHandlesUnconventionalNames(string $headerLine, string $expected): void
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function headerLineProvider(): array
     {
-        $header = Header\MimeVersion::fromString($headerLine);
-        static::assertInstanceOf(Header\MimeVersion::class, $header);
-        static::assertSame('MIME-Version', $header->getFieldName());
-        static::assertSame($expected, $header->getFieldValue());
+        return [
+            'conventional name'     => ['MIME-Version: 1.0', '1.0'],
+            'other version'         => ['MIME-Version: 2.0', '2.0'],
+            'lower-case name'       => ['mime-version: 1.0', '1.0'],
+            'no separator'          => ['MIMEVersion: 1.0', '1.0'],
+            'underscore separator'  => ['MIME_Version: 1.0', '1.0'],
+            'unreadable falls back' => ['MIME-Version: garbage', '1.0'],
+            'empty falls back'      => ['MIME-Version: ', '1.0'],
+            'comment falls back'    => ['MIME-Version: 2.0 (produced by MetaSend)', '1.0'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function injectedHeaderLineProvider(): array
+    {
+        return [
+            'newline'     => ["MIME-Version: 5.0\nbar"],
+            'cr-lf'       => ["MIME-Version: 2.0\r\n"],
+            'cr-lf twice' => ["MIME-Version: 3\r\n\r\n.1"],
+            'multiline'   => ["MIME-Version: baz\r\nbar\r\nbau"],
+        ];
     }
 }

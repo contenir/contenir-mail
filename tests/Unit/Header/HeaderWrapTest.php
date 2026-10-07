@@ -4,155 +4,359 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use Contenir\Mail\Header\Bcc;
+use Contenir\Mail\Header\EncodedWordDecoder;
 use Contenir\Mail\Header\HeaderWrap;
-use Contenir\Mail\Header\UnstructuredInterface;
-use Contenir\Mail\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function base64_encode;
+use function error_clear_last;
+use function error_get_last;
+use function explode;
 use function iconv_mime_decode;
 use function str_repeat;
 use function strlen;
 use function substr;
-use function wordwrap;
 
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 
 #[CoversClass(HeaderWrap::class)]
-class HeaderWrapTest extends TestCase
+#[CoversClass(EncodedWordDecoder::class)]
+#[Group('unit')]
+final class HeaderWrapTest extends TestCase
 {
+    /**
+     * Printable ASCII is folded at 78 characters, counting the "Subject: " in front of it.
+     */
     #[Test]
-    public function wrapUnstructuredHeaderAscii(): void
+    public function foldsPrintableAsciiValueAtSeventyEightCharacters(): void
     {
-        $string = str_repeat('foobarblahblahblah baz bat', 4);
-        $header = $this->createMock(UnstructuredInterface::class);
-        $header->expects($this->any())
-            ->method('getEncoding')
-            ->willReturn('ASCII');
-        $expected = wordwrap($string, 78, "\r\n ");
+        $value = str_repeat('foobarblahblahblah baz bat', times: 4);
 
-        $test = HeaderWrap::wrap($string, $header);
-        static::assertSame($expected, $test);
+        static::assertSame(
+            "foobarblahblahblah baz batfoobarblahblahblah baz\r\n"
+                . ' batfoobarblahblahblah baz batfoobarblahblahblah baz bat',
+            HeaderWrap::fold('Subject', $value),
+        );
+    }
+
+    #[Test]
+    public function leavesShortAsciiValueUnchangedWhenFolding(): void
+    {
+        static::assertSame('Hello world', HeaderWrap::fold('Subject', 'Hello world'));
+    }
+
+    #[Test]
+    public function leavesUnbreakableAsciiValueUnchangedWhenFolding(): void
+    {
+        $value = str_repeat('a', times: 100);
+
+        static::assertSame($value, HeaderWrap::fold('Subject', $value));
+    }
+
+    #[Test]
+    public function foldsEmptyValueToEmptyString(): void
+    {
+        static::assertSame('', HeaderWrap::fold('X-Empty', ''));
+    }
+
+    #[Test]
+    public function encodesNonAsciiValueWhenFolding(): void
+    {
+        $value = str_repeat('foobarblahblahblah baz bat', times: 3) . 'ä';
+
+        static::assertSame(
+            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20?=\r\n"
+                . ' =?UTF-8?Q?baz=20batfoobarblahblahblah=20baz=20bat=C3=A4?=',
+            HeaderWrap::fold('Subject', $value),
+        );
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF2-258
      */
     #[Test]
-    public function wrapUnstructuredHeaderMime(): void
+    public function mimeEncodesLongValueAcrossLines(): void
     {
-        $string = str_repeat('foobarblahblahblah baz bat', 3);
-        $header = $this->createMock(UnstructuredInterface::class);
-        $header->expects($this->any())
-            ->method('getEncoding')
-            ->willReturn('UTF-8');
-        $expected =
-            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
-            . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
+        $value = str_repeat('foobarblahblahblah baz bat', times: 3);
 
-        $test = HeaderWrap::wrap($string, $header);
-        static::assertSame($expected, $test);
-        static::assertSame($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertSame(
+            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
+                . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=',
+            HeaderWrap::mimeEncodeValue($value, lineLength: 78),
+        );
     }
 
     #[Test]
-    public function wrapUnknownHeaderType(): void
+    public function mimeEncodedLongValueDecodesWithIconv(): void
     {
-        $header = new Bcc('test@example.org');
-        $value  = 'value unmodified by wrap function';
-        static::assertSame($value, HeaderWrap::wrap($value, $header));
+        $value   = str_repeat('foobarblahblahblah baz bat', times: 3);
+        $encoded = HeaderWrap::mimeEncodeValue($value, lineLength: 78);
+
+        static::assertSame(
+            $value,
+            iconv_mime_decode($encoded, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, encoding: 'UTF-8'),
+        );
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF2-359
      */
     #[Test]
-    public function mimeEncoding(): void
+    public function mimeEncodesUmlautAsUtf8(): void
     {
-        $string   = 'Umlauts: ä';
-        $expected = '=?UTF-8?Q?Umlauts:=20=C3=A4?=';
-
-        $test = HeaderWrap::mimeEncodeValue($string, 'UTF-8', 78);
-        static::assertSame($expected, $test);
-        static::assertSame($string, iconv_mime_decode($test, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8'));
+        static::assertSame('=?UTF-8?Q?Umlauts:=20=C3=A4?=', HeaderWrap::mimeEncodeValue('Umlauts: ä', lineLength: 78));
     }
 
     #[Test]
-    public function mimeDecoding(): void
+    public function mimeEncodedUmlautDecodesWithIconv(): void
     {
-        $expected = str_repeat('foobarblahblahblah baz bat', 3);
-        $encoded  = "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
-        . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
+        $encoded = HeaderWrap::mimeEncodeValue('Umlauts: ä', lineLength: 78);
 
-        $decoded = HeaderWrap::mimeDecodeValue($encoded);
+        static::assertSame(
+            'Umlauts: ä',
+            iconv_mime_decode($encoded, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, encoding: 'UTF-8'),
+        );
+    }
 
-        static::assertSame($expected, $decoded);
+    #[DataProvider('decodedValueProvider')]
+    #[Test]
+    public function mimeDecodesValue(string $encoded, string $expected): void
+    {
+        static::assertSame($expected, HeaderWrap::mimeDecodeValue($encoded));
     }
 
     /**
-     * Test that header lazy-loading doesn't break later header access
-     * because undocumented behavior in iconv_mime_decode()
+     * A tab continuation unfolds to a space, as Headers::fromString() unfolds it, without losing any characters.
      *
      * @see https://github.com/zendframework/zend-mail/pull/187
      */
     #[Test]
-    public function mimeDecodeBreakageBug(): void
+    public function mimeDecodeUnfoldsTabContinuationWithoutLosingCharacters(): void
     {
-        $headerValue =
-            'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h='
-            . "\r\n\t"
-            . 'content-language:content-type:content-type:in-reply-to';
-        $headers = "DKIM-Signature: {$headerValue}";
-
-        $message = new Storage\Message(['headers' => $headers, 'content' => 'irrelevant']);
-        $headers = $message->getHeaders();
-        // calling toString will lazy load all headers
-        // and would break DKIM-Signature header access
-        $headers->toString();
-
-        $header = $headers->get('DKIM-Signature');
         static::assertSame(
-            'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org;'
-                . ' h= content-language:content-type:content-type:in-reply-to',
-            $header->getFieldValue(),
+            'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h= content-language:content-type:in-reply-to',
+            HeaderWrap::mimeDecodeValue(
+                "v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h=\r\n\tcontent-language:content-type:in-reply-to",
+            ),
         );
     }
 
     /**
-     * Test that fails with HeaderWrap::canBeEncoded at lowest level:
-     *   iconv_mime_encode(): Unknown error (7)
-     *
-     * which can be triggered as:
-     *   $header = new GenericHeader($name, $value);
+     * iconv_mime_encode() used to fail with "Unknown error (7)" on this value.
      */
     #[Test]
-    public function canBeEncoded(): void
+    public function canEncodeLongValueWithUtf8Character(): void
     {
-        // @codingStandardsIgnoreStart
         $value = '[#77675] New Issue:xxxxxxxxx xxxxxxx xxxxxxxx xxxxxxxxxxxxx xxxxxxxxxx xxxxxxxx, tähtaeg xx.xx, xxxx';
-        // @codingStandardsIgnoreEnd
-        $res = HeaderWrap::canBeEncoded($value);
-        static::assertTrue($res);
+
+        static::assertTrue(HeaderWrap::canBeEncoded($value));
+    }
+
+    #[DataProvider('encodableValueProvider')]
+    #[Test]
+    public function canEncodeValue(string $value): void
+    {
+        static::assertTrue(HeaderWrap::canBeEncoded($value));
+    }
+
+    #[DataProvider('encodedWordProvider')]
+    #[Test]
+    public function decoderJoinsAdjacentEncodedWords(string $encoded, string $expected): void
+    {
+        static::assertSame($expected, EncodedWordDecoder::decode($encoded));
     }
 
     #[Test]
-    public function multilineWithMultibyteSplitAcrossCharacter(): void
+    public function cannotEncodeInvalidUtf8(): void
     {
-        $originalValue = 'аф';
+        static::assertFalse(HeaderWrap::canBeEncoded("\xFF\xFE"));
+    }
 
-        static::assertSame(strlen($originalValue), 4);
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function decodedValueProvider(): array
+    {
+        $split = 'аф';
 
-        $part1 = base64_encode(substr($originalValue, 0, 3));
-        $part2 = base64_encode(substr($originalValue, 3));
+        return [
+            'plain text'                                     => ['plain text', 'plain text'],
+            'folded encoded words'                           => [
+                "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
+                    . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=',
+                str_repeat('foobarblahblahblah baz bat', times: 3),
+            ],
+            'adjacent ISO-8859-2 words'                      => [
+                '=?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=',
+                'PD: My: Gołblahblah',
+            ],
+            'multibyte character split across words'         => [
+                '=?utf-8?B?'
+                    . base64_encode(substr($split, offset: 0, length: 3))
+                    . '?==?utf-8?B?'
+                    . base64_encode(substr($split, offset: 3))
+                    . '?=',
+                $split,
+            ],
+            'split multibyte character between plain text'   => [
+                'Re: =?utf-8?B?'
+                    . base64_encode(substr($split, offset: 0, length: 3))
+                    . '?= =?utf-8?B?'
+                    . base64_encode(substr($split, offset: 3))
+                    . '?= end',
+                "Re: {$split} end",
+            ],
+            'split multibyte character across Q and B words' => [
+                '=?utf-8?B?' . base64_encode(substr($split, offset: 0, length: 3)) . '?==?utf-8?Q?=84?=',
+                $split,
+            ],
+        ];
+    }
 
-        $header = "=?utf-8?B?{$part1}?==?utf-8?B?{$part2}?=";
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function encodedWordProvider(): array
+    {
+        $first  = base64_encode(substr('аф', offset: 0, length: 3));
+        $second = base64_encode(substr('аф', offset: 3));
 
+        return [
+            'no encoded words'                    => ['no words', 'no words'],
+            'split character between plain text'  => [
+                "Re: =?utf-8?B?{$first}?= =?utf-8?B?{$second}?= end",
+                'Re: аф end',
+            ],
+            'charset changes between words'       => [
+                "=?utf-8?B?{$first}?= =?utf-8?B?{$second}?= =?ISO-8859-1?Q?caf=E9?=",
+                'афcafé',
+            ],
+            'text between words is kept'          => [
+                '=?ISO-8859-1?Q?caf=E9_au_lait?= x =?ISO-8859-1?Q?=E9?=',
+                'café au lait x é',
+            ],
+            'RFC 2231 language suffix is ignored' => ['=?utf-8*en?Q?abc?=', 'abc'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function encodableValueProvider(): array
+    {
+        return [
+            'empty'           => [''],
+            'ascii'           => ['Hello world'],
+            'utf-8'           => ['Accents òàùèéì'],
+            'folded value'    => ["foo\r\n bar"],
+            'bare line feeds' => ["xxx yyy\n"],
+        ];
+    }
+
+    #[DataProvider('phraseProvider')]
+    #[Test]
+    public function encodesPhraseWithSpecialsEscaped(string $phrase, string $expected): void
+    {
+        static::assertSame($expected, HeaderWrap::encodePhrase($phrase));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function phraseProvider(): array
+    {
+        return [
+            'plain non-ASCII' => ['Jösé', '=?UTF-8?Q?J=C3=B6s=C3=A9?='],
+            'quote and comma' => ['Jösé "Jr", Esq.', '=?UTF-8?Q?J=C3=B6s=C3=A9=20=22Jr=22=2C=20Esq=2E?='],
+            'angle brackets'  => ['õlu <bar>', '=?UTF-8?Q?=C3=B5lu=20=3Cbar=3E?='],
+            'every special'   => ['é()<>@;:\\[]', '=?UTF-8?Q?=C3=A9=28=29=3C=3E=40=3B=3A=5C=5B=5D?='],
+        ];
+    }
+
+    #[Test]
+    public function keepsAsciiValueThatEndsExactlyAtColumnSeventyEight(): void
+    {
+        $value = str_repeat('a', times: 60) . ' ' . str_repeat('b', times: 8);
+
+        static::assertSame($value, HeaderWrap::fold('Subject', $value));
+    }
+
+    #[Test]
+    public function foldsAsciiValueOnePastColumnSeventyEight(): void
+    {
         static::assertSame(
-            $originalValue,
-            HeaderWrap::mimeDecodeValue($header),
+            str_repeat('a', times: 60) . "\r\n " . str_repeat('b', times: 9),
+            HeaderWrap::fold('Subject', str_repeat('a', times: 60) . ' ' . str_repeat('b', times: 9)),
         );
+    }
+
+    #[Test]
+    public function foldsEncodedValueAtColumnSeventyEight(): void
+    {
+        static::assertSame(
+            "=?UTF-8?Q?=C3=A9=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20?=\r\n"
+                . ' =?UTF-8?Q?ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab=20ab?=',
+            HeaderWrap::fold('Subject', 'é' . str_repeat(' ab', times: 23)),
+        );
+    }
+
+    /**
+     * @param list<int> $lineLengths
+     */
+    #[DataProvider('defaultLineLengthProvider')]
+    #[Test]
+    public function encodesWithinNineHundredNinetyEightCharacterLines(string $value, array $lineLengths): void
+    {
+        static::assertSame(
+            $lineLengths,
+            array_map(strlen(...), explode("\r\n ", HeaderWrap::mimeEncodeValue($value))),
+        );
+    }
+
+    /**
+     * @return array<string, array{string, list<int>}>
+     */
+    public static function defaultLineLengthProvider(): array
+    {
+        return [
+            'one line at the limit'        => ['éy' . str_repeat(' ab', times: 196), [999]],
+            'one character past the limit' => ['éyy' . str_repeat(' ab', times: 196), [993, 19]],
+        ];
+    }
+
+    #[Test]
+    public function decodesUnknownCharsetWithoutRaisingAWarning(): void
+    {
+        error_clear_last();
+        EncodedWordDecoder::decode('=?X-UNKNOWN?Q?abc?=');
+
+        static::assertNull(error_get_last());
+    }
+
+    #[DataProvider('decoderEdgeCaseProvider')]
+    #[Test]
+    public function decodesEncodedWordEdgeCases(string $encoded, string $expected): void
+    {
+        static::assertSame($expected, EncodedWordDecoder::decode($encoded));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function decoderEdgeCaseProvider(): array
+    {
+        return [
+            'text around several words'                          => ['x =?UTF-8?Q?a?= y =?UTF-8?Q?b?=', 'x a y b'],
+            'lower-case B scheme'                                => ['=?UTF-8?b?w6k=?=', 'é'],
+            'stray character in base64'                          => ['=?UTF-8?B?w6k*?=', 'é'],
+            'charset case differs between words'                 => ['=?utf-8?B?0LDR?= =?UTF-8?Q?=84?=', 'аф'],
+            'unknown charset left as it is'                      => ['=?X-UNKNOWN?Q?abc?=', 'abc'],
+            'multibyte charset split across words in mixed case' => ['=?shift_jis?Q?=82?= =?SHIFT_JIS?Q?=A0?=', 'あ'],
+        ];
     }
 }
