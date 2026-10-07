@@ -32,6 +32,8 @@ use function substr;
  * read from the start each time the part is written, and base64 content
  * is encoded in chunks rather than read into memory in one piece.
  *
+ * @mago-expect lint:too-many-methods Getters for each field, the PartInterface methods and serialization.
+ * @mago-expect lint:cyclomatic-complexity Serialization checks each field's type.
  * @mago-expect lint:excessive-parameter-list A value object built with named arguments; every field is an optional MIME header.
  */
 final readonly class Part implements PartInterface
@@ -63,6 +65,64 @@ final readonly class Part implements PartInterface
         }
 
         $this->content = $content;
+    }
+
+    /**
+     * The part's fields, with stream content read into a string so the part survives a queue.
+     *
+     * @return array<string, mixed>
+     */
+    public function __serialize(): array
+    {
+        return [
+            'content'     => $this->getContent(),
+            'type'        => $this->type,
+            'encoding'    => $this->encoding,
+            'charset'     => $this->charset,
+            'disposition' => $this->disposition,
+            'filename'    => $this->filename,
+            'id'          => $this->id,
+            'description' => $this->description,
+            'location'    => $this->location,
+            'language'    => $this->language,
+        ];
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     * @throws Exception\InvalidArgumentException When a field has the wrong type.
+     *
+     * @mago-expect analysis:invalid-property-write PHP lets __unserialize() initialise readonly properties once.
+     * @mago-expect analysis:mixed-assignment Serialized data is untyped until it is checked here.
+     */
+    public function __unserialize(array $data): void
+    {
+        $content     = $data['content'] ?? null;
+        $type        = $data['type'] ?? null;
+        $encoding    = $data['encoding'] ?? null;
+        $disposition = $data['disposition'] ?? null;
+        if (
+            ! is_string($content)
+            || ! is_string($type)
+            || ! $encoding instanceof TransferEncoding
+            || (
+                null !== $disposition
+                && ! $disposition instanceof Disposition
+            )
+        ) {
+            throw new Exception\InvalidArgumentException('Serialized part data is not valid');
+        }
+
+        $this->content     = $content;
+        $this->type        = $type;
+        $this->encoding    = $encoding;
+        $this->disposition = $disposition;
+        $this->charset     = self::nullableString($data, 'charset');
+        $this->filename    = self::nullableString($data, 'filename');
+        $this->id          = self::nullableString($data, 'id');
+        $this->description = self::nullableString($data, 'description');
+        $this->location    = self::nullableString($data, 'location');
+        $this->language    = self::nullableString($data, 'language');
     }
 
     /**
@@ -216,5 +276,21 @@ final readonly class Part implements PartInterface
     private static function base64Lines(string $bytes): string
     {
         return '' === $bytes ? '' : chunk_split(base64_encode($bytes), Mime::LINELENGTH, Headers::EOL);
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     * @throws Exception\InvalidArgumentException When the field is neither null nor a string.
+     *
+     * @mago-expect analysis:mixed-assignment Serialized data is untyped until it is checked here.
+     */
+    private static function nullableString(array $data, string $key): ?string
+    {
+        $value = $data[$key] ?? null;
+        if (null !== $value && ! is_string($value)) {
+            throw new Exception\InvalidArgumentException('Serialized part data is not valid');
+        }
+
+        return $value;
     }
 }
