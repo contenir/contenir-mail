@@ -1,0 +1,88 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Contenir\Mail\Validator;
+
+use function array_pop;
+use function count;
+use function explode;
+use function idn_to_ascii;
+use function mb_strlen;
+use function preg_match;
+use function str_ends_with;
+use function str_starts_with;
+use function strtolower;
+use function substr;
+
+use const IDNA_DEFAULT;
+use const INTL_IDNA_VARIANT_UTS46;
+
+/**
+ * Local network and Internet domain name syntax, as laminas-validator 2's
+ * Hostname validator accepted it with ALLOW_DNS | ALLOW_LOCAL.
+ *
+ * Internationalised names are accepted when they convert to ASCII under
+ * UTS #46, rather than only for the TLDs laminas-validator kept tables for.
+ *
+ * @internal
+ */
+final class DomainName
+{
+    /** laminas-validator's local network name pattern, kept verbatim for compatibility */
+    private const string LOCAL_NAME = '/^(([a-zA-Z0-9\x2d]{1,63}\x2e)*[a-zA-Z0-9\x2d]{1,63}[\x2e]{0,1}){1,254}$/';
+
+    private const string TLD = '/^([a-z]{2,63}|xn--[a-z0-9-]{1,59})$/i';
+
+    private const string LABEL = '/^[a-z0-9-]{1,63}$/i';
+
+    private const string SUBDOMAIN_LABEL = '/^[a-z0-9_-]{1,63}$/i';
+
+    public static function isLocalOrDnsName(string $value): bool
+    {
+        return 1 === preg_match(self::LOCAL_NAME, $value) || self::isDnsName($value);
+    }
+
+    /**
+     * Internet domain names add what local network names lack: "_" in
+     * labels below the registrable domain, and internationalised labels.
+     */
+    private static function isDnsName(string $value): bool
+    {
+        $length = mb_strlen($value, encoding: 'UTF-8');
+        if ($length < 4 || $length > 254) {
+            return false;
+        }
+
+        $ascii = idn_to_ascii($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if (false === $ascii) {
+            return false;
+        }
+
+        $labels = explode('.', $ascii);
+        $tld    = array_pop($labels);
+        if ([] === $labels || 1 !== preg_match(self::TLD, $tld)) {
+            return false;
+        }
+
+        $registrable = count($labels) - 1;
+        foreach ($labels as $index => $label) {
+            $pattern = $index < $registrable ? self::SUBDOMAIN_LABEL : self::LABEL;
+            if (1 !== preg_match($pattern, $label) || self::hasMisplacedDash($label)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function hasMisplacedDash(string $label): bool
+    {
+        return (
+            str_starts_with($label, '-')
+                || str_ends_with($label, '-')
+                || ! str_starts_with(strtolower($label), 'xn--')
+                && '--' === substr($label, offset: 2, length: 2)
+        );
+    }
+}

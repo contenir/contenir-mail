@@ -87,6 +87,11 @@ There are no `Laminas\*` class aliases. The following were also removed:
   `Header\HeaderLoader`, deprecated since laminas-mail 2.12, together with the
   abandoned `laminas/laminas-loader` dependency. Use `Headers::setHeaderLocator()`
   and `Headers::getHeaderLocator()` with a `Header\HeaderLocatorInterface`.
+- The `laminas/laminas-validator` dependency. Addresses and host names are checked
+  by internal validators that accept and reject what laminas-validator 2 did, so
+  an application is free to use either laminas-validator major version.
+  `AbstractProtocol::$validHost` is now a
+  `Contenir\Mail\Validator\HostnameValidator` rather than a `ValidatorChain`.
 
 Behaviour changes:
 
@@ -103,6 +108,9 @@ Behaviour changes:
 - Cloning a `Message` clones its headers, so changing the clone leaves the
   original untouched.
 - `Imap` no longer hangs on a server response with two spaces in a row.
+- Internationalised host names given to a protocol (SMTP, POP3, IMAP) are accepted
+  whenever they convert to ASCII under UTS #46, not only under the TLDs
+  laminas-validator kept character tables for.
 
 ## Development
 
