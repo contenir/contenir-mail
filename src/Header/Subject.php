@@ -75,18 +75,18 @@ class Subject implements UnstructuredInterface
             return $this;
         }
 
-        if ($encoding === null) {
+        if (null === $encoding) {
             $this->encoding = null;
             return $this;
         }
 
         $encoding = strtoupper($encoding);
-        if ($encoding === 'UTF-8') {
+        if ('UTF-8' === $encoding) {
             $this->encoding = $encoding;
             return $this;
         }
 
-        if ($encoding === 'ASCII' && Mime::isPrintable($this->subject)) {
+        if ('ASCII' === $encoding && Mime::isPrintable($this->subject)) {
             $this->encoding = $encoding;
             return $this;
         }
@@ -133,6 +133,6 @@ class Subject implements UnstructuredInterface
      */
     public function toString()
     {
-        return 'Subject: ' . $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
+        return "Subject: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
     }
 }

@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 use function count;
 
-#[CoversClass(\Contenir\Mail\MessageFactory::class)]
+#[CoversClass(MessageFactory::class)]
 class MessageFactoryTest extends TestCase
 {
     #[Test]

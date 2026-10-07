@@ -60,7 +60,7 @@ class File extends Part
         }
         $header = '';
         $endPos = $params['endPos'] ?? null;
-        while (($endPos === null || ftell($this->fh) < $endPos) && trim($line = fgets($this->fh))) {
+        while ((null === $endPos || ftell($this->fh) < $endPos) && trim($line = fgets($this->fh))) {
             $header .= $line;
         }
 
@@ -71,7 +71,7 @@ class File extends Part
         }
 
         $this->contentPos[0] = ftell($this->fh);
-        if ($endPos !== null) {
+        if (null !== $endPos) {
             $this->contentPos[1] = $endPos;
         } else {
             fseek($this->fh, 0, SEEK_END);
@@ -89,9 +89,9 @@ class File extends Part
         $part = [];
         $pos  = $this->contentPos[0];
         fseek($this->fh, $pos);
-        while (! feof($this->fh) && ($endPos === null || $pos < $endPos)) {
+        while (! feof($this->fh) && (null === $endPos || $pos < $endPos)) {
             $line = fgets($this->fh);
-            if ($line === false) {
+            if (false === $line) {
                 if (feof($this->fh)) {
                     break;
                 }
@@ -102,14 +102,14 @@ class File extends Part
             $pos     = ftell($this->fh);
             $line    = trim($line);
 
-            if ($line == '--' . $boundary) {
+            if ($line == "--{$boundary}") {
                 if ($part) {
                     // not first part
                     $part[1]         = $lastPos;
                     $this->partPos[] = $part;
                 }
                 $part = [$pos];
-            } elseif ($line == '--' . $boundary . '--') {
+            } elseif ($line == "--{$boundary}--") {
                 $part[1]         = $lastPos;
                 $this->partPos[] = $part;
                 break;
@@ -129,7 +129,7 @@ class File extends Part
     public function getContent($stream = null)
     {
         fseek($this->fh, $this->contentPos[0]);
-        if ($stream !== null) {
+        if (null !== $stream) {
             return stream_copy_to_stream($this->fh, $stream, $this->contentPos[1] - $this->contentPos[0]);
         }
         $length = $this->contentPos[1] - $this->contentPos[0];

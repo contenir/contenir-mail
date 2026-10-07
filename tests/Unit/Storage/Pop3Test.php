@@ -6,6 +6,7 @@ use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Pop3;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +27,7 @@ use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
-#[CoversClass(\Contenir\Mail\Storage\Pop3::class)]
+#[CoversClass(Pop3::class)]
 class Pop3Test extends TestCase
 {
     /** @var array */
@@ -70,7 +71,7 @@ class Pop3Test extends TestCase
     {
         $dh = opendir($dir);
         while (($entry = readdir($dh)) !== false) {
-            if ($entry == '.' || $entry == '..') {
+            if ('.' == $entry || '..' == $entry) {
                 continue;
             }
             $fullname = $dir . DIRECTORY_SEPARATOR . $entry;
@@ -88,7 +89,7 @@ class Pop3Test extends TestCase
     {
         $dh = opendir($dir);
         while (($entry = readdir($dh)) !== false) {
-            if ($entry == '.' || $entry == '..' || $entry == '.svn') {
+            if ('.' == $entry || '..' == $entry || '.svn' == $entry) {
                 continue;
             }
             $fullname = $dir . DIRECTORY_SEPARATOR . $entry;

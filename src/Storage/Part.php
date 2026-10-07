@@ -162,7 +162,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
      */
     public function getContent()
     {
-        if ($this->content !== null) {
+        if (null !== $this->content) {
             return $this->content;
         }
 
@@ -194,7 +194,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     protected function cacheContent()
     {
         // caching content if we can't fetch parts
-        if ($this->content === null && $this->mail) {
+        if (null === $this->content && $this->mail) {
             $this->content = $this->mail->getRawContent($this->messageNum);
         }
 
@@ -208,7 +208,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
             throw new Exception\RuntimeException('no boundary found in content type to split message');
         }
         $parts = Mime\Decode::splitMessageStruct($this->content, $boundary);
-        if ($parts === null) {
+        if (null === $parts) {
             return;
         }
         $counter = 1;
@@ -230,7 +230,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
             return $this->parts[$num];
         }
 
-        if (! $this->mail && $this->content === null) {
+        if (! $this->mail && null === $this->content) {
             throw new Exception\RuntimeException('part not found');
         }
 
@@ -316,12 +316,12 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     public function getHeader($name, $format = null)
     {
         $header = $this->getHeaders()->get($name);
-        if ($header === false) {
+        if (false === $header) {
             $lowerName = strtolower(preg_replace('%([a-z])([A-Z])%', '\1-\2', $name));
             $header    = $this->getHeaders()->get($lowerName);
-            if ($header === false) {
+            if (false === $header) {
                 throw new Exception\InvalidArgumentException(
-                    "Header with Name $name or $lowerName not found",
+                    "Header with Name {$name} or {$lowerName} not found",
                 );
             }
         }
@@ -452,7 +452,7 @@ class Part implements RecursiveIterator, Part\PartInterface, Stringable
     #[ReturnTypeWillChange]
     public function valid()
     {
-        if ($this->countParts === null) {
+        if (null === $this->countParts) {
             $this->countParts();
         }
         return $this->iterationPos && $this->iterationPos <= $this->countParts;

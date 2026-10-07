@@ -75,7 +75,7 @@ class ContentDisposition implements UnstructuredInterface
                     [$name, $count] = explode('*', $name);
                     // allow optional count:
                     // Content-Disposition: attachment; filename*=UTF-8''%64%61%61%6D%69%2D%6D%C3%B5%72%76%2E%6A%70%67
-                    if ($count === '') {
+                    if ('' === $count) {
                         $count = 0;
                     }
 
@@ -103,9 +103,7 @@ class ContentDisposition implements UnstructuredInterface
                 for ($i = 0, $iMax = count($values); $i < $iMax; $i++) {
                     if (! isset($values[$i])) {
                         throw new Exception\InvalidArgumentException(
-                            'Invalid header line for Content-Disposition string - incomplete continuation'
-                                . '; HeaderLine: '
-                                . $headerLine,
+                            "Invalid header line for Content-Disposition string - incomplete continuation; HeaderLine: {$headerLine}",
                         );
                     }
                     $value .= $values[$i];
@@ -148,13 +146,13 @@ class ContentDisposition implements UnstructuredInterface
                 $lines = explode(Headers::FOLDING, $result);
 
                 if (count($lines) === 1) {
-                    $existingLineLength = strlen('Content-Disposition: ' . $result);
+                    $existingLineLength = strlen("Content-Disposition: {$result}");
                 } else {
                     $existingLineLength = 1 + strlen($lines[count($lines) - 1]);
                 }
 
                 if ((2 + $existingLineLength + strlen($line)) <= self::MAX_PARAMETER_LENGTH) {
-                    $result .= '; ' . $line;
+                    $result .= "; {$line}";
                 } else {
                     $result .= ';' . Headers::FOLDING . $line;
                 }
@@ -230,7 +228,7 @@ class ContentDisposition implements UnstructuredInterface
      */
     public function toString()
     {
-        return 'Content-Disposition: ' . $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
+        return "Content-Disposition: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
     }
 
     /**

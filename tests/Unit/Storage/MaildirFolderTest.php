@@ -66,7 +66,7 @@ class MaildirFolderTest extends TestCase
                 ++$count;
             }
             closedir($dh);
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
@@ -78,17 +78,17 @@ class MaildirFolderTest extends TestCase
         $this->params['dirname'] = $this->tmpdir;
 
         foreach ($this->subdirs as $dir) {
-            if ($dir != '.') {
+            if ('.' != $dir) {
                 mkdir($this->tmpdir . $dir);
             }
             foreach (['cur', 'new'] as $subdir) {
-                if (! file_exists($originalMaildir . $dir . '/' . $subdir)) {
+                if (! file_exists("{$originalMaildir}{$dir}/{$subdir}")) {
                     continue;
                 }
-                mkdir($this->tmpdir . $dir . '/' . $subdir);
-                $dh = opendir($originalMaildir . $dir . '/' . $subdir);
+                mkdir("{$this->tmpdir}{$dir}/{$subdir}");
+                $dh = opendir("{$originalMaildir}{$dir}/{$subdir}");
                 while (($entry = readdir($dh)) !== false) {
-                    $entry = $dir . '/' . $subdir . '/' . $entry;
+                    $entry = "{$dir}/{$subdir}/{$entry}";
                     if (! is_file($originalMaildir . $entry)) {
                         continue;
                     }
@@ -101,27 +101,27 @@ class MaildirFolderTest extends TestCase
 
     public function tearDown(): void
     {
-        chmod($this->tmpdir, 0700);
+        chmod($this->tmpdir, 0o700);
         foreach (array_reverse($this->subdirs) as $dir) {
             foreach (['cur', 'new'] as $subdir) {
-                if (! file_exists($this->tmpdir . $dir . '/' . $subdir)) {
+                if (! file_exists("{$this->tmpdir}{$dir}/{$subdir}")) {
                     continue;
                 }
-                if (! is_dir($this->tmpdir . $dir . '/' . $subdir)) {
+                if (! is_dir("{$this->tmpdir}{$dir}/{$subdir}")) {
                     continue;
                 }
-                $dh = opendir($this->tmpdir . $dir . '/' . $subdir);
+                $dh = opendir("{$this->tmpdir}{$dir}/{$subdir}");
                 while (($entry = readdir($dh)) !== false) {
-                    $entry = $this->tmpdir . $dir . '/' . $subdir . '/' . $entry;
+                    $entry = "{$this->tmpdir}{$dir}/{$subdir}/{$entry}";
                     if (! is_file($entry)) {
                         continue;
                     }
                     unlink($entry);
                 }
                 closedir($dh);
-                rmdir($this->tmpdir . $dir . '/' . $subdir);
+                rmdir("{$this->tmpdir}{$dir}/{$subdir}");
             }
-            if ($dir != '.' && is_dir($this->tmpdir . $dir)) {
+            if ('.' != $dir && is_dir($this->tmpdir . $dir)) {
                 rmdir($this->tmpdir . $dir);
             }
         }
@@ -330,12 +330,12 @@ class MaildirFolderTest extends TestCase
     #[Test]
     public function notReadableFolder(): void
     {
-        $stat = stat($this->params['dirname'] . '.subfolder');
-        chmod($this->params['dirname'] . '.subfolder', 0);
+        $stat = stat("{$this->params['dirname']}.subfolder");
+        chmod("{$this->params['dirname']}.subfolder", 0);
         clearstatcache();
-        $statcheck = stat($this->params['dirname'] . '.subfolder');
+        $statcheck = stat("{$this->params['dirname']}.subfolder");
         if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
-            chmod($this->params['dirname'] . '.subfolder', $stat['mode']);
+            chmod("{$this->params['dirname']}.subfolder", $stat['mode']);
             static::markTestSkipped(
                 'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
@@ -347,7 +347,7 @@ class MaildirFolderTest extends TestCase
             $this->expectExceptionMessage('error while reading maildir');
             new Folder\Maildir($this->params);
         } finally {
-            chmod($this->params['dirname'] . '.subfolder', $stat['mode']);
+            chmod("{$this->params['dirname']}.subfolder", $stat['mode']);
         }
     }
 
@@ -404,16 +404,16 @@ class MaildirFolderTest extends TestCase
     #[Test]
     public function withAdditionalFolder(): void
     {
-        mkdir($this->params['dirname'] . '.xyyx');
-        mkdir($this->params['dirname'] . '.xyyx/cur');
-        mkdir($this->params['dirname'] . '.xyyx/new');
+        mkdir("{$this->params['dirname']}.xyyx");
+        mkdir("{$this->params['dirname']}.xyyx/cur");
+        mkdir("{$this->params['dirname']}.xyyx/new");
 
         $mail = new Folder\Maildir($this->params);
         $mail->selectFolder('xyyx');
         static::assertSame($mail->countMessages(), 0);
 
-        rmdir($this->params['dirname'] . '.xyyx/cur');
-        rmdir($this->params['dirname'] . '.xyyx/new');
-        rmdir($this->params['dirname'] . '.xyyx');
+        rmdir("{$this->params['dirname']}.xyyx/cur");
+        rmdir("{$this->params['dirname']}.xyyx/new");
+        rmdir("{$this->params['dirname']}.xyyx");
     }
 }

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 use function count;
 
-#[CoversClass(\Contenir\Mail\Header\GenericMultiHeader::class)]
+#[CoversClass(GenericMultiHeader::class)]
 class GenericMultiHeaderTest extends TestCase
 {
     #[Test]

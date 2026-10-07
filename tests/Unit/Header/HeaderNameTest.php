@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 use function chr;
 
-#[CoversClass(\Contenir\Mail\Header\HeaderName::class)]
+#[CoversClass(HeaderName::class)]
 class HeaderNameTest extends TestCase
 {
     /**

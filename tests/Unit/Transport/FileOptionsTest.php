@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 use function sys_get_temp_dir;
 
-#[CoversClass(\Contenir\Mail\Transport\FileOptions::class)]
+#[CoversClass(FileOptions::class)]
 class FileOptionsTest extends TestCase
 {
     private FileOptions $options;

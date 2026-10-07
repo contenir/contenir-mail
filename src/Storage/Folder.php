@@ -123,7 +123,7 @@ class Folder implements RecursiveIterator, Stringable
     public function __get($name)
     {
         if (! isset($this->folders[$name])) {
-            throw new Exception\InvalidArgumentException("no subfolder named $name");
+            throw new Exception\InvalidArgumentException("no subfolder named {$name}");
         }
 
         return $this->folders[$name];

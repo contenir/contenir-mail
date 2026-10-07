@@ -80,7 +80,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
 
         $this->setFieldName($fieldName);
 
-        if ($fieldValue !== null) {
+        if (null !== $fieldValue) {
             $this->setFieldValue($fieldValue);
         }
     }
@@ -164,18 +164,18 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
             return $this;
         }
 
-        if ($encoding === null) {
+        if (null === $encoding) {
             $this->encoding = null;
             return $this;
         }
 
         $encoding = strtoupper($encoding);
-        if ($encoding === 'UTF-8') {
+        if ('UTF-8' === $encoding) {
             $this->encoding = $encoding;
             return $this;
         }
 
-        if ($encoding === 'ASCII' && Mime::isPrintable($this->fieldValue)) {
+        if ('ASCII' === $encoding && Mime::isPrintable($this->fieldValue)) {
             $this->encoding = $encoding;
             return $this;
         }
@@ -208,6 +208,6 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
         }
         $value = $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
 
-        return $name . ': ' . $value;
+        return "{$name}: {$value}";
     }
 }

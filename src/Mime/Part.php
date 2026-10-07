@@ -489,7 +489,7 @@ class Part
 
         $contentType = $this->type;
         if ($this->charset) {
-            $contentType .= '; charset=' . $this->charset;
+            $contentType .= "; charset={$this->charset}";
         }
 
         if ($this->boundary) {
@@ -508,7 +508,7 @@ class Part
         }
 
         if ($this->id) {
-            $headers[] = ['Content-ID', '<' . $this->id . '>'];
+            $headers[] = ['Content-ID', "<{$this->id}>"];
         }
 
         if ($this->disposition) {
@@ -544,7 +544,7 @@ class Part
     {
         $res = '';
         foreach ($this->getHeadersArray($EOL) as $header) {
-            $res .= $header[0] . ': ' . $header[1] . $EOL;
+            $res .= "{$header[0]}: {$header[1]}{$EOL}";
         }
 
         return $res;

@@ -76,7 +76,7 @@ class MessageId implements HeaderInterface
      */
     public function toString()
     {
-        return 'Message-ID: ' . $this->getFieldValue();
+        return "Message-ID: {$this->getFieldValue()}";
     }
 
     /**
@@ -87,7 +87,7 @@ class MessageId implements HeaderInterface
      */
     public function setId($id = null)
     {
-        if ($id === null) {
+        if (null === $id) {
             $id = $this->createMessageId();
         } else {
             $id = trim($id, '<>');

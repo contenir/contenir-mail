@@ -96,9 +96,11 @@ class Maildir extends Folder\Maildir implements WritableInterface
             if (! $test) {
                 $dir = dirname($dir);
                 if (! file_exists($dir)) {
-                    throw new StorageException\InvalidArgumentException("parent $dir not found", 0, $error);
-                } elseif (! is_dir($dir)) {
-                    throw new StorageException\InvalidArgumentException("parent $dir not a directory", 0, $error);
+                    throw new StorageException\InvalidArgumentException("parent {$dir} not found", 0, $error);
+                }
+
+                if (! is_dir($dir)) {
+                    throw new StorageException\InvalidArgumentException("parent {$dir} not a directory", 0, $error);
                 }
 
                 throw new StorageException\RuntimeException('cannot create maildir', 0, $error);
@@ -112,7 +114,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             if (! $test) {
                 // ignore if dir exists (i.e. was already valid maildir or two processes try to create one)
                 if (! file_exists($dir . DIRECTORY_SEPARATOR . $subdir)) {
-                    throw new StorageException\RuntimeException('could not create subdir ' . $subdir, 0, $error);
+                    throw new StorageException\RuntimeException("could not create subdir {$subdir}", 0, $error);
                 }
             }
         }
@@ -158,7 +160,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
     {
         if ($parentFolder instanceof Folder) {
             $folder = $parentFolder->getGlobalName() . $this->delim . $name;
-        } elseif ($parentFolder !== null) {
+        } elseif (null !== $parentFolder) {
             $folder = rtrim($parentFolder, $this->delim) . $this->delim . $name;
         } else {
             $folder = $name;
@@ -181,11 +183,11 @@ class Maildir extends Folder\Maildir implements WritableInterface
             throw new StorageException\RuntimeException('invalid name - folder parts may not be empty');
         }
 
-        if (str_starts_with($folder, 'INBOX' . $this->delim)) {
+        if (str_starts_with($folder, "INBOX{$this->delim}")) {
             $folder = substr($folder, 6);
         }
 
-        $fulldir = $this->rootdir . '.' . $folder;
+        $fulldir = "{$this->rootdir}.{$folder}";
 
         // check if we got tricked and would create a dir outside of the rootdir or not as direct child
         if (
@@ -248,7 +250,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         }
 
         $name = trim($name, $this->delim);
-        if (str_starts_with($name, 'INBOX' . $this->delim)) {
+        if (str_starts_with($name, "INBOX{$this->delim}")) {
             $name = substr($name, 6);
         }
 
@@ -257,7 +259,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             throw new StorageException\RuntimeException('delete children first');
         }
 
-        if ($name == 'INBOX' || $name == DIRECTORY_SEPARATOR || $name == '/') {
+        if ('INBOX' == $name || DIRECTORY_SEPARATOR == $name || '/' == $name) {
             throw new StorageException\RuntimeException('wont delete INBOX');
         }
 
@@ -272,25 +274,25 @@ class Maildir extends Folder\Maildir implements WritableInterface
             }
             $dh = opendir($dir);
             if (! $dh) {
-                throw new StorageException\RuntimeException("error opening $subdir");
+                throw new StorageException\RuntimeException("error opening {$subdir}");
             }
             while (($entry = readdir($dh)) !== false) {
-                if ($entry == '.' || $entry == '..') {
+                if ('.' == $entry || '..' == $entry) {
                     continue;
                 }
                 if (! unlink($dir . DIRECTORY_SEPARATOR . $entry)) {
-                    throw new StorageException\RuntimeException("error cleaning $subdir");
+                    throw new StorageException\RuntimeException("error cleaning {$subdir}");
                 }
             }
             closedir($dh);
-            if ($subdir !== '.') {
+            if ('.' !== $subdir) {
                 if (! rmdir($dir)) {
-                    throw new StorageException\RuntimeException("error removing $subdir");
+                    throw new StorageException\RuntimeException("error removing {$subdir}");
                 }
             }
         }
 
-        if (! rmdir($this->rootdir . '.' . $name)) {
+        if (! rmdir("{$this->rootdir}.{$name}")) {
             // at least we should try to make it a valid maildir again
             mkdir($this->rootdir . '.' . $name . DIRECTORY_SEPARATOR . 'cur');
             throw new StorageException\RuntimeException('error removing maindir');
@@ -319,12 +321,12 @@ class Maildir extends Folder\Maildir implements WritableInterface
         }
 
         $oldName = trim($oldName, $this->delim);
-        if (str_starts_with($oldName, 'INBOX' . $this->delim)) {
+        if (str_starts_with($oldName, "INBOX{$this->delim}")) {
             $oldName = substr($oldName, 6);
         }
 
         $newName = trim($newName, $this->delim);
-        if (str_starts_with($newName, 'INBOX' . $this->delim)) {
+        if (str_starts_with($newName, "INBOX{$this->delim}")) {
             $newName = substr($newName, 6);
         }
 
@@ -335,7 +337,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         // check if folder exists and has no children
         $folder = $this->getFolders($oldName);
 
-        if ($oldName == 'INBOX' || $oldName == DIRECTORY_SEPARATOR || $oldName == '/') {
+        if ('INBOX' == $oldName || DIRECTORY_SEPARATOR == $oldName || '/' == $oldName) {
             throw new StorageException\RuntimeException('wont rename INBOX');
         }
 
@@ -351,7 +353,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             }
         }
 
-        $olddir = $this->rootdir . '.' . $folder;
+        $olddir = "{$this->rootdir}.{$folder}";
         foreach (['tmp', 'new', 'cur'] as $subdir) {
             $subdir = DIRECTORY_SEPARATOR . $subdir;
             if (! file_exists($olddir . $subdir)) {
@@ -359,7 +361,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             }
             // using copy or moving files would be even better - but also much slower
             if (! rename($olddir . $subdir, $newdir . $subdir)) {
-                throw new StorageException\RuntimeException('error while moving ' . $subdir);
+                throw new StorageException\RuntimeException("error while moving {$subdir}");
             }
         }
         // create a dummy if removing fails - otherwise we can't read it next time
@@ -403,7 +405,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      */
     protected function createTmpFile($folder = 'INBOX')
     {
-        if ($folder == 'INBOX') {
+        if ('INBOX' == $folder) {
             $tmpdir = $this->rootdir . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR;
         } else {
             $tmpdir = $this->rootdir . '.' . $folder . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR;
@@ -442,7 +444,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         }
 
         return [
-            'dirname'  => $this->rootdir . '.' . $folder,
+            'dirname'  => "{$this->rootdir}.{$folder}",
             'uniq'     => $uniq,
             'filename' => $tmpdir . $uniq,
             'handle'   => $fh,
@@ -478,7 +480,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         if (! empty($wantedFlags)) {
             $wantedFlags = implode(', ', array_keys($wantedFlags));
-            throw new StorageException\InvalidArgumentException('unknown flag(s): ' . $wantedFlags);
+            throw new StorageException\InvalidArgumentException("unknown flag(s): {$wantedFlags}");
         }
 
         return $info;
@@ -502,7 +504,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             throw new StorageException\RuntimeException('storage is over quota!');
         }
 
-        if ($folder === null) {
+        if (null === $folder) {
             $folder = $this->currentFolder;
         }
 
@@ -510,7 +512,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             $folder = $this->getFolders($folder);
         }
 
-        if ($flags === null) {
+        if (null === $flags) {
             $flags = [Storage::FLAG_SEEN];
         }
         $info     = $this->getInfoString($flags);
@@ -526,8 +528,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         // we're adding the size to the filename for maildir++
         $size = filesize($tempFile['filename']);
-        if ($size !== false) {
-            $info = ',S=' . $size . $info;
+        if (false !== $size) {
+            $info = ",S={$size}{$info}";
         }
         $newFilename = $tempFile['dirname'] . DIRECTORY_SEPARATOR;
         $newFilename .= $recent ? 'new' : 'cur';
@@ -592,8 +594,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         // we're adding the size to the filename for maildir++
         $size = filesize($oldFile);
-        if ($size !== false) {
-            $info = ',S=' . $size . $info;
+        if (false !== $size) {
+            $info = ",S={$size}{$info}";
         }
 
         $newFile = $tempFile['dirname'] . DIRECTORY_SEPARATOR . 'cur' . DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
@@ -618,7 +620,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         if (
             $folder->getGlobalName() == $this->currentFolder
             || (
-                $this->currentFolder == 'INBOX'
+                'INBOX' == $this->currentFolder
                 && $folder->getGlobalName() == '/'
             )
         ) {
@@ -650,7 +652,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         if (
             $folder->getGlobalName() == $this->currentFolder
             || (
-                $this->currentFolder == 'INBOX'
+                'INBOX' == $this->currentFolder
                 && $folder->getGlobalName() == '/'
             )
         ) {
@@ -673,8 +675,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         // we're adding the size to the filename for maildir++
         $size = filesize($oldFile);
-        if ($size !== false) {
-            $info = ',S=' . $size . $info;
+        if (false !== $size) {
+            $info = ",S={$size}{$info}";
         }
 
         $newFile = $tempFile['dirname'] . DIRECTORY_SEPARATOR . 'cur' . DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
@@ -720,7 +722,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             . DIRECTORY_SEPARATOR
             . 'cur'
             . DIRECTORY_SEPARATOR
-            . "$filedata[uniq]$info";
+            . "{$filedata['uniq']}{$info}";
 
         ErrorHandler::start();
         $test  = rename($filedata['filename'], $newFilename);
@@ -791,7 +793,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
     {
         if ($fromStorage) {
             ErrorHandler::start(E_WARNING);
-            $fh    = fopen($this->rootdir . 'maildirsize', 'r');
+            $fh    = fopen("{$this->rootdir}maildirsize", 'r');
             $error = ErrorHandler::stop();
             if (! $fh) {
                 throw new StorageException\RuntimeException('cannot open maildirsize', 0, $error);
@@ -802,8 +804,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
             $quota      = [];
             foreach ($definition as $member) {
                 $key = $member[strlen($member) - 1];
-                if ($key == 'S' || $key == 'C') {
-                    $key = $key == 'C' ? 'count' : 'size';
+                if ('S' == $key || 'C' == $key) {
+                    $key = 'C' == $key ? 'count' : 'size';
                 }
                 $quota[$key] = substr($member, 0, -1);
             }
@@ -838,12 +840,12 @@ class Maildir extends Folder\Maildir implements WritableInterface
         $folders = new RecursiveIteratorIterator($this->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
         foreach ($folders as $folder) {
             $subdir = $folder->getGlobalName();
-            if ($subdir == 'INBOX') {
+            if ('INBOX' == $subdir) {
                 $subdir = '';
             } else {
-                $subdir = '.' . $subdir;
+                $subdir = ".{$subdir}";
             }
-            if ($subdir == 'Trash') {
+            if ('Trash' == $subdir) {
                 continue;
             }
 
@@ -864,7 +866,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
                 }
 
                 while (($entry = readdir($dh)) !== false) {
-                    if ($entry[0] == '.' || ! is_file($dirname . $entry)) {
+                    if ('.' == $entry[0] || ! is_file($dirname . $entry)) {
                         continue;
                     }
 
@@ -878,7 +880,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
                         }
                     }
                     $size = filesize($dirname . $entry);
-                    if ($size === false) {
+                    if (false === $size) {
                         // ignore, as we assume file got removed
                         continue;
                     }
@@ -893,21 +895,23 @@ class Maildir extends Folder\Maildir implements WritableInterface
         $fh         = $tmp['handle'];
         $definition = [];
         foreach ($quota as $type => $value) {
-            if ($type == 'size' || $type == 'count') {
-                $type = $type == 'count' ? 'C' : 'S';
+            if ('size' == $type || 'count' == $type) {
+                $type = 'count' == $type ? 'C' : 'S';
             }
             $definition[] = $value . $type;
         }
         $definition = implode(',', $definition);
-        fwrite($fh, "$definition\n");
-        fwrite($fh, "$totalSize $messages\n");
+        fwrite($fh, "{$definition}\n");
+        fwrite($fh, "{$totalSize} {$messages}\n");
         fclose($fh);
-        rename($tmp['filename'], $this->rootdir . 'maildirsize');
+        rename($tmp['filename'], "{$this->rootdir}maildirsize");
         foreach ($timestamps as $dir => $timestamp) {
-            if ($timestamp < filemtime($dir)) {
-                unlink($this->rootdir . 'maildirsize');
-                break;
+            if ($timestamp >= filemtime($dir)) {
+                continue;
             }
+
+            unlink("{$this->rootdir}maildirsize");
+            break;
         }
 
         return [
@@ -931,10 +935,10 @@ class Maildir extends Folder\Maildir implements WritableInterface
         $maildirsize = '';
         if (
             ! $forceRecalc
-            && file_exists($this->rootdir . 'maildirsize')
-            && filesize($this->rootdir . 'maildirsize') < 5120
+            && file_exists("{$this->rootdir}maildirsize")
+            && filesize("{$this->rootdir}maildirsize") < 5120
         ) {
-            $fh = fopen($this->rootdir . 'maildirsize', 'r');
+            $fh = fopen("{$this->rootdir}maildirsize", 'r');
         }
         if ($fh) {
             $maildirsize = fread($fh, 5120);
@@ -958,8 +962,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
                 $quota      = [];
                 foreach ($definition as $member) {
                     $key = $member[strlen($member) - 1];
-                    if ($key == 'S' || $key == 'C') {
-                        $key = $key == 'C' ? 'count' : 'size';
+                    if ('S' == $key || 'C' == $key) {
+                        $key = 'C' == $key ? 'count' : 'size';
                     }
                     $quota[$key] = substr($member, 0, -1);
                 }
@@ -975,7 +979,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         // one line, because $maildirsize[0] gets unsetted.
         // Also we're using local time to calculate the 15 minute offset. Touching a file just for known the
         // local time of the file storage isn't worth the hassle.
-        if ($overQuota && ($maildirsize || filemtime($this->rootdir . 'maildirsize') > (time() - 900))) {
+        if ($overQuota && ($maildirsize || filemtime("{$this->rootdir}maildirsize") > (time() - 900))) {
             $result    = $this->calculateMaildirsize();
             $totalSize = $result['size'];
             $messages  = $result['count'];
@@ -1033,7 +1037,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         // if (! file_exists($this->rootdir . 'maildirsize')) {
         // TODO: should get file handler from calculateQuota
         // }
-        file_put_contents($this->rootdir . 'maildirsize', "$size $count\n", FILE_APPEND);
+        file_put_contents("{$this->rootdir}maildirsize", "{$size} {$count}\n", FILE_APPEND);
     }
 
     /**

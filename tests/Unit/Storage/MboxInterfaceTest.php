@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Mbox;
 use Contenir\Mail\Storage\Message\MessageInterface;
 use LimitIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -12,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 use function count;
 
-#[CoversClass(\Contenir\Mail\Storage\Mbox::class)]
+#[CoversClass(Mbox::class)]
 class MboxInterfaceTest extends TestCase
 {
     /** @var string  */
@@ -73,7 +74,7 @@ class MboxInterfaceTest extends TestCase
         $pos  = 1;
 
         foreach ($list as $key => $message) {
-            static::assertSame($key, $pos, "wrong key in iteration $pos");
+            static::assertSame($key, $pos, "wrong key in iteration {$pos}");
             ++$pos;
         }
     }

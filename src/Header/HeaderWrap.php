@@ -45,7 +45,9 @@ abstract class HeaderWrap
     {
         if ($header instanceof UnstructuredInterface) {
             return static::wrapUnstructuredHeader($value, $header);
-        } elseif ($header instanceof StructuredInterface) {
+        }
+
+        if ($header instanceof StructuredInterface) {
             return static::wrapStructuredHeader($value, $header);
         }
         return $value;
@@ -61,10 +63,10 @@ abstract class HeaderWrap
      */
     protected static function wrapUnstructuredHeader($value, HeaderInterface $header)
     {
-        $headerNameColonSize = strlen($header->getFieldName() . ': ');
+        $headerNameColonSize = strlen("{$header->getFieldName()}: ");
         $encoding            = $header->getEncoding();
 
-        if ($encoding == 'ASCII') {
+        if ('ASCII' == $encoding) {
             /*
              * Before folding the header line, it is necessary to calculate the length of the
              * entire header (including the name and colon). We need to put a stub at the
@@ -172,14 +174,14 @@ abstract class HeaderWrap
             $offset  = $match[0][1] + strlen($match[0][0]);
 
             // Whitespace between adjacent encoded words is not displayed (RFC 2047, section 6.2)
-            if ($charset === null || trim($between) !== '') {
+            if (null === $charset || trim($between) !== '') {
                 $result  .= self::convertToUtf8($buffer, $charset) . $between;
                 $buffer  = '';
                 $charset = null;
             }
 
             $wordCharset = strtoupper($match[1][0]);
-            if ($charset !== null && $wordCharset !== $charset) {
+            if (null !== $charset && $wordCharset !== $charset) {
                 $result .= self::convertToUtf8($buffer, $charset);
                 $buffer = '';
             }
@@ -195,13 +197,13 @@ abstract class HeaderWrap
 
     private static function convertToUtf8(string $value, ?string $charset): string
     {
-        if ($value === '' || $charset === null || $charset === 'UTF-8') {
+        if ('' === $value || null === $charset || 'UTF-8' === $charset) {
             return $value;
         }
 
         $converted = iconv($charset, 'UTF-8', $value);
 
-        return $converted === false ? $value : $converted;
+        return false === $converted ? $value : $converted;
     }
 
     private static function isNotDecoded(string $originalValue, string $value): bool

@@ -11,7 +11,6 @@ use Contenir\Mail\Header\MimeVersion;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\Sender;
 use Contenir\Mail\Header\To;
-use Contenir\Mail\Mime;
 use Traversable;
 
 use function array_shift;
@@ -387,7 +386,7 @@ class Message
      */
     public function setBody($body)
     {
-        if (! is_string($body) && $body !== null) {
+        if (! is_string($body) && null !== $body) {
             if (! is_object($body)) {
                 throw new Exception\InvalidArgumentException(sprintf(
                     '%s expects a string or object argument; received "%s"',
@@ -546,7 +545,7 @@ class Message
             ));
         }
 
-        if (is_string($emailOrAddressOrList) && $name === null) {
+        if (is_string($emailOrAddressOrList) && null === $name) {
             $addressList->addFromString($emailOrAddressOrList);
             return;
         }

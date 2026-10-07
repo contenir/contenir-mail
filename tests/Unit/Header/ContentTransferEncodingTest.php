@@ -16,7 +16,7 @@ use function strtolower;
 use function strtoupper;
 use function substr;
 
-#[CoversClass(\Contenir\Mail\Header\ContentTransferEncoding::class)]
+#[CoversClass(ContentTransferEncoding::class)]
 class ContentTransferEncodingTest extends TestCase
 {
     public static function dataValidEncodings(): array
@@ -42,7 +42,7 @@ class ContentTransferEncodingTest extends TestCase
     public function contentTransferEncodingFromStringCreatesValidContentTransferEncodingHeader(
         string $encoding,
     ): void {
-        $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: ' . $encoding);
+        $contentTransferEncodingHeader = ContentTransferEncoding::fromString("Content-Transfer-Encoding: {$encoding}");
         static::assertInstanceOf(HeaderInterface::class, $contentTransferEncodingHeader);
         static::assertInstanceOf(ContentTransferEncoding::class, $contentTransferEncodingHeader);
     }
@@ -52,7 +52,7 @@ class ContentTransferEncodingTest extends TestCase
     public function contentTransferEncodingFromStringRaisesException(string $encoding): void
     {
         $this->expectException(Exception\InvalidArgumentException::class);
-        $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: ' . $encoding);
+        $contentTransferEncodingHeader = ContentTransferEncoding::fromString("Content-Transfer-Encoding: {$encoding}");
     }
 
     #[Test]
@@ -87,7 +87,7 @@ class ContentTransferEncodingTest extends TestCase
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        static::assertSame('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
+        static::assertSame("Content-Transfer-Encoding: {$encoding}", $contentTransferEncodingHeader->toString());
     }
 
     #[Test]

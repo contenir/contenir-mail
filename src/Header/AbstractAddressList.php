@@ -185,9 +185,11 @@ abstract class AbstractAddressList implements HeaderInterface
         $errors = (int) $conversionInfo['errors'];
 
         foreach (self::IDNA_ERROR_MAP as $flag => $message) {
-            if (($flag & $errors) === $flag) {
-                $messages[] = $message;
+            if (($flag & $errors) !== $flag) {
+                continue;
             }
+
+            $messages[] = $message;
         }
 
         throw new RuntimeException(sprintf(
@@ -213,7 +215,7 @@ abstract class AbstractAddressList implements HeaderInterface
             }
 
             if (
-                $format === HeaderInterface::FORMAT_ENCODED
+                HeaderInterface::FORMAT_ENCODED === $format
                 && 'ASCII' !== $encoding
             ) {
                 if (! empty($name)) {
@@ -235,7 +237,7 @@ abstract class AbstractAddressList implements HeaderInterface
         }
 
         // Ensure the values are valid before sending them.
-        if ($format !== HeaderInterface::FORMAT_RAW) {
+        if (HeaderInterface::FORMAT_RAW !== $format) {
             foreach ($emails as $email) {
                 HeaderValue::assertValid($email);
             }

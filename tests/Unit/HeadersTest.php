@@ -8,6 +8,7 @@ use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\GenericMultiHeader;
+use Contenir\Mail\Headers;
 use Countable;
 use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,7 +19,7 @@ use stdClass;
 
 use function implode;
 
-#[CoversClass(\Contenir\Mail\Headers::class)]
+#[CoversClass(Headers::class)]
 class HeadersTest extends TestCase
 {
     #[Test]
@@ -379,8 +380,8 @@ class HeadersTest extends TestCase
         $headers->addHeader($received2);
         $string   = $headers->toString();
         $expected = [
-            'Received: ' . $received1->getFieldValue(),
-            'Received: ' . $received2->getFieldValue(),
+            "Received: {$received1->getFieldValue()}",
+            "Received: {$received2->getFieldValue()}",
         ];
         $expected = implode("\r\n", $expected) . "\r\n";
         static::assertSame($expected, $string);
@@ -407,7 +408,7 @@ class HeadersTest extends TestCase
     {
         $rawSubject = '=?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=';
         $headers    = new Mail\Headers();
-        $subject    = Header\Subject::fromString("Subject: $rawSubject");
+        $subject    = Header\Subject::fromString("Subject: {$rawSubject}");
         $headers->addHeader($subject);
         // default
         $array    = $headers->toArray(Header\HeaderInterface::FORMAT_RAW);
@@ -427,7 +428,7 @@ class HeadersTest extends TestCase
     {
         $rawSubject = '=?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=';
         $headers    = new Mail\Headers();
-        $subject    = Header\Subject::fromString("Subject: $rawSubject");
+        $subject    = Header\Subject::fromString("Subject: {$rawSubject}");
         $headers->addHeader($subject);
 
         // encoded

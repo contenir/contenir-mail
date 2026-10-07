@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\Subject;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -12,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
 
-#[CoversClass(\Contenir\Mail\Header\Subject::class)]
+#[CoversClass(Subject::class)]
 class SubjectTest extends TestCase
 {
     #[Test]
@@ -56,7 +57,7 @@ class SubjectTest extends TestCase
     #[Group('ZF2015-04')]
     public function parseValidSubjectHeader($decodedValue, $encodedValue, $encoding): void
     {
-        $header = Header\Subject::fromString('Subject:' . $encodedValue);
+        $header = Header\Subject::fromString("Subject:{$encodedValue}");
 
         static::assertSame($decodedValue, $header->getFieldValue());
         static::assertSame($encoding, $header->getEncoding());
@@ -77,7 +78,7 @@ class SubjectTest extends TestCase
     ): void {
         $this->expectException($expectedException);
         $this->expectExceptionMessage($expectedExceptionMessage);
-        Header\Subject::fromString('Subject:' . $decodedValue);
+        Header\Subject::fromString("Subject:{$decodedValue}");
     }
 
     #[Test]
@@ -102,7 +103,7 @@ class SubjectTest extends TestCase
         $header->setSubject($decodedValue);
 
         static::assertSame($decodedValue, $header->getFieldValue());
-        static::assertSame('Subject: ' . $encodedValue, $header->toString());
+        static::assertSame("Subject: {$encodedValue}", $header->toString());
         static::assertSame($encoding, $header->getEncoding());
     }
 

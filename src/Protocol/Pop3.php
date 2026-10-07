@@ -113,7 +113,7 @@ class Pop3
         if (! strpos($this->timestamp, '@')) {
             $this->timestamp = null;
         } else {
-            $this->timestamp = '<' . $this->timestamp . '>';
+            $this->timestamp = "<{$this->timestamp}>";
         }
 
         if ($isTls) {
@@ -136,7 +136,7 @@ class Pop3
     public function sendRequest($request)
     {
         ErrorHandler::start();
-        $result = fwrite($this->socket, $request . "\r\n");
+        $result = fwrite($this->socket, "{$request}\r\n");
         $error  = ErrorHandler::stop();
         if (! $result) {
             throw new Exception\RuntimeException('send failed - connection closed?', 0, $error);
@@ -164,7 +164,7 @@ class Pop3
             $message = '';
             $line    = fgets($this->socket);
             while ($line && rtrim($line, "\r\n") != '.') {
-                if ($line[0] == '.') {
+                if ('.' == $line[0]) {
                     $line = substr($line, 1);
                 }
                 $message .= $line;
@@ -256,15 +256,15 @@ class Pop3
     {
         if ($tryApop && $this->timestamp) {
             try {
-                $this->request("APOP $user " . md5($this->timestamp . $password));
+                $this->request("APOP {$user} " . md5($this->timestamp . $password));
                 return;
             } catch (Exception\ExceptionInterface) {
                 // ignore
             }
         }
 
-        $this->request("USER $user");
-        $this->request("PASS $password");
+        $this->request("USER {$user}");
+        $this->request("PASS {$password}");
     }
 
     /**
@@ -290,8 +290,8 @@ class Pop3
      */
     public function getList($msgno = null)
     {
-        if ($msgno !== null) {
-            $result = $this->request("LIST $msgno");
+        if (null !== $msgno) {
+            $result = $this->request("LIST {$msgno}");
 
             [, $result] = explode(' ', $result);
             return (int) $result;
@@ -317,8 +317,8 @@ class Pop3
      */
     public function uniqueid($msgno = null)
     {
-        if ($msgno !== null) {
-            $result = $this->request("UIDL $msgno");
+        if (null !== $msgno) {
+            $result = $this->request("UIDL {$msgno}");
 
             [, $result] = explode(' ', $result);
             return $result;
@@ -355,7 +355,7 @@ class Pop3
      */
     public function top($msgno, $lines = 0, $fallback = false)
     {
-        if ($this->hasTop === false) {
+        if (false === $this->hasTop) {
             if ($fallback) {
                 return $this->retrieve($msgno);
             }
@@ -367,7 +367,7 @@ class Pop3
         $lines = ! $lines || $lines < 1 ? 0 : (int) $lines;
 
         try {
-            $result = $this->request("TOP $msgno $lines", true);
+            $result = $this->request("TOP {$msgno} {$lines}", true);
         } catch (Exception\ExceptionInterface $e) {
             $this->hasTop = false;
             if ($fallback) {
@@ -388,7 +388,7 @@ class Pop3
      */
     public function retrieve($msgno)
     {
-        return $this->request("RETR $msgno", true);
+        return $this->request("RETR {$msgno}", true);
     }
 
     /**
@@ -406,7 +406,7 @@ class Pop3
      */
     public function delete($msgno)
     {
-        $this->request("DELE $msgno");
+        $this->request("DELE {$msgno}");
     }
 
     /**

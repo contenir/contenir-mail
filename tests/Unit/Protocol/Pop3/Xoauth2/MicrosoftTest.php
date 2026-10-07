@@ -17,7 +17,7 @@ use function rewind;
 use function str_replace;
 use function stream_get_contents;
 
-#[CoversClass(\Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft::class)]
+#[CoversClass(Microsoft::class)]
 class MicrosoftTest extends TestCase
 {
     /** @psalm-suppress InternalClass */
@@ -34,7 +34,7 @@ class MicrosoftTest extends TestCase
             /** @psalm-suppress InternalClass */
             public function readRemoteResponse(): Response
             {
-                if ($this->step === self::AUTH_INITIALIZE_REQUEST) {
+                if (self::AUTH_INITIALIZE_REQUEST === $this->step) {
                     /** @psalm-suppress InternalMethod */
                     return new Response(self::AUTH_RESPONSE_INITIALIZED_OK, 'Auth initialized');
                 }
@@ -96,7 +96,7 @@ class MicrosoftTest extends TestCase
         $xoauth2Sasl = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
 
         static::assertSame(
-            'AUTH XOAUTH2' . "\n" . $xoauth2Sasl . "\n",
+            "AUTH XOAUTH2\n{$xoauth2Sasl}\n",
             $streamContents,
         );
     }

@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\Received::class)]
+#[CoversClass(Received::class)]
 class ReceivedTest extends TestCase
 {
     #[Test]

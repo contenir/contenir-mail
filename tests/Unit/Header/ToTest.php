@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\To;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -17,7 +18,7 @@ use function explode;
  * This test is primarily to test that AbstractAddressList headers perform
  * header folding and MIME encoding properly.
  */
-#[CoversClass(\Contenir\Mail\Header\To::class)]
+#[CoversClass(To::class)]
 class ToTest extends TestCase
 {
     #[Test]
@@ -26,7 +27,7 @@ class ToTest extends TestCase
         $header = new Header\To();
         $list   = $header->getAddressList();
         for ($i = 0; $i < 10; $i++) {
-            $list->add($i . '@getlaminas.org');
+            $list->add("{$i}@getlaminas.org");
         }
         $string = $header->getFieldValue();
         $emails = explode("\r\n ", $string);

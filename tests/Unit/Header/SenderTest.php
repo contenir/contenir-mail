@@ -17,7 +17,7 @@ use function array_map;
 use function array_merge;
 use function array_slice;
 
-#[CoversClass(\Contenir\Mail\Header\Sender::class)]
+#[CoversClass(Sender::class)]
 class SenderTest extends TestCase
 {
     #[Test]
@@ -40,7 +40,7 @@ class SenderTest extends TestCase
     #[Group('ZF2015-04')]
     public function parseValidSenderHeader(string $expectedFieldValue, string $encodedValue, string $encoding): void
     {
-        $header = Header\Sender::fromString('Sender:' . $encodedValue);
+        $header = Header\Sender::fromString("Sender:{$encodedValue}");
 
         static::assertSame($expectedFieldValue, $header->getFieldValue());
         static::assertSame($encoding, $header->getEncoding());
@@ -58,7 +58,7 @@ class SenderTest extends TestCase
         $expectedException,
     ): void {
         $this->expectException($expectedException);
-        Header\Sender::fromString('Sender:' . $decodedValue);
+        Header\Sender::fromString("Sender:{$decodedValue}");
     }
 
     /**
@@ -77,7 +77,7 @@ class SenderTest extends TestCase
         $header->setAddress($email, $name);
 
         static::assertSame($expectedFieldValue, $header->getFieldValue());
-        static::assertSame('Sender: ' . $encodedValue, $header->toString());
+        static::assertSame("Sender: {$encodedValue}", $header->toString());
         static::assertSame($encoding, $header->getEncoding());
     }
 
@@ -114,7 +114,7 @@ class SenderTest extends TestCase
 
         static::assertSame($address, $header->getAddress());
         static::assertSame($expectedFieldValue, $header->getFieldValue());
-        static::assertSame('Sender: ' . $encodedValue, $header->toString());
+        static::assertSame("Sender: {$encodedValue}", $header->toString());
         static::assertSame($encoding, $header->getEncoding());
     }
 

@@ -89,7 +89,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
             throw new Exception\RuntimeException('No selected folder to count');
         }
 
-        if ($flags === null) {
+        if (null === $flags) {
             return count($this->protocol->search(['ALL']));
         }
 
@@ -152,7 +152,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      */
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
-        if ($part !== null) {
+        if (null !== $part) {
             // TODO: implement
             throw new Exception\RuntimeException('not implemented');
         }
@@ -172,7 +172,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      */
     public function getRawContent($id, $part = null)
     {
-        if ($part !== null) {
+        if (null !== $part) {
             // TODO: implement
             throw new Exception\RuntimeException('not implemented');
         }
@@ -359,7 +359,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
             do {
                 if (! $parent || str_starts_with($globalName, ! is_string($parent) ? (string) $parent : $parent)) {
                     $pos = strrpos($globalName, (string) $data['delim']);
-                    if ($pos === false) {
+                    if (false === $pos) {
                         $localName = $globalName;
                     } else {
                         $localName = substr($globalName, $pos + 1);
@@ -374,7 +374,9 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
                     $parentFolder    = $folder;
                     $this->delimiter = $data['delim'];
                     break;
-                } elseif ($stack) {
+                }
+
+                if ($stack) {
                     $parent       = array_pop($stack);
                     $parentFolder = array_pop($folderStack);
                 }
@@ -432,9 +434,9 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
     {
         // TODO: we assume / as the hierarchy delim - need to get that from the folder class!
         if ($parentFolder instanceof Folder) {
-            $folder = $parentFolder->getGlobalName() . '/' . $name;
-        } elseif ($parentFolder !== null) {
-            $folder = $parentFolder . '/' . $name;
+            $folder = "{$parentFolder->getGlobalName()}/{$name}";
+        } elseif (null !== $parentFolder) {
+            $folder = "{$parentFolder}/{$name}";
         } else {
             $folder = $name;
         }
@@ -493,11 +495,11 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      */
     public function appendMessage($message, $folder = null, $flags = null)
     {
-        if ($folder === null) {
+        if (null === $folder) {
             $folder = $this->currentFolder;
         }
 
-        if ($flags === null) {
+        if (null === $flags) {
             $flags = [Mail\Storage::FLAG_SEEN];
         }
 

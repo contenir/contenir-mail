@@ -66,7 +66,7 @@ class Sendmail implements TransportInterface
      */
     public function __construct($parameters = null)
     {
-        if ($parameters !== null) {
+        if (null !== $parameters) {
             $this->setParameters($parameters);
         }
         $this->callable = [$this, 'mailHandler'];
@@ -83,7 +83,7 @@ class Sendmail implements TransportInterface
      */
     public function setParameters($parameters)
     {
-        if ($parameters === null || is_string($parameters)) {
+        if (null === $parameters || is_string($parameters)) {
             $this->parameters = $parameters;
             return $this;
         }
@@ -98,7 +98,7 @@ class Sendmail implements TransportInterface
 
         $string = '';
         foreach ($parameters as $param) {
-            $string .= ' ' . $param;
+            $string .= " {$param}";
         }
 
         $this->parameters = trim($string);
@@ -140,7 +140,7 @@ class Sendmail implements TransportInterface
 
         // On *nix platforms, we need to replace \r\n with \n
         // sendmail is not an SMTP server, it is a unix command - it expects LF
-        if (PHP_VERSION_ID < 80000 && ! $this->isWindowsOs()) {
+        if (PHP_VERSION_ID < 80_000 && ! $this->isWindowsOs()) {
             $to      = str_replace("\r\n", "\n", $to);
             $subject = str_replace("\r\n", "\n", $subject);
             $body    = str_replace("\r\n", "\n", $body);
@@ -188,8 +188,7 @@ class Sendmail implements TransportInterface
         foreach ($list as $address) {
             $addresses[] = $address->getEmail();
         }
-        $addresses = implode(', ', $addresses);
-        return $addresses;
+        return implode(', ', $addresses);
     }
 
     /**
@@ -223,8 +222,7 @@ class Sendmail implements TransportInterface
 
         // On windows, lines beginning with a full stop need to be fixed
         $text = $message->getBodyText();
-        $text = str_replace("\n.", "\n..", $text);
-        return $text;
+        return str_replace("\n.", "\n..", $text);
     }
 
     /**
@@ -298,19 +296,19 @@ class Sendmail implements TransportInterface
     public function mailHandler($to, $subject, $message, $headers, $parameters)
     {
         set_error_handler([$this, 'handleMailErrors']);
-        if ($parameters === null) {
+        if (null === $parameters) {
             $result = mail($to, $subject, $message, $headers);
         } else {
             $result = mail($to, $subject, $message, $headers, $parameters);
         }
         restore_error_handler();
 
-        if ($this->errstr !== null || ! $result) {
+        if (null !== $this->errstr || ! $result) {
             $errstr = $this->errstr;
             if (empty($errstr)) {
                 $errstr = 'Unknown error';
             }
-            throw new RuntimeException('Unable to send mail: ' . $errstr);
+            throw new RuntimeException("Unable to send mail: {$errstr}");
         }
     }
 
@@ -340,6 +338,6 @@ class Sendmail implements TransportInterface
         if (! $this->operatingSystem) {
             $this->operatingSystem = strtoupper(substr(PHP_OS, 0, 3));
         }
-        return $this->operatingSystem == 'WIN';
+        return 'WIN' == $this->operatingSystem;
     }
 }

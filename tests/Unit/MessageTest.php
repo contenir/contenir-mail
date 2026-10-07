@@ -26,7 +26,7 @@ use function file_get_contents;
 use function implode;
 use function substr;
 
-#[CoversClass(\Contenir\Mail\Message::class)]
+#[CoversClass(Message::class)]
 class MessageTest extends TestCase
 {
     /** @var Message */
@@ -588,8 +588,6 @@ class MessageTest extends TestCase
         ];
     }
 
-    /**
-     */
     #[Test]
     #[DataProvider('invalidBodyValues')]
     public function settingNonScalarNonMimeNonStringSerializableValueForBodyRaisesException(mixed $body): void

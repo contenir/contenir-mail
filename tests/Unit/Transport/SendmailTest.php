@@ -22,7 +22,7 @@ use function trim;
 use const PHP_OS;
 use const PHP_VERSION_ID;
 
-#[CoversClass(\Contenir\Mail\Transport\Sendmail::class)]
+#[CoversClass(Sendmail::class)]
 class SendmailTest extends TestCase
 {
     /** @var Sendmail */
@@ -83,7 +83,7 @@ class SendmailTest extends TestCase
 
     private function isWindows(): bool
     {
-        return $this->operatingSystem === 'WIN';
+        return 'WIN' === $this->operatingSystem;
     }
 
     #[Test]
@@ -100,7 +100,7 @@ class SendmailTest extends TestCase
         static::assertSame('Example Test <test@example.com>', $this->to);
         static::assertSame('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
         static::assertSame('This is only a test.', trim($this->message));
-        if (PHP_VERSION_ID < 80000) {
+        if (PHP_VERSION_ID < 80_000) {
             static::assertStringNotContainsString("To: Example Test <test@example.com>\n", $this->additionalHeaders);
             static::assertStringContainsString("Cc: matthew@example.com\n", $this->additionalHeaders);
             static::assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\n", $this->additionalHeaders);
@@ -349,7 +349,7 @@ class SendmailTest extends TestCase
     #[DataProvider('additionalParametersContainingFromSwitch')]
     public function doesNotInjectFromParameterFromSenderWhenFromOptionPresentInParameters(string $parameters): void
     {
-        if ($this->operatingSystem == 'WIN') {
+        if ('WIN' == $this->operatingSystem) {
             static::markTestSkipped('This test is *nix-specific');
         }
 

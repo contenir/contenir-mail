@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 use function array_keys;
 
-#[CoversClass(\Contenir\Mail\Module::class)]
+#[CoversClass(Module::class)]
 class ModuleTest extends TestCase
 {
     #[Test]

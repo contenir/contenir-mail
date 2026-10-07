@@ -241,7 +241,7 @@ class AddressList implements Countable, Iterator
     public function valid()
     {
         $key = key($this->addresses);
-        return $key !== null && $key !== false;
+        return null !== $key && false !== $key;
     }
 
     /**

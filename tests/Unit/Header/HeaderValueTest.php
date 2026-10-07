@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\HeaderValue::class)]
+#[CoversClass(HeaderValue::class)]
 class HeaderValueTest extends TestCase
 {
     /**

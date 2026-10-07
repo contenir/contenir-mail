@@ -26,7 +26,7 @@ final class HeaderName
         $tot    = strlen($name);
         for ($i = 0; $i < $tot; $i += 1) {
             $ord = ord($name[$i]);
-            if ($ord > 32 && $ord < 127 && $ord !== 58) {
+            if ($ord > 32 && $ord < 127 && 58 !== $ord) {
                 $result .= $name[$i];
             }
         }
@@ -44,7 +44,7 @@ final class HeaderName
         $tot = strlen($name);
         for ($i = 0; $i < $tot; $i += 1) {
             $ord = ord($name[$i]);
-            if ($ord < 33 || $ord > 126 || $ord === 58) {
+            if ($ord < 33 || $ord > 126 || 58 === $ord) {
                 return false;
             }
         }

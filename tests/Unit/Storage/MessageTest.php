@@ -25,8 +25,8 @@ use function implode;
 use function substr;
 use function var_export;
 
-#[CoversClass(\Contenir\Mail\Storage\Message::class)]
-#[CoversClass(\Contenir\Mail\Headers::class)]
+#[CoversClass(Message::class)]
+#[CoversClass(Headers::class)]
 class MessageTest extends TestCase
 {
     /** @var string */
@@ -47,8 +47,6 @@ class MessageTest extends TestCase
         new Message(['file' => '/this/file/does/not/exists']);
     }
 
-    /**
-     */
     #[Test]
     #[DataProvider('filesProvider')]
     public function isMultipart(array $params): void
@@ -75,8 +73,6 @@ class MessageTest extends TestCase
         static::assertSame('foo@example.com', $toHeader->getFieldValue());
     }
 
-    /**
-     */
     #[Test]
     #[DataProvider('filesProvider')]
     public function getDecodedHeader(array $params): void
@@ -126,7 +122,7 @@ class MessageTest extends TestCase
         static::assertSame(substr($message->getContent(), 0, 5), '<?php');
 
         $raw     = file_get_contents(__FILE__);
-        $raw     = "\t" . $raw;
+        $raw     = "\t{$raw}";
         $message = new Message(['raw' => $raw]);
 
         static::assertSame(substr($message->getContent(), 0, 6), "\t<?php");
@@ -150,7 +146,7 @@ class MessageTest extends TestCase
     public function multipleHeader(): void
     {
         $raw     = file_get_contents($this->file);
-        $raw     = "sUBject: test\r\nSubJect: test2\r\n" . $raw;
+        $raw     = "sUBject: test\r\nSubJect: test2\r\n{$raw}";
         $message = new Message(['raw' => $raw]);
 
         static::assertSame(
@@ -242,10 +238,12 @@ class MessageTest extends TestCase
     {
         $message = new Message(['file' => $this->file]);
         foreach (new RecursiveIteratorIterator($message) as $num => $part) {
-            if ($num == 1) {
-                // explicit call of __toString() needed for PHP < 5.2
-                static::assertSame(substr($part->__toString(), 0, 14), 'The first part');
+            if (1 != $num) {
+                continue;
             }
+
+            // explicit call of __toString() needed for PHP < 5.2
+            static::assertSame(substr($part->__toString(), 0, 14), 'The first part');
         }
         static::assertSame($part->contentType, 'text/x-vertical');
     }
@@ -525,7 +523,7 @@ class MessageTest extends TestCase
         $this->expectException(MailException\RuntimeException::class);
 
         $raw     = file_get_contents($this->file);
-        $raw     = "From foo@example.com  Sun Jan 01 00:00:00 2000\n" . $raw;
+        $raw     = "From foo@example.com  Sun Jan 01 00:00:00 2000\n{$raw}";
         $message = new Message(['raw' => $raw, 'strict' => true]);
     }
 

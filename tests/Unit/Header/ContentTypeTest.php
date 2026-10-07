@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\ContentType::class)]
+#[CoversClass(ContentType::class)]
 class ContentTypeTest extends TestCase
 {
     #[Test]
@@ -60,7 +60,7 @@ class ContentTypeTest extends TestCase
     #[DataProvider('getLiteralData')]
     public function handlesLiterals(array $expected, string $header): void
     {
-        $header = ContentType::fromString('Content-Type: ' . $header);
+        $header = ContentType::fromString("Content-Type: {$header}");
         static::assertSame($expected, $header->getParameters());
     }
 

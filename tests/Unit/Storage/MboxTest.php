@@ -61,14 +61,14 @@ class MboxTest extends TestCase
                 ++$count;
             }
             closedir($dh);
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
         }
 
         $this->mboxOriginalFile = __DIR__ . '/../_files/test.mbox/INBOX';
-        $this->mboxFile         = $this->tmpdir . 'INBOX';
+        $this->mboxFile         = "{$this->tmpdir}INBOX";
 
         copy($this->mboxOriginalFile, $this->mboxFile);
     }
@@ -197,8 +197,6 @@ class MboxTest extends TestCase
      * }
      */
 
-    /**
-     */
     #[Test]
     #[Group('6775')]
     public function fetchMessageHeaderUnix(): void
@@ -375,7 +373,7 @@ class MboxTest extends TestCase
 
     private function getUnixMboxFile(): string
     {
-        $this->mboxFileUnix = $this->tmpdir . 'INBOX.unix';
+        $this->mboxFileUnix = "{$this->tmpdir}INBOX.unix";
 
         copy(__DIR__ . '/../_files/test.mbox/INBOX.unix', $this->mboxFileUnix);
 

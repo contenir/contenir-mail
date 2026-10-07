@@ -66,7 +66,7 @@ class MaildirWritableTest extends TestCase
             }
             closedir($dh);
 
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
@@ -78,17 +78,17 @@ class MaildirWritableTest extends TestCase
         $this->params['dirname'] = $this->tmpdir;
 
         foreach ($this->subdirs as $dir) {
-            if ($dir != '.') {
+            if ('.' != $dir) {
                 mkdir($this->tmpdir . $dir);
             }
             foreach (['cur', 'new'] as $subdir) {
-                if (! file_exists($originalMaildir . $dir . '/' . $subdir)) {
+                if (! file_exists("{$originalMaildir}{$dir}/{$subdir}")) {
                     continue;
                 }
-                mkdir($this->tmpdir . $dir . '/' . $subdir);
-                $dh = opendir($originalMaildir . $dir . '/' . $subdir);
+                mkdir("{$this->tmpdir}{$dir}/{$subdir}");
+                $dh = opendir("{$originalMaildir}{$dir}/{$subdir}");
                 while (($entry = readdir($dh)) !== false) {
-                    $entry = $dir . '/' . $subdir . '/' . $entry;
+                    $entry = "{$dir}/{$subdir}/{$entry}";
                     if (! is_file($originalMaildir . $entry)) {
                         continue;
                     }
@@ -96,7 +96,7 @@ class MaildirWritableTest extends TestCase
                 }
                 closedir($dh);
             }
-            copy($originalMaildir . 'maildirsize', $this->tmpdir . 'maildirsize');
+            copy("{$originalMaildir}maildirsize", "{$this->tmpdir}maildirsize");
         }
     }
 
@@ -107,25 +107,25 @@ class MaildirWritableTest extends TestCase
                 continue;
             }
             foreach (['cur', 'new', 'tmp'] as $subdir) {
-                if (! file_exists($this->tmpdir . $dir . '/' . $subdir)) {
+                if (! file_exists("{$this->tmpdir}{$dir}/{$subdir}")) {
                     continue;
                 }
-                $dh = opendir($this->tmpdir . $dir . '/' . $subdir);
+                $dh = opendir("{$this->tmpdir}{$dir}/{$subdir}");
                 while (($entry = readdir($dh)) !== false) {
-                    $entry = $this->tmpdir . $dir . '/' . $subdir . '/' . $entry;
+                    $entry = "{$this->tmpdir}{$dir}/{$subdir}/{$entry}";
                     if (! is_file($entry)) {
                         continue;
                     }
                     unlink($entry);
                 }
                 closedir($dh);
-                rmdir($this->tmpdir . $dir . '/' . $subdir);
+                rmdir("{$this->tmpdir}{$dir}/{$subdir}");
             }
-            if ($dir != '.') {
+            if ('.' != $dir) {
                 rmdir($this->tmpdir . $dir);
             }
         }
-        @unlink($this->tmpdir . 'maildirsize');
+        @unlink("{$this->tmpdir}maildirsize");
     }
 
     #[Test]
@@ -355,7 +355,7 @@ class MaildirWritableTest extends TestCase
     public function setFlagsRemovedFile(): void
     {
         $mail = new Writable\Maildir($this->params);
-        unlink($this->params['dirname'] . 'cur/1000000000.P1.example.org:2,S');
+        unlink("{$this->params['dirname']}cur/1000000000.P1.example.org:2,S");
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('cannot rename file');
@@ -379,7 +379,7 @@ class MaildirWritableTest extends TestCase
     public function removeRemovedFile(): void
     {
         $mail = new Writable\Maildir($this->params);
-        unlink($this->params['dirname'] . 'cur/1000000000.P1.example.org:2,S');
+        unlink("{$this->params['dirname']}cur/1000000000.P1.example.org:2,S");
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('cannot remove message');
@@ -446,7 +446,7 @@ class MaildirWritableTest extends TestCase
         $mail = new Writable\Maildir($this->params);
         static::assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
 
-        unlink($this->tmpdir . 'maildirsize');
+        unlink("{$this->tmpdir}maildirsize");
 
         static::assertNull($mail->getQuota());
 
@@ -459,7 +459,7 @@ class MaildirWritableTest extends TestCase
     public function missingMaildirsizeWithFixedQuota(): void
     {
         $mail = new Writable\Maildir($this->params);
-        unlink($this->tmpdir . 'maildirsize');
+        unlink("{$this->tmpdir}maildirsize");
         $mail->setQuota(['size' => 100, 'count' => 2, 'X' => 0]);
 
         $quotaResult = [

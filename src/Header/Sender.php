@@ -60,7 +60,7 @@ class Sender implements HeaderInterface
             $matches,
         );
 
-        if ($hasMatches !== 1) {
+        if (1 !== $hasMatches) {
             throw new Exception\InvalidArgumentException('Invalid header value for Sender string');
         }
 
@@ -96,7 +96,7 @@ class Sender implements HeaderInterface
         $name  = $this->address->getName();
 
         if (! empty($name)) {
-            if ($format == HeaderInterface::FORMAT_ENCODED) {
+            if (HeaderInterface::FORMAT_ENCODED == $format) {
                 $encoding = $this->getEncoding();
                 if ('ASCII' !== $encoding) {
                     $name = HeaderWrap::mimeEncodeValue($name, $encoding);
@@ -137,7 +137,7 @@ class Sender implements HeaderInterface
      */
     public function toString()
     {
-        return 'Sender: ' . $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
+        return "Sender: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
     }
 
     /**

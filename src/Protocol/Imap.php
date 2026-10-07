@@ -139,7 +139,7 @@ class Imap
     protected function nextLine()
     {
         $line = fgets($this->socket);
-        if ($line === false) {
+        if (false === $line) {
             throw new Exception\RuntimeException('cannot read - connection closed?');
         }
 
@@ -208,19 +208,19 @@ class Imap
                 $line = substr($line, $pos + 1);
                 continue;
             }
-            while ($token[0] == '(') {
+            while ('(' == $token[0]) {
                 array_push($stack, $tokens);
                 $tokens = [];
                 $token  = substr($token, 1);
             }
-            if ($token[0] == '"') {
+            if ('"' == $token[0]) {
                 if (preg_match('%^\(*"((.|\\\\|\\")*?)" *%', $line, $matches)) {
                     $tokens[] = $matches[1];
                     $line     = substr($line, strlen($matches[0]));
                     continue;
                 }
             }
-            if ($token[0] == '{') {
+            if ('{' == $token[0]) {
                 $endPos = strpos($token, '}');
                 $chars  = substr($token, 1, $endPos - 1);
                 if (is_numeric($chars)) {
@@ -240,7 +240,7 @@ class Imap
                     continue;
                 }
             }
-            if ($stack && $token[strlen($token) - 1] == ')') {
+            if ($stack && ')' == $token[strlen($token) - 1]) {
                 // closing braces are not separated by spaces, so we need to count them
                 $braces = strlen($token);
                 $token  = rtrim($token, ')');
@@ -320,9 +320,11 @@ class Imap
         }
 
         // last line has response code
-        if ($tokens[0] == 'OK') {
+        if ('OK' == $tokens[0]) {
             return $lines ?: true;
-        } elseif ($tokens[0] == 'NO') {
+        }
+
+        if ('NO' == $tokens[0]) {
             return false;
         }
     }
@@ -339,14 +341,14 @@ class Imap
     {
         if (! $tag) {
             ++$this->tagCount;
-            $tag = 'TAG' . $this->tagCount;
+            $tag = "TAG{$this->tagCount}";
         }
 
-        $line = $tag . ' ' . $command;
+        $line = "{$tag} {$command}";
 
         foreach ($tokens as $token) {
             if (is_array($token)) {
-                if (fwrite($this->socket, $line . ' ' . $token[0] . "\r\n") === false) {
+                if (fwrite($this->socket, "{$line} {$token[0]}\r\n") === false) {
                     throw new Exception\RuntimeException('cannot write - connection closed?');
                 }
                 if (! $this->assumedNextLine('+ ')) {
@@ -354,11 +356,11 @@ class Imap
                 }
                 $line = $token[1];
             } else {
-                $line .= ' ' . $token;
+                $line .= " {$token}";
             }
         }
 
-        if (fwrite($this->socket, $line . "\r\n") === false) {
+        if (fwrite($this->socket, "{$line}\r\n") === false) {
             throw new Exception\RuntimeException('cannot write - connection closed?');
         }
     }
@@ -492,7 +494,7 @@ class Imap
         $result = [];
         $tokens = null; // define $tokens variable before first use
         while (! $this->readLine($tokens, $tag)) {
-            if ($tokens[0] == 'FLAGS') {
+            if ('FLAGS' == $tokens[0]) {
                 array_shift($tokens);
                 $result['flags'] = $tokens;
                 continue;
@@ -511,7 +513,7 @@ class Imap
             }
         }
 
-        if ($tokens[0] != 'OK') {
+        if ('OK' != $tokens[0]) {
             return false;
         }
         return $result;
@@ -560,9 +562,9 @@ class Imap
     {
         if (is_array($from)) {
             $set = implode(',', $from);
-        } elseif ($to === null) {
+        } elseif (null === $to) {
             $set = (int) $from;
-        } elseif ($to === INF) {
+        } elseif (INF === $to) {
             $set = (int) $from . ':*';
         } else {
             $set = (int) $from . ':' . (int) $to;
@@ -578,14 +580,14 @@ class Imap
         $tokens = null; // define $tokens variable before first use
         while (! $this->readLine($tokens, $tag)) {
             // ignore other responses
-            if ($tokens[1] != 'FETCH') {
+            if ('FETCH' != $tokens[1]) {
                 continue;
             }
 
             // find array key of UID value; try the last elements, or search for it
             if ($uid) {
                 $count = count($tokens[2]);
-                if ($tokens[2][$count - 2] == 'UID') {
+                if ('UID' == $tokens[2][$count - 2]) {
                     $uidKey = $count - 1;
                 } else {
                     $uidKey = array_search('UID', $tokens[2]) + 1;
@@ -593,7 +595,7 @@ class Imap
             }
 
             // ignore other messages
-            if ($to === null && ! is_array($from) && ($uid ? $tokens[2][$uidKey] != $from : $tokens[0] != $from)) {
+            if (null === $to && ! is_array($from) && ($uid ? $tokens[2][$uidKey] != $from : $tokens[0] != $from)) {
                 continue;
             }
 
@@ -624,7 +626,7 @@ class Imap
             }
 
             // if we want only one message we can ignore everything else and just return
-            if ($to === null && ! is_array($from) && ($uid ? $tokens[2][$uidKey] == $from : $tokens[0] == $from)) {
+            if (null === $to && ! is_array($from) && ($uid ? $tokens[2][$uidKey] == $from : $tokens[0] == $from)) {
                 // we still need to read all lines
                 // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
                 while (! $this->readLine($tokens, $tag)) {
@@ -634,7 +636,7 @@ class Imap
             $result[$tokens[0]] = $data;
         }
 
-        if ($to === null && ! is_array($from)) {
+        if (null === $to && ! is_array($from)) {
             throw new Exception\RuntimeException('the single id was not found in response');
         }
 
@@ -655,12 +657,12 @@ class Imap
     {
         $result = [];
         $list   = $this->requestAndResponse('LIST', $this->escapeString($reference, $mailbox));
-        if (! $list || $list === true) {
+        if (! $list || true === $list) {
             return $result;
         }
 
         foreach ($list as $item) {
-            if (count($item) != 4 || $item[0] != 'LIST') {
+            if (count($item) != 4 || 'LIST' != $item[0]) {
                 continue;
             }
             $result[$item[3]] = ['delim' => $item[2], 'flags' => $item[1]];
@@ -684,7 +686,7 @@ class Imap
     public function store(array $flags, $from, $to = null, $mode = null, $silent = true)
     {
         $item = 'FLAGS';
-        if ($mode == '+' || $mode == '-') {
+        if ('+' == $mode || '-' == $mode) {
             $item = $mode . $item;
         }
         if ($silent) {
@@ -693,8 +695,8 @@ class Imap
 
         $flags = $this->escapeList($flags);
         $set   = (int) $from;
-        if ($to !== null) {
-            $set .= ':' . ($to == INF ? '*' : (int) $to);
+        if (null !== $to) {
+            $set .= ':' . (INF == $to ? '*' : (int) $to);
         }
 
         $result = $this->requestAndResponse('STORE', [$set, $item, $flags], $silent);
@@ -706,7 +708,7 @@ class Imap
         $tokens = $result;
         $result = [];
         foreach ($tokens as $token) {
-            if ($token[1] != 'FETCH' || $token[2][0] != 'FLAGS') {
+            if ('FETCH' != $token[1] || 'FLAGS' != $token[2][0]) {
                 continue;
             }
             $result[$token[0]] = $token[2][1];
@@ -729,10 +731,10 @@ class Imap
     {
         $tokens   = [];
         $tokens[] = $this->escapeString($folder);
-        if ($flags !== null) {
+        if (null !== $flags) {
             $tokens[] = $this->escapeList($flags);
         }
-        if ($date !== null) {
+        if (null !== $date) {
             $tokens[] = $this->escapeString($date);
         }
         $tokens[] = $this->escapeString($message);
@@ -752,8 +754,8 @@ class Imap
     public function copy($folder, $from, $to = null)
     {
         $set = (string) $from;
-        if ($to !== null) {
-            $set .= ':' . ($to == INF ? '*' : (int) $to);
+        if (null !== $to) {
+            $set .= ':' . (INF == $to ? '*' : (int) $to);
         }
 
         return $this->requestAndResponse('COPY', [$set, $this->escapeString($folder)], true);
@@ -843,10 +845,12 @@ class Imap
         }
 
         foreach ($response as $ids) {
-            if ($ids[0] == 'SEARCH') {
-                array_shift($ids);
-                return $ids;
+            if ('SEARCH' != $ids[0]) {
+                continue;
             }
+
+            array_shift($ids);
+            return $ids;
         }
         return [];
     }

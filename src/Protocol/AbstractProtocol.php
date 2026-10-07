@@ -228,8 +228,8 @@ abstract class AbstractProtocol
             restore_error_handler();
         }
 
-        if ($this->socket === false) {
-            if ($errorNum == 0) {
+        if (false === $this->socket) {
+            if (0 == $errorNum) {
                 $errorStr = 'Could not open socket';
             }
             throw new Exception\RuntimeException($errorStr);
@@ -264,7 +264,7 @@ abstract class AbstractProtocol
     protected function _send($request)
     {
         if (! is_resource($this->socket)) {
-            throw new Exception\RuntimeException('No connection has been established to ' . $this->host);
+            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
         }
 
         $this->request = $request;
@@ -274,8 +274,8 @@ abstract class AbstractProtocol
         // Save request to internal log
         $this->_addLog($request . self::EOL);
 
-        if ($result === false) {
-            throw new Exception\RuntimeException('Could not send request to ' . $this->host);
+        if (false === $result) {
+            throw new Exception\RuntimeException("Could not send request to {$this->host}");
         }
 
         return $result;
@@ -292,11 +292,11 @@ abstract class AbstractProtocol
     protected function _receive($timeout = null)
     {
         if (! is_resource($this->socket)) {
-            throw new Exception\RuntimeException('No connection has been established to ' . $this->host);
+            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
         }
 
         // Adapters may wish to supply per-commend timeouts according to appropriate RFC
-        if ($timeout !== null) {
+        if (null !== $timeout) {
             stream_set_timeout($this->socket, $timeout);
         }
 
@@ -310,11 +310,11 @@ abstract class AbstractProtocol
         $info = stream_get_meta_data($this->socket);
 
         if ($info['timed_out']) {
-            throw new Exception\RuntimeException($this->host . ' has timed out');
+            throw new Exception\RuntimeException("{$this->host} has timed out");
         }
 
-        if ($response === false) {
-            throw new Exception\RuntimeException('Could not read from ' . $this->host);
+        if (false === $response) {
+            throw new Exception\RuntimeException("Could not read from {$this->host}");
         }
 
         return $response;
@@ -345,16 +345,16 @@ abstract class AbstractProtocol
             $this->response[] = $result = $this->_receive($timeout);
             [$cmd, $more, $msg] = preg_split('/([\s-]+)/', $result, 2, PREG_SPLIT_DELIM_CAPTURE);
 
-            if ($errMsg !== '') {
-                $errMsg .= ' ' . $msg;
-            } elseif ($cmd === null || ! in_array($cmd, $code)) {
+            if ('' !== $errMsg) {
+                $errMsg .= " {$msg}";
+            } elseif (null === $cmd || ! in_array($cmd, $code)) {
                 $errMsg = $msg;
             }
 
             // The '-' message prefix indicates an information string instead of a response string.
         } while (str_starts_with($more, '-'));
 
-        if ($errMsg !== '') {
+        if ('' !== $errMsg) {
             throw new Exception\RuntimeException($errMsg, (int) $cmd);
         }
 

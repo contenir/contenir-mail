@@ -63,7 +63,7 @@ class SmtpOptions extends AbstractOptions
      */
     public function setName($name)
     {
-        if (! is_string($name) && $name !== null) {
+        if (! is_string($name) && null !== $name) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Name must be a string or null; argument of type "%s" provided',
                 is_object($name) ? $name::class : gettype($name),
@@ -96,7 +96,7 @@ class SmtpOptions extends AbstractOptions
      */
     public function setConnectionClass($connectionClass)
     {
-        if (! is_string($connectionClass) && $connectionClass !== null) {
+        if (! is_string($connectionClass) && null !== $connectionClass) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Connection class must be a string or null; argument of type "%s" provided',
                 is_object($connectionClass) ? $connectionClass::class : gettype($connectionClass),
@@ -194,7 +194,7 @@ class SmtpOptions extends AbstractOptions
      */
     public function setConnectionTimeLimit($seconds)
     {
-        $this->connectionTimeLimit = $seconds === null
+        $this->connectionTimeLimit = null === $seconds
             ? null
             : (int) $seconds;
 

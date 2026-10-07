@@ -3182,12 +3182,6 @@ count = 7
 
 [[issues]]
 file = "src/Headers.php"
-code = "mixed-operand"
-message = "Invalid right operand: type `mixed` cannot be reliably used in string concatenation."
-count = 1
-
-[[issues]]
-file = "src/Headers.php"
 code = "mixed-return-statement"
 message = 'Could not infer a precise return type for function `Contenir\Mail\Headers::current`. Saw type `mixed`.'
 count = 1
@@ -4826,9 +4820,9 @@ count = 3
 
 [[issues]]
 file = "src/Mime/Mime.php"
-code = "possibly-null-operand"
-message = "Possibly null middle operand used in string concatenation (type `null|string`)."
-count = 3
+code = "possibly-undefined-int-array-index"
+message = "Possibly undefined array key `non-negative-int` accessed on `array{0: non-empty-string}`."
+count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -4841,12 +4835,6 @@ file = "src/Mime/Mime.php"
 code = "possibly-undefined-int-array-index"
 message = "Possibly undefined array key `non-negative-int` accessed on `array{0: string, ...<non-negative-int, string>}`."
 count = 2
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `non-negative-int` accessed on `array{0: truthy-string}`."
-count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -5342,12 +5330,6 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Part.php"
-code = "mixed-operand"
-message = "Invalid middle operand: type `mixed` cannot be reliably used in string concatenation."
-count = 2
-
-[[issues]]
-file = "src/Mime/Part.php"
 code = "nullable-return-statement"
 message = 'Function `Contenir\Mail\Mime\Part::getBoundary` is declared to return `string` but possibly returns a nullable value (inferred as `null|string`).'
 count = 1
@@ -5696,12 +5678,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
-code = "mixed-operand"
-message = "Invalid right operand: type `mixed` cannot be reliably used in string concatenation."
-count = 1
-
-[[issues]]
-file = "src/Protocol/AbstractProtocol.php"
 code = "mixed-return-statement"
 message = 'Could not infer a precise return type for function `Contenir\Mail\Protocol\AbstractProtocol::_expect`. Saw type `mixed`.'
 count = 1
@@ -5739,7 +5715,7 @@ count = 1
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
 code = "possibly-null-operand"
-message = "Left operand in `==` comparison might be `null` (type `int|null`)."
+message = "Right operand in `==` comparison might be `null` (type `int|null`)."
 count = 1
 
 [[issues]]
@@ -6298,25 +6274,13 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "mixed-operand"
 message = "Invalid left operand: type `mixed` cannot be reliably used in string concatenation."
-count = 3
-
-[[issues]]
-file = "src/Protocol/Imap.php"
-code = "mixed-operand"
-message = "Invalid middle operand: type `mixed` cannot be reliably used in string concatenation."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Imap.php"
-code = "mixed-operand"
-message = "Invalid right operand: type `mixed` cannot be reliably used in string concatenation."
 count = 1
 
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "mixed-operand"
 message = "Left operand in `!=` comparison has `mixed` type."
-count = 8
+count = 3
 
 [[issues]]
 file = "src/Protocol/Imap.php"
@@ -6328,19 +6292,19 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "mixed-operand"
 message = "Left operand in `==` comparison has `mixed` type."
-count = 9
+count = 4
 
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "mixed-operand"
 message = "Right operand in `!=` comparison has `mixed` type."
-count = 1
+count = 7
 
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "mixed-operand"
 message = "Right operand in `==` comparison has `mixed` type."
-count = 2
+count = 6
 
 [[issues]]
 file = "src/Protocol/Imap.php"
@@ -6532,12 +6496,12 @@ count = 2
 file = "src/Protocol/Imap.php"
 code = "possibly-null-array-access"
 message = "Cannot perform array access on possibly `null` value."
-count = 3
+count = 2
 
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "possibly-null-operand"
-message = "Left operand in `==` comparison might be `null` (type `null|string`)."
+message = "Right operand in `==` comparison might be `null` (type `null|string`)."
 count = 2
 
 [[issues]]
@@ -6556,7 +6520,7 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "possibly-undefined-int-array-index"
 message = "Possibly undefined array key `int(0)` accessed on `array<array-key, mixed>`."
-count = 8
+count = 7
 
 [[issues]]
 file = "src/Protocol/Imap.php"
@@ -6916,12 +6880,6 @@ count = 1
 file = "src/Protocol/Pop3.php"
 code = "possibly-null-argument"
 message = 'Argument #2 of method `Contenir\Mail\Protocol\Pop3\Response::__construct` is possibly `null`, but parameter type `string` does not accept it.'
-count = 1
-
-[[issues]]
-file = "src/Protocol/Pop3.php"
-code = "possibly-null-operand"
-message = "Possibly null middle operand used in string concatenation (type `null|string`)."
 count = 1
 
 [[issues]]
@@ -7340,12 +7298,6 @@ count = 2
 
 [[issues]]
 file = "src/Protocol/Smtp.php"
-code = "mixed-operand"
-message = "Invalid left operand: type `nonnull` cannot be reliably used in string concatenation."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp.php"
 code = "possibly-false-operand"
 message = "Left operand in `==` comparison might be `false` (type `false|string`)."
 count = 1
@@ -7570,12 +7522,6 @@ count = 1
 file = "src/Protocol/Smtp/Auth/Crammd5.php"
 code = "possibly-null-argument"
 message = 'Argument #1 of method `Contenir\Mail\Protocol\Smtp\Auth\Crammd5::hmacMd5` is possibly `null`, but parameter type `non-empty-string` does not accept it.'
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Crammd5.php"
-code = "possibly-null-operand"
-message = "Possibly null left operand used in string concatenation (type `non-empty-string|null`)."
 count = 1
 
 [[issues]]
@@ -8967,7 +8913,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Imap.php"
 code = "invalid-type-cast"
-message = "Cannot cast type `never` to `array`."
+message = "Casting type `null` to `array` will produce an empty array."
 count = 1
 
 [[issues]]
@@ -10707,14 +10653,8 @@ count = 1
 [[issues]]
 file = "src/Storage/Part/File.php"
 code = "array-to-string-conversion"
-message = "Potential array in middle operand of string concatenation."
-count = 1
-
-[[issues]]
-file = "src/Storage/Part/File.php"
-code = "array-to-string-conversion"
-message = "Potential array in right operand of string concatenation."
-count = 1
+message = "Potentially casting `array` to `string`."
+count = 2
 
 [[issues]]
 file = "src/Storage/Part/File.php"
@@ -11270,12 +11210,6 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
-code = "implicit-to-string-cast"
-message = 'Implicit conversion to `string` for right operand via `Contenir\Mail\Storage\Folder::__toString()`.'
-count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
 code = "impossible-assignment"
 message = "Invalid assignment: the right-hand side has type `never` and cannot produce a value."
 count = 2
@@ -11608,18 +11542,18 @@ count = 3
 file = "src/Storage/Writable/Maildir.php"
 code = "mixed-operand"
 message = "Invalid right operand: type `mixed` cannot be reliably used in string concatenation."
-count = 2
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "mixed-operand"
-message = "Left operand in `==` comparison has `mixed` type."
-count = 4
+count = 1
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
 code = "mixed-operand"
 message = "Left operand in `>` comparison has `mixed` type."
+count = 4
+
+[[issues]]
+file = "src/Storage/Writable/Maildir.php"
+code = "mixed-operand"
+message = "Right operand in `==` comparison has `mixed` type."
 count = 4
 
 [[issues]]
@@ -11667,13 +11601,13 @@ count = 2
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
 code = "possibly-false-operand"
-message = "Left operand in `<` comparison might be `false` (type `false|int<1750595956, max>`)."
+message = "Left operand in `<` comparison might be `false` (type `false|non-negative-int`)."
 count = 1
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
 code = "possibly-false-operand"
-message = "Left operand in `<` comparison might be `false` (type `false|non-negative-int`)."
+message = "Left operand in `>=` comparison might be `false` (type `false|int<1750595956, max>`)."
 count = 1
 
 [[issues]]
@@ -11691,7 +11625,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
 code = "possibly-false-operand"
-message = "Right operand in `<` comparison might be `false` (type `false|int<1750595956, max>`)."
+message = "Right operand in `>=` comparison might be `false` (type `false|int<1750595956, max>`)."
 count = 1
 
 [[issues]]
@@ -12557,12 +12491,6 @@ file = "src/Transport/Sendmail.php"
 code = "mixed-assignment"
 message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
 count = 2
-
-[[issues]]
-file = "src/Transport/Sendmail.php"
-code = "mixed-operand"
-message = "Invalid right operand: type `mixed` cannot be reliably used in string concatenation."
-count = 1
 
 [[issues]]
 file = "src/Transport/Sendmail.php"

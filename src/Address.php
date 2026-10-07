@@ -160,7 +160,7 @@ class Address implements Address\AddressInterface
         $name    = $this->getName();
         $comment = $this->getComment();
 
-        if ($comment === null || $comment === '') {
+        if (null === $comment || '' === $comment) {
             return $name;
         }
 

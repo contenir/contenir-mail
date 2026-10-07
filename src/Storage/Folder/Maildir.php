@@ -119,7 +119,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
 
         while (($entry = readdir($dh)) !== false) {
             // maildir++ defines folders must start with .
-            if ($entry[0] != '.' || $entry == '.' || $entry == '..') {
+            if ('.' != $entry[0] || '.' == $entry || '..' == $entry) {
                 continue;
             }
 
@@ -149,7 +149,9 @@ class Maildir extends Storage\Maildir implements FolderInterface
                     array_push($folderStack, $parentFolder);
                     $parentFolder = $folder;
                     break;
-                } elseif ($stack) {
+                }
+
+                if ($stack) {
                     $parent       = array_pop($stack);
                     $parentFolder = array_pop($folderStack);
                 }
@@ -169,12 +171,12 @@ class Maildir extends Storage\Maildir implements FolderInterface
      */
     public function getFolders($rootFolder = null)
     {
-        if (! $rootFolder || $rootFolder == 'INBOX') {
+        if (! $rootFolder || 'INBOX' == $rootFolder) {
             return $this->rootFolder;
         }
 
         // rootdir is same as INBOX in maildir
-        if (str_starts_with($rootFolder, 'INBOX' . $this->delim)) {
+        if (str_starts_with($rootFolder, "INBOX{$this->delim}")) {
             $rootFolder = substr($rootFolder, 6);
         }
         $currentFolder = $this->rootFolder;
@@ -196,7 +198,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
         }
 
         if ($currentFolder->getGlobalName() != rtrim($rootFolder, $this->delim)) {
-            throw new Exception\InvalidArgumentException("folder $rootFolder not found");
+            throw new Exception\InvalidArgumentException("folder {$rootFolder} not found");
         }
         return $currentFolder;
     }
@@ -218,7 +220,7 @@ class Maildir extends Storage\Maildir implements FolderInterface
         $folder = $this->getFolders($this->currentFolder);
 
         try {
-            $this->openMaildir($this->rootdir . '.' . $folder->getGlobalName());
+            $this->openMaildir("{$this->rootdir}.{$folder->getGlobalName()}");
         } catch (Exception\ExceptionInterface $e) {
             // check what went wrong
             if (! $folder->isSelectable()) {

@@ -18,9 +18,7 @@ use function str_contains;
 
 use const PHP_BINARY;
 
-/**
- */
-#[CoversClass(\Contenir\Mail\Protocol\AbstractProtocol::class)]
+#[CoversClass(AbstractProtocol::class)]
 final class AbstractProtocolTest extends TestCase
 {
     private Process $process;
@@ -57,8 +55,8 @@ final class AbstractProtocolTest extends TestCase
 
             public function send(string $path, ?int $readTimeout): string
             {
-                $this->_send('GET ' . $path . ' HTTP/1.1');
-                $this->_send('Host: ' . $this->host);
+                $this->_send("GET {$path} HTTP/1.1");
+                $this->_send("Host: {$this->host}");
                 $this->_send('');
 
                 return $this->_receive($readTimeout);
