@@ -18,6 +18,7 @@ use function dirname;
 use function file_get_contents;
 use function json_decode;
 use function preg_quote;
+use function sprintf;
 use function str_repeat;
 
 use const DIRECTORY_SEPARATOR;
@@ -82,16 +83,11 @@ final class SendmailProcessTest extends TestCase
     public function reportsExitStatusAndOutputOfFailedProgram(string $mode, string $expected): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches(
-            '/^Sendmail "'
-            . preg_quote(PHP_BINARY, delimiter: '/')
-            . '"'
-            . preg_quote(
-                $expected,
-                delimiter: '/',
-            )
-            . '$/D',
-        );
+        $this->expectExceptionMessageMatches(sprintf(
+            '/^Sendmail "%s"%s$/D',
+            preg_quote(PHP_BINARY, delimiter: '/'),
+            preg_quote($expected, delimiter: '/'),
+        ));
 
         SendmailProcess::run($this->command($mode), 'x');
     }
