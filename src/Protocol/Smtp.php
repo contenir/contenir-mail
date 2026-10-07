@@ -292,6 +292,13 @@ final class Smtp extends AbstractProtocol
             );
         }
 
+        if ($eightBit && ! $this->hasCapability('8BITMIME')) {
+            throw new Exception\RuntimeException(
+                'The message has 8-bit content, which the server does not accept without 8BITMIME;'
+                    . ' send it quoted-printable or base64 encoded',
+            );
+        }
+
         $command   = 'MAIL FROM:<' . self::path($from) . '>';
         $sizeLimit = $this->capabilities['SIZE'] ?? null;
         if (null !== $size && null !== $sizeLimit) {
@@ -307,7 +314,7 @@ final class Smtp extends AbstractProtocol
             $command .= " SIZE={$size}";
         }
 
-        if ($eightBit && $this->hasCapability('8BITMIME')) {
+        if ($eightBit) {
             $command .= ' BODY=8BITMIME';
         }
 

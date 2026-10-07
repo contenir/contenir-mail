@@ -152,9 +152,43 @@ final class SmtpTransactionTest extends TestCase
     {
         $server = new SmtpServer();
         $smtp   = self::session($server, $capabilities);
-        $smtp->mail('sender@example.com', 10, eightBit: true);
+        $smtp->mail('sender@example.com', 10);
 
         static::assertSame(['MAIL FROM:<sender@example.com>'], self::transaction($server));
+    }
+
+    /**
+     * RFC 6152: a client must not send 8-bit content to a server that has not offered 8BITMIME.
+     */
+    #[Test]
+    public function refusesEightBitBodyWithoutEightBitMime(): void
+    {
+        $server = new SmtpServer();
+        $smtp   = self::session($server, 'SIZE');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'The message has 8-bit content, which the server does not accept without 8BITMIME;'
+                . ' send it quoted-printable or base64 encoded',
+        );
+
+        $smtp->mail('sender@example.com', eightBit: true);
+    }
+
+    #[Test]
+    public function sendsNoMailCommandForRefusedEightBitBody(): void
+    {
+        $server = new SmtpServer();
+        $smtp   = self::session($server, 'SIZE');
+        try {
+            $smtp->mail('sender@example.com', eightBit: true);
+        } catch (RuntimeException) {
+            static::assertSame([], self::transaction($server));
+
+            return;
+        }
+
+        static::fail('The 8-bit body was not refused');
     }
 
     #[Test]
