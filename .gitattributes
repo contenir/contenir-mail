@@ -1,0 +1,15 @@
+/.git-blame-ignore-revs       export-ignore
+/.gitattributes               export-ignore
+/.github                      export-ignore
+/.gitignore                   export-ignore
+/composer.lock                export-ignore
+/docs                         export-ignore
+/infection.json5.dist         export-ignore
+/mago.toml                    export-ignore
+/mago-analyze-baseline.toml   export-ignore
+/mago-lint-baseline.toml      export-ignore
+/phpunit.xml.dist             export-ignore
+/tests                        export-ignore
+
+*.eml text eol=crlf
+*.mbox text eol=crlf

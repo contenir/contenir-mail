@@ -1,0 +1,18 @@
+name: "Continuous Integration"
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  qa:
+    uses: contenir/contenir-qa-tools/.github/workflows/continuous-integration.yml@0.1.x
+    secrets: inherit
+    with:
+      php-versions: '["8.3", "8.4", "8.5"]'
+      coverage-php-version: "8.4"
+      enable-infection: true
+      # Infection mutates only code the tests cover; every such mutant is
+      # killed today, so any new survivor fails the build.
+      min-msi: "100"
+      min-covered-msi: "100"

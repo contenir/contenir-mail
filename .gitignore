@@ -1,0 +1,11 @@
+.DS_Store
+.idea
+/.phpunit.cache/
+/clover.xml
+/phpunit.xml
+/vendor/
+/tests/Unit/_files/test.maildir/*
+!/tests/Unit/_files/test.maildir/maildir.tar
+/infection.log
+/summary.log
+/infection.json5

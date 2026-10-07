@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Contenir\Mail\Tests\Unit\Protocol\Pop3\Xoauth2;
+
+use Contenir\Mail\Exception\RuntimeException;
+use Contenir\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+use function fopen;
+use function rewind;
+use function str_replace;
+use function stream_get_contents;
+
+#[CoversClass(Microsoft::class)]
+class MicrosoftTest extends TestCase
+{
+    /** @psalm-suppress InternalClass */
+    #[Test]
+    public function integration(): void
+    {
+        /**
+         * @psalm-suppress PropertyNotSetInConstructor
+         * @psalm-suppress InvalidExtendClass
+         */
+        $protocol = new class() extends Microsoft {
+            private string $step;
+
+            /** @psalm-suppress InternalClass */
+            public function readRemoteResponse(): Response
+            {
+                if (self::AUTH_INITIALIZE_REQUEST === $this->step) {
+                    /** @psalm-suppress InternalMethod */
+                    return new Response(self::AUTH_RESPONSE_INITIALIZED_OK, 'Auth initialized');
+                }
+
+                /** @psalm-suppress InternalMethod */
+                return new Response('+OK', 'Authenticated');
+            }
+
+            /**
+             * Send a request
+             *
+             * @param string $request your request without newline
+             * @throws RuntimeException
+             */
+            public function sendRequest($request): void
+            {
+                $this->step = $request;
+                parent::sendRequest($request);
+            }
+
+            /**
+             * Open connection to POP3 server
+             *
+             * @param  string      $host  hostname or IP address of POP3 server
+             * @param  int|null    $port  of POP3 server, default is 110 (995 for ssl)
+             * @param  string|bool $ssl   use 'SSL', 'TLS' or false
+             * @throws RuntimeException
+             * @return string welcome message
+             */
+            public function connect($host, $port = null, $ssl = false)
+            {
+                $this->socket = fopen('php://memory', 'rw+');
+                return '';
+            }
+
+            /**
+             * @return null|resource
+             */
+            public function getSocket()
+            {
+                return $this->socket;
+            }
+        };
+
+        $protocol->connect('localhost', 0, false);
+
+        $protocol->login('test@example.com', '123');
+
+        static::assertInstanceOf(Microsoft::class, $protocol);
+
+        $streamContents = '';
+        if ($socket = $protocol->getSocket()) {
+            rewind($socket);
+            $streamContents = stream_get_contents($socket);
+            $streamContents = str_replace("\r\n", "\n", $streamContents);
+        }
+
+        /** @psalm-suppress InternalMethod */
+        $xoauth2Sasl = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
+
+        static::assertSame(
+            "AUTH XOAUTH2\n{$xoauth2Sasl}\n",
+            $streamContents,
+        );
+    }
+}

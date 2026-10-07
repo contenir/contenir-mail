@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Contenir\Mail\Tests\Unit;
+
+use Contenir\Mail\Module;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+use function array_keys;
+
+#[CoversClass(Module::class)]
+class ModuleTest extends TestCase
+{
+    #[Test]
+    public function invoke(): void
+    {
+        $module = new Module();
+        $config = $module->getConfig();
+        static::assertSame(['service_manager'], array_keys($config));
+    }
+}
