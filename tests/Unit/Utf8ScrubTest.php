@@ -9,6 +9,8 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -98,11 +100,19 @@ final class Utf8ScrubTest extends TestCase
      * When PCRE cannot match a run within its limit, scrubbing falls back
      * to one character at a time instead of losing the text.
      *
-     * @mago-expect lint:no-ini-set Lowers the PCRE limit so a short run reaches it; tearDown() restores it.
+     * PHP decides whether a pattern uses the JIT when it first compiles and
+     * caches it, and some JIT builds do not apply the backtracking limit to
+     * this pattern. The test therefore runs in a process of its own with the
+     * JIT off before the pattern is compiled, so the limit always applies.
+     *
+     * @mago-expect lint:no-ini-set Turns the JIT off and lowers the PCRE limit in this test's own process.
      */
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function scrubsByCharacterWhenRunsReachThePcreLimit(): void
     {
+        ini_set('pcre.jit', value: '0');
         ini_set('pcre.backtrack_limit', value: '100');
 
         static::assertSame(
