@@ -1,156 +1,116 @@
 # Adding Attachments
 
-contenir-mail does not directly provide the ability to create and use mail
-attachments. However, it allows using `Contenir\Mail\Mime\Message` instances, from the
-bundled `Contenir\Mail\Mime` component, for message
-bodies, allowing you to create multipart emails.
-
-## Basic multipart content
-
-The following example creates an email with two parts, HTML content and an
-image.
+`Message` builds MIME bodies for you. Give it the text, the HTML, any images
+the HTML refers to, and any files to attach, and it arranges them into the
+right multipart structure when the message is written.
 
 ```php
-use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Message;
-use Contenir\Mail\Mime\Message as MimeMessage;
-use Contenir\Mail\Mime\Mime;
-use Contenir\Mail\Mime\Part as MimePart;
-
-$html = new MimePart($htmlMarkup);
-$html->type = Mime::TYPE_HTML;
-$html->charset = 'utf-8';
-$html->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-
-$image = new MimePart(fopen($pathToImage, 'r'));
-$image->type = 'image/jpeg';
-$image->filename = 'image-file-name.jpg';
-$image->disposition = Mime::DISPOSITION_ATTACHMENT;
-$image->encoding = Mime::ENCODING_BASE64;
-
-$body = new MimeMessage();
-$body->setParts([$html, $image]);
+use Contenir\Mail\Mime\Attachment;
 
 $message = new Message();
-$message->setBody($body);
-$message->setHeader(new ContentType('multipart/related', [
-    'boundary' => $body->getMime()->boundary(),
+$message->setFrom('reports@example.org');
+$message->addTo('ralph@example.org');
+$message->setSubject('Quarterly report');
+
+$message->setText('The report is attached.');
+$message->setHtml('<p>The report is attached.</p><img src="cid:logo">');
+$message->embed(Attachment::inline($logoPng, id: 'logo', type: 'image/png'));
+$message->attach(Attachment::fromPath('/var/reports/q3.pdf'));
+```
+
+The body is assembled as:
+
+```text
+multipart/mixed
+├── multipart/alternative
+│   ├── text/plain
+│   └── multipart/related
+│       ├── text/html
+│       └── image/png          (Content-ID: <logo>)
+└── application/pdf            (attachment; filename="q3.pdf")
+```
+
+Only the levels you need are used:
+
+You call | The body is
+--- | ---
+`setText()` | `text/plain`
+`setHtml()` | `text/html`
+`setText()` and `setHtml()` | `multipart/alternative`, text first
+`setHtml()` and `embed()` | `multipart/related`, HTML first
+`attach()` with any of the above | `multipart/mixed`, content first and attachments after it
+
+`getHeaders()` and `toString()` add `MIME-Version: 1.0` and the body's
+`Content-Type` (with its boundary) and `Content-Transfer-Encoding`, so you
+never set them yourself. Boundaries are generated once and kept until you
+change the body again.
+
+`setText()` and `setHtml()` replace any earlier text or HTML. `attach()` and
+`embed()` add to the parts already given.
+
+## Building attachments
+
+`Contenir\Mail\Mime\Attachment` builds the parts:
+
+```php
+use Contenir\Mail\Mime\Attachment;
+
+// A file on disk. It is read only when the message is written, in chunks.
+// The type is detected from its contents when ext-fileinfo is available.
+Attachment::fromPath('/var/reports/q3.pdf');
+Attachment::fromPath('/tmp/upload-81f2', filename: 'invoice.pdf', type: 'application/pdf');
+
+// Content you already have in memory
+Attachment::fromString($csv, filename: 'export.csv', type: 'text/csv');
+
+// A resource the HTML refers to as "cid:logo"
+Attachment::inline($logoPng, id: 'logo', type: 'image/png', filename: 'logo.png');
+```
+
+Each returns an immutable `Contenir\Mail\Mime\Part`, base64 encoded. For
+anything else, such as a different transfer encoding or a `Content-Description`,
+create the `Part` yourself; see [Parts](../mime/part.md).
+
+```php
+use Contenir\Mail\Mime\Disposition;
+use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\TransferEncoding;
+
+$message->attach(new Part(
+    $calendar,
+    type: 'text/calendar',
+    encoding: TransferEncoding::QuotedPrintable,
+    charset: 'UTF-8',
+    disposition: Disposition::Attachment,
+    filename: 'meeting.ics',
+));
+```
+
+## Building the structure yourself
+
+When you need a structure the builders do not make, compose it from
+`Contenir\Mail\Mime\Part` and `Contenir\Mail\Mime\Multipart` and pass the root
+to `setBody()`. A body set this way takes the place of anything given to the
+builders; `setBody(null)` returns to them.
+
+```php
+use Contenir\Mail\Mime\Multipart;
+use Contenir\Mail\Mime\MultipartType;
+use Contenir\Mail\Mime\Part;
+
+$message->setBody(new Multipart(MultipartType::Alternative, [
+    Part::text($text),
+    Part::html($html),
+    new Part($amp, type: 'text/x-amp-html', charset: 'UTF-8'),
 ]));
 ```
 
-When the body is a multipart MIME message, `setBody()` sets a `MIME-Version`
-header and a `multipart/mixed` `Content-Type` header carrying the MIME boundary.
-`Contenir\Mail\Mime` does not select any other multipart type for us, so when
-the parts are related (or alternatives), replace the `Content-Type` header with
-`setHeader()`, keeping the same boundary.
-
-## multipart/alternative content
-
-One of the most common email types sent by web applications is
-`multipart/alternative` messages with both text and HTML parts.
+A boundary is generated for each multipart. Pass one as the third argument when
+you need fixed output, for example in tests:
 
 ```php
-use Contenir\Mail\Header\ContentType;
-use Contenir\Mail\Message;
-use Contenir\Mail\Mime\Message as MimeMessage;
-use Contenir\Mail\Mime\Mime;
-use Contenir\Mail\Mime\Part as MimePart;
-
-$text = new MimePart($textContent);
-$text->type = Mime::TYPE_TEXT;
-$text->charset = 'utf-8';
-$text->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-
-$html = new MimePart($htmlMarkup);
-$html->type = Mime::TYPE_HTML;
-$html->charset = 'utf-8';
-$html->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-
-$body = new MimeMessage();
-$body->setParts([$text, $html]);
-
-$message = new Message();
-$message->setBody($body);
-$message->setHeader(new ContentType('multipart/alternative', [
-    'boundary' => $body->getMime()->boundary(),
-]));
+new Multipart(MultipartType::Mixed, $parts, boundary: 'report-boundary');
 ```
 
-The only differences from the first example are:
-
-- We have text and HTML parts instead of an HTML and image part.
-- The `Content-Type` header is now `multipart/alternative`.
-
-## multipart/alternative emails with attachments
-
-Another common task is creating `multipart/alternative` emails where the HTML
-content refers to assets attachments (images, CSS, etc.).
-
-To accomplish this, we need to:
-
-- Create a `Contenir\Mail\Mime\Part` instance containing our `multipart/alternative`
-  message.
-- Add that part to a `Contenir\Mail\Mime\Message`.
-- Add additional `Contenir\Mail\Mime\Part` instances to the MIME message.
-- Attach the MIME message as the `Contenir\Mail\Message` content body.
-- Mark the message as `multipart/related` content.
-
-The following example creates a MIME message with three parts: text and HTML
-alternative versions of an email, and an image attachment.
-
-```php
-use Contenir\Mail\Header\ContentType;
-use Contenir\Mail\Message;
-use Contenir\Mail\Mime\Message as MimeMessage;
-use Contenir\Mail\Mime\Mime;
-use Contenir\Mail\Mime\Part as MimePart;
-
-$text           = new MimePart($textContent);
-$text->type     = Mime::TYPE_TEXT;
-$text->charset  = 'utf-8';
-$text->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-
-$html           = new MimePart($htmlMarkup);
-$html->type     = Mime::TYPE_HTML;
-$html->charset  = 'utf-8';
-$html->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-
-$content = new MimeMessage();
-// This order is important for email clients to properly display the correct version of the content
-$content->setParts([$text, $html]);
-
-$contentPart           = new MimePart($content->generateMessage());
-$contentPart->type     = Mime::MULTIPART_ALTERNATIVE;
-$contentPart->boundary = $content->getMime()->boundary();
-
-$image              = new MimePart(fopen($pathToImage, 'r'));
-$image->type        = 'image/jpeg';
-$image->filename    = 'image-file-name.jpg';
-$image->disposition = Mime::DISPOSITION_ATTACHMENT;
-$image->encoding    = Mime::ENCODING_BASE64;
-
-$body = new MimeMessage();
-$body->setParts([$contentPart, $image]);
-
-$message = new Message();
-$message->setBody($body);
-$message->setHeader(new ContentType('multipart/related', [
-    'boundary' => $body->getMime()->boundary(),
-]));
-```
-
-## Setting custom MIME boundaries
-
-In a multipart message, a MIME boundary for separating the different parts of
-the message is normally generated at random. In some cases, however, you might
-want to specify the MIME boundary that is used. This can be done by injecting a
-new `Contenir\Mail\Mime\Mime` instance into the MIME message. Do this before
-passing the MIME message to `setBody()`, as the `Content-Type` header records
-the boundary at that point.
-
-```php
-use Contenir\Mail\Mime\Mime;
-
-$mimeMessage->setMime(new Mime($customBoundary));
-$message->setBody($mimeMessage);
-```
+See [Multiparts](../mime/multipart.md) for the rules a boundary must follow.

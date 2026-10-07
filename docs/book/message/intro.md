@@ -4,9 +4,9 @@
 [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322). You build it step by step,
 setting addresses, a subject, other headers and content.
 
-If desired, multi-part email messages may also be created. This can be done
-using the bundled `Contenir\Mail\Mime` component,
-and assigning the generated MIME part to the mail message body.
+Text, HTML, attachments and inline images are added with `setText()`,
+`setHtml()`, `attach()` and `embed()`, and arranged into a MIME body when the
+message is written.
 
 The `Message` class is mutable, but everything it holds is an immutable value:
 its headers are a `Contenir\Mail\Headers` collection, each header is a value
@@ -36,7 +36,7 @@ content:
 $message->addFrom('matthew@example.org', 'Matthew Somelli');
 $message->addTo('foobar@example.com');
 $message->setSubject('Sending an email from Contenir\Mail!');
-$message->setBody('This is the message body.');
+$message->setText('This is the message body.');
 ```
 
 You can also add recipients to carbon-copy ("Cc:") or blind carbon-copy
@@ -100,13 +100,8 @@ $message->setSender('matthew@example.org', 'Matthew Sommeli');
 
 Headers take care of their own encoding. Plain ASCII values are written as
 they are, and anything else (an accented name, a subject in Japanese) is
-encoded as RFC 2047 UTF-8 automatically. If your body is not ASCII, record its
-character set with `setEncoding()` and declare it on the body itself; see
-[Character Sets](character-sets.md) for details.
-
-```php
-$message->setEncoding('UTF-8');
-```
+encoded as RFC 2047 UTF-8 automatically. Text and HTML bodies are UTF-8 by
+default; see [Character Sets](character-sets.md) for other character sets.
 
 If you wish to set other headers, you can do that as well. `addHeader()` adds a
 header alongside any others of the same name, while `setHeader()` replaces them.
@@ -124,13 +119,19 @@ $message->addHeader(new GenericHeader('X-API-Key', 'FOO-BAR-BAZ-BAT'));
 $message->setHeader(new GenericHeader('X-Mailer', 'contenir-mail'));
 ```
 
-Sometimes you may want to provide HTML content, or multi-part content. To do
-that, you'll first create a MIME message object, and then set it as the body of
-your mail message object. When you do so, the `Message` class will automatically
-set a "MIME-Version" header, as well as an appropriate "Content-Type" header.
+To send HTML, give it alongside the text. Mail clients show whichever they
+prefer:
 
-If you are interested in multipart emails or using attachments, read the chapter
-on [Adding Attachments](attachments.md).
+```php
+use Contenir\Mail\Mime\Attachment;
+
+$message->setHtml('<p>This is the <strong>message</strong> body.</p>');
+$message->attach(Attachment::fromPath('/var/reports/q3.pdf'));
+```
+
+The `MIME-Version` and `Content-Type` headers are added for you. Read
+[Adding Attachments](attachments.md) for attachments, inline images and custom
+MIME structures.
 
 If you want a string representation of your email, you can get that:
 
@@ -168,11 +169,8 @@ if (null !== $address) {
 // Subject
 echo "Subject: ", $message->getSubject(), "\n";
 
-// Encoding
-echo "Encoding: ", $message->getEncoding(), "\n";
-
 // Message body:
-$body = $message->getBody();  // body as set: a string, a MIME message or a Stringable object
+$body = $message->getBody();  // a string or Stringable set with setBody(), a MIME part, or null
 echo $message->getBodyText(); // body as it will be sent
 ```
 
@@ -201,7 +199,13 @@ $transport->send($message);
 
 ## Configuration Options
 
-The `Message` class has no configuration options.
+The constructor takes optional starting headers and a PSR-20 clock, which
+supplies the `Date` header. Pass a fixed clock to get repeatable output in
+tests:
+
+```php
+new Message(clock: $clock); // Psr\Clock\ClockInterface
+```
 
 ## Available Methods
 
@@ -228,24 +232,6 @@ isValid() : bool
 
 Messages without a `From` address are invalid, per RFC 5322.
 
-### setEncoding
-
-```php
-setEncoding(string $encoding) : self
-```
-
-Record the character set of the body, such as `UTF-8`. Headers choose their own
-encoding, so this setting does not affect them. It does not add a
-`Content-Type` header either; see [Character Sets](character-sets.md).
-
-### getEncoding
-
-```php
-getEncoding() : string
-```
-
-Get the character set recorded with `setEncoding()`; defaults to `ASCII`.
-
 ### setHeaders
 
 ```php
@@ -260,9 +246,11 @@ Replace the whole header collection.
 getHeaders() : Contenir\Mail\Headers
 ```
 
-Return the header collection. `Headers` is immutable: changing a header through
-the message replaces the collection, so a `Headers` instance you fetched earlier
-keeps its old contents.
+Return the header collection. When the body is a MIME part, `MIME-Version` and
+the body's content headers (`Content-Type`, `Content-Transfer-Encoding`, ...)
+are included. `Headers` is immutable: changing a header through the message
+replaces the collection, so a `Headers` instance you fetched earlier keeps its
+old contents.
 
 ### setHeader
 
@@ -443,23 +431,60 @@ getSubject() : ?string
 
 Get the decoded message subject, or `null` when none is set.
 
+### setText
+
+```php
+setText(string $text, string $charset = 'UTF-8') : self
+```
+
+Set the plain-text body, quoted-printable encoded.
+
+### setHtml
+
+```php
+setHtml(string $html, string $charset = 'UTF-8') : self
+```
+
+Set the HTML body, quoted-printable encoded. With `setText()`, the two become
+`multipart/alternative`.
+
+### attach
+
+```php
+attach(Contenir\Mail\Mime\Part $attachment) : self
+```
+
+Add an attachment, such as one built with `Mime\Attachment::fromPath()`.
+
+### embed
+
+```php
+embed(Contenir\Mail\Mime\Part $resource) : self
+```
+
+Add a resource the HTML refers to as `cid:…`, such as one built with
+`Mime\Attachment::inline()`. Throws a
+`Contenir\Mail\Mime\Exception\InvalidArgumentException` when the part has no
+Content-ID.
+
 ### setBody
 
 ```php
-setBody(string|Stringable|Contenir\Mail\Mime\Message|null $body) : self
+setBody(string|Stringable|Contenir\Mail\Mime\PartInterface|null $body) : self
 ```
 
-Set the message body. A `Contenir\Mail\Mime\Message` also sets the
-`MIME-Version` header, and either a `multipart/mixed` `Content-Type` (for a
-multipart body) or the content headers of its single part.
+Set the body directly, in place of anything given to `setText()`, `setHtml()`,
+`attach()` and `embed()`. A string is sent as it is; a MIME part or multipart
+adds its content headers to the message. `null` returns to the builders.
 
 ### getBody
 
 ```php
-getBody() : string|Stringable|Contenir\Mail\Mime\Message|null
+getBody() : string|Stringable|Contenir\Mail\Mime\PartInterface|null
 ```
 
-Return the currently set message body.
+Return the body given to `setBody()`, or else the MIME tree built from the
+builders, or `null` when there is no body.
 
 ### getBodyText
 
@@ -467,7 +492,8 @@ Return the currently set message body.
 getBodyText() : string
 ```
 
-Get the string-serialized message body text.
+Get the body as it will be sent, with a multipart body's parts and boundaries
+written out.
 
 ### toString
 
