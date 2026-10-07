@@ -11,10 +11,13 @@ use Contenir\Mail\Protocol\ErrorCapture;
 
 use function array_unique;
 use function fwrite;
+use function hrtime;
 use function is_resource;
 use function preg_match;
 use function proc_close;
+use function proc_get_status;
 use function proc_open;
+use function proc_terminate;
 use function rewind;
 use function sprintf;
 use function str_replace;
@@ -23,6 +26,7 @@ use function stream_get_contents;
 use function strlen;
 use function tmpfile;
 use function trim;
+use function usleep;
 
 /**
  * Runs a sendmail program with the message on its standard input, for the Sendmail transport
@@ -36,6 +40,9 @@ use function trim;
  * closes and removes them once they go out of scope.
  *
  * @internal Used by Sendmail.
+ *
+ * @mago-expect lint:cyclomatic-complexity Building the command, running the program and waiting for it with a timeout.
+ * @mago-expect lint:kan-defect Building the command, running the program and waiting for it with a timeout.
  */
 final readonly class SendmailProcess
 {
@@ -78,14 +85,16 @@ final readonly class SendmailProcess
                 replace: "\n",
                 subject: $data,
             ),
+            $config->timeout,
         );
     }
 
     /**
      * @param non-empty-list<string> $command The program and its arguments.
-     * @throws Exception\RuntimeException When the program cannot be started or exits with a status other than 0.
+     * @param int $timeout Seconds to wait before stopping the program.
+     * @throws Exception\RuntimeException When the program cannot be started, runs longer than the timeout, or exits with a status other than 0.
      */
-    public static function run(array $command, string $input): void
+    public static function run(array $command, string $input, int $timeout = SendmailConfig::DEFAULT_TIMEOUT): void
     {
         $stdin  = self::temporaryFile();
         $stdout = self::temporaryFile();
@@ -110,7 +119,15 @@ final readonly class SendmailProcess
             ));
         }
 
-        $status = proc_close($process);
+        $status = self::wait($process, $timeout);
+        if (null === $status) {
+            throw new Exception\RuntimeException(sprintf(
+                'Sendmail "%s" did not finish within %d seconds and was stopped',
+                $command[0],
+                $timeout,
+            ));
+        }
+
         if (0 !== $status) {
             throw new Exception\RuntimeException(sprintf(
                 'Sendmail "%s" failed with exit status %d: %s',
@@ -119,6 +136,32 @@ final readonly class SendmailProcess
                 self::output($stderr, $stdout),
             ));
         }
+    }
+
+    /**
+     * Wait for the program to exit, stopping it once the timeout has passed.
+     *
+     * @param resource $process
+     * @return int|null The exit status, or null when the program was stopped.
+     */
+    private static function wait(mixed $process, int $timeout): ?int
+    {
+        $deadline = hrtime(as_number: true) + ($timeout * 1_000_000_000);
+        do {
+            $status = proc_get_status($process);
+            if (! $status['running']) {
+                proc_close($process);
+
+                return $status['exitcode'];
+            }
+
+            usleep(microseconds: 10_000);
+        } while (hrtime(as_number: true) < $deadline);
+
+        proc_terminate($process);
+        proc_close($process);
+
+        return null;
     }
 
     /**

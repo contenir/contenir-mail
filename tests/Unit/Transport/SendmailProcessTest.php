@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 use function dirname;
 use function file_get_contents;
+use function hrtime;
 use function json_decode;
 use function preg_quote;
 use function sprintf;
@@ -43,6 +44,27 @@ final class SendmailProcessTest extends TestCase
     protected function tearDown(): void
     {
         $this->tearDownTemporaryDirectory();
+    }
+
+    /**
+     * A hung sendmail must not block the worker sending mail: it is stopped soon after the timeout.
+     */
+    #[Test]
+    #[Group('slow')]
+    public function stopsProgramThatRunsLongerThanTheTimeout(): void
+    {
+        $started = hrtime(as_number: true);
+        $message = null;
+        try {
+            SendmailProcess::run($this->command('hang'), 'x', timeout: 1);
+        } catch (RuntimeException $exception) {
+            $message = $exception->getMessage();
+        }
+
+        static::assertSame(
+            [sprintf('Sendmail "%s" did not finish within 1 seconds and was stopped', PHP_BINARY), true],
+            [$message, (hrtime(as_number: true) - $started) < 5_000_000_000],
+        );
     }
 
     /**

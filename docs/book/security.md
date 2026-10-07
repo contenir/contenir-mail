@@ -103,6 +103,7 @@ which escapes them again for a shell.
 | --- | --- |
 | With a configured `path`, sendmail runs through `proc_open()` with an argument list and no shell | `passesQuotedSenderAsOneArgument` |
 | Recipients follow `--`, so a recipient starting with `-` cannot be read as an option (Symfony CVE-2026-45068) | `passesRecipientStartingWithDashAfterSeparator` |
+| A sendmail program still running after the timeout (60 seconds by default) is stopped, so a hung sendmail cannot block a worker | `stopsProgramThatRunsLongerThanTheTimeout`, `stopsProgramAfterTheConfiguredTimeout` |
 | Through `mail()`, `-f` is only passed for a shell-safe sender; any other sender throws | `SendmailTest::refusesSenderUnsafeForCommandLine` |
 | Each configured parameter must be shell-safe | `SendmailConfigTest::rejectsParameterUnsafeForShell` |
 
