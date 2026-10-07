@@ -13,7 +13,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(HeaderValue::class)]
-class HeaderValueTest extends TestCase
+#[Group('unit')]
+final class HeaderValueTest extends TestCase
 {
     /**
      * Data for filter value
@@ -33,7 +34,7 @@ class HeaderValueTest extends TestCase
             ["This is a \r\n\r\ntest",    'This is a test'],
             ["This is a \r\n\n\r\n test", "This is a \r\n test"],
             ["This is a test\r\n",        'This is a test'],
-            ["a\x7Fb",                    "a\x7Fb"],
+            ["a\x7Fb",                    'ab'],
             ["a\r\n ",                    "a\r\n "],
             ["a\rb",                      'ab'],
         ];
@@ -104,6 +105,21 @@ class HeaderValueTest extends TestCase
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('Invalid');
         HeaderValue::assertValid($value);
+    }
+
+    /**
+     * DEL is a control character, not printable US-ASCII (RFC 5322, section 3.2.3).
+     */
+    #[Test]
+    public function rejectsDelete(): void
+    {
+        static::assertFalse(HeaderValue::isValid("a\x7Fb"));
+    }
+
+    #[Test]
+    public function acceptsTilde(): void
+    {
+        static::assertTrue(HeaderValue::isValid('a~b'));
     }
 
     #[Test]
