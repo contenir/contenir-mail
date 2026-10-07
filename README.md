@@ -120,6 +120,11 @@ regression test.
   and internationalised domains are checked with the IDNA2008 bidi and CONTEXTJ
   rules. Attachment filenames read from mail have a sanitised accessor.
 
+The [security documentation](docs/book/security.md) maps every protection to the
+test that proves it and to the published vulnerabilities it guards against, and
+lists open findings. [Standards](docs/book/standards.md) covers RFC conformance.
+Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
+
 ## Coming from laminas-mail and laminas-mime
 
 contenir-mail keeps the Zend_Mail and laminas-mail vocabulary: `Message`,

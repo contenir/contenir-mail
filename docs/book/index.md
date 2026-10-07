@@ -15,3 +15,5 @@ $ composer require contenir/contenir-mail
   [file transport options](transport/file-options.md)
 - [Reading and storing mail](read.md)
 - MIME: [introduction](mime/intro.md), [parts](mime/part.md), [multiparts](mime/multipart.md)
+- [Security](security.md): threat model, protections and their tests, vulnerability history
+- [Standards](standards.md): the RFCs implemented and how closely each is followed
