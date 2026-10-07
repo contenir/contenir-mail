@@ -272,9 +272,9 @@ final class SendmailTest extends TestCase
     public function rejectsUnknownSetting(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('unknown option "path"');
+        $this->expectExceptionMessage('unknown option "sendmail_path"');
 
-        new Sendmail(['path' => '/usr/sbin/sendmail']);
+        new Sendmail(['sendmail_path' => '/usr/sbin/sendmail']);
     }
 
     /**

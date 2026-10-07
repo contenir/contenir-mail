@@ -24,16 +24,24 @@ use function trim;
 use const PHP_OS_FAMILY;
 
 /**
- * Sends mail with PHP's mail() function, which hands it to the local sendmail program.
+ * Sends mail through the local sendmail program, with PHP's mail() function or by running
+ * the program directly.
  *
  * ```php
  * $transport = new Sendmail(['parameters' => '-R hdrs']);
+ * $transport = new Sendmail(['path' => '/usr/sbin/sendmail']);
  * $transport->send($message);
  * ```
  *
- * The envelope sender is passed as "-f" only when it consists of characters that are safe
- * on a shell command line; any other sender is refused rather than escaped, because
- * mail() escapes the parameters a second time and the two escapings do not compose.
+ * With a path, the program is run without a shell as `path [parameters] -oi -f sender --
+ * recipients`, with the message on its standard input; the recipients are the To, Cc and
+ * Bcc addresses, and the Bcc header is left out of the message. A sender starting with "-"
+ * is refused, so it cannot be read as an option.
+ *
+ * Without a path, mail() is used. The envelope sender is passed as "-f" only when it
+ * consists of characters that are safe on a shell command line; any other sender is refused
+ * rather than escaped, because mail() escapes the parameters a second time and the two
+ * escapings do not compose.
  *
  * @mago-expect lint:cyclomatic-complexity Each argument of mail() differs between Windows and other systems.
  */
@@ -74,13 +82,18 @@ final class Sendmail implements TransportInterface
 
     /**
      * @throws Exception\RuntimeException When the message has no recipient, a header is unsafe, the
-     *     envelope sender is unsafe for the command line, or mail() fails.
+     *     envelope sender is unsafe for the command line, or mail() or the sendmail program fails.
      * @throws Mail\Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
     public function send(Mail\Message $message): void
     {
         $headers = HeaderGuard::check($message->getHeaders());
+        if (null !== $this->config->path) {
+            SendmailProcess::send($this->config, $this->config->path, $message, $headers);
+
+            return;
+        }
 
         ($this->mailer)(
             $this->prepareRecipients($headers),
