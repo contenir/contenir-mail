@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Mime;
 
+use function array_map;
 use function base64_encode;
 use function chunk_split;
 use function count;
+use function explode;
 use function implode;
 use function ord;
 use function preg_match;
@@ -24,6 +26,8 @@ use function trim;
 
 /**
  * Support class for MultiPart Mime Messages
+ *
+ * @mago-expect lint:too-many-methods The RFC 2045 and 2047 encoders kept from laminas-mime, as one static utility.
  */
 final class Mime
 {
@@ -407,6 +411,31 @@ final class Mime
     }
 
     /**
+     * Encode text as quoted-printable with its line breaks written as hard
+     * line breaks, as RFC 2045 section 6.7 requires for text.
+     *
+     * CRLF, CR and LF all count as line breaks, and each line is wrapped
+     * with soft line breaks on its own, keeping trailing whitespace.
+     */
+    public static function encodeQuotedPrintableText(
+        string $text,
+        int $lineLength = self::LINELENGTH,
+        string $lineEnd = self::LINEEND,
+    ): string {
+        return implode($lineEnd, array_map(
+            static fn(string $line): string => self::encodeQuotedPrintable($line, $lineLength, $lineEnd),
+            explode(
+                separator: "\n",
+                string: str_replace(
+                    search: ["\r\n", "\r"],
+                    replace: "\n",
+                    subject: $text,
+                ),
+            ),
+        ));
+    }
+
+    /**
      * Encode a given string with the QUOTED_PRINTABLE mechanism and wrap the lines.
      *
      * @param string $str
@@ -465,8 +494,7 @@ final class Mime
     {
         // @codingStandardsIgnoreEnd
         $str = str_replace('=', '=3D', $str);
-        $str = str_replace(self::QP_KEYS, self::QP_REPLACE_VALUES, $str);
-        return rtrim($str);
+        return str_replace(self::QP_KEYS, self::QP_REPLACE_VALUES, $str);
     }
 
     /**
@@ -496,7 +524,7 @@ final class Mime
         $prefix     = sprintf('=?%s?Q?', $charset);
         $lineLength = $lineLength - strlen($prefix) - 3;
 
-        $str = self::encodeQuotedPrintableCharacters($str);
+        $str = rtrim(self::encodeQuotedPrintableCharacters($str));
 
         // Mail-Header required chars have to be encoded also:
         $str = str_replace(['?', ',', ' ', '_'], ['=3F', '=2C', '=20', '=5F'], $str);
@@ -610,13 +638,28 @@ final class Mime
 
     /**
      * Apply a Content-Transfer-Encoding; 7bit, 8bit and binary content is returned as it is.
+     *
+     * @param bool $text Whether the content is text, whose line breaks quoted-printable writes as hard line breaks.
      */
-    public static function encode(string $str, TransferEncoding $encoding, string $eol = self::LINEEND): string
-    {
-        return match ($encoding) {
-            TransferEncoding::Base64          => self::encodeBase64($str, self::LINELENGTH, $eol),
-            TransferEncoding::QuotedPrintable => self::encodeQuotedPrintable($str, self::LINELENGTH, $eol),
-            default                           => $str,
+    public static function encode(
+        string $str,
+        TransferEncoding $encoding,
+        string $eol = self::LINEEND,
+        bool $text = false,
+    ): string {
+        return match (true) {
+            TransferEncoding::Base64 === $encoding => self::encodeBase64($str, self::LINELENGTH, $eol),
+            TransferEncoding::QuotedPrintable === $encoding && $text => self::encodeQuotedPrintableText(
+                $str,
+                self::LINELENGTH,
+                $eol,
+            ),
+            TransferEncoding::QuotedPrintable === $encoding => self::encodeQuotedPrintable(
+                $str,
+                self::LINELENGTH,
+                $eol,
+            ),
+            default => $str,
         };
     }
 

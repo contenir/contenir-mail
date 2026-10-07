@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Exception\InvalidArgumentException;
 use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\PartInterface;
+use Contenir\Mail\Tests\Unit\TestAsset\PartWithHeaders;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -42,7 +45,10 @@ final class MultipartTest extends TestCase
                 MultipartType::Alternative,
                 "Content-Type: multipart/alternative;\r\n boundary=\"frontier\"\r\n",
             ],
-            'related'     => [MultipartType::Related, "Content-Type: multipart/related;\r\n boundary=\"frontier\"\r\n"],
+            'related'     => [
+                MultipartType::Related,
+                "Content-Type: multipart/related;\r\n boundary=\"frontier\";\r\n type=\"application/octet-stream\"\r\n",
+            ],
         ];
     }
 
@@ -183,5 +189,40 @@ final class MultipartTest extends TestCase
             'inner line feed'        => ["a\nb"],
             'trailing line feed'     => ["abc\n"],
         ];
+    }
+
+    #[Test]
+    #[DataProvider('relatedRootProvider')]
+    public function namesTypeOfRelatedRootPart(PartInterface $root, string $expected): void
+    {
+        $related = new Multipart(MultipartType::Related, [$root, new Part('logo', type: 'image/png')], boundary: 'b');
+
+        static::assertSame($expected, $related->getHeaders()->get('Content-Type')?->getFieldValue());
+    }
+
+    /**
+     * @return array<string, array{PartInterface, string}>
+     */
+    public static function relatedRootProvider(): array
+    {
+        return [
+            'HTML root'           => [Part::html('<p>Hi</p>'), 'multipart/related; boundary="b"; type="text/html"'],
+            'multipart root'      => [
+                new Multipart(MultipartType::Alternative, [Part::text('Hi')], boundary: 'a'),
+                'multipart/related; boundary="b"; type="multipart/alternative"',
+            ],
+            'root without a type' => [new PartWithHeaders(new Headers()), 'multipart/related; boundary="b"'],
+        ];
+    }
+
+    #[Test]
+    public function namesNoTypeForOtherMultiparts(): void
+    {
+        $mixed = new Multipart(MultipartType::Mixed, [Part::html('<p>Hi</p>')], boundary: 'b');
+
+        static::assertSame(
+            'multipart/mixed; boundary="b"',
+            $mixed->getHeaders()->get('Content-Type')?->getFieldValue(),
+        );
     }
 }

@@ -406,4 +406,73 @@ final class MimeTest extends TestCase
 
         static::assertLessThan(5, microtime(true) - $time);
     }
+
+    #[Test]
+    #[DataProvider('quotedPrintableTextProvider')]
+    public function encodesTextLineBreaksAsHardLineBreaks(string $text, string $expected): void
+    {
+        static::assertSame($expected, Mime::encodeQuotedPrintableText($text, lineLength: 72, lineEnd: "\r\n"));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function quotedPrintableTextProvider(): array
+    {
+        return [
+            'CRLF'                          => ["a\r\nb", "a\r\nb"],
+            'bare CR'                       => ["a\rb", "a\r\nb"],
+            'bare LF'                       => ["a\nb", "a\r\nb"],
+            'trailing space before a break' => ["line \nnext", "line=20\r\nnext"],
+            'trailing line break kept'      => ["end\n", "end\r\n"],
+            'empty'                         => ['', ''],
+            'leading dot on every line'     => [".dot\n.dot", "=2Edot\r\n=2Edot"],
+            'equals sign'                   => ["x=y\nz", "x=3Dy\r\nz"],
+            'long line soft-wrapped alone'  => [
+                str_repeat('a', times: 80) . "\nb",
+                str_repeat('a', times: 72) . "=\r\n" . str_repeat('a', times: 8) . "\r\nb",
+            ],
+        ];
+    }
+
+    #[Test]
+    public function keepsTrailingSpaceAtEndOfQuotedPrintable(): void
+    {
+        static::assertSame('trail=20', Mime::encodeQuotedPrintable('trail ', lineLength: 72, lineEnd: "\r\n"));
+    }
+
+    #[Test]
+    public function dropsTrailingSpaceFromQuotedPrintableHeaderText(): void
+    {
+        static::assertSame('=?UTF-8?Q?Caf=C3=A9?=', Mime::encodeQuotedPrintableHeader('Café  ', 'UTF-8'));
+    }
+
+    #[Test]
+    public function encodesLineBreaksAsDataUnlessToldContentIsText(): void
+    {
+        static::assertSame('a=0Ab', Mime::encode("a\nb", TransferEncoding::QuotedPrintable));
+    }
+
+    #[Test]
+    #[DataProvider('textEncodingProvider')]
+    public function writesHardLineBreaksOnlyForQuotedPrintableText(
+        TransferEncoding $encoding,
+        bool $text,
+        string $expected,
+    ): void {
+        static::assertSame($expected, Mime::encode("a\nb", $encoding, eol: "\r\n", text: $text));
+    }
+
+    /**
+     * @return array<string, array{TransferEncoding, bool, string}>
+     */
+    public static function textEncodingProvider(): array
+    {
+        return [
+            'quoted-printable text'     => [TransferEncoding::QuotedPrintable, true, "a\r\nb"],
+            'quoted-printable not text' => [TransferEncoding::QuotedPrintable, false, 'a=0Ab'],
+            'base64 text'               => [TransferEncoding::Base64, true, 'YQpi'],
+            '8bit text'                 => [TransferEncoding::EightBit, true, "a\nb"],
+        ];
+    }
 }

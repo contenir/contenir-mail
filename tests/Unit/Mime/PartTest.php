@@ -248,6 +248,29 @@ final class PartTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('quotedPrintableLineBreakProvider')]
+    public function writesTextLineBreaksAsHardBreaksOnlyForText(string $type, string $expected): void
+    {
+        static::assertSame(
+            $expected,
+            (new Part("one\ntwo", type: $type, encoding: TransferEncoding::QuotedPrintable))->getEncodedContent(),
+        );
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function quotedPrintableLineBreakProvider(): array
+    {
+        return [
+            'plain text' => ['text/plain', "one\r\ntwo"],
+            'HTML'       => ['text/html', "one\r\ntwo"],
+            'not text'   => ['application/json', 'one=0Atwo'],
+            'text-like'  => ['application/text', 'one=0Atwo'],
+        ];
+    }
+
+    #[Test]
     public function readsStreamContentFromTheStart(): void
     {
         $stream = self::temporaryStream('streamed content');

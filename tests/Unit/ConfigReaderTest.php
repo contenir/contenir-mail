@@ -347,10 +347,13 @@ final class ConfigReaderTest extends TestCase
     public static function invalidIntEnumProvider(): array
     {
         return [
-            'unknown value'  => [3, 'int'],
-            'unknown digits' => ['3', 'string'],
-            'word'           => ['high', 'string'],
-            'float'          => [5.0, 'float'],
+            'unknown value'          => [3, 'int'],
+            'unknown digits'         => ['3', 'string'],
+            'text before digits'     => ['x5', 'string'],
+            'text after digits'      => ['5x', 'string'],
+            'line feed after digits' => ["5\n", 'string'],
+            'word'                   => ['high', 'string'],
+            'float'                  => [5.0, 'float'],
         ];
     }
 

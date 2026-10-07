@@ -10,10 +10,9 @@ use Contenir\Mail\Mime\Exception\RuntimeException;
 use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
-use Contenir\Mail\Mime\PartInterface;
 use Contenir\Mail\Mime\PartWriter;
 use Contenir\Mail\Mime\TransferEncoding;
-use Override;
+use Contenir\Mail\Tests\Unit\TestAsset\PartWithHeaders;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -127,7 +126,10 @@ final class PartWriterTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('A multipart part has no boundary in its Content-Type');
 
-        PartWriter::body(self::multipartWithHeaders($headers));
+        PartWriter::body(new PartWithHeaders(
+            multipart: true,
+            headers: $headers,
+        ));
     }
 
     /**
@@ -145,52 +147,16 @@ final class PartWriterTest extends TestCase
     #[Test]
     public function writesAMultipartFromAnyImplementation(): void
     {
-        $multipart = self::multipartWithHeaders(new Headers(new ContentType('multipart/mixed', [
-            'boundary' => 'custom',
-        ])));
+        $multipart = new PartWithHeaders(
+            multipart: true,
+            headers: new Headers(new ContentType('multipart/mixed', [
+                'boundary' => 'custom',
+            ])),
+        );
 
         static::assertSame(
             "--custom\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\neA==\r\n--custom--",
             PartWriter::body($multipart),
         );
-    }
-
-    private static function multipartWithHeaders(Headers $headers): PartInterface
-    {
-        return new readonly class($headers) implements PartInterface {
-            public function __construct(
-                private Headers $headers,
-            ) {}
-
-            #[Override]
-            public function getHeaders(): Headers
-            {
-                return $this->headers;
-            }
-
-            #[Override]
-            public function isMultipart(): bool
-            {
-                return true;
-            }
-
-            #[Override]
-            public function getParts(): array
-            {
-                return [new Part('x')];
-            }
-
-            #[Override]
-            public function getContent(): string
-            {
-                return '';
-            }
-
-            #[Override]
-            public function getEncodedContent(): string
-            {
-                return '';
-            }
-        };
     }
 }
