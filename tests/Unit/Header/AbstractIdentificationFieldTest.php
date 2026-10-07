@@ -14,6 +14,9 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function str_repeat;
+use function strlen;
+
 #[CoversClass(AbstractIdentificationField::class)]
 #[CoversClass(InReplyTo::class)]
 #[CoversClass(References::class)]
@@ -268,5 +271,25 @@ final class AbstractIdentificationFieldTest extends TestCase
                 'Invalid header line for "In-Reply-To" string',
             ],
         ];
+    }
+
+    /**
+     * "In-Reply-To: <ID>" with the longest ID is a line of exactly 998.
+     */
+    #[Test]
+    public function writesLongestIdWithinLineLimit(): void
+    {
+        $id = str_repeat('a', times: 971) . '@example.com';
+
+        static::assertSame(998, strlen((new InReplyTo($id))->toString()));
+    }
+
+    #[Test]
+    public function rejectsIdTooLongForLineLimit(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('An ID may be at most 983 characters, so that its header line fits in 998');
+
+        new References('a@example.com', str_repeat('a', times: 972) . '@example.com');
     }
 }

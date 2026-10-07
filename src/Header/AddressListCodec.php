@@ -6,14 +6,12 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
-use Contenir\Mail\Headers;
 
 use function implode;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
 use function preg_replace_callback;
-use function strtr;
 use function trim;
 
 /**
@@ -32,7 +30,7 @@ final class AddressListCodec
     public static function decode(string $value): AddressList
     {
         $addresses = [];
-        foreach (ListParser::parse(self::flattenGroups(strtr($value, [Headers::FOLDING => ' ']))) as $entry) {
+        foreach (ListParser::parse(self::flattenGroups(self::unfold($value))) as $entry) {
             $comments = self::getComments($entry);
             $entry    = trim(self::stripComments($entry));
             if ('' !== $entry) {
@@ -44,13 +42,23 @@ final class AddressListCodec
     }
 
     /**
+     * Join folded lines (RFC 5322, section 2.2.3), so no line break is left in a name or comment.
+     *
+     * The value has passed HeaderValue::isValidUtf8(), so every CR and LF in it is part of a fold.
+     */
+    private static function unfold(string $value): string
+    {
+        return (string) preg_replace('/\r\n[ \t]/', replacement: ' ', subject: $value);
+    }
+
+    /**
      * Split one entry into its display name and address before decoding the
      * name, so text inside an encoded word is never read as syntax.
      */
     private static function decodeAddress(string $entry, ?string $comment): Address
     {
         $matches = [];
-        if (1 !== preg_match('/^(?<phrase>.*)<(?<email>[^<>]+)>$/s', $entry, $matches)) {
+        if (1 !== preg_match('/^(?<phrase>.*)<(?<email>[^<>]+)>$/', $entry, $matches)) {
             // Outlook sometimes wraps addresses in single quotes, which is not valid
             return new Address(trim($entry, characters: " \t'"), comment: $comment);
         }

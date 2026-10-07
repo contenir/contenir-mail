@@ -12,6 +12,9 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function str_repeat;
+use function strlen;
+
 #[CoversClass(Received::class)]
 #[Group('unit')]
 final class ReceivedTest extends TestCase
@@ -137,5 +140,35 @@ final class ReceivedTest extends TestCase
             'multiline'   => ["x\r\nx\r\nx"],
             'non-ASCII'   => ['á'],
         ];
+    }
+
+    #[Test]
+    public function acceptsLineThatFitsLineLimit(): void
+    {
+        $value = 'from mail.example.com ' . str_repeat('a', times: 966);
+
+        static::assertSame(998, strlen((new Received($value))->toString()));
+    }
+
+    #[Test]
+    public function acceptsLongValueFoldedIntoShortLines(): void
+    {
+        $value = str_repeat("from mail.example.com\r\n\t", times: 60) . 'by mx.example.com';
+
+        static::assertSame("Received: {$value}", (new Received($value))->toString());
+    }
+
+    /**
+     * Received is written as it is, so a line too long for the limit is refused.
+     */
+    #[Test]
+    public function rejectsLineTooLongForLineLimit(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'A Received line may be at most 988 characters, so that it fits in 998 with its name',
+        );
+
+        new Received('from mail.example.com ' . str_repeat('a', times: 967));
     }
 }

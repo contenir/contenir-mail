@@ -6,71 +6,91 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Exception\RuntimeException;
 
-use function array_key_last;
-use function explode;
+use function count;
 use function preg_match;
 use function sprintf;
+use function strlen;
 use function trim;
 
 /**
- * Splits a header block into one line per header.
+ * Splits a header block into one field per header.
  *
  * @internal Used by HeaderParser.
  */
 final class HeaderBlock
 {
-    private function __construct() {}
+    /** Most headers one block may hold */
+    public const int MAX_HEADERS = 1000;
 
     /**
-     * Split a header block into complete header lines, joining continuation
-     * lines (RFC 5322, section 2.2.3).
+     * Split a header block into fields: each header's unfolded line, and its
+     * text as it was written, folded lines joined by CRLF.
      *
-     * @return list<string>
-     * @throws RuntimeException When a line is neither a header nor a continuation.
+     * The written text is null when it cannot be written back safely as it
+     * is: when a line holds a bare CR or LF or a byte outside US-ASCII, or
+     * when a line of only whitespace was dropped from the field.
+     *
+     * A name longer than HeaderName::MAX_LENGTH leaves no room for even
+     * the colon in 998 characters (RFC 5322, section 2.1.1), and no header
+     * can hold it, so the block is rejected.
+     *
+     * @return list<array{string, string|null}>
+     * @throws RuntimeException When a line is neither a header nor a continuation, a name is too long, or the block is too large.
      */
-    public static function lines(string $block, string $eol): array
+    public static function fields(string $block, string $eol): array
     {
-        $lines = [];
-        foreach (self::contentLines($block, $eol) as $line) {
-            if (1 === preg_match('/^[\x21-\x39\x3B-\x7E]+:/', $line)) {
-                $lines[] = trim($line);
+        $fields = [];
+        /** @var array{string, list<string>, bool}|null $field unfolded line, written lines, whether those are complete */
+        $field = null;
+        foreach (HeaderLines::split($block, $eol) as $line) {
+            if ('' === trim($line)) {
+                $field = null === $field ? null : [$field[0], $field[1], false];
                 continue;
             }
 
-            $last = array_key_last($lines);
-            if (null === $last || 1 !== preg_match('/^\s/', $line)) {
+            $name = [];
+            if (1 === preg_match('/^([\x21-\x39\x3B-\x7E]+):/', $line, $name)) {
+                self::assertNameLength($name[1] ?? '');
+                $fields[] = $field;
+                $field    = [trim($line), [$line], true];
+                continue;
+            }
+
+            if (null === $field || 1 !== preg_match('/^\s/', $line)) {
                 throw new RuntimeException(sprintf('Line "%s" does not match header format!', $line));
             }
 
-            $lines[$last] = ($lines[$last] ?? '') . ' ' . trim($line);
+            $field = [$field[0] . ' ' . trim($line), [...$field[1], $line], $field[2]];
         }
 
-        return $lines;
+        $fields[] = $field;
+
+        $result = [];
+        foreach ($fields as $complete) {
+            if (null === $complete) {
+                continue;
+            }
+
+            $result[] = [$complete[0], $complete[2] ? HeaderLines::join($complete[1]) : null];
+        }
+
+        if (count($result) > self::MAX_HEADERS) {
+            throw new RuntimeException(sprintf('A header block may hold at most %d headers', self::MAX_HEADERS));
+        }
+
+        return $result;
     }
 
     /**
-     * The lines that carry text. A blank line ends the headers, so text after
-     * more than one blank line, or more than two blank lines, is malformed.
-     *
-     * @return list<string>
-     * @throws RuntimeException
+     * @throws Exception\RuntimeException When the name is longer than HeaderName::MAX_LENGTH.
      */
-    private static function contentLines(string $block, string $eol): array
+    private static function assertNameLength(string $name): void
     {
-        $lines      = [];
-        $emptyLines = 0;
-        foreach (explode($eol, $block) as $line) {
-            $hasText    = '' !== trim($line);
-            $emptyLines += '' === $line ? 1 : 0;
-            if ($emptyLines > 2 || ($emptyLines > 1 && $hasText)) {
-                throw new RuntimeException('Malformed header detected');
-            }
-
-            if ($hasText) {
-                $lines[] = $line;
-            }
+        if (strlen($name) > HeaderName::MAX_LENGTH) {
+            throw new Exception\RuntimeException(sprintf(
+                'Header name must be at most %d characters',
+                HeaderName::MAX_LENGTH,
+            ));
         }
-
-        return $lines;
     }
 }

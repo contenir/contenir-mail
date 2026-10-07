@@ -7,7 +7,6 @@ namespace Contenir\Mail\Validator;
 use function filter_var;
 use function is_string;
 use function preg_match;
-use function str_contains;
 use function str_ends_with;
 use function substr;
 
@@ -98,13 +97,13 @@ final class HostnameValidator
         return DomainName::isLocalOrDnsName($value);
     }
 
+    /**
+     * FILTER_VALIDATE_IP accepts only a whole IPv4 or IPv6 address, in either case, with no
+     * surrounding whitespace, brackets or zone.
+     */
     private static function isIpAddress(string $value): bool
     {
-        $looksLikeIp =
-            1 === preg_match('/^[0-9.]*$/', $value) && str_contains($value, '.')
-            || 1 === preg_match('/^[0-9a-f:.]*$/i', $value) && str_contains($value, ':');
-
-        return $looksLikeIp && false !== filter_var($value, FILTER_VALIDATE_IP);
+        return false !== filter_var($value, FILTER_VALIDATE_IP);
     }
 
     private static function withoutTrailingDot(string $value): string

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use Contenir\Mail\Address;
-use Contenir\Mail\Exception as MailException;
-use Contenir\Mail\Header\HeaderInterface;
-use Contenir\Mail\Header\To;
-use Contenir\Mail\Headers;
-use Contenir\Mail\Mime;
-use Contenir\Mail\Mime\Exception as MimeException;
-use Contenir\Mail\Storage;
-use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Message as ComposedMessage;
+use Contenir\Mail\Mime\Part as MimePart;
+use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Message;
-use Exception as GeneralException;
+use Contenir\Mail\Storage\Part;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
+use Contenir\Mail\Storage\Part\MultipartSplitter;
+use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -22,541 +22,222 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
-use function file_get_contents;
-use function fopen;
-use function implode;
-use function substr;
-use function var_export;
+use function iterator_to_array;
 
 #[CoversClass(Message::class)]
-#[CoversClass(Headers::class)]
+#[CoversClass(Part::class)]
+#[CoversClass(Content::class)]
+#[CoversClass(MimeParser::class)]
+#[CoversClass(MultipartSplitter::class)]
 #[Group('unit')]
-class MessageTest extends TestCase
+final class MessageTest extends TestCase
 {
-    /** @var string */
-    protected $file;
-    /** @var string */
-    protected $file2;
+    private const string MESSAGE =
+        "From: Alice <alice@example.com>\r\n"
+            . "To: bob@example.com, carol@example.com\r\n"
+            . "Cc: dave@example.com\r\n"
+            . "Reply-To: replies@example.com\r\n"
+            . "Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n"
+            . "Date: Sun, 01 Jan 2023 10:00:00 +0000\r\n"
+            . "Message-ID: <id@example.com>\r\n"
+            . "\r\n"
+            . 'Hello';
 
-    public function setUp(): void
+    #[Test]
+    public function readsDecodedSubject(): void
     {
-        $this->file  = __DIR__ . '/../_files/mail.eml';
-        $this->file2 = __DIR__ . '/../_files/mail_multi_to.eml';
+        static::assertSame('Grüße', Message::fromString(self::MESSAGE)->getSubject());
     }
 
     #[Test]
-    public function invalidFile(): void
+    public function hasNoSubjectWhenThereIsNone(): void
     {
-        $this->expectException(GeneralException::class);
-        new Message(['file' => '/this/file/does/not/exists']);
+        static::assertNull(Message::fromString("To: a@example.com\r\n\r\nx")->getSubject());
+    }
+
+    #[DataProvider('addressProvider')]
+    #[Test]
+    public function readsAddresses(string $method, string $expected): void
+    {
+        static::assertSame($expected, Message::fromString(self::MESSAGE)->{$method}()->first()?->getEmail());
     }
 
     #[Test]
-    #[DataProvider('filesProvider')]
-    public function isMultipart(array $params): void
+    public function readsEveryAddress(): void
     {
-        $message = new Message($params);
-        static::assertTrue($message->isMultipart());
+        static::assertCount(2, Message::fromString(self::MESSAGE)->getTo());
     }
 
     #[Test]
-    #[DataProvider('filesProvider')]
-    public function getHeader(array $params): void
+    public function hasNoAddressesWhenHeaderIsMissing(): void
     {
-        $message = new Message($params);
-        static::assertSame($message->subject, 'multipart');
+        static::assertTrue(Message::fromString("Subject: x\r\n\r\nx")->getFrom()->isEmpty());
     }
 
     #[Test]
-    #[DataProvider('filesProvider')]
-    public function getToHeader(array $params): void
+    public function readsDate(): void
     {
-        $message = new Message($params);
-        /** @var HeaderInterface $toHeader */
-        $toHeader = $message->getHeader('To');
-        static::assertSame('foo@example.com', $toHeader->getFieldValue());
+        static::assertEquals(
+            new DateTimeImmutable('2023-01-01 10:00:00 +0000'),
+            Message::fromString(self::MESSAGE)->getDate(),
+        );
     }
 
     #[Test]
-    #[DataProvider('filesProvider')]
-    public function getDecodedHeader(array $params): void
+    public function hasNoDateWhenItIsNotValid(): void
     {
-        $message = new Message($params);
-        static::assertSame('Peter Müller <peter-mueller@example.com>', $message->from);
+        static::assertNull(Message::fromString("Date: yesterday-ish\r\n\r\nx")->getDate());
     }
 
     #[Test]
-    #[DataProvider('filesProvider')]
-    public function getHeaderAsArray(array $params): void
+    public function readsMessageId(): void
     {
-        $message = new Message($params);
-        static::assertSame(['multipart'], $message->getHeader('subject', 'array'), 'getHeader() value not match');
+        static::assertSame('id@example.com', Message::fromString(self::MESSAGE)->getMessageId());
     }
 
     #[Test]
-    public function getFirstPart(): void
+    public function hasNoMessageIdWhenThereIsNone(): void
     {
-        $message = new Message(['file' => $this->file]);
-
-        static::assertSame(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
+        static::assertNull(Message::fromString("Subject: x\r\n\r\nx")->getMessageId());
     }
 
     #[Test]
-    public function getFirstPartTwice(): void
+    public function readsContent(): void
     {
-        $message = new Message(['file' => $this->file]);
-
-        $message->getPart(1);
-        static::assertSame(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
+        static::assertSame('Hello', Message::fromString(self::MESSAGE)->getContent());
     }
 
     #[Test]
-    public function getWrongPart(): void
+    public function readsEncodedContent(): void
     {
-        $this->expectException(GeneralException::class);
-        $message = new Message(['file' => $this->file]);
-        $message->getPart(-1);
+        static::assertSame('Hello', Message::fromString(self::MESSAGE)->getEncodedContent());
     }
 
     #[Test]
-    public function noHeaderMessage(): void
+    public function readsContentType(): void
     {
-        $message = new Message(['file' => __FILE__]);
+        static::assertSame('multipart/alternative', Message::fromString(Fixtures::MULTIPART)->getContentType());
+    }
 
-        static::assertSame(substr($message->getContent(), 0, 5), '<?php');
+    #[Test]
+    public function measuresBody(): void
+    {
+        static::assertSame(5, Message::fromString(self::MESSAGE)->getSize());
+    }
 
-        $raw     = file_get_contents(__FILE__);
-        $raw     = "\t{$raw}";
-        $message = new Message(['raw' => $raw]);
+    #[Test]
+    public function readsParts(): void
+    {
+        static::assertSame('first', Message::fromString(Fixtures::MULTIPART)->getParts()[0]?->getContent());
+    }
 
-        static::assertSame(substr($message->getContent(), 0, 6), "\t<?php");
+    #[Test]
+    public function readsPartByNumber(): void
+    {
+        static::assertSame('<p>second</p>', Message::fromString(Fixtures::MULTIPART)->getPart(2)->getContent());
+    }
+
+    #[Test]
+    public function countsParts(): void
+    {
+        static::assertSame(2, Message::fromString(Fixtures::MULTIPART)->countParts());
+    }
+
+    #[Test]
+    public function isMultipart(): void
+    {
+        static::assertTrue(Message::fromString(Fixtures::MULTIPART)->isMultipart());
+    }
+
+    #[Test]
+    public function walksParts(): void
+    {
+        static::assertCount(
+            2,
+            iterator_to_array(new RecursiveIteratorIterator(Message::fromString(Fixtures::MULTIPART))),
+        );
     }
 
     /**
-     * after pull/86 messageId gets double braces
-     *
-     * @see https://github.com/zendframework/zend-mail/pull/86
-     * @see https://github.com/zendframework/zend-mail/pull/156
+     * Forwarding: the message is written back byte for byte, encoded headers included.
      */
     #[Test]
-    public function messageIdHeader(): void
+    public function writesMessageBackAsItWasRead(): void
     {
-        $message   = new Message(['file' => $this->file]);
-        $messageId = $message->messageId;
-        static::assertSame('<CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com>', $messageId);
+        static::assertSame(self::MESSAGE, Message::fromString(self::MESSAGE)->toString());
     }
 
     #[Test]
-    public function multipleHeader(): void
+    public function attachesToComposedMessage(): void
     {
-        $raw     = file_get_contents($this->file);
-        $raw     = "sUBject: test\r\nSubJect: test2\r\n{$raw}";
-        $message = new Message(['raw' => $raw]);
+        $stored   = Message::fromString(self::MESSAGE);
+        $composed = (new ComposedMessage())->setText('See below')
+            ->attach(
+                new MimePart($stored->toString(), 'message/rfc822', TransferEncoding::EightBit),
+            );
 
+        static::assertStringContainsString("Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n", $composed->toString());
+    }
+
+    #[DataProvider('flagProvider')]
+    #[Test]
+    public function hasFlagsGivenInAnySpelling(Flag|string $given, Flag|string $asked): void
+    {
+        static::assertTrue(Message::fromString(self::MESSAGE, [$given])->hasFlag($asked));
+    }
+
+    #[Test]
+    public function lacksFlagsNotGiven(): void
+    {
+        static::assertFalse(Message::fromString(self::MESSAGE, [Flag::Seen])->hasFlag(Flag::Flagged));
+    }
+
+    #[Test]
+    public function listsFlagsOnceEach(): void
+    {
         static::assertSame(
-            'test' . Mime\Mime::LINEEND . 'test2' . Mime\Mime::LINEEND . 'multipart',
-            $message->getHeader('subject', 'string'),
-        );
-
-        static::assertSame(
-            ['test', 'test2', 'multipart'],
-            $message->getHeader('subject', 'array'),
+            [Flag::Seen, '$Junk'],
+            Message::fromString(self::MESSAGE, [Flag::Seen, '\seen', '$Junk', '$Junk'])->getFlags(),
         );
     }
 
     #[Test]
-    public function allowWhitespaceInEmptySingleLineHeader(): void
+    public function hasNoFlagsByDefault(): void
     {
-        $src =
-            "From: user@example.com\n"
-            . "To: userpal@example.net\n"
-            . "Subject: This is your reminder\n  \n  about the football game tonight\n"
-            . "Date: Wed, 20 Oct 2010 20:53:35 -0400\n\n"
-            . "Don't forget to meet us for the tailgate party!\n";
-        $message = new Message(['raw' => $src]);
-
-        static::assertSame(
-            'This is your reminder about the football game tonight',
-            $message->getHeader('subject', 'string'),
-        );
+        static::assertSame([], Message::fromString(self::MESSAGE)->getFlags());
     }
 
     #[Test]
-    public function allowWhitespaceInEmptyMultiLineHeader(): void
+    public function wrapsAPart(): void
     {
-        $src =
-            "From: user@example.com\nTo: userpal@example.net\n"
-            . "Subject: This is your reminder\n  \n \n"
-            . "  about the football game tonight\n"
-            . "Date: Wed, 20 Oct 2010 20:53:35 -0400\n\n"
-            . "Don't forget to meet us for the tailgate party!\n";
-        $message = new Message(['raw' => $src]);
-
-        static::assertSame(
-            'This is your reminder about the football game tonight',
-            $message->getHeader('subject', 'string'),
-        );
-    }
-
-    #[Test]
-    public function contentTypeDecode(): void
-    {
-        $message = new Message(['file' => $this->file]);
-
-        static::assertSame(
-            Mime\Decode::splitContentType($message->ContentType),
-            ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart'],
-        );
-    }
-
-    #[Test]
-    public function splitEmptyMessage(): void
-    {
-        static::assertSame(Mime\Decode::splitMessageStruct('', 'xxx'), null);
-    }
-
-    #[Test]
-    public function splitInvalidMessage(): void
-    {
-        $this->expectException(MimeException\ExceptionInterface::class);
-        Mime\Decode::splitMessageStruct("--xxx\n", 'xxx');
-    }
-
-    #[Test]
-    public function invalidMailHandler(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        new Message(['handler' => 1]);
-    }
-
-    #[Test]
-    public function missingId(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $mail = new Storage\Mbox(['filename' => __DIR__ . '/../_files/test.mbox/INBOX']);
-        new Message(['handler' => $mail]);
-    }
-
-    #[Test]
-    public function iterator(): void
-    {
-        $message = new Message(['file' => $this->file]);
-        foreach (new RecursiveIteratorIterator($message) as $num => $part) {
-            if (1 != $num) {
-                continue;
-            }
-
-            // explicit call of __toString() needed for PHP < 5.2
-            static::assertSame(substr($part->__toString(), 0, 14), 'The first part');
-        }
-        static::assertSame($part->contentType, 'text/x-vertical');
-    }
-
-    #[Test]
-    public function decodeString(): void
-    {
-        $is = Mime\Decode::decodeQuotedPrintable('=?UTF-8?Q?"Peter M=C3=BCller"?= <peter-mueller@example.com>');
-        static::assertSame('"Peter Müller" <peter-mueller@example.com>', $is);
-    }
-
-    #[Test]
-    public function splitHeader(): void
-    {
-        $header = 'foo; x=y; y="x"';
-        static::assertSame(Mime\Decode::splitHeaderField($header), ['foo', 'x' => 'y', 'y' => 'x']);
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'x'), 'y');
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'y'), 'x');
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo', 'foo'), 'foo');
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo'), null);
-    }
-
-    #[Test]
-    public function splitInvalidHeader(): void
-    {
-        $this->expectException(MimeException\ExceptionInterface::class);
-        $header = '';
-        Mime\Decode::splitHeaderField($header);
-    }
-
-    #[Test]
-    public function splitMessage(): void
-    {
-        $header   = 'Test: test';
-        $body     = 'body';
-        $newlines = ["\r\n", "\n\r", "\n", "\r"];
-
-        $decodedBody = null; // "Declare" variable before first "read" usage to avoid IDEs warning
-        $decodedHeaders = null; // "Declare" variable before first "read" usage to avoid IDEs warning
-
-        foreach ($newlines as $contentEol) {
-            foreach ($newlines as $decodeEol) {
-                $content = $header . $contentEol . $contentEol . $body;
-                Mime\Decode::splitMessage($content, $decodedHeaders, $decodedBody, $decodeEol);
-                static::assertSame(['Test' => 'test'], $decodedHeaders->toArray());
-                static::assertSame($body, $decodedBody);
-            }
-        }
-    }
-
-    #[Test]
-    public function topLines(): void
-    {
-        $message = new Message(['headers' => file_get_contents($this->file)]);
-        static::assertStringStartsWith('multipart message', $message->getToplines());
-    }
-
-    #[Test]
-    public function noContent(): void
-    {
-        $this->expectException(Exception\RuntimeException::class);
-        $message = new Message(['raw' => 'Subject: test']);
-        $message->getContent();
-    }
-
-    #[Test]
-    public function emptyHeader(): void
-    {
-        $message = new Message([]);
-        static::assertSame([], $message->getHeaders()->toArray());
-
-        $message = new Message([]);
-
-        $this->expectException(MailException\InvalidArgumentException::class);
-        $message->subject;
-    }
-
-    #[Test]
-    public function wrongHeaderType(): void
-    {
-        // @codingStandardsIgnoreStart
-        $badMessage = unserialize(
-            "O:29:\"Contenir\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}",
-        );
-        // @codingStandardsIgnoreEnd
-
-        $this->expectException(MailException\RuntimeException::class);
-        $badMessage->getHeaders();
-    }
-
-    #[Test]
-    public function emptyBody(): void
-    {
-        $message = new Message([]);
-        $part    = null;
-        try {
-            $part = $message->getPart(1);
-        } catch (Exception\RuntimeException) {
-            // ok
-        }
-        if ($part) {
-            static::fail('no exception raised while getting part from empty message');
-        }
-
-        $message = new Message([]);
-        static::assertSame(0, $message->countParts());
+        static::assertSame('Hello', (new Message(Part::fromString(self::MESSAGE)))->getContent());
     }
 
     /**
-     * @see https://zendframework.com/issues/browse/ZF-5209
+     * @return array<string, array{string, string}>
      */
-    #[Test]
-    public function checkingHasHeaderFunctionality(): void
+    public static function addressProvider(): array
     {
-        $message = new Message(['headers' => ['subject' => 'foo']]);
-
-        static::assertTrue($message->getHeaders()->has('subject'));
-        static::assertTrue(isset($message->subject));
-        static::assertTrue($message->getHeaders()->has('SuBject'));
-        static::assertTrue(isset($message->suBjeCt));
-        static::assertFalse($message->getHeaders()->has('From'));
-    }
-
-    #[Test]
-    public function wrongMultipart(): void
-    {
-        $this->expectException(Exception\RuntimeException::class);
-        $message = new Message(['raw' => "Content-Type: multipart/mixed\r\n\r\ncontent"]);
-        $message->getPart(1);
-    }
-
-    #[Test]
-    public function lateFetch(): void
-    {
-        $mail = new Storage\Mbox(['filename' => __DIR__ . '/../_files/test.mbox/INBOX']);
-
-        $message = new Message(['handler' => $mail, 'id' => 5]);
-        static::assertSame($message->countParts(), 2);
-        static::assertSame($message->countParts(), 2);
-
-        $message = new Message(['handler' => $mail, 'id' => 5]);
-        static::assertSame($message->subject, 'multipart');
-
-        $message = new Message(['handler' => $mail, 'id' => 5]);
-        static::assertStringStartsWith('multipart message', $message->getContent());
-    }
-
-    #[Test]
-    public function manualIterator(): void
-    {
-        $message = new Message(['file' => $this->file]);
-
-        static::assertTrue($message->valid());
-        static::assertSame($message->getChildren(), $message->current());
-        static::assertSame($message->key(), 1);
-
-        $message->next();
-        static::assertTrue($message->valid());
-        static::assertSame($message->getChildren(), $message->current());
-        static::assertSame($message->key(), 2);
-
-        $message->next();
-        static::assertFalse($message->valid());
-
-        $message->rewind();
-        static::assertTrue($message->valid());
-        static::assertSame($message->getChildren(), $message->current());
-        static::assertSame($message->key(), 1);
-    }
-
-    #[Test]
-    public function messageFlagsAreSet(): void
-    {
-        $origFlags = [
-            'foo' => 'bar',
-            'baz' => 'bat',
-        ];
-        $message = new Message(['flags' => $origFlags]);
-
-        $messageFlags = $message->getFlags();
-        static::assertTrue($message->hasFlag('bar'), var_export($messageFlags, true));
-        static::assertTrue($message->hasFlag('bat'), var_export($messageFlags, true));
-        static::assertSame(['bar' => 'bar', 'bat' => 'bat'], $messageFlags);
-    }
-
-    #[Test]
-    public function getHeaderFieldSingle(): void
-    {
-        $message = new Message(['file' => $this->file]);
-        static::assertSame($message->getHeaderField('subject'), 'multipart');
-    }
-
-    #[Test]
-    public function getHeaderFieldDefault(): void
-    {
-        $message = new Message(['file' => $this->file]);
-        static::assertSame($message->getHeaderField('content-type'), 'multipart/alternative');
-    }
-
-    #[Test]
-    public function getHeaderFieldNamed(): void
-    {
-        $message = new Message(['file' => $this->file]);
-        static::assertSame($message->getHeaderField('content-type', 'boundary'), 'crazy-multipart');
-    }
-
-    #[Test]
-    public function getHeaderFieldMissing(): void
-    {
-        $message = new Message(['file' => $this->file]);
-        static::assertNull($message->getHeaderField('content-type', 'foo'));
-    }
-
-    #[Test]
-    public function getHeaderFieldInvalid(): void
-    {
-        $this->expectException(MailException\ExceptionInterface::class);
-        $message = new Message(['file' => $this->file]);
-        $message->getHeaderField('fake-header-name', 'foo');
-    }
-
-    #[Test]
-    public function caseInsensitiveMultipart(): void
-    {
-        $message = new Message(['raw' => "coNTent-TYpe: muLTIpaRT/x-empty\r\n\r\n"]);
-        static::assertTrue($message->isMultipart());
-    }
-
-    #[Test]
-    public function caseInsensitiveField(): void
-    {
-        $header = 'test; fOO="this is a test"';
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'Foo'), 'this is a test');
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'bar'), null);
-    }
-
-    #[Test]
-    public function spaceInFieldName(): void
-    {
-        $header = 'test; foo =bar; baz      =42';
-        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo'), 'bar');
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'baz'), 42);
-    }
-
-    /**
-     * splitMessage with Headers as input fails to process AddressList with semicolons
-     *
-     * @see https://github.com/laminas/laminas-mail/pull/93
-     */
-    #[Test]
-    public function headersKeepQuotingOfNamesWithSpecials(): void
-    {
-        $headerList = [
-            'From: "Famous bearings |;" <skf@example.com>',
-            'Reply-To: "Famous bearings |:" <skf@example.com>',
-        ];
-
-        // create Headers object from array
-        Mime\Decode::splitMessage(implode("\r\n", $headerList), $headers1, $body);
-        $this->assertInstanceOf(Headers::class, $headers1);
-        // create Headers object from Headers object
-        Mime\Decode::splitMessage($headers1, $headers2, $body);
-        $this->assertInstanceOf(Headers::class, $headers2);
-
-        // test that same problem does not happen with Storage\Message internally
-        $message = new Message(['headers' => $headers2, 'content' => (string) $body]);
-        $this->assertEquals('"Famous bearings |;" <skf@example.com>', $message->from);
-        $this->assertEquals('"Famous bearings |:" <skf@example.com>', $message->replyTo);
-    }
-
-    /**
-     * @see https://zendframework.com/issues/browse/ZF2-372
-     */
-    #[Test]
-    public function strictParseMessage(): void
-    {
-        $this->expectException(MailException\RuntimeException::class);
-
-        $raw     = file_get_contents($this->file);
-        $raw     = "From foo@example.com  Sun Jan 01 00:00:00 2000\n{$raw}";
-        $message = new Message(['raw' => $raw, 'strict' => true]);
-    }
-
-    #[Test]
-    public function multivaluedToHeader(): void
-    {
-        $message = new Message(['file' => $this->file2]);
-        /** @var To $header */
-        $header      = $message->getHeader('to');
-        $addressList = $header->getAddressList();
-        static::assertSame(2, $addressList->count());
-        $address = $addressList->get('bar@example.pl');
-        static::assertInstanceOf(Address::class, $address);
-        static::assertSame('nicpoń', $address->getName());
-    }
-
-    public static function filesProvider(): array
-    {
-        $filePath                    = __DIR__ . '/../_files/mail.eml';
-        $fileBlankLineOnTop          = __DIR__ . '/../_files/mail_blank_top_line.eml';
-        $fileSurroundingSingleQuotes = __DIR__ . '/../_files/mail_surrounding_single_quotes.eml';
-
         return [
-            // Description => [params]
-            'resource'                            => [['file' => fopen($filePath, 'r')]],
-            'file path'                           => [['file' => $filePath]],
-            'raw'                                 => [['raw' => file_get_contents($filePath)]],
-            'file with blank line on top'         => [['file' => $fileBlankLineOnTop]],
-            'file with surrounding single quotes' => [['file' => $fileSurroundingSingleQuotes]],
+            'from'     => ['getFrom', 'alice@example.com'],
+            'to'       => ['getTo', 'bob@example.com'],
+            'cc'       => ['getCc', 'dave@example.com'],
+            'reply-to' => ['getReplyTo', 'replies@example.com'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{Flag|string, Flag|string}>
+     */
+    public static function flagProvider(): array
+    {
+        return [
+            'case and case'             => [Flag::Seen, Flag::Seen],
+            'imap name and case'        => ['\Seen', Flag::Seen],
+            'case and imap name'        => [Flag::Seen, '\Seen'],
+            'imap name in another case' => ['\SEEN', '\seen'],
+            'keyword'                   => ['$Junk', '$Junk'],
+            'laminas passed'            => ['Passed', Flag::Passed],
         ];
     }
 }

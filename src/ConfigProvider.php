@@ -1,31 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail;
 
-class ConfigProvider
+/**
+ * Registers the optional PSR-11 factories with Mezzio, laminas-servicemanager or any
+ * container that reads the "dependencies" key.
+ */
+final readonly class ConfigProvider
 {
     /**
-     * Retrieve configuration for contenir-mail package.
-     *
-     * @return array
+     * @return array{dependencies: array{factories: array<class-string, class-string>}}
      */
-    public function __invoke()
+    public function __invoke(): array
     {
         return [
-            'dependencies' => $this->getDependencyConfig(),
+            'dependencies' => $this->getDependencies(),
         ];
     }
 
     /**
-     * Retrieve dependency settings for contenir-mail package.
-     *
-     * @return array
+     * @return array{factories: array<class-string, class-string>}
      */
-    public function getDependencyConfig()
+    public function getDependencies(): array
     {
         return [
             'factories' => [
-                Protocol\SmtpPluginManager::class => Protocol\SmtpPluginManagerFactory::class,
+                Transport\TransportInterface::class => Container\TransportFactory::class,
             ],
         ];
     }

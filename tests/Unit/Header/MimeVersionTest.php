@@ -106,14 +106,16 @@ final class MimeVersionTest extends TestCase
     public static function headerLineProvider(): array
     {
         return [
-            'conventional name'     => ['MIME-Version: 1.0', '1.0'],
-            'other version'         => ['MIME-Version: 2.0', '2.0'],
-            'lower-case name'       => ['mime-version: 1.0', '1.0'],
-            'no separator'          => ['MIMEVersion: 1.0', '1.0'],
-            'underscore separator'  => ['MIME_Version: 1.0', '1.0'],
-            'unreadable falls back' => ['MIME-Version: garbage', '1.0'],
-            'empty falls back'      => ['MIME-Version: ', '1.0'],
-            'comment falls back'    => ['MIME-Version: 2.0 (produced by MetaSend)', '1.0'],
+            'conventional name'       => ['MIME-Version: 1.0', '1.0'],
+            'other version'           => ['MIME-Version: 2.0', '2.0'],
+            'lower-case name'         => ['mime-version: 1.0', '1.0'],
+            'no separator'            => ['MIMEVersion: 1.0', '1.0'],
+            'underscore separator'    => ['MIME_Version: 1.0', '1.0'],
+            'unreadable falls back'   => ['MIME-Version: garbage', '1.0'],
+            'empty falls back'        => ['MIME-Version: ', '1.0'],
+            'comment falls back'      => ['MIME-Version: 2.0 (produced by MetaSend)', '1.0'],
+            'leading zero falls back' => ['MIME-Version: 01.0', '1.0'],
+            'trailing whitespace'     => ["MIME-Version: 2.0 \t", '2.0'],
         ];
     }
 

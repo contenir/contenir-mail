@@ -1,42 +1,57 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Protocol;
 
-use Contenir\Mail\Protocol\Exception\ExceptionInterface;
+use LogicException;
 use SensitiveParameter;
 
-use function array_merge;
+use function array_chunk;
+use function array_map;
 use function array_pop;
-use function array_push;
-use function array_search;
 use function array_shift;
 use function count;
-use function current;
 use function explode;
-use function fclose;
-use function fgets;
-use function func_get_args;
-use function func_num_args;
-use function fwrite;
 use function implode;
+use function in_array;
 use function is_array;
-use function is_numeric;
-use function key;
-use function next;
+use function is_float;
+use function is_int;
+use function is_string;
 use function preg_match;
 use function rtrim;
 use function str_contains;
+use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
-use function stream_socket_enable_crypto;
 use function strlen;
 use function strpos;
 use function strtolower;
+use function strtoupper;
 use function substr;
 use function trim;
 
 use const INF;
 
+/**
+ * An IMAP4rev1 client (RFC 3501).
+ *
+ * Connections use STARTTLS unless told otherwise, and fail rather than
+ * continue in plain text when the server does not offer it.
+ *
+ * Every argument that reaches the server is checked or escaped: strings are
+ * quoted or sent as literals, flags must be atoms, message numbers must form
+ * a valid sequence set, and no command line can contain CR, LF or NUL.
+ * Responses are bounded by ResponseLimits.
+ *
+ * @api
+ *
+ * @mago-expect lint:cyclomatic-complexity The IMAP command set kept from laminas-mail, one method per command.
+ * @mago-expect lint:kan-defect The IMAP command set kept from laminas-mail, one method per command.
+ * @mago-expect lint:too-many-methods The IMAP command set kept from laminas-mail, one method per command.
+ * @mago-expect analysis:mixed-assignment Response tokens are strings and lists nested to any depth.
+ */
 class Imap
 {
     use ProtocolTrait;
@@ -44,38 +59,58 @@ class Imap
     /**
      * Default timeout in seconds for initiating session
      */
-    public const TIMEOUT_CONNECTION = 30;
+    public const int TIMEOUT_CONNECTION = 30;
 
-    /** @var null|resource */
-    protected $socket;
+    /** RFC 3501 sequence-set: numbers or "*", ranges with ":", joined by "," */
+    private const string SEQUENCE_SET = '/^(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?(?:,(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?)*$/D';
+
+    /** RFC 3501 flag: an atom, optionally after a backslash */
+    private const string FLAG = '/^\\\\?[^\x00-\x20\x7F-\xFF(){%*"\\\\\]]+$/D';
 
     /**
      * counter for request tag
-     *
-     * @var int
      */
-    protected $tagCount = 0;
+    protected int $tagCount = 0;
+
+    private ConnectionConfig $config;
+
+    private ConnectionInterface $connection;
+
+    private ResponseLimits $limits;
+
+    /** Bytes read so far for the current command's response */
+    private int $responseBytes = 0;
 
     /**
      * Public constructor
      *
-     * @param  string       $host           hostname or IP address of IMAP server, if given connect() is called
-     * @param  int|null     $port           port of IMAP server, null for default (143 or 993 for ssl)
-     * @param  string|bool  $ssl            use ssl? 'SSL', 'TLS' or false
-     * @param  bool         $novalidatecert set to true to skip SSL certificate validation
-     * @throws ExceptionInterface
+     * @param string|ConnectionConfig $host hostname or IP address of IMAP server, or its settings; if given connect() is called
+     * @param int|null $port port of IMAP server, null for default (143 or 993 for ssl)
+     * @param string|bool|Security|null $ssl null for STARTTLS, 'ssl' for TLS, 'tls' for STARTTLS, false for plain text
+     * @param bool $novalidatecert set to true to skip TLS certificate validation
+     * @param ConnectionInterface|null $connection the connection to use, a StreamConnection by default
+     * @throws Exception\ExceptionInterface
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
      */
-    public function __construct($host = '', $port = null, $ssl = false, $novalidatecert = false)
-    {
+    public function __construct(
+        string|ConnectionConfig $host = '',
+        ?int $port = null,
+        string|bool|Security|null $ssl = null,
+        bool $novalidatecert = false,
+        ?ConnectionInterface $connection = null,
+    ) {
+        $this->config     = new ConnectionConfig(security: Security::StartTls);
+        $this->connection = $connection ?? new StreamConnection();
+        $this->limits     = new ResponseLimits();
         $this->setNoValidateCert($novalidatecert);
 
-        if ($host) {
+        if ($host instanceof ConnectionConfig || '' !== $host) {
             $this->connect($host, $port, $ssl);
         }
     }
 
     /**
-     * Public destructor
+     * Public destructor: logs out if connected, and does nothing otherwise
      */
     public function __destruct()
     {
@@ -83,66 +118,93 @@ class Imap
     }
 
     /**
+     * A protocol holds a live connection, so it cannot be serialized.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __serialize(): array
+    {
+        throw new LogicException(static::class . ' cannot be serialized');
+    }
+
+    /**
+     * Refuse to unserialize, so that a crafted payload never reaches the destructor.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __wakeup(): void
+    {
+        throw new LogicException(static::class . ' cannot be unserialized');
+    }
+
+    /**
+     * Bound how much the server may send for one command.
+     */
+    public function setResponseLimits(ResponseLimits $limits): static
+    {
+        $this->limits = $limits;
+
+        return $this;
+    }
+
+    /**
+     * The settings of the last connection, or of the next if none was made yet.
+     */
+    public function getConnectionConfig(): ConnectionConfig
+    {
+        return $this->config;
+    }
+
+    /**
      * Open connection to IMAP server
      *
-     * @param  string      $host  hostname or IP address of IMAP server
-     * @param  int|null    $port  of IMAP server, default is 143 (993 for ssl)
-     * @param  string|bool $ssl   use 'SSL', 'TLS' or false
-     * @throws Exception\RuntimeException
-     * @return void
+     * @param string|ConnectionConfig $host hostname or IP address of IMAP server, or its settings
+     * @param int|null $port of IMAP server, default is 143 (993 for ssl); ignored with a ConnectionConfig
+     * @param string|bool|Security|null $ssl null for STARTTLS, 'ssl' for TLS, 'tls' for STARTTLS, false for plain text; ignored with a ConnectionConfig
+     * @throws Exception\ExceptionInterface When the server cannot be reached, does not greet, or TLS cannot be negotiated.
+     * @throws Exception\InvalidArgumentException When $ssl is not a recognised setting.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
      */
-    public function connect($host, $port = null, $ssl = false)
-    {
-        $transport = 'tcp';
-        $isTls     = false;
+    public function connect(
+        string|ConnectionConfig $host,
+        ?int $port = null,
+        string|bool|Security|null $ssl = null,
+    ): void {
+        $this->config = $host instanceof ConnectionConfig
+            ? $host
+            : LegacyOptions::config($host, $port, $ssl, $this->validateCert(), self::TIMEOUT_CONNECTION);
+        $this->setNoValidateCert(! $this->config->verifyPeer);
 
-        if ($ssl) {
-            $ssl = strtolower($ssl);
-        }
-
-        switch ($ssl) {
-            case 'ssl':
-                $transport = 'ssl';
-                if (! $port) {
-                    $port = 993;
-                }
-                break;
-            case 'tls':
-                $isTls = true;
-            // break intentionally omitted
-            default:
-                if (! $port) {
-                    $port = 143;
-                }
-        }
-
-        $this->socket = $this->setupSocket($transport, $host, $port, self::TIMEOUT_CONNECTION);
+        $this->responseBytes = 0;
+        $this->connection->open($this->config, $this->config->portOr(143, 993));
 
         if (! $this->assumedNextLine('* OK')) {
             throw new Exception\RuntimeException('host doesn\'t allow connection');
         }
 
-        if ($isTls) {
-            $result = $this->requestAndResponse('STARTTLS');
-            $result = $result && stream_socket_enable_crypto($this->socket, true, $this->getCryptoMethod());
-            if (! $result) {
-                throw new Exception\RuntimeException('cannot enable TLS');
-            }
+        if (Security::StartTls === $this->config->security) {
+            $this->startTls();
         }
     }
 
     /**
-     * get the next line from socket with error checking, but nothing else
+     * get the next line from the connection, refusing lines and responses over the limits
      *
      * @throws Exception\RuntimeException
      * @return string next line
      */
-    protected function nextLine()
+    protected function nextLine(): string
     {
-        $line = fgets($this->socket);
-        if (false === $line) {
-            throw new Exception\RuntimeException('cannot read - connection closed?');
+        $line = $this->connection->readLine($this->limits->maxLineLength);
+        if (strlen($line) === $this->limits->maxLineLength && ! str_ends_with($line, "\n")) {
+            throw new Exception\RuntimeException(
+                "The server sent a line longer than {$this->limits->maxLineLength} bytes",
+            );
         }
+
+        $this->countResponseBytes(strlen($line));
 
         return $line;
     }
@@ -153,119 +215,110 @@ class Imap
      *
      * @param  string $start the first bytes we assume to be in the next line
      * @return bool line starts with $start
+     * @throws Exception\RuntimeException
      */
-    protected function assumedNextLine($start)
+    protected function assumedNextLine(string $start): bool
     {
-        $line = $this->nextLine();
-        return str_starts_with($line, $start);
+        return str_starts_with($this->nextLine(), $start);
     }
 
     /**
      * get next line and split the tag. that's the normal case for a response line
      *
-     * @param  string $tag tag of line is returned by reference
+     * @param  string|null $tag tag of line is returned by reference
      * @return string next line
+     * @throws Exception\RuntimeException
      */
-    protected function nextTaggedLine(&$tag)
+    protected function nextTaggedLine(?string &$tag): string
     {
-        $line = $this->nextLine();
+        $parts = explode(
+            separator: ' ',
+            string: $this->nextLine(),
+            limit: 2,
+        );
+        $tag = $parts[0];
 
-        // separate tag from line
-        [$tag, $line] = explode(' ', $line, 2);
-
-        return $line;
+        return $parts[1] ?? '';
     }
 
     /**
      * split a given line in tokens. a token is literal of any form or a list
      *
+     * We start to decode the response here. The understood tokens are:
+     * literal
+     * "literal" or also "lit\\er\"al"
+     * {bytes}<NL>literal
+     * (literals*)
+     * All tokens are returned in an array. Literals in braces (the last understood
+     * token in the list) are returned as an array of tokens. I.e. the following response:
+     * "foo" baz {3}<NL>bar ("f\\\"oo" bar)
+     * would be returned as:
+     * array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
+     *
      * @param  string $line line to decode
-     * @return array tokens, literals are returned as string, lists as array
+     * @return array<mixed> tokens, literals are returned as string, lists as array
+     * @throws Exception\RuntimeException When a literal is larger than the response limit allows.
+     *
+     * @mago-expect lint:halstead The tokenizer kept from laminas-mail handles every token kind in one pass.
      */
-    protected function decodeLine($line)
+    protected function decodeLine(string $line): array
     {
         $tokens = [];
         $stack  = [];
 
-        /*
-         * We start to decode the response here. The understood tokens are:
-         * literal
-         * "literal" or also "lit\\er\"al"
-         * {bytes}<NL>literal
-         * (literals*)
-         * All tokens are returned in an array. Literals in braces (the last understood
-         * token in the list) are returned as an array of tokens. I.e. the following response:
-         * "foo" baz {3}<NL>bar ("f\\\"oo" bar)
-         * would be returned as:
-         * array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
-         *
-         * // TODO: add handling of '[' and ']' to parser for easier handling of response text
-         */
-        //  replace any trailing <NL> including spaces with a single space
         $line = rtrim($line) . ' ';
-        while (($pos = strpos($line, ' ')) !== false) {
-            $token = substr($line, 0, $pos);
-            if (! strlen($token)) {
+        while (($pos = strpos($line, needle: ' ')) !== false) {
+            $token   = substr($line, offset: 0, length: $pos);
+            $literal = [];
+            if ('' === $token) {
                 $line = substr($line, $pos + 1);
                 continue;
             }
-            while ('(' == $token[0]) {
-                array_push($stack, $tokens);
-                $tokens = [];
-                $token  = substr($token, 1);
+
+            while (str_starts_with($token, '(')) {
+                $stack[] = $tokens;
+                $tokens  = [];
+                $token   = substr($token, offset: 1);
             }
-            if ('"' == $token[0]) {
-                if (preg_match('%^\(*"((.|\\\\|\\")*?)" *%', $line, $matches)) {
-                    $tokens[] = $matches[1];
-                    $line     = substr($line, strlen($matches[0]));
-                    continue;
-                }
+
+            $quote = $pos - strlen($token) + 1;
+            $close = str_starts_with($token, '"') ? strpos($line, needle: '"', offset: $quote) : false;
+            if (false !== $close) {
+                $tokens[] = substr($line, offset: $quote, length: $close - $quote);
+                $line     = substr($line, offset: $close + 1);
+                continue;
             }
-            if ('{' == $token[0]) {
-                $endPos = strpos($token, '}');
-                $chars  = substr($token, 1, $endPos - 1);
-                if (is_numeric($chars)) {
-                    $token = '';
-                    while (strlen($token) < $chars) {
-                        $token .= $this->nextLine();
-                    }
-                    $line = '';
-                    if (strlen($token) > $chars) {
-                        $line  = substr($token, $chars);
-                        $token = substr($token, 0, $chars);
-                    } else {
-                        $line .= $this->nextLine();
-                    }
-                    $tokens[] = $token;
-                    $line     = trim($line) . ' ';
-                    continue;
-                }
+
+            if (1 === preg_match('/^\{(\d+)\}$/', $token, $literal)) {
+                $tokens[] = $this->readLiteral($literal[1] ?? '0');
+                $line     = trim($this->nextLine()) . ' ';
+                continue;
             }
-            if ($stack && ')' == $token[strlen($token) - 1]) {
+
+            if ([] !== $stack && str_ends_with($token, ')')) {
                 // closing braces are not separated by spaces, so we need to count them
                 $braces = strlen($token);
-                $token  = rtrim($token, ')');
-                // only count braces if more than one
+                $token  = rtrim($token, characters: ')');
                 $braces -= strlen($token) + 1;
-                // only add if token had more than just closing braces
-                if (rtrim($token) != '') {
-                    $tokens[] = rtrim($token);
+                if ('' !== $token) {
+                    $tokens[] = $token;
                 }
+
                 $token  = $tokens;
                 $tokens = array_pop($stack);
-                // special handline if more than one closing brace
-                while ($braces-- > 0) {
+                while ($braces-- > 0 && [] !== $stack) {
                     $tokens[] = $token;
                     $token    = $tokens;
                     $tokens   = array_pop($stack);
                 }
             }
+
             $tokens[] = $token;
-            $line     = substr($line, $pos + 1);
+            $line     = substr($line, $pos);
         }
 
         // maybe the server forgot to send some closing braces
-        while ($stack) {
+        while ([] !== $stack) {
             $child    = $tokens;
             $tokens   = array_pop($stack);
             $tokens[] = $child;
@@ -278,149 +331,157 @@ class Imap
      * read a response "line" (could also be more than one real line if response has {..}<NL>)
      * and do a simple decode
      *
-     * @param  array|string  $tokens    decoded tokens are returned by reference, if $dontParse
-     *                                  is true the unparsed line is returned here
-     * @param  string        $wantedTag check for this tag for response code. Default '*' is
-     *                                  continuation tag.
-     * @param  bool          $dontParse if true only the unparsed line is returned $tokens
+     * @param  mixed $tokens decoded tokens are returned by reference, if $dontParse
+     *                       is true the unparsed line is returned here
+     * @param  string $wantedTag check for this tag for response code. Default '*' is
+     *                           continuation tag.
+     * @param  bool $dontParse if true only the unparsed line is returned $tokens
      * @return bool if returned tag matches wanted tag
+     * @throws Exception\RuntimeException
+     *
+     * @param-out ($dontParse is true ? string : array<mixed>) $tokens
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function readLine(&$tokens = [], $wantedTag = '*', $dontParse = false)
+    public function readLine(mixed &$tokens = [], string $wantedTag = '*', bool $dontParse = false): bool
     {
-        $tag = null; // define $tag variable before first use
-        $line = $this->nextTaggedLine($tag); // get next tag
-        if (! $dontParse) {
-            $tokens = $this->decodeLine($line);
-        } else {
-            $tokens = $line;
-        }
+        $tag    = null;
+        $line   = $this->nextTaggedLine($tag);
+        $tokens = $dontParse ? $line : $this->decodeLine($line);
 
         // if tag is wanted tag we might be at the end of a multiline response
-        return $tag == $wantedTag;
+        return $tag === $wantedTag;
     }
 
     /**
      * read all lines of response until given tag is found (last line of response)
      *
-     * @param  string       $tag       the tag of your request
-     * @param  bool         $dontParse if true every line is returned unparsed instead of
-     *                                 the decoded tokens
-     * @return null|bool|array tokens if success, false if error, null if bad request
+     * @param  string $tag the tag of your request
+     * @param  bool $dontParse if true every line is returned unparsed instead of
+     *                         the decoded tokens
+     * @return ($dontParse is true ? list<string>|bool|null : list<array<mixed>>|bool|null) tokens if success, false if error, null if bad request
+     * @throws Exception\RuntimeException
      */
-    public function readResponse($tag, $dontParse = false)
+    public function readResponse(string $tag, bool $dontParse = false): array|bool|null
     {
         $lines  = [];
-        $tokens = null; // define $tokens variable before first use
+        $tokens = null;
         while (! $this->readLine($tokens, $tag, $dontParse)) {
             $lines[] = $tokens;
         }
 
-        if ($dontParse) {
-            // last to chars are still needed for response code
-            $tokens = [substr($tokens, 0, 2)];
-        }
+        $status = is_string($tokens) ? substr($tokens, offset: 0, length: 2) : $tokens[0] ?? null;
 
-        // last line has response code
-        if ('OK' == $tokens[0]) {
-            return $lines ?: true;
-        }
-
-        if ('NO' == $tokens[0]) {
-            return false;
-        }
+        return match ($status) {
+            'OK'    => [] === $lines ? true : $lines,
+            'NO'    => false,
+            default => null,
+        };
     }
 
     /**
      * send a request
      *
      * @param  string $command your request command
-     * @param  array  $tokens  additional parameters to command, use escapeString() to prepare
-     * @param  string $tag     provide a tag otherwise an autogenerated is returned
-     * @throws Exception\RuntimeException
+     * @param  array<mixed> $tokens additional parameters to command, use escapeString() to prepare
+     * @param  string|null $tag provide a tag otherwise an autogenerated is returned
+     * @throws Exception\RuntimeException When the server refuses a literal or the connection fails.
+     * @throws Exception\InvalidArgumentException When a token could inject a command or a literal is malformed.
+     *
+     * @param-out string $tag
      */
-    public function sendRequest($command, $tokens = [], &$tag = null)
+    public function sendRequest(string $command, array $tokens = [], ?string &$tag = null): void
     {
-        if (! $tag) {
+        if (null === $tag || '' === $tag) {
             ++$this->tagCount;
             $tag = "TAG{$this->tagCount}";
         }
 
-        $line = "{$tag} {$command}";
+        $this->responseBytes = 0;
+        $line                = "{$tag} {$command}";
 
         foreach ($tokens as $token) {
             if (is_array($token)) {
-                if (fwrite($this->socket, "{$line} {$token[0]}\r\n") === false) {
-                    throw new Exception\RuntimeException('cannot write - connection closed?');
-                }
-                if (! $this->assumedNextLine('+ ')) {
+                $literal = self::literal($token);
+                $this->connection->write(CommandLine::terminate("{$line} {" . strlen($literal) . '}'));
+                if (! $this->assumedNextLine('+')) {
                     throw new Exception\RuntimeException('cannot send literal string');
                 }
-                $line = $token[1];
-            } else {
-                $line .= " {$token}";
+
+                $this->connection->write($literal);
+                $line = '';
+                continue;
             }
+
+            if (! is_string($token) && ! is_int($token)) {
+                throw new Exception\InvalidArgumentException('Request tokens must be strings, integers or literals');
+            }
+
+            if (1 === preg_match('/\{\d+\+?\}$/D', (string) $token)) {
+                throw new Exception\InvalidArgumentException(
+                    'A request token may not end in a literal marker; use escapeString() for literals',
+                );
+            }
+
+            $line .= " {$token}";
         }
 
-        if (fwrite($this->socket, "{$line}\r\n") === false) {
-            throw new Exception\RuntimeException('cannot write - connection closed?');
-        }
+        $this->connection->write(CommandLine::terminate($line));
     }
 
     /**
      * send a request and get response at once
      *
-     * @param  string $command   command as in sendRequest()
-     * @param  array  $tokens    parameters as in sendRequest()
-     * @param  bool   $dontParse if true unparsed lines are returned instead of tokens
-     * @return mixed response as in readResponse()
+     * @param  string $command command as in sendRequest()
+     * @param  array<mixed> $tokens parameters as in sendRequest()
+     * @param  bool $dontParse if true unparsed lines are returned instead of tokens
+     * @return ($dontParse is true ? list<string>|bool|null : list<array<mixed>>|bool|null) response as in readResponse()
+     * @throws Exception\ExceptionInterface
      */
-    public function requestAndResponse($command, $tokens = [], $dontParse = false)
+    public function requestAndResponse(string $command, array $tokens = [], bool $dontParse = false): array|bool|null
     {
-        $tag = null; // define $tag variable before first use
+        $tag = null;
         $this->sendRequest($command, $tokens, $tag);
+
         return $this->readResponse($tag, $dontParse);
     }
 
     /**
-     * escape one or more literals i.e. for sendRequest
+     * escape one or more strings for sendRequest()
      *
-     * @param  string $string the literal/-s
-     * @return string|array escape literals, literals with newline ar returned
-     *                      as array('{size}', 'string');
+     * A string is quoted, unless it contains CR, LF or 8-bit bytes, which a
+     * quoted string cannot carry: then it is returned as a literal,
+     * array('{size}', 'string').
+     *
+     * @return string|array{string, string}|list<string|array{string, string}> one escaped string, or a list when given several
+     * @throws Exception\InvalidArgumentException When a string contains NUL, which IMAP4rev1 cannot send.
      */
-    public function escapeString($string)
-    {
-        if (func_num_args() < 2) {
-            if (str_contains($string, "\n")) {
-                return ['{' . strlen($string) . '}', $string];
-            }
-
-            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $string) . '"';
+    public function escapeString(
+        #[SensitiveParameter]
+        string $string,
+        #[SensitiveParameter]
+        string ...$more,
+    ): string|array {
+        if ([] !== $more) {
+            return array_map($this->escapeOne(...), [$string, ...$more]);
         }
 
-        $result = [];
-        foreach (func_get_args() as $string) {
-            $result[] = $this->escapeString($string);
-        }
-        return $result;
+        return $this->escapeOne($string);
     }
 
     /**
      * escape a list with literals or lists
      *
-     * @param  array $list list with literals or lists as PHP array
+     * @param  array<mixed> $list list with literals or lists as PHP array
      * @return string escaped list for imap
      */
-    public function escapeList($list)
+    public function escapeList(array $list): string
     {
         $result = [];
-        foreach ($list as $v) {
-            if (! is_array($v)) {
-                $result[] = $v;
-                continue;
-            }
-            $result[] = $this->escapeList($v);
+        foreach ($list as $item) {
+            $result[] = is_array($item) ? $this->escapeList($item) : (string) $item;
         }
+
         return '(' . implode(' ', $result) . ')';
     }
 
@@ -430,50 +491,55 @@ class Imap
      * @param  string $user      username
      * @param  string $password  password
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function login($user, #[SensitiveParameter] $password)
+    public function login(string $user, #[SensitiveParameter] string $password): bool
     {
-        return $this->requestAndResponse('LOGIN', $this->escapeString($user, $password), true);
+        return $this->succeeded($this->requestAndResponse('LOGIN', [
+            $this->escapeOne($user),
+            $this->escapeOne($password),
+        ]));
     }
 
     /**
-     * logout of imap server
+     * logout of imap server; sends nothing when not connected
      *
      * @return bool success
      */
-    public function logout()
+    public function logout(): bool
     {
-        $result = false;
-        if ($this->socket) {
-            try {
-                $result = $this->requestAndResponse('LOGOUT', [], true);
-            } catch (Exception\ExceptionInterface) {
-                // ignoring exception
-            }
-            fclose($this->socket);
-            $this->socket = null;
+        try {
+            $result = $this->succeeded($this->requestAndResponse('LOGOUT'));
+        } catch (Exception\ExceptionInterface) {
+            $result = false;
         }
+
+        $this->connection->close();
+
         return $result;
     }
 
     /**
      * Get capabilities from IMAP server
      *
-     * @return array list of capabilities
-     * @throws ExceptionInterface
+     * @return array<mixed> list of capabilities
+     * @throws Exception\ExceptionInterface
      */
-    public function capability()
+    public function capability(): array
     {
         $response = $this->requestAndResponse('CAPABILITY');
 
-        if (! $response) {
+        if (! is_array($response)) {
             return [];
         }
 
         $capabilities = [];
         foreach ($response as $line) {
-            $capabilities = array_merge($capabilities, $line);
+            foreach ($line as $capability) {
+                $capabilities[] = $capability;
+            }
         }
+
         return $capabilities;
     }
 
@@ -483,40 +549,44 @@ class Imap
      *
      * @param  string $command can be 'EXAMINE' or 'SELECT' and this is used as command
      * @param  string $box which folder to change to or examine
-     * @return bool|array false if error, array with returned information
+     * @return array<string, mixed>|false false if error, array with returned information
      *                    otherwise (flags, exists, recent, uidvalidity)
-     * @throws ExceptionInterface
+     * @throws Exception\ExceptionInterface
      */
-    public function examineOrSelect($command = 'EXAMINE', $box = 'INBOX')
+    public function examineOrSelect(string $command = 'EXAMINE', string $box = 'INBOX'): array|false
     {
-        $tag = null; // define $tag variable before first use
-        $this->sendRequest($command, [$this->escapeString($box)], $tag);
+        $command = strtoupper($command);
+        if (! in_array($command, ['EXAMINE', 'SELECT'], strict: true)) {
+            throw new Exception\InvalidArgumentException('The command must be EXAMINE or SELECT');
+        }
+
+        $tag = null;
+        $this->sendRequest($command, [$this->escapeOne($box)], $tag);
 
         $result = [];
-        $tokens = null; // define $tokens variable before first use
+        $tokens = [];
         while (! $this->readLine($tokens, $tag)) {
-            if ('FLAGS' == $tokens[0]) {
+            if ('FLAGS' === ($tokens[0] ?? null)) {
                 array_shift($tokens);
                 $result['flags'] = $tokens;
                 continue;
             }
-            switch ($tokens[1]) {
-                case 'EXISTS':
-                case 'RECENT':
-                    $result[strtolower($tokens[1])] = $tokens[0];
-                    break;
-                case '[UIDVALIDITY':
-                    $result['uidvalidity'] = (int) $tokens[2];
-                    break;
-                default:
 
-                // ignore
+            $name = $tokens[1] ?? null;
+            if ('[UIDVALIDITY' === $name) {
+                $result['uidvalidity'] = (int) ($tokens[2] ?? 0);
+                continue;
+            }
+
+            if ('EXISTS' === $name || 'RECENT' === $name) {
+                $result[strtolower($name)] = $tokens[0] ?? null;
             }
         }
 
-        if ('OK' != $tokens[0]) {
+        if ('OK' !== ($tokens[0] ?? null)) {
             return false;
         }
+
         return $result;
     }
 
@@ -524,10 +594,10 @@ class Imap
      * change folder
      *
      * @param  string $box change to this folder
-     * @return bool|array see examineOrselect()
-     * @throws ExceptionInterface
+     * @return array<string, mixed>|false see examineOrselect()
+     * @throws Exception\ExceptionInterface
      */
-    public function select($box = 'INBOX')
+    public function select(string $box = 'INBOX'): array|false
     {
         return $this->examineOrSelect('SELECT', $box);
     }
@@ -536,10 +606,10 @@ class Imap
      * examine folder
      *
      * @param  string $box examine this folder
-     * @return bool|array see examineOrselect()
-     * @throws ExceptionInterface
+     * @return array<string, mixed>|false see examineOrselect()
+     * @throws Exception\ExceptionInterface
      */
-    public function examine($box = 'INBOX')
+    public function examine(string $box = 'INBOX'): array|false
     {
         return $this->examineOrSelect('EXAMINE', $box);
     }
@@ -547,97 +617,58 @@ class Imap
     /**
      * fetch one or more items of one or more messages
      *
-     * @param  string|array $items items to fetch from message(s) as string (if only one item)
+     * @param  string|list<string> $items items to fetch from message(s) as string (if only one item)
      *                             or array of strings
-     * @param  int|array    $from  message for items or start message if $to !== null
-     * @param  int|null     $to    if null only one message ($from) is fetched, else it's the
-     *                             last message, INF means last message available
-     * @param  bool         $uid   set to true if passing a unique id
+     * @param  int|string|list<int|string> $from message for items or start message if $to !== null,
+     *                                           or a list of message numbers and ranges
+     * @param  int|float|null $to if null only one message ($from) is fetched, else it's the
+     *                            last message, INF means last message available
+     * @param  bool $uid set to true if passing a unique id
      * @throws Exception\RuntimeException
-     * @return string|array if only one item of one message is fetched it's returned as string
-     *                      if items of one message are fetched it's returned as (name => value)
-     *                      if one items of messages are fetched it's returned as (msgno => value)
-     *                      if items of messages are fetched it's returned as (msgno => (name => value))
+     * @return mixed if only one item of one message is fetched it's returned as string
+     *               if items of one message are fetched it's returned as (name => value)
+     *               if one items of messages are fetched it's returned as (msgno => value)
+     *               if items of messages are fetched it's returned as (msgno => (name => value))
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function fetch($items, $from, $to = null, $uid = false)
-    {
-        if (is_array($from)) {
-            $set = implode(',', $from);
-        } elseif (null === $to) {
-            $set = (int) $from;
-        } elseif (INF === $to) {
-            $set = (int) $from . ':*';
-        } else {
-            $set = (int) $from . ':' . (int) $to;
-        }
-
+    public function fetch(
+        string|array $items,
+        int|string|array $from,
+        int|float|null $to = null,
+        bool $uid = false,
+    ): mixed {
+        $set      = self::sequenceSet($from, $to);
         $items    = (array) $items;
+        $single   = null === $to && ! is_array($from);
         $itemList = $this->escapeList($items);
 
-        $tag = null; // define $tag variable before first use
+        $tag = null;
         $this->sendRequest(($uid ? 'UID ' : '') . 'FETCH', [$set, $itemList], $tag);
 
         $result = [];
-        $tokens = null; // define $tokens variable before first use
+        $tokens = [];
         while (! $this->readLine($tokens, $tag)) {
-            // ignore other responses
-            if ('FETCH' != $tokens[1]) {
+            if ('FETCH' !== ($tokens[1] ?? null) || ! is_array($tokens[2] ?? null)) {
                 continue;
             }
 
-            // find array key of UID value; try the last elements, or search for it
-            if ($uid) {
-                $count = count($tokens[2]);
-                if ('UID' == $tokens[2][$count - 2]) {
-                    $uidKey = $count - 1;
-                } else {
-                    $uidKey = array_search('UID', $tokens[2]) + 1;
-                }
-            }
-
-            // ignore other messages
-            if (null === $to && ! is_array($from) && ($uid ? $tokens[2][$uidKey] != $from : $tokens[0] != $from)) {
+            $values = self::itemMap($tokens[2]);
+            if ($single && ($uid ? $values['UID'] ?? null : $tokens[0]) !== (string) $from) {
                 continue;
             }
 
-            // if we only want one item we return that one directly
-            if (count($items) == 1) {
-                if ($tokens[2][0] == $items[0]) {
-                    $data = $tokens[2][1];
-                } elseif ($uid && $tokens[2][2] == $items[0]) {
-                    $data = $tokens[2][3];
-                } else {
-                    // maybe the server send an other field we didn't wanted
-                    $count = count($tokens[2]);
-                    // we start with 2, because 0 was already checked
-                    for ($i = 2; $i < $count; $i += 2) {
-                        if ($tokens[2][$i] != $items[0]) {
-                            continue;
-                        }
-                        $data = $tokens[2][$i + 1];
-                        break;
-                    }
-                }
-            } else {
-                $data = [];
-                while (key($tokens[2]) !== null) {
-                    $data[current($tokens[2])] = next($tokens[2]);
-                    next($tokens[2]);
-                }
-            }
+            $data = 1 === count($items) ? $values[$items[0]] ?? null : $values;
+            if ($single) {
+                $this->skipToTag($tag);
 
-            // if we want only one message we can ignore everything else and just return
-            if (null === $to && ! is_array($from) && ($uid ? $tokens[2][$uidKey] == $from : $tokens[0] == $from)) {
-                // we still need to read all lines
-                // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
-                while (! $this->readLine($tokens, $tag)) {
-                }
                 return $data;
             }
+
             $result[$tokens[0]] = $data;
         }
 
-        if (null === $to && ! is_array($from)) {
+        if ($single) {
             throw new Exception\RuntimeException('the single id was not found in response');
         }
 
@@ -651,21 +682,26 @@ class Imap
      *
      * @param  string $reference mailbox reference for list
      * @param  string $mailbox   mailbox name match with wildcards
-     * @return array mailboxes that matched $mailbox as array(globalName => array('delim' => .., 'flags' => ..))
-     * @throws ExceptionInterface
+     * @return array<string, array{delim: mixed, flags: mixed}> mailboxes that matched $mailbox as array(globalName => array('delim' => .., 'flags' => ..))
+     * @throws Exception\ExceptionInterface
      */
-    public function listMailbox($reference = '', $mailbox = '*')
+    public function listMailbox(string $reference = '', string $mailbox = '*'): array
     {
         $result = [];
-        $list   = $this->requestAndResponse('LIST', $this->escapeString($reference, $mailbox));
-        if (! $list || true === $list) {
+        $list   = $this->requestAndResponse('LIST', [$this->escapeOne($reference), $this->escapeOne($mailbox)]);
+        if (! is_array($list)) {
             return $result;
         }
 
         foreach ($list as $item) {
-            if (count($item) != 4 || 'LIST' != $item[0]) {
+            if (
+                4 !== count($item)
+                || 'LIST' !== ($item[0] ?? null)
+                || ! is_string($item[3] ?? null)
+            ) {
                 continue;
             }
+
             $result[$item[3]] = ['delim' => $item[2], 'flags' => $item[1]];
         }
 
@@ -675,47 +711,51 @@ class Imap
     /**
      * set flags
      *
-     * @param  array       $flags  flags to set, add or remove - see $mode
-     * @param  int         $from   message for items or start message if $to !== null
-     * @param  int|null    $to     if null only one message ($from) is fetched, else it's the
-     *                             last message, INF means last message available
-     * @param  string|null $mode   '+' to add flags, '-' to remove flags, everything else sets the flags as given
-     * @param  bool        $silent if false the return values are the new flags for the wanted messages
-     * @return bool|array new flags if $silent is false, else true or false depending on success
-     * @throws ExceptionInterface
+     * @param  array<mixed> $flags flags to set, add or remove - see $mode
+     * @param  int|string $from message for items or start message if $to !== null
+     * @param  int|float|null $to if null only one message ($from) is fetched, else it's the
+     *                            last message, INF means last message available
+     * @param  string|null $mode '+' to add flags, '-' to remove flags, everything else sets the flags as given
+     * @param  bool $silent if false the return values are the new flags for the wanted messages
+     * @return array<mixed>|bool new flags if $silent is false, else true or false depending on success
+     * @throws Exception\ExceptionInterface
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function store(array $flags, $from, $to = null, $mode = null, $silent = true)
-    {
+    public function store(
+        array $flags,
+        int|string $from,
+        int|float|null $to = null,
+        ?string $mode = null,
+        bool $silent = true,
+    ): array|bool {
         $item = 'FLAGS';
-        if ('+' == $mode || '-' == $mode) {
+        if ('+' === $mode || '-' === $mode) {
             $item = $mode . $item;
         }
+
         if ($silent) {
             $item .= '.SILENT';
         }
 
-        $flags = $this->escapeList($flags);
-        $set   = (int) $from;
-        if (null !== $to) {
-            $set .= ':' . (INF == $to ? '*' : (int) $to);
+        $set    = self::sequenceSet($from, $to);
+        $result = $this->requestAndResponse('STORE', [$set, $item, self::flagList($flags)], $silent);
+
+        if ($silent || ! is_array($result)) {
+            return $this->succeeded($result);
         }
 
-        $result = $this->requestAndResponse('STORE', [$set, $item, $flags], $silent);
-
-        if ($silent) {
-            return (bool) $result;
-        }
-
-        $tokens = $result;
-        $result = [];
-        foreach ($tokens as $token) {
-            if ('FETCH' != $token[1] || 'FLAGS' != $token[2][0]) {
+        $flagsByMessage = [];
+        foreach ($result as $token) {
+            $values = $token[2] ?? null;
+            if ('FETCH' !== ($token[1] ?? null) || ! is_array($values) || 'FLAGS' !== ($values[0] ?? null)) {
                 continue;
             }
-            $result[$token[0]] = $token[2][1];
+
+            $flagsByMessage[$token[0] ?? ''] = $values[1] ?? [];
         }
 
-        return $result;
+        return $flagsByMessage;
     }
 
     /**
@@ -723,43 +763,43 @@ class Imap
      *
      * @param string $folder  name of target folder
      * @param string $message full message content
-     * @param array  $flags   flags for new message
-     * @param string $date    date for new message
+     * @param array<mixed>|null $flags flags for new message
+     * @param string|null $date date for new message
      * @return bool success
-     * @throws ExceptionInterface
+     * @throws Exception\ExceptionInterface
      */
-    public function append($folder, $message, $flags = null, $date = null)
+    public function append(string $folder, string $message, ?array $flags = null, ?string $date = null): bool
     {
         $tokens   = [];
-        $tokens[] = $this->escapeString($folder);
+        $tokens[] = $this->escapeOne($folder);
         if (null !== $flags) {
-            $tokens[] = $this->escapeList($flags);
+            $tokens[] = self::flagList($flags);
         }
-        if (null !== $date) {
-            $tokens[] = $this->escapeString($date);
-        }
-        $tokens[] = $this->escapeString($message);
 
-        return $this->requestAndResponse('APPEND', $tokens, true);
+        if (null !== $date) {
+            $tokens[] = $this->escapeOne($date);
+        }
+
+        $tokens[] = $this->escapeOne($message);
+
+        return $this->succeeded($this->requestAndResponse('APPEND', $tokens));
     }
 
     /**
      * copy message set from current folder to other folder
      *
-     * @param string   $folder destination folder
-     * @param int $from
-     * @param int|null $to     if null only one message ($from) is fetched, else it's the
-     *                         last message, INF means last message available
+     * @param string $folder destination folder
+     * @param int|string $from first message, or a sequence set
+     * @param int|float|null $to if null only one message ($from) is fetched, else it's the
+     *                           last message, INF means last message available
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function copy($folder, $from, $to = null)
+    public function copy(string $folder, int|string $from, int|float|null $to = null): bool
     {
-        $set = (string) $from;
-        if (null !== $to) {
-            $set .= ':' . (INF == $to ? '*' : (int) $to);
-        }
+        $set = self::sequenceSet($from, $to);
 
-        return $this->requestAndResponse('COPY', [$set, $this->escapeString($folder)], true);
+        return $this->succeeded($this->requestAndResponse('COPY', [$set, $this->escapeOne($folder)]));
     }
 
     /**
@@ -767,10 +807,11 @@ class Imap
      *
      * @param string $folder folder name
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function create($folder)
+    public function create(string $folder): bool
     {
-        return $this->requestAndResponse('CREATE', [$this->escapeString($folder)], true);
+        return $this->succeeded($this->requestAndResponse('CREATE', [$this->escapeOne($folder)]));
     }
 
     /**
@@ -779,10 +820,11 @@ class Imap
      * @param string $old old name
      * @param string $new new name
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function rename($old, $new)
+    public function rename(string $old, string $new): bool
     {
-        return $this->requestAndResponse('RENAME', $this->escapeString($old, $new), true);
+        return $this->succeeded($this->requestAndResponse('RENAME', [$this->escapeOne($old), $this->escapeOne($new)]));
     }
 
     /**
@@ -790,10 +832,11 @@ class Imap
      *
      * @param string $folder folder name
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function delete($folder)
+    public function delete(string $folder): bool
     {
-        return $this->requestAndResponse('DELETE', [$this->escapeString($folder)], true);
+        return $this->succeeded($this->requestAndResponse('DELETE', [$this->escapeOne($folder)]));
     }
 
     /**
@@ -801,58 +844,265 @@ class Imap
      *
      * @param string $folder folder name
      * @return bool success
+     * @throws Exception\ExceptionInterface
      */
-    public function subscribe($folder)
+    public function subscribe(string $folder): bool
     {
-        return $this->requestAndResponse('SUBSCRIBE', [$this->escapeString($folder)], true);
+        return $this->succeeded($this->requestAndResponse('SUBSCRIBE', [$this->escapeOne($folder)]));
     }
 
     /**
      * permanently remove messages
      *
-     * @return bool success
+     * @return array<mixed>|bool the untagged responses, true if there were none, or false on failure
+     * @throws Exception\ExceptionInterface
      */
-    public function expunge()
+    public function expunge(): array|bool
     {
-        // TODO: parse response?
-        return $this->requestAndResponse('EXPUNGE');
+        return $this->requestAndResponse('EXPUNGE') ?? false;
     }
 
     /**
      * send noop
      *
-     * @return bool success
+     * @return array<mixed>|bool the untagged responses, true if there were none, or false on failure
+     * @throws Exception\ExceptionInterface
      */
-    public function noop()
+    public function noop(): array|bool
     {
-        // TODO: parse response
-        return $this->requestAndResponse('NOOP');
+        return $this->requestAndResponse('NOOP') ?? false;
     }
 
     /**
      * do a search request
      *
-     * This method is currently marked as internal as the API might change and is not
-     * safe if you don't take precautions.
+     * The parameters are sent as they are, apart from the checks every
+     * request gets: pass any string from outside through escapeString().
      *
-     * @param array $params
-     * @return array message ids
+     * @param array<mixed> $params
+     * @return array<mixed>|false message ids, or false on failure
+     * @throws Exception\ExceptionInterface
      */
-    public function search(array $params)
+    public function search(array $params): array|false
     {
         $response = $this->requestAndResponse('SEARCH', $params);
-        if (! $response) {
-            return $response;
+        if (null === $response || false === $response) {
+            return false;
         }
 
-        foreach ($response as $ids) {
-            if ('SEARCH' != $ids[0]) {
+        if (is_array($response)) {
+            foreach ($response as $ids) {
+                if ('SEARCH' !== ($ids[0] ?? null)) {
+                    continue;
+                }
+
+                array_shift($ids);
+
+                return $ids;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Upgrade the connection with STARTTLS, which the server must advertise.
+     *
+     * @throws Exception\RuntimeException When the server does not offer STARTTLS, refuses it, or the handshake fails.
+     * @throws Exception\ExceptionInterface
+     */
+    private function startTls(): void
+    {
+        $capabilities = array_map(
+            static fn(mixed $capability): string => is_string($capability) ? strtoupper($capability) : '',
+            $this->capability(),
+        );
+        if (! in_array('STARTTLS', $capabilities, strict: true)) {
+            throw new Exception\RuntimeException(
+                'cannot enable TLS: the server does not offer STARTTLS; refusing to continue in plain text',
+            );
+        }
+
+        if (true !== $this->requestAndResponse('STARTTLS')) {
+            throw new Exception\RuntimeException('cannot enable TLS: the server refused STARTTLS');
+        }
+
+        $this->connection->enableTls();
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When the string contains NUL.
+     * @return string|array{string, string}
+     */
+    private function escapeOne(#[SensitiveParameter] string $string): string|array
+    {
+        if (str_contains($string, "\0")) {
+            throw new Exception\InvalidArgumentException('IMAP strings cannot contain NUL');
+        }
+
+        if (1 === preg_match('/[\r\n\x80-\xFF]/', $string)) {
+            return ['{' . strlen($string) . '}', $string];
+        }
+
+        return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $string) . '"';
+    }
+
+    /**
+     * The content of a literal token from escapeString(), checked against its declared size.
+     *
+     * @param array<mixed> $token
+     * @throws Exception\InvalidArgumentException When the token is not a literal of the size it declares.
+     */
+    private static function literal(#[SensitiveParameter] array $token): string
+    {
+        $size    = $token[0] ?? null;
+        $content = $token[1] ?? null;
+        if (! is_string($content) || $size !== '{' . strlen($content) . '}' || str_contains($content, "\0")) {
+            throw new Exception\InvalidArgumentException(
+                'A literal must be array("{size}", content) with the exact size and no NUL; use escapeString()',
+            );
+        }
+
+        return $content;
+    }
+
+    /**
+     * A sequence set for one message, a range, or a list of numbers and ranges.
+     *
+     * @param int|string|array<mixed> $from
+     * @throws Exception\InvalidArgumentException When the result is not an RFC 3501 sequence set.
+     */
+    private static function sequenceSet(int|string|array $from, int|float|null $to): string
+    {
+        $set = is_array($from) ? self::numberList($from) : (string) $from;
+
+        if (null !== $to) {
+            if (is_float($to) && INF !== $to) {
+                throw new Exception\InvalidArgumentException('The last message must be an integer or INF');
+            }
+
+            $set .= ':' . (INF === $to ? '*' : $to);
+        }
+
+        if (1 !== preg_match(self::SEQUENCE_SET, $set)) {
+            throw new Exception\InvalidArgumentException(
+                'Not a valid message sequence set: numbers from 1, "*", ":" and ","',
+            );
+        }
+
+        return $set;
+    }
+
+    /**
+     * @param array<mixed> $numbers
+     * @throws Exception\InvalidArgumentException When a number is neither an integer nor a string.
+     */
+    private static function numberList(array $numbers): string
+    {
+        $parts = [];
+        foreach ($numbers as $number) {
+            if (! is_int($number) && ! is_string($number)) {
+                throw new Exception\InvalidArgumentException('Message numbers must be integers or ranges');
+            }
+
+            $parts[] = $number;
+        }
+
+        return implode(',', $parts);
+    }
+
+    /**
+     * @param array<mixed> $flags
+     * @throws Exception\InvalidArgumentException When a flag is not an atom, optionally after a backslash.
+     */
+    private static function flagList(array $flags): string
+    {
+        $atoms = [];
+        foreach ($flags as $flag) {
+            if (! is_string($flag) || 1 !== preg_match(self::FLAG, $flag)) {
+                throw new Exception\InvalidArgumentException(
+                    'Flags must be atoms such as \Seen or $Label, without spaces, quotes, brackets or control characters',
+                );
+            }
+
+            $atoms[] = $flag;
+        }
+
+        return '(' . implode(' ', $atoms) . ')';
+    }
+
+    /**
+     * The items of a FETCH response by name.
+     *
+     * @param array<mixed> $values
+     * @return array<string, mixed>
+     *
+     * @mago-expect analysis:possibly-undefined-int-array-index array_chunk() pairs always have a first item, and the union supplies a missing second.
+     */
+    private static function itemMap(array $values): array
+    {
+        $map = [];
+        foreach (array_chunk($values, length: 2) as $pair) {
+            [$name, $value] = $pair + [1 => null];
+            if (! is_string($name)) {
                 continue;
             }
 
-            array_shift($ids);
-            return $ids;
+            $map[$name] = $value;
         }
-        return [];
+
+        return $map;
+    }
+
+    /**
+     * Read the rest of a response up to its tagged line.
+     *
+     * @throws Exception\RuntimeException
+     */
+    private function skipToTag(string $tag): void
+    {
+        do {
+            $tokens = null;
+            $done   = $this->readLine($tokens, $tag);
+        } while (! $done);
+    }
+
+    /**
+     * @param array<mixed>|bool|null $response
+     */
+    private function succeeded(array|bool|null $response): bool
+    {
+        return null !== $response && false !== $response;
+    }
+
+    /**
+     * @throws Exception\RuntimeException
+     */
+    private function readLiteral(string $digits): string
+    {
+        $size = (int) $digits;
+        if (($this->responseBytes + $size) > $this->limits->maxResponseSize) {
+            throw new Exception\RuntimeException(
+                "The server announced a literal of {$size} bytes, over the response limit of {$this->limits->maxResponseSize} bytes",
+            );
+        }
+
+        $literal = $this->connection->read($size);
+        $this->countResponseBytes($size);
+
+        return $literal;
+    }
+
+    /**
+     * @throws Exception\RuntimeException
+     */
+    private function countResponseBytes(int $bytes): void
+    {
+        $this->responseBytes += $bytes;
+        if ($this->responseBytes > $this->limits->maxResponseSize) {
+            throw new Exception\RuntimeException(
+                "The server's response exceeds the limit of {$this->limits->maxResponseSize} bytes",
+            );
+        }
     }
 }

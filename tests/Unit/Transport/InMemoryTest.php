@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\InMemory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -16,29 +15,12 @@ use PHPUnit\Framework\TestCase;
 #[Group('unit')]
 final class InMemoryTest extends TestCase
 {
-    private function makeMessage(): Message
-    {
-        $message = new Message();
-        $message->addTo('test@example.com', 'Example Test')
-            ->addCc('matthew@example.com')
-            ->addBcc('list@example.com', 'Example List')
-            ->addFrom([
-                'test@example.com',
-                'matthew@example.com' => 'Matthew',
-            ])
-            ->setSender('ralph@example.com', 'Ralph Schindler')
-            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-            ->setBody('This is only a test.')
-            ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
-
-        return $message;
-    }
-
     #[Test]
-    public function receivesMailArtifacts(): void
+    public function keepsLastMessageSent(): void
     {
-        $message   = $this->makeMessage();
         $transport = new InMemory();
+        $transport->send((new Message())->setSubject('first'));
+        $message = (new Message())->setSubject('second');
 
         $transport->send($message);
 
@@ -46,9 +28,8 @@ final class InMemoryTest extends TestCase
     }
 
     #[Test]
-    public function nullMessage(): void
+    public function hasNoMessageBeforeSending(): void
     {
-        $transport = new InMemory();
-        static::assertNull($transport->getLastMessage());
+        static::assertNull((new InMemory())->getLastMessage());
     }
 }

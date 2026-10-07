@@ -1,35 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Folder;
 
 use Contenir\Mail\Storage\Exception\ExceptionInterface;
 use Contenir\Mail\Storage\Folder;
 
+/**
+ * A storage with folders.
+ *
+ * @api
+ */
 interface FolderInterface
 {
     /**
-     * get root folder or given folder
+     * The folder tree from the root, or from the folder of this global name.
      *
-     * @param string $rootFolder get folder structure for given folder, else root
-     * @return Folder root or wanted folder
+     * @throws ExceptionInterface When there is no such folder.
      */
-    public function getFolders($rootFolder = null);
+    public function getFolders(?string $rootFolder = null): Folder;
 
     /**
-     * select given folder
+     * Select a folder by its global name; it must be selectable.
      *
-     * folder must be selectable!
-     *
-     * @param Folder|string $globalName global name of folder or instance for subfolder
-     * @throws ExceptionInterface
+     * @throws ExceptionInterface When there is no such folder, or it cannot be selected.
      */
-    public function selectFolder($globalName);
+    public function selectFolder(Folder|string $globalName): void;
 
     /**
-     * get Contenir\Mail\Storage\Folder instance for current folder
-     *
-     * @return string instance of current folder
-     * @throws ExceptionInterface
+     * The global name of the selected folder.
      */
-    public function getCurrentFolder();
+    public function getCurrentFolder(): string;
 }

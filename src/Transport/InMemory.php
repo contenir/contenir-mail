@@ -1,37 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Transport;
 
 use Contenir\Mail\Message;
 use Override;
 
 /**
- * InMemory transport
- *
- * This transport will just store the message in memory.  It is helpful
- * when unit testing, or to prevent sending email when in development or
- * testing.
+ * Keeps the last message instead of sending it, for tests and development.
  */
-class InMemory implements TransportInterface
+final class InMemory implements TransportInterface
 {
-    /** @var null|Message */
-    protected $lastMessage;
+    private ?Message $lastMessage = null;
 
-    /**
-     * Takes the last message and saves it for testing.
-     */
     #[Override]
-    public function send(Message $message)
+    public function send(Message $message): void
     {
         $this->lastMessage = $message;
     }
 
     /**
-     * Get the last message sent.
-     *
-     * @return null|Message
+     * The last message sent, or null before the first send.
      */
-    public function getLastMessage()
+    public function getLastMessage(): ?Message
     {
         return $this->lastMessage;
     }

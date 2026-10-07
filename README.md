@@ -14,14 +14,22 @@ every contributor keeps their authorship in `git log` and `git blame`.
 
 - **Messages:** `Message`, `Headers` and the `Header\*` classes, `Address` and `AddressList`.
 - **MIME:** `Mime\Part`, `Mime\Multipart`, `Mime\Attachment`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
-- **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`.
+- **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`, each configured with a typed `*Config`.
+- **Protocols:** SMTP, IMAP and POP3 clients over a small connection layer, with a scripted
+  `Testing\InMemoryConnection` for testing code that sends or reads mail.
 - **Storage:** read and write `Mbox` and `Maildir`, and read over `Imap` and `Pop3`.
+- **Container support:** optional PSR-11 factories and a `ConfigProvider`, for Mezzio, laminas-mvc
+  or any PSR-11 container. No container is required.
 
 ## Requirements
 
 - PHP 8.3, 8.4 or 8.5
 - `ext-iconv`
-- `laminas/laminas-servicemanager` 3.24 or later when sending through SMTP
+- `ext-openssl` for TLS connections, and `ext-fileinfo` to detect attachment types
+
+ext-mbstring is not needed. The only other dependencies are the PSR clock and
+container interfaces and the Symfony IDN polyfill; install ext-intl for faster
+and stricter handling of internationalised domain names.
 
 ## Install
 
@@ -47,8 +55,75 @@ $message->attach(Attachment::fromPath('/path/to/report.pdf'));
 (new Sendmail())->send($message);
 ```
 
+Sending through SMTP with STARTTLS, which is the default:
+
+```php
+use Contenir\Mail\Protocol\Smtp\Auth\Login;
+use Contenir\Mail\Transport\Smtp;
+use Contenir\Mail\Transport\SmtpConfig;
+
+$transport = new Smtp(new SmtpConfig(
+    host: 'smtp.example.com',
+    auth: new Login('orders', $password),
+));
+
+// or from configuration
+$transport = new Smtp([
+    'host' => 'smtp.example.com',
+    'auth' => ['type' => 'login', 'username' => 'orders', 'password' => $password],
+]);
+
+$transport->send($message);
+```
+
+Reading a mailbox:
+
+```php
+use Contenir\Mail\Storage\Flag;
+use Contenir\Mail\Storage\Maildir;
+
+foreach (new Maildir(['dirname' => '/var/mail/jo']) as $number => $message) {
+    if (! $message->hasFlag(Flag::Seen)) {
+        echo $message->getSubject(), ' from ', $message->getFrom()->first()?->getEmail(), "\n";
+    }
+}
+```
+
 See the [documentation](docs/book/index.md) for transports, attachments,
 character sets and reading mail.
+
+## Security
+
+Mail libraries sit on trust boundaries: application input becomes protocol
+commands and shell arguments, and hostile servers and messages are parsed. This
+package checks every input where it enters, and each protection below has a
+regression test.
+
+- **Injection.** Header values, display names, MIME parameters, SMTP, IMAP and
+  POP3 command arguments and sendmail arguments refuse CR, LF, NUL and other
+  characters that could end or extend them. IMAP strings that need it are sent as
+  literals. SMTP bodies have their line endings normalised before dot-stuffing,
+  which closes SMTP smuggling.
+- **Sendmail.** `-f` is only ever passed for a shell-safe sender (the 2016
+  PHPMailer and Zend Mail CVEs), and sendmail can be run without a shell at all.
+- **TLS by default.** Connections require STARTTLS unless told otherwise, verify
+  the server certificate, accept TLS 1.2 or later only, refuse to continue in plain
+  text when STARTTLS fails, and discard anything a server sends before the
+  handshake. SMTP AUTH is refused over an unencrypted connection.
+- **Secrets.** Passwords and tokens are kept out of protocol logs, exception traces
+  and `var_dump()` output.
+- **Hostile input.** Server responses, header blocks, MIME nesting and part counts
+  have limits. Storage paths must be local files, symlinks are refused, and Maildir
+  files are created exclusively with mode 0600. Protocol and storage objects refuse
+  to be unserialized.
+- **Spoofing.** Addresses refuse control characters and bidirectional overrides,
+  and internationalised domains are checked with the IDNA2008 bidi and CONTEXTJ
+  rules. Attachment filenames read from mail have a sanitised accessor.
+
+The [security documentation](docs/book/security.md) maps every protection to the
+test that proves it and to the published vulnerabilities it guards against, and
+lists open findings. [Standards](docs/book/standards.md) covers RFC conformance.
+Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
 ## Coming from laminas-mail and laminas-mime
 
@@ -73,7 +148,7 @@ gone.
    ```
 
 3. Register `Contenir\Mail\ConfigProvider` (Mezzio) or the `Contenir\Mail` module
-   (laminas-mvc) in place of the Laminas ones.
+   (laminas-mvc) in place of the Laminas ones. Neither is needed without a container.
 
 4. Update code that touches the APIs below.
 
@@ -119,10 +194,61 @@ message never affects the original.
 | `Mime::DISPOSITION_*`, `Mime::ENCODING_*` strings on a part | `Disposition` and `TransferEncoding` enums |
 | `new Mime($boundary)`, `Mime\Message::setMime()` | `new Multipart($type, $parts, boundary: $boundary)` |
 | `Mime::boundary()`, `boundaryLine()`, `mimeEnd()`, `Mime\Message::generateMessage()` | `PartWriter::body($part)` |
-| `Mime\Message::createFromMessage()` | `Mime\Decode` and the storage classes, until parsing returns `PartInterface` trees |
+| `Mime\Message::createFromMessage()` | `Mime\Decode`, or a stored message, whose parts implement the same `PartInterface` |
 | `Part::isStream()`, `getEncodedStream()` | A stream given as content is read and encoded in chunks when the message is written |
 | `Message::getEncoding()` | Removed |
 | `Date` header from the current time | From an injected PSR-20 clock: `new Message(clock: $clock)` |
+
+### Settings: Config objects
+
+Every transport, protocol and storage keeps its settings in a typed, immutable
+`*Config` object. Constructors still accept the familiar laminas arrays and read
+them into the Config, so `new Imap(['host' => ..., 'user' => ...])` keeps working,
+but unknown keys and values of the wrong type now throw, naming the key. Keys may
+be snake_case or camelCase, and strings from environment variables such as
+`'587'` or `'false'` are accepted.
+
+### Transports and SMTP
+
+| laminas-mail | contenir-mail |
+| --- | --- |
+| `Transport\SmtpOptions` | `Transport\SmtpConfig`, or an array given to `new Smtp([...])` |
+| `connection_class` with `connection_config` `username` and `password` | `auth`: an authenticator, or `['type' => 'login', 'username' => ..., 'password' => ...]` |
+| `connection_config['ssl']` = `'ssl'` / `'tls'` | `security` = `'tls'` / `'starttls'` (the default) / `'none'` |
+| `connection_config['novalidatecert']` | `verify_peer` |
+| `Protocol\Smtp\Auth\Plain`, `Login`, `Crammd5`, `Xoauth2` (subclasses of `Protocol\Smtp`) | `Protocol\Smtp\Auth\Plain`, `Login`, `CramMd5`, `XOAuth2`, implementing `AuthenticatorInterface` |
+| `Protocol\SmtpPluginManager`, `Transport\Smtp::setPluginManager()` / `plugin()` | Removed; implement `AuthenticatorInterface` for another mechanism |
+| `Transport\FileOptions` | `Transport\FileConfig` |
+| `new Sendmail($parameters)`, `setParameters()`, `setCallable()` | `new Sendmail($parameters)` or a `SendmailConfig`, with `mailer:` for a custom callable |
+| `Transport\Factory::create($spec)` | `Container\TransportFactory`, reading `config['mail']['transport']` with a `type` key |
+| `MessageFactory::getInstance($options)` | Removed; use the `Message` setters |
+| `ConfigProvider::getDependencyConfig()` | `ConfigProvider::getDependencies()` |
+| `Transport\Envelope` (options object) | `new Envelope(from: ..., to: ...)`, readonly and validated |
+
+### IMAP and POP3 protocols
+
+| laminas-mail | contenir-mail |
+| --- | --- |
+| `new Protocol\Imap($host, $port, $ssl)`, the same for `Pop3` | The same, or a `ConnectionConfig`; an omitted `$ssl` now means STARTTLS |
+| `$ssl = true` or an unknown string | Throws; use `'ssl'`, `'tls'`, `'none'` or `false` |
+| Socket handling inside the protocol classes | `ConnectionInterface`, with `StreamConnection` and `Testing\InMemoryConnection` |
+| laminas-stdlib `ErrorHandler` | Internal; no laminas-stdlib dependency |
+| Commands returning raw response lines | `login()`, `select()`, `store()` and the other commands are typed; boolean commands return `bool` |
+| Unlimited response sizes | `ResponseLimits` (8 MiB lines, 64 MiB responses by default), set with `setResponseLimits()` |
+
+### Storage
+
+| laminas-mail | contenir-mail |
+| --- | --- |
+| `$params` arrays read by `ParamsNormalizer` | `MboxConfig`, `MaildirConfig`, `ImapConfig`, `Pop3Config`; arrays still work |
+| `Storage::FLAG_SEEN` and the other constants | The `Storage\Flag` enum; IMAP flag strings are accepted where flags are given |
+| `$message->subject` and other magic header properties | `getSubject()`, `getFrom()`, `getDate()`, `getHeaders()` |
+| `$storage[3]`, `unset($storage[3])` | `getMessage(3)`, `removeMessage(3)` |
+| `$folders->INBOX->Archive` | `getFolder('INBOX')`, `getFolders()` |
+| `getSize()` and `getUniqueId()` without a number, returning every message | `getSizes()` and `getUniqueIds()` |
+| `hasTop`, `hasFlags` and the other `has*` properties | `getCapabilities()` |
+| `Part::getContent()` returning the transferred text | `getContent()` returns it decoded; `getEncodedContent()` returns it as transferred |
+| `messageEOL`, `getTopLines()`, `Storage::FLAG_UNSEEN` | Removed |
 
 Reading mail is more forgiving: a header that its class cannot parse, such as a
 malformed `Date`, is kept as a `GenericHeader` rather than making the whole
@@ -130,9 +256,10 @@ message unreadable.
 
 ### Removed
 
-- The legacy `Zend\Mail\*` service names, and the normalised `zendmail*` and
-  `laminasmail*` aliases of `SmtpPluginManager`. Use the class names or the short
-  names (`smtp`, `login`, `plain`, `crammd5`, `xoauth2`).
+- The legacy `Zend\Mail\*` service names, and `SmtpPluginManager` with all its
+  aliases.
+- The `laminas/laminas-stdlib`, `laminas/laminas-servicemanager` and
+  `webmozart/assert` dependencies.
 - The `TESTS_LAMINAS_MAIL_*` test environment variables, now `TESTS_CONTENIR_MAIL_*`.
 - `Headers::setPluginClassLoader()`, `Headers::getPluginClassLoader()` and
   `Header\HeaderLoader`, deprecated since laminas-mail 2.12, together with the
@@ -148,8 +275,41 @@ message unreadable.
 - `HeaderWrap::mimeDecodeValue()` no longer uses ext-imap, which left PHP core in
   8.4. A built-in RFC 2047 decoder handles multibyte characters split across
   encoded words, words in any charset case, and tab-folded lines.
-- A failed `AbstractProtocol::_connect()` no longer leaves its temporary error
-  handler installed.
+- Connections to mail servers require STARTTLS by default. Pass
+  `security: Security::None` (or `'security' => 'none'`) for a local relay without
+  TLS.
+- SMTP refuses to authenticate over an unencrypted connection unless
+  `allow_insecure_auth` is set, and only uses mechanisms the server advertises.
+- SMTP refuses a body line longer than 998 octets instead of folding it, which
+  changed the content and broke DKIM signatures.
+- Text parts write their line breaks as quoted-printable hard line breaks and keep
+  trailing whitespace, and `multipart/related` names its root type.
+- Headers read from stored mail write back the exact text they were read with
+  until they are changed, so forwarded and DKIM-signed headers survive.
+- Generated Message-IDs use a reserved domain rather than the machine's host name.
+- Without a port, SMTP connects to 587, the submission port, when using STARTTLS
+  (the default); 465 for TLS and 25 for a plain connection.
+- `Sendmail` can run the sendmail program directly, with no shell, when given a
+  `path`; without one it uses `mail()` as before.
+- The container's transport configuration must name its `type`; it no longer
+  defaults to sendmail.
+- `XOAuth2` accepts a Closure that returns a fresh access token at each AUTH.
+- A header word too long to fold within 998 characters is written as encoded
+  words, so no header line ever exceeds the RFC 5322 limit.
+- Encoded words always hold whole characters (RFC 2047, section 5). A header name
+  may be up to 997 characters; when nothing of the value fits after the name, the
+  value starts on the next line. A received header name longer than 997
+  characters can only come from a line already over 998 octets, so parsing such a
+  block throws `Contenir\Mail\Header\Exception\RuntimeException`.
+- A header that its class cannot parse, including an address header holding an
+  invalid address, is kept as a `GenericHeader` with its original text, so one
+  bad header no longer stops a message being read.
+- Invalid UTF-8 in received header text is replaced with U+FFFD; laminas-mail
+  replaced it with `?`.
+- Raw UTF-8 header values (RFC 6532) in stored or received mail are read into
+  their header classes. Header values refuse control characters other than tab.
+- A missing required storage setting (`dirname`, `filename`, `user`) throws
+  `Contenir\Mail\Exception\InvalidArgumentException`.
 - Display names are quoted when they contain RFC 5322 specials, and encoded with
   those specials escaped when they are not ASCII, so a name can never add
   recipients.

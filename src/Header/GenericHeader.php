@@ -23,11 +23,12 @@ final readonly class GenericHeader implements HeaderInterface
     private string $fieldValue;
 
     /**
-     * @throws Exception\InvalidArgumentException When the name or value is invalid.
+     * @throws Exception\InvalidArgumentException When the name or value is invalid, or the name is longer than HeaderName::MAX_LENGTH.
      */
     public function __construct(string $fieldName, string $fieldValue = '')
     {
-        // Normalise "content_type" and "content type" to "Content-Type"
+        HeaderName::assertLength($fieldName);
+        /** Normalise "content_type" and "content type" to "Content-Type" */
         $fieldName = str_replace(
             search: ' ',
             replace: '-',
@@ -53,6 +54,9 @@ final readonly class GenericHeader implements HeaderInterface
         $this->fieldValue = $fieldValue;
     }
 
+    /**
+     * @throws Exception\InvalidArgumentException When the line is malformed or the name is longer than HeaderName::MAX_LENGTH.
+     */
     #[Override]
     public static function fromString(string $headerLine): static
     {
@@ -80,7 +84,7 @@ final readonly class GenericHeader implements HeaderInterface
             throw new Exception\InvalidArgumentException('Invalid header name detected');
         }
 
-        if (! HeaderValue::isValid($value)) {
+        if (! HeaderValue::isValidUtf8($value)) {
             throw new Exception\InvalidArgumentException('Invalid header value detected');
         }
 
@@ -108,6 +112,6 @@ final readonly class GenericHeader implements HeaderInterface
     #[Override]
     public function toString(): string
     {
-        return "{$this->fieldName}: {$this->getEncodedFieldValue()}";
+        return HeaderWrap::line($this->fieldName, $this->getEncodedFieldValue());
     }
 }

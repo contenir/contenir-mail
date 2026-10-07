@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
-use function ord;
+use function preg_match;
+use function preg_replace;
+use function sprintf;
 use function strlen;
 
 /**
@@ -12,37 +14,42 @@ use function strlen;
  */
 final class HeaderName
 {
+    /**
+     * Longest name a built header may have.
+     *
+     * Every written line must fit in 998 characters (RFC 5322, section
+     * 2.1.1). When nothing of the value fits after "Name: ", the value
+     * starts on the next line, so the first line need hold only the name
+     * and its colon: 998 - 1 = 997.
+     */
+    public const int MAX_LENGTH = HeaderLines::MAX_LINE_LENGTH - 1;
+
     private function __construct() {}
 
+    /**
+     * Drop the characters isValid() rejects.
+     */
     public static function filter(string $name): string
     {
-        $result = '';
-        $total  = strlen($name);
-        for ($i = 0; $i < $total; ++$i) {
-            $ord = ord($name[$i]);
-            if ($ord > 32 && $ord < 127 && 58 !== $ord) {
-                $result .= $name[$i];
-            }
-        }
-
-        return $result;
+        return (string) preg_replace('/[^\x21-\x39\x3B-\x7E]/', replacement: '', subject: $name);
     }
 
     public static function isValid(string $name): bool
     {
-        $total = strlen($name);
-        if (0 === $total) {
-            return false;
-        }
+        return 1 === preg_match('/^[\x21-\x39\x3B-\x7E]+$/D', $name);
+    }
 
-        for ($i = 0; $i < $total; ++$i) {
-            $ord = ord($name[$i]);
-            if ($ord < 33 || $ord > 126 || 58 === $ord) {
-                return false;
-            }
+    /**
+     * @throws Exception\InvalidArgumentException When the name is longer than MAX_LENGTH.
+     */
+    public static function assertLength(string $name): void
+    {
+        if (strlen($name) > self::MAX_LENGTH) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'Header name must be at most %d characters',
+                self::MAX_LENGTH,
+            ));
         }
-
-        return true;
     }
 
     /**
