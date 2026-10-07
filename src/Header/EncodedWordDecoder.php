@@ -6,6 +6,7 @@ namespace Contenir\Mail\Header;
 
 use function base64_decode;
 use function iconv;
+use function mb_scrub;
 use function preg_match;
 use function preg_split;
 use function quoted_printable_decode;
@@ -28,8 +29,6 @@ final class EncodedWordDecoder
     private const string ENCODED_WORD = '/(=\?[^?*]+(?:\*[^?]*)?\?[BbQq]\?[^?]*\?=)/';
 
     private const string WORD_PARTS = '/^=\?(?<charset>[^?*]+)(?:\*[^?]*)?\?(?<scheme>[BbQq])\?(?<text>[^?]*)\?=$/';
-
-    private function __construct() {}
 
     public static function decode(string $value): string
     {
@@ -90,7 +89,10 @@ final class EncodedWordDecoder
         return [strtoupper($matches['charset'] ?? 'UTF-8'), $bytes];
     }
 
-    private static function toUtf8(string $value, ?string $charset): string
+    /**
+     * Convert text in the named charset to UTF-8, leaving it as it is when iconv does not know the charset.
+     */
+    public static function toUtf8(string $value, ?string $charset): string
     {
         if ('' === $value || null === $charset || 'UTF-8' === $charset) {
             return $value;
@@ -102,5 +104,13 @@ final class EncodedWordDecoder
         restore_error_handler();
 
         return false === $converted ? $value : $converted;
+    }
+
+    /**
+     * The value as valid UTF-8, any invalid byte sequences replaced.
+     */
+    public static function scrub(string $value): string
+    {
+        return mb_scrub($value, encoding: 'UTF-8');
     }
 }

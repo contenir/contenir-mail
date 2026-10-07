@@ -1,1066 +1,573 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage\Writable;
 
-use Contenir\Mail\Exception as MailException;
-use Contenir\Mail\Storage;
-use Contenir\Mail\Storage\Exception as StorageException;
-use Contenir\Mail\Storage\Exception\ExceptionInterface;
-use Contenir\Mail\Storage\Exception\InvalidArgumentException;
-use Contenir\Mail\Storage\Exception\RuntimeException;
+use Contenir\Mail\Message as ComposedMessage;
+use Contenir\Mail\Mime\Exception\RuntimeException as MimeException;
+use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\FileSystem;
+use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Folder;
-use Laminas\Stdlib\ErrorHandler;
+use Contenir\Mail\Storage\LocalPath;
+use Contenir\Mail\Storage\MaildirFiles;
+use Contenir\Mail\Storage\Message;
 use Override;
 use RecursiveIteratorIterator;
 
-use function array_flip;
-use function array_keys;
-use function array_search;
+use function array_filter;
 use function array_values;
-use function closedir;
-use function copy;
 use function dirname;
 use function explode;
-use function fclose;
-use function fgets;
 use function file_exists;
-use function file_put_contents;
-use function filemtime;
 use function filesize;
 use function fopen;
-use function fread;
-use function fwrite;
-use function get_resource_type;
-use function getmypid;
-use function implode;
+use function in_array;
 use function is_array;
 use function is_dir;
-use function is_file;
-use function is_numeric;
-use function is_resource;
+use function is_iterable;
+use function is_link;
+use function iterator_to_array;
 use function link;
-use function microtime;
-use function mkdir;
-use function opendir;
-use function php_uname;
-use function readdir;
+use function preg_match;
 use function rename;
 use function rmdir;
-use function rtrim;
-use function sleep;
-use function str_contains;
 use function str_starts_with;
-use function stream_copy_to_stream;
 use function strlen;
-use function strpos;
-use function strrpos;
-use function strtok;
 use function substr;
-use function time;
-use function trim;
 use function unlink;
 
 use const DIRECTORY_SEPARATOR;
-use const E_WARNING;
-use const FILE_APPEND;
 
-class Maildir extends Folder\Maildir implements WritableInterface
+/**
+ * A writable Maildir++ tree: store, copy, move and flag messages, and manage folders and quota.
+ *
+ * Messages are written as Maildir delivery asks: to a new file in tmp/,
+ * opened exclusively, synced to disk, then linked into cur/ or new/, so a
+ * reader never sees half a message. Files and directories are created
+ * private to the owner by default; see MaildirConfig.
+ *
+ * Folder names may not hold "/", "\", control characters, "." or ".."
+ * parts, or empty parts, and nothing is written through a symbolic link:
+ * a folder, tmp/, cur/ or new/ that is a link is refused.
+ *
+ * @mago-expect lint:too-many-methods The WritableInterface operations, quota handling and their checks.
+ * @mago-expect lint:cyclomatic-complexity Each write checks its folder, flags and the result of each file system step.
+ * @mago-expect lint:kan-defect Each write checks its folder, flags and the result of each file system step.
+ *
+ * @api
+ */
+final class Maildir extends Folder\Maildir implements WritableInterface
 {
-    // TODO: init maildir (+ constructor option create if not found)
+    private int $directoryMode = 0o700;
+
+    private int $fileMode = 0o600;
+
+    /** @var bool|array{size?: int, count?: int} */
+    private bool|array $quota = false;
 
     /**
-     * use quota and size of quota if given
-     *
-     * @var bool|int
+     * @param MaildirConfig|iterable<mixed, mixed> $config A Writable\MaildirConfig, or its settings.
+     * @throws Exception\ExceptionInterface When the settings are invalid, the maildir cannot be created, or the folder cannot be selected.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected $quota;
-
-    /**
-     * create a new maildir
-     *
-     * If the given dir is already a valid maildir this will not fail.
-     *
-     * @param string $dir directory for the new maildir (may already exist)
-     * @throws RuntimeException
-     * @throws InvalidArgumentException
-     */
-    public static function initMaildir($dir)
+    public function __construct(MaildirConfig|iterable $config)
     {
-        if (file_exists($dir)) {
-            if (! is_dir($dir)) {
-                throw new StorageException\InvalidArgumentException('maildir must be a directory if already exists');
-            }
-        } else {
-            ErrorHandler::start();
-            $test  = mkdir($dir);
-            $error = ErrorHandler::stop();
-            if (! $test) {
-                $dir = dirname($dir);
-                if (! file_exists($dir)) {
-                    throw new StorageException\InvalidArgumentException("parent {$dir} not found", 0, $error);
-                }
-
-                if (! is_dir($dir)) {
-                    throw new StorageException\InvalidArgumentException("parent {$dir} not a directory", 0, $error);
-                }
-
-                throw new StorageException\RuntimeException('cannot create maildir', 0, $error);
-            }
+        $config              = is_iterable($config) ? MaildirConfig::fromIterable($config) : $config;
+        $this->directoryMode = $config->directoryMode;
+        $this->fileMode      = $config->fileMode;
+        if ($config->create && ! file_exists($config->dirname . DIRECTORY_SEPARATOR . 'cur')) {
+            self::initMaildir($config->dirname, $config->directoryMode);
         }
 
-        foreach (['cur', 'tmp', 'new'] as $subdir) {
-            ErrorHandler::start();
-            $test  = mkdir($dir . DIRECTORY_SEPARATOR . $subdir);
-            $error = ErrorHandler::stop();
-            if (! $test) {
-                // ignore if dir exists (i.e. was already valid maildir or two processes try to create one)
-                if (! file_exists($dir . DIRECTORY_SEPARATOR . $subdir)) {
-                    throw new StorageException\RuntimeException("could not create subdir {$subdir}", 0, $error);
-                }
-            }
-        }
+        parent::__construct($config->folderConfig());
+        $this->has['create'] = true;
+        $this->has['delete'] = true;
     }
 
     /**
-     * Create instance with parameters
-     * Additional parameters are (see parent for more):
-     *   - create if true a new maildir is create if none exists
+     * Create a maildir: the directory, where missing, and its cur/, new/ and tmp/.
      *
-     * @param  array|object $params mail reader specific parameters
-     * @throws ExceptionInterface
+     * An existing maildir is left as it is.
+     *
+     * @throws Exception\InvalidArgumentException When the path is not local, is a symbolic link or a file, or its parent is missing.
+     * @throws Exception\RuntimeException When a directory cannot be created.
      */
-    public function __construct($params)
+    public static function initMaildir(string $dir, int $directoryMode = 0o700): void
     {
-        if (is_array($params)) {
-            $params = (object) $params;
-        }
-
-        if (
-            ! empty($params->create)
-            && isset($params->dirname)
-            && ! file_exists($params->dirname . DIRECTORY_SEPARATOR . 'cur')
-        ) {
-            self::initMaildir($params->dirname);
-        }
-
-        parent::__construct($params);
-    }
-
-    /**
-     * create a new folder
-     *
-     * This method also creates parent folders if necessary. Some mail storages may restrict, which folder
-     * may be used as parent or which chars may be used in the folder name
-     *
-     * @param   string                           $name         global name of folder, local name if $parentFolder is set
-     * @param string|Folder $parentFolder parent of new folder, else root folder is parent
-     * @throws RuntimeException
-     * @return  string only used internally (new created maildir)
-     */
-    #[Override]
-    public function createFolder($name, $parentFolder = null)
-    {
-        if ($parentFolder instanceof Folder) {
-            $folder = $parentFolder->getGlobalName() . $this->delim . $name;
-        } elseif (null !== $parentFolder) {
-            $folder = rtrim($parentFolder, $this->delim) . $this->delim . $name;
-        } else {
-            $folder = $name;
-        }
-
-        $folder = trim($folder, $this->delim);
-
-        // first we check if we try to create a folder that does exist
-        $exists = null;
-        try {
-            $exists = $this->getFolders($folder);
-        } catch (MailException\ExceptionInterface) {
-            // ok
-        }
-        if ($exists) {
-            throw new StorageException\RuntimeException('folder already exists');
-        }
-
-        if (str_contains($folder, $this->delim . $this->delim)) {
-            throw new StorageException\RuntimeException('invalid name - folder parts may not be empty');
-        }
-
-        if (str_starts_with($folder, "INBOX{$this->delim}")) {
-            $folder = substr($folder, 6);
-        }
-
-        $fulldir = "{$this->rootdir}.{$folder}";
-
-        // check if we got tricked and would create a dir outside of the rootdir or not as direct child
-        if (
-            str_contains($folder, DIRECTORY_SEPARATOR)
-            || str_contains($folder, '/')
-            || dirname($fulldir) . DIRECTORY_SEPARATOR != $this->rootdir
-        ) {
-            throw new StorageException\RuntimeException('invalid name - no directory separator allowed in folder name');
-        }
-
-        // has a parent folder?
-        $parent = null;
-        if (strpos($folder, $this->delim)) {
-            // let's see if the parent folder exists
-            $parent = substr($folder, 0, strrpos($folder, $this->delim));
-            try {
-                $this->getFolders($parent);
-            } catch (MailException\ExceptionInterface) {
-                // does not - create parent folder
-                $this->createFolder($parent);
-            }
-        }
-
-        ErrorHandler::start();
-        if (! mkdir($fulldir) || ! mkdir($fulldir . DIRECTORY_SEPARATOR . 'cur')) {
-            $error = ErrorHandler::stop();
-            throw new StorageException\RuntimeException(
-                'error while creating new folder, may be created incompletely',
-                0,
-                $error,
-            );
-        }
-        ErrorHandler::stop();
-
-        mkdir($fulldir . DIRECTORY_SEPARATOR . 'new');
-        mkdir($fulldir . DIRECTORY_SEPARATOR . 'tmp');
-
-        $localName                             = $parent ? substr($folder, strlen($parent) + 1) : $folder;
-        $this->getFolders($parent)->$localName = new Folder($localName, $folder, true);
-
-        return $fulldir;
-    }
-
-    /**
-     * remove a folder
-     *
-     * @param  string|Folder $name      name or instance of folder
-     * @throws RuntimeException
-     */
-    #[Override]
-    public function removeFolder($name)
-    {
-        // TODO: This could fail in the middle of the task, which is not optimal.
-        // But there is no defined standard way to mark a folder as removed and there is no atomar fs-op
-        // to remove a directory. Also moving the folder to a/the trash folder is not possible, as
-        // all parent folders must be created. What we could do is add a dash to the front of the
-        // directory name and it should be ignored as long as other processes obey the standard.
-
-        if ($name instanceof Folder) {
-            $name = $name->getGlobalName();
-        }
-
-        $name = trim($name, $this->delim);
-        if (str_starts_with($name, "INBOX{$this->delim}")) {
-            $name = substr($name, 6);
-        }
-
-        // check if folder exists and has no children
-        if (! $this->getFolders($name)->isLeaf()) {
-            throw new StorageException\RuntimeException('delete children first');
-        }
-
-        if ('INBOX' == $name || DIRECTORY_SEPARATOR == $name || '/' == $name) {
-            throw new StorageException\RuntimeException('wont delete INBOX');
-        }
-
-        if ($name == $this->getCurrentFolder()) {
-            throw new StorageException\RuntimeException('wont delete selected folder');
-        }
-
-        foreach (['tmp', 'new', 'cur', '.'] as $subdir) {
-            $dir = $this->rootdir . '.' . $name . DIRECTORY_SEPARATOR . $subdir;
-            if (! file_exists($dir)) {
-                continue;
-            }
-            $dh = opendir($dir);
-            if (! $dh) {
-                throw new StorageException\RuntimeException("error opening {$subdir}");
-            }
-            while (($entry = readdir($dh)) !== false) {
-                if ('.' == $entry || '..' == $entry) {
-                    continue;
-                }
-                if (! unlink($dir . DIRECTORY_SEPARATOR . $entry)) {
-                    throw new StorageException\RuntimeException("error cleaning {$subdir}");
-                }
-            }
-            closedir($dh);
-            if ('.' !== $subdir) {
-                if (! rmdir($dir)) {
-                    throw new StorageException\RuntimeException("error removing {$subdir}");
-                }
-            }
-        }
-
-        if (! rmdir("{$this->rootdir}.{$name}")) {
-            // at least we should try to make it a valid maildir again
-            mkdir($this->rootdir . '.' . $name . DIRECTORY_SEPARATOR . 'cur');
-            throw new StorageException\RuntimeException('error removing maindir');
-        }
-
-        $parent    = strpos($name, $this->delim) ? substr($name, 0, strrpos($name, $this->delim)) : null;
-        $localName = $parent ? substr($name, strlen($parent) + 1) : $name;
-        unset($this->getFolders($parent)->$localName);
-    }
-
-    /**
-     * rename and/or move folder
-     *
-     * The new name has the same restrictions as in createFolder()
-     *
-     * @param string|Folder $oldName name or instance of folder
-     * @param  string                           $newName new global name of folder
-     * @throws RuntimeException
-     */
-    #[Override]
-    public function renameFolder($oldName, $newName)
-    {
-        // TODO: This is also not atomar and has similar problems as removeFolder()
-
-        if ($oldName instanceof Folder) {
-            $oldName = $oldName->getGlobalName();
-        }
-
-        $oldName = trim($oldName, $this->delim);
-        if (str_starts_with($oldName, "INBOX{$this->delim}")) {
-            $oldName = substr($oldName, 6);
-        }
-
-        $newName = trim($newName, $this->delim);
-        if (str_starts_with($newName, "INBOX{$this->delim}")) {
-            $newName = substr($newName, 6);
-        }
-
-        if (str_starts_with($newName, $oldName . $this->delim)) {
-            throw new StorageException\RuntimeException('new folder cannot be a child of old folder');
-        }
-
-        // check if folder exists and has no children
-        $folder = $this->getFolders($oldName);
-
-        if ('INBOX' == $oldName || DIRECTORY_SEPARATOR == $oldName || '/' == $oldName) {
-            throw new StorageException\RuntimeException('wont rename INBOX');
-        }
-
-        if ($oldName == $this->getCurrentFolder()) {
-            throw new StorageException\RuntimeException('wont rename selected folder');
-        }
-
-        $newdir = $this->createFolder($newName);
-
-        if (! $folder->isLeaf()) {
-            foreach ($folder as $k => $v) {
-                $this->renameFolder($v->getGlobalName(), $newName . $this->delim . $k);
-            }
-        }
-
-        $olddir = "{$this->rootdir}.{$folder}";
-        foreach (['tmp', 'new', 'cur'] as $subdir) {
-            $subdir = DIRECTORY_SEPARATOR . $subdir;
-            if (! file_exists($olddir . $subdir)) {
-                continue;
-            }
-            // using copy or moving files would be even better - but also much slower
-            if (! rename($olddir . $subdir, $newdir . $subdir)) {
-                throw new StorageException\RuntimeException("error while moving {$subdir}");
-            }
-        }
-        // create a dummy if removing fails - otherwise we can't read it next time
-        mkdir($olddir . DIRECTORY_SEPARATOR . 'cur');
-        $this->removeFolder($oldName);
-    }
-
-    /**
-     * create a uniqueid for maildir filename
-     *
-     * This is nearly the format defined in the maildir standard. The microtime() call should already
-     * create a uniqueid, the pid is for multicore/-cpu machine that manage to call this function at the
-     * exact same time, and uname() gives us the hostname for multiple machines accessing the same storage.
-     *
-     * If someone disables posix we create a random number of the same size, so this method should also
-     * work on Windows - if you manage to get maildir working on Windows.
-     * Microtime could also be disabled, although I've never seen it.
-     *
-     * @return string new uniqueid
-     */
-    protected function createUniqueId()
-    {
-        $id = '';
-        $id .= microtime(true);
-        $id .= '.' . getmypid();
-        $id .= '.' . php_uname('n');
-
-        return $id;
-    }
-
-    /**
-     * open a temporary maildir file
-     *
-     * makes sure tmp/ exists and create a file with a unique name
-     * you should close the returned filehandle!
-     *
-     * @param   string $folder name of current folder without leading .
-     * @throws RuntimeException
-     * @return  array array('dirname' => dir of maildir folder, 'uniq' => unique id, 'filename' => name of create file
-     *                     'handle'  => file opened for writing)
-     */
-    protected function createTmpFile($folder = 'INBOX')
-    {
-        if ('INBOX' == $folder) {
-            $tmpdir = $this->rootdir . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR;
-        } else {
-            $tmpdir = $this->rootdir . '.' . $folder . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR;
-        }
-        if (! file_exists($tmpdir)) {
-            if (! mkdir($tmpdir)) {
-                throw new StorageException\RuntimeException('problems creating tmp dir');
-            }
-        }
-
-        // we should retry to create a unique id if a file with the same name exists
-        // to avoid a script timeout we only wait 1 second (instead of 2) and stop
-        // after a defined retry count
-        // if you change this variable take into account that it can take up to $maxTries seconds
-        // normally we should have a valid unique name after the first try, we're just following the "standard" here
-        $maxTries = 5;
-        for ($i = 0; $i < $maxTries; ++$i) {
-            $uniq = $this->createUniqueId();
-            if (! file_exists($tmpdir . $uniq)) {
-                // here is the race condition! - as defined in the standard
-                // to avoid having a long time between stat()ing the file and creating it we're opening it here
-                // to mark the filename as taken
-                $fh = fopen($tmpdir . $uniq, 'w');
-                if (! $fh) {
-                    throw new StorageException\RuntimeException('could not open temp file');
-                }
-                break;
-            }
-            sleep(1);
-        }
-
-        if (! $fh) {
-            throw new StorageException\RuntimeException(
-                "tried {$maxTries} unique ids for a temp file, but all were taken - giving up",
+        LocalPath::check($dir, 'dirname');
+        if (is_link($dir) || (file_exists($dir) && ! is_dir($dir))) {
+            throw new Exception\InvalidArgumentException(
+                'The maildir must be a directory, not a file or a symbolic link',
             );
         }
 
-        return [
-            'dirname'  => "{$this->rootdir}.{$folder}",
-            'uniq'     => $uniq,
-            'filename' => $tmpdir . $uniq,
-            'handle'   => $fh,
-        ];
+        if (! is_dir(dirname($dir))) {
+            throw new Exception\InvalidArgumentException('The parent of the maildir does not exist');
+        }
+
+        FileSystem::createDirectory($dir, $directoryMode);
+        foreach (['cur', 'new', 'tmp'] as $subdir) {
+            FileSystem::createDirectory($dir . DIRECTORY_SEPARATOR . $subdir, $directoryMode);
+        }
     }
 
     /**
-     * create an info string for filenames with given flags
-     *
-     * @param array $flags wanted flags, with the reference you'll get the set
-     *     flags with correct key (= char for flag)
-     * @return string info string for version 2 filenames including the leading colon
-     * @throws StorageException\InvalidArgumentException
+     * @throws Exception\ExceptionInterface When the folder exists, or the name is not allowed.
      */
-    protected function getInfoString(&$flags)
+    #[Override]
+    public function createFolder(string $name, Folder|string|null $parentFolder = null): void
     {
-        // accessing keys is easier, faster and it removes duplicated flags
-        $wantedFlags = array_flip($flags);
-        if (isset($wantedFlags[Storage::FLAG_RECENT])) {
-            throw new StorageException\InvalidArgumentException('recent flag may not be set');
+        $global = null === $parentFolder ? $name : "{$parentFolder}{$this->delim}{$name}";
+        $local  = $this->checkFolderName($global);
+        if ($this->folderExists($local)) {
+            throw new Exception\RuntimeException("Folder {$global} already exists");
         }
 
-        $info  = ':2,';
-        $flags = [];
-        foreach (Storage\Maildir::$knownFlags as $char => $flag) {
-            if (! isset($wantedFlags[$flag])) {
+        self::initMaildir($this->folderPath($local), $this->directoryMode);
+        $this->rootFolder = $this->buildFolderTree();
+    }
+
+    /**
+     * @throws Exception\ExceptionInterface When the folder is INBOX, selected, has subfolders or cannot be removed.
+     */
+    #[Override]
+    public function removeFolder(Folder|string $name): void
+    {
+        $local = $this->localPath((string) $name);
+        if (! $this->writableFolder($local, 'remove')->isLeaf()) {
+            throw new Exception\RuntimeException('Remove the subfolders first');
+        }
+
+        $dir = $this->folderPath($local);
+        foreach (["{$dir}/tmp", "{$dir}/new", "{$dir}/cur", $dir] as $path) {
+            FileSystem::emptyDirectory($path);
+            if (is_dir($path) && ! FileSystem::quietly(static fn(): bool => rmdir($path))) {
+                throw new Exception\RuntimeException("Cannot remove {$path}");
+            }
+        }
+
+        $this->rootFolder = $this->buildFolderTree();
+    }
+
+    /**
+     * Rename a folder and its subfolders.
+     *
+     * @throws Exception\ExceptionInterface When the folder is INBOX or selected, or the new name is taken or not allowed.
+     */
+    #[Override]
+    public function renameFolder(Folder|string $oldName, string $newName): void
+    {
+        $old    = $this->localPath((string) $oldName);
+        $new    = $this->checkFolderName($newName);
+        $folder = $this->writableFolder($old, 'rename');
+        if ($new === $old || str_starts_with($new, $old . $this->delim)) {
+            throw new Exception\RuntimeException('The new folder cannot be the old folder or one of its children');
+        }
+
+        if ($this->folderExists($new)) {
+            throw new Exception\RuntimeException("Folder {$newName} already exists");
+        }
+
+        $tree = new RecursiveIteratorIterator($folder, RecursiveIteratorIterator::SELF_FIRST);
+        foreach ([$folder, ...iterator_to_array($tree, preserve_keys: false)] as $source) {
+            $from = $this->folderPath($source->getGlobalName());
+            $to   = $this->folderPath($new . substr($source->getGlobalName(), strlen($old)));
+            if (! $source->isSelectable()) {
                 continue;
             }
-            $info         .= $char;
-            $flags[$char] = $flag;
-            unset($wantedFlags[$flag]);
+
+            if (file_exists($to) || is_link($from) || ! FileSystem::quietly(static fn(): bool => rename($from, $to))) {
+                $this->rootFolder = $this->buildFolderTree();
+
+                throw new Exception\RuntimeException("Cannot move {$source->getGlobalName()}");
+            }
         }
 
-        if (! empty($wantedFlags)) {
-            $wantedFlags = implode(', ', array_keys($wantedFlags));
-            throw new StorageException\InvalidArgumentException("unknown flag(s): {$wantedFlags}");
-        }
-
-        return $info;
+        $this->rootFolder = $this->buildFolderTree();
     }
 
     /**
-     * append a new message to mail storage
+     * Store a message.
      *
-     * @param string|resource $message message as string or stream resource.
-     * @param null|string|Folder $folder folder for new message, else current
-     *     folder is taken.
-     * @param null|array $flags set flags for new message, else a default set
-     *     is used.
-     * @param bool $recent handle this mail as if recent flag has been set,
-     *     should only be used in delivery.
-     * @throws StorageException\RuntimeException
+     * @param string|resource|Message|ComposedMessage $message
+     * @param iterable<Flag|string>|null $flags Seen when null.
+     * @param bool $recent Deliver to new/ as a recent message, without flags, as a delivery agent would.
+     * @throws Exception\ExceptionInterface When the storage is over quota, a flag cannot be stored, or writing fails.
+     * @throws MimeException When a composed message cannot be written.
+     *
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature; $recent picks new/ over cur/.
      */
     #[Override]
-    public function appendMessage($message, $folder = null, $flags = null, $recent = false)
-    {
-        if ($this->quota && $this->checkQuota()) {
-            throw new StorageException\RuntimeException('storage is over quota!');
-        }
-
-        if (null === $folder) {
-            $folder = $this->currentFolder;
-        }
-
-        if (! $folder instanceof Folder) {
-            $folder = $this->getFolders($folder);
-        }
-
-        if (null === $flags) {
-            $flags = [Storage::FLAG_SEEN];
-        }
-        $info     = $this->getInfoString($flags);
-        $tempFile = $this->createTmpFile($folder->getGlobalName());
-
-        // TODO: handle class instances for $message
-        if (is_resource($message) && get_resource_type($message) == 'stream') {
-            stream_copy_to_stream($message, $tempFile['handle']);
-        } else {
-            fwrite($tempFile['handle'], $message);
-        }
-        fclose($tempFile['handle']);
-
-        // we're adding the size to the filename for maildir++
-        $size = filesize($tempFile['filename']);
-        if (false !== $size) {
-            $info = ",S={$size}{$info}";
-        }
-        $newFilename = $tempFile['dirname'] . DIRECTORY_SEPARATOR;
-        $newFilename .= $recent ? 'new' : 'cur';
-        $newFilename .= DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
-
-        // we're throwing any exception after removing our temp file and saving it to this variable instead
-        $exception = null;
-
-        if (! link($tempFile['filename'], $newFilename)) {
-            $exception = new StorageException\RuntimeException('cannot link message file to final dir');
-        }
-
-        ErrorHandler::start(E_WARNING);
-        unlink($tempFile['filename']);
-        ErrorHandler::stop();
-
-        if ($exception) {
-            throw $exception;
-        }
-
-        $this->files[] = [
-            'uniq'     => $tempFile['uniq'],
-            'flags'    => $flags,
-            'filename' => $newFilename,
-        ];
-        if ($this->quota) {
-            $this->addQuotaEntry((int) $size, 1);
-        }
+    public function appendMessage(
+        mixed $message,
+        Folder|string|null $folder = null,
+        ?iterable $flags = null,
+        bool $recent = false,
+    ): void {
+        $this->refuseOverQuota();
+        $local = $this->selectableFolder($folder ?? $this->currentFolder);
+        [$info, $named] = MaildirName::info($flags ?? [Flag::Seen]);
+        $temporary = $this->targetDirectory($local, 'tmp');
+        [$path, $uniq] = MaildirDelivery::writeTemporary($temporary, $message, $this->fileMode);
+        $size   = (int) FileSystem::quietly(static fn(): int|false => filesize($path));
+        $name   = $recent ? "{$uniq},S={$size}" : "{$uniq},S={$size}:{$info}";
+        $target = $this->targetDirectory($local, $recent ? 'new' : 'cur') . DIRECTORY_SEPARATOR . $name;
+        MaildirDelivery::deliver($path, $target);
+        $this->track($local, $uniq, $recent ? [Flag::Recent] : $named, $target, $size);
     }
 
     /**
-     * copy an existing message
+     * Copy a message to a folder, without its Recent flag.
      *
-     * @param  int                              $id     number of message
-     * @param string|Folder $folder name or instance of targer folder
-     * @throws RuntimeException
+     * @throws Exception\ExceptionInterface When there is no such message or folder, or writing fails.
+     * @throws MimeException Never: the copy is written from a file.
      */
     #[Override]
-    public function copyMessage($id, $folder)
+    public function copyMessage(int $id, Folder|string $folder): void
     {
-        if ($this->quota && $this->checkQuota()) {
-            throw new StorageException\RuntimeException('storage is over quota!');
+        $this->refuseOverQuota();
+        $file  = $this->file($id);
+        $local = $this->selectableFolder($folder);
+        [$info, $named] = MaildirName::info(self::withoutRecent($file['flags']));
+        $source = FileSystem::quietly(static fn(): mixed => fopen($file['filename'], mode: 'rb'));
+        if (false === $source) {
+            throw new Exception\RuntimeException('Cannot read the message file; it may have been moved');
         }
 
-        if (! $folder instanceof Folder) {
-            $folder = $this->getFolders($folder);
-        }
-
-        $filedata = $this->getFileData($id);
-        $oldFile  = $filedata['filename'];
-        $flags    = $filedata['flags'];
-
-        // copied message can't be recent
-        while (($key = array_search(Storage::FLAG_RECENT, $flags)) !== false) {
-            unset($flags[$key]);
-        }
-        $info = $this->getInfoString($flags);
-
-        // we're creating the copy as temp file before moving to cur/
-        $tempFile = $this->createTmpFile($folder->getGlobalName());
-        // we don't write directly to the file
-        fclose($tempFile['handle']);
-
-        // we're adding the size to the filename for maildir++
-        $size = filesize($oldFile);
-        if (false !== $size) {
-            $info = ",S={$size}{$info}";
-        }
-
-        $newFile = $tempFile['dirname'] . DIRECTORY_SEPARATOR . 'cur' . DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
-
-        // we're throwing any exception after removing our temp file and saving it to this variable instead
-        $exception = null;
-
-        if (! copy($oldFile, $tempFile['filename'])) {
-            $exception = new StorageException\RuntimeException('cannot copy message file');
-        } elseif (! link($tempFile['filename'], $newFile)) {
-            $exception = new StorageException\RuntimeException('cannot link message file to final dir');
-        }
-
-        ErrorHandler::start(E_WARNING);
-        unlink($tempFile['filename']);
-        ErrorHandler::stop();
-
-        if ($exception) {
-            throw $exception;
-        }
-
-        if (
-            $folder->getGlobalName() == $this->currentFolder
-            || (
-                'INBOX' == $this->currentFolder
-                && $folder->getGlobalName() == '/'
-            )
-        ) {
-            $this->files[] = [
-                'uniq'     => $tempFile['uniq'],
-                'flags'    => $flags,
-                'filename' => $newFile,
-            ];
-        }
-
-        if ($this->quota) {
-            $this->addQuotaEntry((int) $size, 1);
-        }
+        $temporary = $this->targetDirectory($local, 'tmp');
+        [$path, $uniq] = MaildirDelivery::writeTemporary($temporary, $source, $this->fileMode);
+        $size   = (int) FileSystem::quietly(static fn(): int|false => filesize($path));
+        $target = $this->targetDirectory($local, 'cur') . DIRECTORY_SEPARATOR . "{$uniq},S={$size}:{$info}";
+        MaildirDelivery::deliver($path, $target);
+        $this->track($local, $uniq, $named, $target, $size);
     }
 
     /**
-     * move an existing message
+     * Move a message to another folder, without its Recent flag.
      *
-     * @param  int                              $id     number of message
-     * @param string|Folder $folder name or instance of targer folder
-     * @throws RuntimeException
+     * @throws Exception\ExceptionInterface When there is no such message or folder, it is the current folder, or moving fails.
      */
     #[Override]
-    public function moveMessage($id, $folder)
+    public function moveMessage(int $id, Folder|string $folder): void
     {
-        if (! $folder instanceof Folder) {
-            $folder = $this->getFolders($folder);
+        $file  = $this->file($id);
+        $local = $this->selectableFolder($folder);
+        if ($this->localPath($this->currentFolder) === $local) {
+            throw new Exception\RuntimeException('The target is the current folder');
         }
 
-        if (
-            $folder->getGlobalName() == $this->currentFolder
-            || (
-                'INBOX' == $this->currentFolder
-                && $folder->getGlobalName() == '/'
-            )
-        ) {
-            throw new StorageException\RuntimeException('target is current folder');
+        [$info] = MaildirName::info(self::withoutRecent($file['flags']));
+        $size   = MaildirFiles::size($file['filename'], $file['size']);
+        $name   = MaildirName::unique() . ",S={$size}:{$info}";
+        $target = $this->targetDirectory($local, 'cur') . DIRECTORY_SEPARATOR . $name;
+        $source = $file['filename'];
+        if (! FileSystem::quietly(static fn(): bool => link($source, $target))) {
+            throw new Exception\RuntimeException('Cannot move the message file');
         }
 
-        $filedata = $this->getFileData($id);
-        $oldFile  = $filedata['filename'];
-        $flags    = $filedata['flags'];
-
-        // moved message can't be recent
-        while (($key = array_search(Storage::FLAG_RECENT, $flags)) !== false) {
-            unset($flags[$key]);
-        }
-        $info = $this->getInfoString($flags);
-
-        // reserving a new name
-        $tempFile = $this->createTmpFile($folder->getGlobalName());
-        fclose($tempFile['handle']);
-
-        // we're adding the size to the filename for maildir++
-        $size = filesize($oldFile);
-        if (false !== $size) {
-            $info = ",S={$size}{$info}";
-        }
-
-        $newFile = $tempFile['dirname'] . DIRECTORY_SEPARATOR . 'cur' . DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
-
-        // we're throwing any exception after removing our temp file and saving it to this variable instead
-        $exception = null;
-
-        if (! rename($oldFile, $newFile)) {
-            $exception = new StorageException\RuntimeException('cannot move message file');
-        }
-
-        ErrorHandler::start(E_WARNING);
-        unlink($tempFile['filename']);
-        ErrorHandler::stop();
-
-        if ($exception) {
-            throw $exception;
-        }
-
+        FileSystem::quietly(static fn(): bool => unlink($source));
         unset($this->files[$id - 1]);
-        // remove the gap
         $this->files = array_values($this->files);
     }
 
     /**
-     * set flags for message
+     * Replace a message's flags, moving it from new/ to cur/. Recent cannot be set.
      *
-     * NOTE: this method can't set the recent flag.
-     *
-     * @param   int   $id    number of message
-     * @param   array $flags new flags for message
-     * @throws RuntimeException
+     * @param iterable<Flag|string> $flags
+     * @throws Exception\ExceptionInterface When there is no such message, a flag cannot be stored, or renaming fails.
      */
     #[Override]
-    public function setFlags($id, $flags)
+    public function setFlags(int $id, iterable $flags): void
     {
-        $info     = $this->getInfoString($flags);
-        $filedata = $this->getFileData($id);
-
-        // NOTE: double dirname to make sure we always move to cur. if recent
-        // flag has been set (message is in new) it will be moved to cur.
-        $newFilename =
-            dirname($filedata['filename'], 2)
-            . DIRECTORY_SEPARATOR
-            . 'cur'
-            . DIRECTORY_SEPARATOR
-            . "{$filedata['uniq']}{$info}";
-
-        ErrorHandler::start();
-        $test  = rename($filedata['filename'], $newFilename);
-        $error = ErrorHandler::stop();
-        if (! $test) {
-            throw new StorageException\RuntimeException('cannot rename file', 0, $error);
+        $file = $this->file($id);
+        [$info, $named] = MaildirName::info($flags);
+        $directory = dirname($file['filename'], levels: 2) . DIRECTORY_SEPARATOR . 'cur';
+        $target    = $directory . DIRECTORY_SEPARATOR . "{$file['uniq']}:{$info}";
+        $source    = $file['filename'];
+        if (is_link($directory) || ! FileSystem::quietly(static fn(): bool => rename($source, $target))) {
+            throw new Exception\RuntimeException('Cannot rename the message file');
         }
 
-        $filedata['flags']    = $flags;
-        $filedata['filename'] = $newFilename;
-
-        $this->files[$id - 1] = $filedata;
+        $this->files[$id - 1] = [
+            'uniq'     => $file['uniq'],
+            'flags'    => $named,
+            'filename' => $target,
+            'size'     => $file['size'],
+        ];
     }
 
     /**
-     * stub for not supported message deletion
-     *
-     * @param int $id
-     * @throws RuntimeException
+     * @throws Exception\ExceptionInterface When there is no such message or it cannot be removed.
      */
     #[Override]
-    public function removeMessage($id)
+    public function removeMessage(int $id): void
     {
-        $filename = $this->getFileData($id, 'filename');
-
-        if ($this->quota) {
-            $size = filesize($filename);
+        $file = $this->file($id);
+        $size = MaildirFiles::size($file['filename'], $file['size']);
+        $path = $file['filename'];
+        if (! FileSystem::quietly(static fn(): bool => unlink($path))) {
+            throw new Exception\RuntimeException('Cannot remove the message');
         }
 
-        ErrorHandler::start();
-        $test  = unlink($filename);
-        $error = ErrorHandler::stop();
-        if (! $test) {
-            throw new StorageException\RuntimeException('cannot remove message', 0, $error);
-        }
         unset($this->files[$id - 1]);
-        // remove the gap
         $this->files = array_values($this->files);
-        if ($this->quota) {
-            $this->addQuotaEntry(0 - (int) $size, -1);
-        }
+        $this->addQuotaEntry(-$size, -1);
     }
 
     /**
-     * enable/disable quota and set a quota value if wanted or needed
+     * Turn quota checks on (true) or off (false), or set the quota to check against instead of maildirsize's.
      *
-     * You can enable/disable quota with true/false. If you don't have
-     * a MDA or want to enforce a quota value you can also set this value
-     * here. Use array('size' => SIZE_QUOTA, 'count' => MAX_MESSAGE) do
-     * define your quota. Order of these fields does matter!
+     * With checks on, storing is refused while over quota, and maildirsize
+     * is updated as messages are stored and removed.
      *
-     * @param bool|array $value new quota value
+     * @param bool|array{size?: int, count?: int} $value
      */
-    public function setQuota($value)
+    public function setQuota(bool|array $value): void
     {
         $this->quota = $value;
     }
 
     /**
-     * get currently set quota
+     * The quota setting, or with $fromStorage the quota defined in maildirsize.
      *
-     * @see \Contenir\Mail\Storage\Writable\Maildir::setQuota()
+     * @return bool|array{size?: int, count?: int}
+     * @throws Exception\RuntimeException When maildirsize is asked for but cannot be read.
      *
-     * @param bool $fromStorage
-     * @throws RuntimeException
-     * @return bool|array
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature.
      */
-    public function getQuota($fromStorage = false)
+    public function getQuota(bool $fromStorage = false): bool|array
     {
-        if ($fromStorage) {
-            ErrorHandler::start(E_WARNING);
-            $fh    = fopen("{$this->rootdir}maildirsize", 'r');
-            $error = ErrorHandler::stop();
-            if (! $fh) {
-                throw new StorageException\RuntimeException('cannot open maildirsize', 0, $error);
-            }
-            $definition = fgets($fh);
-            fclose($fh);
-            $definition = explode(',', trim($definition));
-            $quota      = [];
-            foreach ($definition as $member) {
-                $key = $member[strlen($member) - 1];
-                if ('S' == $key || 'C' == $key) {
-                    $key = 'C' == $key ? 'count' : 'size';
-                }
-                $quota[$key] = substr($member, 0, -1);
-            }
-            return $quota;
+        if (! $fromStorage) {
+            return $this->quota;
         }
 
-        return $this->quota;
+        $contents = MaildirQuota::read($this->rootdir);
+        if (null === $contents) {
+            throw new Exception\RuntimeException('Cannot read maildirsize');
+        }
+
+        return MaildirQuota::parseDefinition(explode("\n", $contents)[0]);
     }
 
     /**
-     * @see http://www.inter7.com/courierimap/README.maildirquota.html "Calculating maildirsize"
+     * Whether the storage is over quota, or with $detailedResponse the usage and the quota.
      *
-     * @throws RuntimeException
-     * @return array
-     */
-    protected function calculateMaildirsize()
-    {
-        $timestamps = [];
-        $messages   = 0;
-        $totalSize  = 0;
-
-        if (is_array($this->quota)) {
-            $quota = $this->quota;
-        } else {
-            try {
-                $quota = $this->getQuota(true);
-            } catch (StorageException\ExceptionInterface $e) {
-                throw new StorageException\RuntimeException('no quota definition found', 0, $e);
-            }
-        }
-
-        $folders = new RecursiveIteratorIterator($this->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
-        foreach ($folders as $folder) {
-            $subdir = $folder->getGlobalName();
-            if ('INBOX' == $subdir) {
-                $subdir = '';
-            } else {
-                $subdir = ".{$subdir}";
-            }
-            if ('Trash' == $subdir) {
-                continue;
-            }
-
-            foreach (['cur', 'new'] as $subsubdir) {
-                $dirname = $this->rootdir . $subdir . DIRECTORY_SEPARATOR . $subsubdir . DIRECTORY_SEPARATOR;
-                if (! file_exists($dirname)) {
-                    continue;
-                }
-                // NOTE: we are using mtime instead of "the latest timestamp". The latest would be atime
-                // and as we are accessing the directory it would make the whole calculation useless.
-                $timestamps[$dirname] = filemtime($dirname);
-
-                $dh = opendir($dirname);
-                // NOTE: Should have been checked in constructor. Not throwing an exception here, quotas will
-                // therefore not be fully enforced, but next request will fail anyway, if problem persists.
-                if (! $dh) {
-                    continue;
-                }
-
-                while (($entry = readdir($dh)) !== false) {
-                    if ('.' == $entry[0] || ! is_file($dirname . $entry)) {
-                        continue;
-                    }
-
-                    if (strpos($entry, ',S=')) {
-                        strtok($entry, '=');
-                        $filesize = strtok(':');
-                        if (is_numeric($filesize)) {
-                            $totalSize += $filesize;
-                            ++$messages;
-                            continue;
-                        }
-                    }
-                    $size = filesize($dirname . $entry);
-                    if (false === $size) {
-                        // ignore, as we assume file got removed
-                        continue;
-                    }
-                    $totalSize += $size;
-                    ++$messages;
-                }
-                closedir($dh);
-            }
-        }
-
-        $tmp        = $this->createTmpFile();
-        $fh         = $tmp['handle'];
-        $definition = [];
-        foreach ($quota as $type => $value) {
-            if ('size' == $type || 'count' == $type) {
-                $type = 'count' == $type ? 'C' : 'S';
-            }
-            $definition[] = $value . $type;
-        }
-        $definition = implode(',', $definition);
-        fwrite($fh, "{$definition}\n");
-        fwrite($fh, "{$totalSize} {$messages}\n");
-        fclose($fh);
-        rename($tmp['filename'], "{$this->rootdir}maildirsize");
-        foreach ($timestamps as $dir => $timestamp) {
-            if ($timestamp >= filemtime($dir)) {
-                continue;
-            }
-
-            unlink("{$this->rootdir}maildirsize");
-            break;
-        }
-
-        return [
-            'size'  => $totalSize,
-            'count' => $messages,
-            'quota' => $quota,
-        ];
-    }
-
-    /**
-     * @see http://www.inter7.com/courierimap/README.maildirquota.html "Calculating the quota for a Maildir++"
+     * The usage comes from maildirsize, recalculated when it is missing, too
+     * long, or says the storage is over quota.
      *
-     * @param bool $forceRecalc
-     * @return array
-     */
-    protected function calculateQuota($forceRecalc = false)
-    {
-        $fh          = null;
-        $totalSize   = 0;
-        $messages    = 0;
-        $maildirsize = '';
-        if (
-            ! $forceRecalc
-            && file_exists("{$this->rootdir}maildirsize")
-            && filesize("{$this->rootdir}maildirsize") < 5120
-        ) {
-            $fh = fopen("{$this->rootdir}maildirsize", 'r');
-        }
-        if ($fh) {
-            $maildirsize = fread($fh, 5120);
-            if (strlen($maildirsize) >= 5120) {
-                fclose($fh);
-                $fh          = null;
-                $maildirsize = '';
-            }
-        }
-        if (! $fh) {
-            $result    = $this->calculateMaildirsize();
-            $totalSize = $result['size'];
-            $messages  = $result['count'];
-            $quota     = $result['quota'];
-        } else {
-            $maildirsize = explode("\n", $maildirsize);
-            if (is_array($this->quota)) {
-                $quota = $this->quota;
-            } else {
-                $definition = explode(',', $maildirsize[0]);
-                $quota      = [];
-                foreach ($definition as $member) {
-                    $key = $member[strlen($member) - 1];
-                    if ('S' == $key || 'C' == $key) {
-                        $key = 'C' == $key ? 'count' : 'size';
-                    }
-                    $quota[$key] = substr($member, 0, -1);
-                }
-            }
-            unset($maildirsize[0]);
-            [$totalSize, $messages] = self::sumQuotaEntries($maildirsize);
-        }
-
-        $overQuota = false;
-        $overQuota = $overQuota || (isset($quota['size']) && $totalSize > $quota['size']);
-        $overQuota = $overQuota || (isset($quota['count']) && $messages > $quota['count']);
-        // NOTE: $maildirsize equals false if it wasn't set (AKA we recalculated) or it's only
-        // one line, because $maildirsize[0] gets unsetted.
-        // Also we're using local time to calculate the 15 minute offset. Touching a file just for known the
-        // local time of the file storage isn't worth the hassle.
-        if ($overQuota && ($maildirsize || filemtime("{$this->rootdir}maildirsize") > (time() - 900))) {
-            $result    = $this->calculateMaildirsize();
-            $totalSize = $result['size'];
-            $messages  = $result['count'];
-            $quota     = $result['quota'];
-            $overQuota = false;
-            $overQuota = $overQuota || (isset($quota['size']) && $totalSize > $quota['size']);
-            $overQuota = $overQuota || (isset($quota['count']) && $messages > $quota['count']);
-        }
-
-        if ($fh) {
-            // TODO is there a safe way to keep the handle open for writing?
-            fclose($fh);
-        }
-
-        return [
-            'size'       => $totalSize,
-            'count'      => $messages,
-            'quota'      => $quota,
-            'over_quota' => $overQuota,
-        ];
-    }
-
-    /**
-     * Sum the "size count" lines of a maildirsize file, skipping blank lines
-     * such as the one after its final newline.
+     * @return bool|array{size: int, count: int, quota: array{size?: int, count?: int}, over_quota: bool}
+     * @throws Exception\ExceptionInterface When no quota is set or defined, or maildirsize cannot be written.
      *
-     * @param array<array-key, string> $lines
-     * @return array{int, int} total size and message count
+     * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature.
      */
-    private static function sumQuotaEntries(array $lines): array
+    public function checkQuota(bool $detailedResponse = false, bool $forceRecalc = false): bool|array
     {
-        $size  = 0;
-        $count = 0;
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ('' === $line) {
-                continue;
-            }
-
-            $entry = explode(' ', $line);
-            $size  += (int) $entry[0];
-            $count += (int) ($entry[1] ?? 0);
+        $contents = $forceRecalc ? null : MaildirQuota::read($this->rootdir);
+        $usage    = null === $contents
+            ? null
+            : MaildirQuota::usage($contents, is_array($this->quota) ? $this->quota : null);
+        if (null === $usage || MaildirQuota::isOver($usage)) {
+            $usage = $this->calculateMaildirsize();
         }
 
-        return [$size, $count];
-    }
+        $result = [...$usage, 'over_quota' => MaildirQuota::isOver($usage)];
 
-    /**
-     * @param int $size
-     * @param int $count
-     * @return void
-     */
-    protected function addQuotaEntry($size, $count = 1)
-    {
-        // if (! file_exists($this->rootdir . 'maildirsize')) {
-        // TODO: should get file handler from calculateQuota
-        // }
-        file_put_contents("{$this->rootdir}maildirsize", "{$size} {$count}\n", FILE_APPEND);
-    }
-
-    /**
-     * check if storage is currently over quota
-     *
-     * @see calculateQuota()
-     *
-     * @param bool $detailedResponse return known data of quota and current size and message count
-     * @param bool $forceRecalc
-     * @return bool|array over quota state or detailed response
-     */
-    public function checkQuota($detailedResponse = false, $forceRecalc = false)
-    {
-        $result = $this->calculateQuota($forceRecalc);
         return $detailedResponse ? $result : $result['over_quota'];
+    }
+
+    /**
+     * The name relative to the root, checked.
+     *
+     * @throws Exception\InvalidArgumentException When the name is not allowed.
+     * @throws Exception\RuntimeException When the name is INBOX's.
+     */
+    private function checkFolderName(string $name): string
+    {
+        $local = $this->localPath($name);
+        if ('' === $local) {
+            throw new Exception\RuntimeException("Folder {$name} already exists");
+        }
+
+        foreach (explode($this->delim, $local) as $part) {
+            if (in_array($part, ['', '.', '..'], strict: true) || 1 === preg_match('/[\/\\\\\x00-\x1F\x7F]/', $part)) {
+                throw new Exception\InvalidArgumentException(
+                    "Invalid folder name {$name}: parts may not be empty, \".\" or \"..\", or hold \"/\", \"\\\" or control characters",
+                );
+            }
+        }
+
+        if (strlen($local) > 254) {
+            throw new Exception\InvalidArgumentException("Invalid folder name {$name}: it is too long");
+        }
+
+        return $local;
+    }
+
+    private function folderExists(string $local): bool
+    {
+        try {
+            $this->getFolders($local);
+
+            return true;
+        } catch (Exception\InvalidArgumentException) {
+            return false;
+        }
+    }
+
+    /**
+     * A folder that may be removed or renamed: not INBOX, and not the one selected or above it.
+     *
+     * @throws Exception\ExceptionInterface When there is no such folder, or it is INBOX or selected.
+     */
+    private function writableFolder(string $local, string $action): Folder
+    {
+        if ('' === $local) {
+            throw new Exception\RuntimeException("Will not {$action} INBOX");
+        }
+
+        $folder  = $this->getFolders($local);
+        $current = $this->localPath($this->currentFolder);
+        if ($current === $local || str_starts_with($current, $local . $this->delim)) {
+            throw new Exception\RuntimeException("Will not {$action} the selected folder");
+        }
+
+        return $folder;
+    }
+
+    /**
+     * The name relative to the root of a folder that can hold messages.
+     *
+     * @throws Exception\ExceptionInterface When there is no such folder or it cannot hold messages.
+     */
+    private function selectableFolder(Folder|string $folder): string
+    {
+        $local = $this->localPath((string) $folder);
+        if ('' !== $local && ! $this->getFolders($local)->isSelectable()) {
+            throw new Exception\RuntimeException("{$folder} cannot hold messages");
+        }
+
+        return $local;
+    }
+
+    /**
+     * A folder's tmp/, cur/ or new/, created where missing, refusing symbolic links.
+     *
+     * @throws Exception\RuntimeException When the folder or the directory is a symbolic link or cannot be created.
+     */
+    private function targetDirectory(string $local, string $subdir): string
+    {
+        $folder = $this->folderPath($local);
+        if (is_link($folder)) {
+            throw new Exception\RuntimeException('Will not write through a symbolic link');
+        }
+
+        FileSystem::createDirectory($folder . DIRECTORY_SEPARATOR . $subdir, $this->directoryMode);
+
+        return $folder . DIRECTORY_SEPARATOR . $subdir;
+    }
+
+    /**
+     * Note a stored message: in the message list when it is in the current folder, and in maildirsize.
+     *
+     * @param list<Flag|string> $flags
+     */
+    private function track(string $local, string $uniq, array $flags, string $filename, int $size): void
+    {
+        if ($this->localPath($this->currentFolder) === $local) {
+            $this->files[] = ['uniq' => $uniq, 'flags' => $flags, 'filename' => $filename, 'size' => $size];
+        }
+
+        $this->addQuotaEntry($size, 1);
+    }
+
+    /**
+     * @param list<Flag|string> $flags
+     * @return list<Flag|string>
+     */
+    private static function withoutRecent(array $flags): array
+    {
+        return array_values(array_filter($flags, static fn(Flag|string $flag): bool => Flag::Recent !== $flag));
+    }
+
+    /**
+     * @throws Exception\ExceptionInterface When quota checks are on and the storage is over quota.
+     */
+    private function refuseOverQuota(): void
+    {
+        if (false !== $this->quota && true === $this->checkQuota()) {
+            throw new Exception\RuntimeException('The storage is over quota');
+        }
+    }
+
+    /**
+     * Append a "bytes messages" line to maildirsize, when quota checks are on.
+     */
+    private function addQuotaEntry(int $size, int $count): void
+    {
+        if (false !== $this->quota) {
+            MaildirQuota::append($this->rootdir, $size, $count);
+        }
+    }
+
+    /**
+     * Count every message and write maildirsize afresh.
+     *
+     * @return array{size: int, count: int, quota: array{size?: int, count?: int}}
+     * @throws Exception\ExceptionInterface When no quota is set or defined, or maildirsize cannot be written.
+     */
+    private function calculateMaildirsize(): array
+    {
+        $contents = MaildirQuota::read($this->rootdir);
+        $quota    = is_array($this->quota) ? $this->quota : null;
+        $quota    ??= null === $contents ? null : MaildirQuota::parseDefinition(explode("\n", $contents)[0]);
+        if (null === $quota) {
+            throw new Exception\RuntimeException('No quota is set or defined in maildirsize');
+        }
+
+        $usage = MaildirQuota::count($this->messageDirectories());
+        $text  = MaildirQuota::definition($quota) . "\n{$usage['size']} {$usage['count']}\n";
+        try {
+            [$path] = MaildirDelivery::writeTemporary($this->targetDirectory('', 'tmp'), $text, $this->fileMode);
+
+            // @codeCoverageIgnoreStart
+            // Unreachable: only a composed message can fail to be written as MIME, and this is text
+        } catch (MimeException $e) {
+            throw new Exception\RuntimeException('Cannot write maildirsize', 0, $e);
+        }
+
+        // @codeCoverageIgnoreEnd
+
+        MaildirQuota::replace($this->rootdir, $path, $usage['timestamps']);
+
+        return ['size' => $usage['size'], 'count' => $usage['count'], 'quota' => $quota];
+    }
+
+    /**
+     * The cur/ and new/ of every folder that holds messages.
+     *
+     * @return list<string>
+     */
+    private function messageDirectories(): array
+    {
+        $folders = [''];
+        $tree    = new RecursiveIteratorIterator($this->rootFolder, RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($tree as $folder) {
+            if (! $folder->isSelectable() || 'INBOX' === $folder->getGlobalName()) {
+                continue;
+            }
+
+            $folders[] = $folder->getGlobalName();
+        }
+
+        $directories = [];
+        foreach ($folders as $local) {
+            foreach (['cur', 'new'] as $subdir) {
+                $directories[] = $this->folderPath($local) . DIRECTORY_SEPARATOR . $subdir;
+            }
+        }
+
+        return $directories;
     }
 }

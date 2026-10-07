@@ -4,447 +4,476 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use ArrayObject;
-use Contenir\Mail\Storage;
-use Contenir\Mail\Storage\Exception;
-use Contenir\Mail\Tests\Trait\ExtractsMaildirFixtureTrait;
-use Contenir\Mail\Tests\Trait\UsesProcessTempDirTrait;
+use Contenir\Mail\Storage\AbstractStorage;
+use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Exception\OutOfBoundsException;
+use Contenir\Mail\Storage\Exception\RuntimeException;
+use Contenir\Mail\Storage\FileSystem;
+use Contenir\Mail\Storage\Flag;
+use Contenir\Mail\Storage\Maildir;
+use Contenir\Mail\Storage\MaildirConfig;
+use Contenir\Mail\Storage\MaildirFilename;
+use Contenir\Mail\Storage\MaildirFiles;
+use Contenir\Mail\Storage\Message;
+use Contenir\Mail\Storage\Part;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
+use Contenir\Mail\Storage\Part\MultipartSplitter;
+use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
+use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chmod;
-use function closedir;
-use function copy;
-use function explode;
-use function file_exists;
-use function getenv;
-use function is_dir;
-use function is_file;
+use function file_put_contents;
+use function iterator_to_array;
 use function mkdir;
-use function opendir;
-use function readdir;
 use function rename;
 use function rmdir;
-use function strtoupper;
-use function substr;
-use function touch;
-use function trim;
+use function scandir;
+use function symlink;
 use function unlink;
 
-use const PHP_OS;
-
-class MaildirTest extends TestCase
+#[CoversClass(Maildir::class)]
+#[CoversClass(MaildirConfig::class)]
+#[CoversClass(MaildirFiles::class)]
+#[CoversClass(MaildirFilename::class)]
+#[CoversClass(FileSystem::class)]
+#[CoversClass(Part::class)]
+#[CoversClass(Message::class)]
+#[CoversClass(Content::class)]
+#[CoversClass(MimeParser::class)]
+#[CoversClass(MultipartSplitter::class)]
+#[CoversClass(AbstractStorage::class)]
+#[Group('unit')]
+final class MaildirTest extends TestCase
 {
-    use ExtractsMaildirFixtureTrait;
-    use UsesProcessTempDirTrait;
+    use UsesTemporaryDirectoryTrait;
 
-    /** @var string */
-    protected $maildir;
-    /** @var string */
-    protected $tmpdir;
+    private string $directory;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
-        if (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN') {
-            $this->markTestSkipped('This test does not work on Windows');
-            return;
-        }
-
-        $originalMaildir = __DIR__ . '/../_files/test.maildir/';
-
-        if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
-            } else {
-                $this->tmpdir = self::processTempDir();
-            }
-            if (! file_exists($this->tmpdir)) {
-                mkdir($this->tmpdir);
-            }
-            $count = 0;
-            $dh    = opendir($this->tmpdir);
-            while (readdir($dh) !== false) {
-                ++$count;
-            }
-            closedir($dh);
-            if (2 != $count) {
-                $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
-                return;
-            }
-        }
-
-        $this->extractMaildirFixture($originalMaildir);
-
-        $this->maildir = $this->tmpdir;
-
-        foreach (['cur', 'new'] as $dir) {
-            mkdir($this->tmpdir . $dir);
-            $dh = opendir($originalMaildir . $dir);
-            while (($entry = readdir($dh)) !== false) {
-                $entry = "{$dir}/{$entry}";
-                if (! is_file($originalMaildir . $entry)) {
-                    continue;
-                }
-                copy($originalMaildir . $entry, $this->tmpdir . $entry);
-            }
-            closedir($dh);
-        }
+        $root = $this->setUpTemporaryDirectory();
+        mkdir("{$root}/box");
+        $this->directory = Fixtures::maildir("{$root}/box");
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
-        foreach (['cur', 'new'] as $dir) {
-            if (! is_dir($this->tmpdir . $dir)) {
-                if (is_dir("{$this->tmpdir}{$dir}-isFileTest")) {
-                    unlink($this->tmpdir . $dir);
-                    rename("{$this->tmpdir}{$dir}-isFileTest", $this->tmpdir . $dir);
-                } else {
-                    continue;
-                }
-            }
-            chmod($this->tmpdir . $dir, 0o700);
-            $dh = opendir($this->tmpdir . $dir);
-            while (($entry = readdir($dh)) !== false) {
-                $entry = "{$this->tmpdir}{$dir}/{$entry}";
-                if (! is_file($entry)) {
-                    continue;
-                }
-                unlink($entry);
-            }
-            closedir($dh);
-            rmdir($this->tmpdir . $dir);
-        }
-
-        if (file_exists("{$this->tmpdir}tmp")) {
-            unlink("{$this->tmpdir}tmp");
-        }
+        $this->tearDownTemporaryDirectory();
     }
 
-    #[Test]
-    public function loadOk(): void
+    private function maildir(): Maildir
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertSame(Storage\Maildir::class, $mail::class);
-    }
-
-    #[Test]
-    public function loadConfig(): void
-    {
-        $mail = new Storage\Maildir(new ArrayObject(['dirname' => $this->maildir]));
-        static::assertSame(Storage\Maildir::class, $mail::class);
-    }
-
-    #[Test]
-    public function loadFailure(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('not a directory');
-        new Storage\Maildir(['dirname' => '/This/Dir/Does/Not/Exist']);
-    }
-
-    #[Test]
-    public function loadInvalid(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('invalid maildir given');
-        new Storage\Maildir(['dirname' => __DIR__]);
-    }
-
-    #[Test]
-    public function close(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        static::assertNull($mail->close());
-    }
-
-    #[Test]
-    public function hasFlags(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertTrue($mail->hasFlags);
-    }
-
-    #[Test]
-    public function hasTop(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        static::assertTrue($mail->hasTop);
-    }
-
-    #[Test]
-    public function hasCreate(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        static::assertFalse($mail->hasCreate);
-    }
-
-    #[Test]
-    public function noop(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        static::assertTrue($mail->noop());
+        return new Maildir(['dirname' => $this->directory]);
     }
 
     #[Test]
     public function countsMessages(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
+        static::assertSame(5, $this->maildir()->countMessages());
+    }
 
-        $count = $mail->countMessages();
-        static::assertSame(5, $count);
+    #[DataProvider('flagCountProvider')]
+    #[Test]
+    public function countsMessagesWithFlags(array $flags, int $expected): void
+    {
+        static::assertSame($expected, $this->maildir()->countMessages(...$flags));
     }
 
     #[Test]
-    public function reportsMessageSizes(): void
+    public function readsMessagesInFileNameOrder(): void
     {
-        $mail        = new Storage\Maildir(['dirname' => $this->maildir]);
-        $shouldSizes = [1 => 397, 89, 694, 452, 497];
-
-        $sizes = $mail->getSize();
-        static::assertSame($shouldSizes, $sizes);
+        static::assertSame('A Really Simple Message', $this->maildir()->getMessage(2)->getSubject());
     }
 
     #[Test]
-    public function singleSize(): void
+    public function readsFlags(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $size = $mail->getSize(2);
-        static::assertSame(89, $size);
+        static::assertSame([Flag::Flagged, Flag::Seen], $this->maildir()->getMessage(2)->getFlags());
     }
 
     #[Test]
-    public function fetchHeader(): void
+    public function marksMessagesInNewAsRecent(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $subject = $mail->getMessage(1)->subject;
-        static::assertSame('Simple Message', $subject);
+        static::assertTrue($this->maildir()->getMessage(5)->hasFlag(Flag::Recent));
     }
 
     #[Test]
-    public function fetchMessageHeader(): void
+    public function readsBody(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $subject = $mail->getMessage(1)->subject;
-        static::assertSame('Simple Message', $subject);
+        static::assertSame("Message\r\n", $this->maildir()->getMessage(2)->getContent());
     }
 
     #[Test]
-    public function fetchMessageBody(): void
+    public function readsMultipart(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $content = $mail->getMessage(3)->getContent();
-        [$content] = explode("\n", $content, 2);
-        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame(2, $this->maildir()->getMessage(4)->countParts());
     }
 
     #[Test]
-    public function fetchWrongSize(): void
+    public function readsRawHeader(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('id does not exist');
-        $mail->getSize(0);
+        static::assertSame(
+            "To: bar@example.com\r\nSubject: A Really Simple Message\r\nFrom: foo@example.com\r\n\r\n",
+            $this->maildir()->getRawHeader(2),
+        );
     }
 
     #[Test]
-    public function fetchWrongMessageBody(): void
+    public function readsRawContent(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('id does not exist');
-        $mail->getMessage(0);
+        static::assertSame("Message\r\n", $this->maildir()->getRawContent(2));
     }
 
     #[Test]
-    public function failedRemove(): void
+    public function measuresMessage(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $this->expectException(Exception\RuntimeException::class);
-        $this->expectExceptionMessage('maildir is (currently) read-only');
-        $mail->removeMessage(1);
+        static::assertSame(89, $this->maildir()->getSize(2));
     }
 
     #[Test]
-    public function hasFlag(): void
+    public function takesSizeFromFileName(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
+        rename(
+            "{$this->directory}/cur/1000000001.P1.example.org:2,FS",
+            "{$this->directory}/cur/1000000001.P1.example.org,S=1234:2,FS",
+        );
 
-        static::assertFalse($mail->getMessage(5)->hasFlag(Storage::FLAG_SEEN));
-        static::assertTrue($mail->getMessage(5)->hasFlag(Storage::FLAG_RECENT));
-        static::assertTrue($mail->getMessage(2)->hasFlag(Storage::FLAG_FLAGGED));
-        static::assertFalse($mail->getMessage(2)->hasFlag(Storage::FLAG_ANSWERED));
+        static::assertSame(1234, $this->maildir()->getSize(2));
     }
 
     #[Test]
-    public function getFlags(): void
+    public function measuresEveryMessage(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $flags = $mail->getMessage(1)->getFlags();
-        static::assertTrue(isset($flags[Storage::FLAG_SEEN]));
-        static::assertContains(Storage::FLAG_SEEN, $flags);
+        static::assertSame([1 => 397, 2 => 89, 3 => 694, 4 => 452, 5 => 497], $this->maildir()->getSizes());
     }
 
     #[Test]
-    public function uniqueId(): void
+    public function readsUniqueIdFromFileName(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
+        static::assertSame('1000000001.P1.example.org', $this->maildir()->getUniqueId(2));
+    }
 
-        static::assertTrue($mail->hasUniqueId);
-        static::assertSame(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
+    #[Test]
+    public function listsUniqueIds(): void
+    {
+        static::assertSame(
+            [
+                1 => '1000000000.P1.example.org',
+                2 => '1000000001.P1.example.org',
+                3 => '1000000002.P1.example.org',
+                4 => '1000000003.P1.example.org',
+                5 => '1000000004.P1.example.org',
+            ],
+            $this->maildir()->getUniqueIds(),
+        );
+    }
 
-        $ids       = $mail->getUniqueId();
-        $shouldIds = [
-            1 => '1000000000.P1.example.org',
-            '1000000001.P1.example.org',
-            '1000000002.P1.example.org',
-            '1000000003.P1.example.org',
-            '1000000004.P1.example.org',
-        ];
-        foreach ($ids as $num => $id) {
-            static::assertSame($id, $shouldIds[$num]);
+    #[Test]
+    public function findsNumberByUniqueId(): void
+    {
+        static::assertSame(3, $this->maildir()->getNumberByUniqueId('1000000002.P1.example.org'));
+    }
 
-            if ($mail->getNumberByUniqueId($id) != $num) {
-                static::fail('reverse lookup failed');
+    /**
+     * Path traversal: a unique ID is only ever compared, never used as a path.
+     */
+    #[DataProvider('unknownUniqueIdProvider')]
+    #[Test]
+    public function refusesUnknownUniqueId(string $id): void
+    {
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('Unique ID not found');
+
+        $this->maildir()->getNumberByUniqueId($id);
+    }
+
+    #[DataProvider('unknownNumberProvider')]
+    #[Test]
+    public function refusesMessageNumberThatDoesNotExist(int $id): void
+    {
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage("There is no message {$id}");
+
+        $this->maildir()->getMessage($id);
+    }
+
+    #[Test]
+    public function isReadOnly(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Maildir is read-only; use Writable\Maildir');
+
+        $this->maildir()->removeMessage(1);
+    }
+
+    #[Test]
+    public function reportsMessageFileThatHasGone(): void
+    {
+        $maildir = $this->maildir();
+        unlink("{$this->directory}/cur/1000000001.P1.example.org:2,FS");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot open the message file; it may have been moved');
+
+        $maildir->getMessage(2);
+    }
+
+    #[Test]
+    public function hasNoMessagesOnceClosed(): void
+    {
+        $maildir = $this->maildir();
+        $maildir->close();
+
+        static::assertSame(0, $maildir->countMessages());
+    }
+
+    #[Test]
+    public function doesNothingOnNoop(): void
+    {
+        $maildir = $this->maildir();
+        $maildir->noop();
+
+        static::assertSame(5, $maildir->countMessages());
+    }
+
+    #[Test]
+    public function iteratesNothingInEmptyMaildir(): void
+    {
+        static::assertSame([], iterator_to_array(new Maildir(['dirname' => "{$this->directory}/.subfolder"])));
+    }
+
+    #[Test]
+    public function hasFlags(): void
+    {
+        static::assertTrue($this->maildir()->getCapabilities()['flags']);
+    }
+
+    /**
+     * Symlink traversal: a link in cur/ is not a message, so a link to another file cannot be read.
+     */
+    #[Test]
+    public function skipsSymbolicLinks(): void
+    {
+        file_put_contents("{$this->directory}/../secret", data: "Subject: secret\n\nsecret");
+        symlink("{$this->directory}/../secret", "{$this->directory}/cur/2000000000.P1.example.org:2,S");
+
+        static::assertSame(5, $this->maildir()->countMessages());
+    }
+
+    /**
+     * Symlink traversal: a cur/ that is a link is not read, so it cannot point the maildir elsewhere.
+     */
+    #[Test]
+    public function skipsLinkedCur(): void
+    {
+        $maildir = "{$this->directory}/.subfolder.test";
+        foreach ((array) scandir("{$maildir}/cur") as $entry) {
+            if (! ('.' !== $entry && '..' !== $entry)) {
+                continue;
             }
-        }
-    }
 
-    #[Test]
-    public function wrongUniqueId(): void
-    {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('unique id not found');
-        $mail->getNumberByUniqueId('this_is_an_invalid_id');
-    }
-
-    #[Test]
-    public function curIsFile(): void
-    {
-        rename("{$this->maildir}cur", "{$this->maildir}cur-isFileTest");
-        touch("{$this->maildir}cur");
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('invalid maildir given');
-        new Storage\Maildir(['dirname' => $this->maildir]);
-    }
-
-    #[Test]
-    public function newIsFile(): void
-    {
-        rename("{$this->maildir}new", "{$this->maildir}new-isFileTest");
-        touch("{$this->maildir}new");
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('invalid maildir given');
-        new Storage\Maildir(['dirname' => $this->maildir]);
-    }
-
-    #[Test]
-    public function tmpIsFile(): void
-    {
-        touch("{$this->maildir}tmp");
-
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('invalid maildir given');
-        new Storage\Maildir(['dirname' => $this->maildir]);
-    }
-
-    #[Test]
-    public function notReadableCur(): void
-    {
-        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-            static::markTestSkipped('File permissions are not enforced for the root user');
+            unlink("{$maildir}/cur/{$entry}");
         }
 
-        chmod("{$this->maildir}cur", 0);
+        rmdir("{$maildir}/cur");
+        symlink("{$this->directory}/cur", "{$maildir}/cur");
 
-        $this->expectException(Exception\RuntimeException::class);
-        $this->expectExceptionMessage('cannot open maildir');
-        new Storage\Maildir(['dirname' => $this->maildir]);
+        static::assertSame(0, (new Maildir(['dirname' => $maildir]))->countMessages());
     }
 
     #[Test]
-    public function notReadableNew(): void
+    public function skipsHiddenFiles(): void
     {
-        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-            static::markTestSkipped('File permissions are not enforced for the root user');
+        file_put_contents("{$this->directory}/cur/.hidden", data: "Subject: x\n\nx");
+
+        static::assertSame(5, $this->maildir()->countMessages());
+    }
+
+    #[Test]
+    public function skipsDirectories(): void
+    {
+        mkdir("{$this->directory}/cur/directory");
+
+        static::assertSame(5, $this->maildir()->countMessages());
+    }
+
+    #[Test]
+    public function readsMaildirWithoutNew(): void
+    {
+        unlink("{$this->directory}/new/1000000004.P1.example.org");
+        rmdir("{$this->directory}/new");
+
+        static::assertSame(4, $this->maildir()->countMessages());
+    }
+
+    #[DataProvider('notMaildirProvider')]
+    #[Test]
+    public function refusesDirectoryThatIsNotMaildir(string $remove, string $file): void
+    {
+        if ('' !== $remove) {
+            self::removeFiles("{$this->directory}/{$remove}");
         }
 
-        chmod("{$this->maildir}new", 0);
+        file_put_contents("{$this->directory}/{$file}", data: 'x');
 
-        $this->expectException(Exception\RuntimeException::class);
-        $this->expectExceptionMessage('cannot read recent mails in maildir');
-        new Storage\Maildir(['dirname' => $this->maildir]);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not a maildir');
+
+        $this->maildir();
     }
 
     #[Test]
-    public function countFlags(): void
+    public function refusesMissingDirectory(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertSame($mail->countMessages(Storage::FLAG_DELETED), 0);
-        static::assertSame($mail->countMessages(Storage::FLAG_RECENT), 1);
-        static::assertSame($mail->countMessages(Storage::FLAG_FLAGGED), 1);
-        static::assertSame($mail->countMessages(Storage::FLAG_SEEN), 4);
-        static::assertSame($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]), 1);
-        static::assertSame($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_RECENT]), 0);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not a maildir');
+
+        new Maildir(['dirname' => "{$this->directory}/missing"]);
     }
 
     #[Test]
-    public function fetchPart(): void
+    public function refusesUnreadableCur(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertSame($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
+        chmod("{$this->directory}/cur", permissions: 0);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot read directory');
+
+        $this->maildir();
     }
 
     #[Test]
-    public function partSize(): void
+    public function takesConfigObject(): void
     {
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertSame($mail->getMessage(4)->getPart(2)->getSize(), 88);
+        static::assertSame(5, (new Maildir(new MaildirConfig($this->directory)))->countMessages());
     }
 
     #[Test]
-    public function sizePlusPlus(): void
+    public function requiresDirname(): void
     {
-        rename(
-            "{$this->maildir}/cur/1000000000.P1.example.org:2,S",
-            "{$this->maildir}/cur/1000000000.P1.example.org,S=123:2,S",
-        );
-        rename(
-            "{$this->maildir}/cur/1000000001.P1.example.org:2,FS",
-            "{$this->maildir}/cur/1000000001.P1.example.org,S=456:2,FS",
-        );
-        $mail        = new Storage\Maildir(['dirname' => $this->maildir]);
-        $shouldSizes = [1 => 123, 456, 694, 452, 497];
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Contenir\Mail\Storage\MaildirConfig: option "dirname" is required');
 
-        $sizes = $mail->getSize();
-        static::assertSame($shouldSizes, $sizes);
+        MaildirConfig::fromIterable([]);
     }
 
     #[Test]
-    public function singleSizePlusPlus(): void
+    public function refusesDirnameThatIsNotLocal(): void
     {
-        rename(
-            "{$this->maildir}/cur/1000000001.P1.example.org:2,FS",
-            "{$this->maildir}/cur/1000000001.P1.example.org,S=456:2,FS",
-        );
-        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('dirname must be a local file system path');
 
-        $size = $mail->getSize(2);
-        static::assertSame(456, $size);
+        new MaildirConfig('http://example.com/');
+    }
+
+    #[DataProvider('filenameProvider')]
+    #[Test]
+    public function parsesFileName(string $name, array $expected): void
+    {
+        static::assertSame($expected, MaildirFilename::parse($name, []));
+    }
+
+    #[Test]
+    public function keepsDefaultFlagsWhenParsing(): void
+    {
+        static::assertSame([Flag::Recent, Flag::Seen], MaildirFilename::parse('a:2,S', [Flag::Recent])['flags']);
+    }
+
+    /**
+     * @return array<string, array{list<Flag|string>, int}>
+     */
+    public static function flagCountProvider(): array
+    {
+        return [
+            'none'      => [[], 5],
+            'seen'      => [[Flag::Seen], 4],
+            'imap name' => [['\Flagged'], 1],
+            'two'       => [[Flag::Seen, Flag::Flagged], 1],
+            'recent'    => [[Flag::Recent], 1],
+            'not set'   => [[Flag::Draft], 0],
+        ];
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function unknownNumberProvider(): array
+    {
+        return [
+            'zero'     => [0],
+            'negative' => [-1],
+            'past end' => [6],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unknownUniqueIdProvider(): array
+    {
+        return [
+            'traversal' => ['../../etc/passwd'],
+            'partial'   => ['1000000001'],
+            'empty'     => [''],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function notMaildirProvider(): array
+    {
+        return [
+            'no cur'      => ['cur', 'unused'],
+            'new is file' => ['new', 'new'],
+            'tmp is file' => ['', 'tmp'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, array{uniq: string, flags: list<Flag|string>, size: int|null}}>
+     */
+    public static function filenameProvider(): array
+    {
+        return [
+            'plain'             => ['1.P1.host', ['uniq' => '1.P1.host', 'flags' => [], 'size' => null]],
+            'flags'             => [
+                '1.P1.host:2,FRS',
+                ['uniq' => '1.P1.host', 'flags' => [Flag::Flagged, Flag::Answered, Flag::Seen], 'size' => null],
+            ],
+            'size'              => ['1.P1.host,S=42:2,', ['uniq' => '1.P1.host,S=42', 'flags' => [], 'size' => 42]],
+            'size then field'   => [
+                '1.P1.host,S=42,W=44:2,T',
+                ['uniq' => '1.P1.host,S=42,W=44', 'flags' => [Flag::Deleted], 'size' => 42],
+            ],
+            'keyword'           => ['1:2,a', ['uniq' => '1', 'flags' => ['a'], 'size' => null]],
+            'repeated flag'     => ['1:2,SS', ['uniq' => '1', 'flags' => [Flag::Seen], 'size' => null]],
+            'version 1 info'    => ['1:1,S', ['uniq' => '1', 'flags' => [], 'size' => null]],
+            'size not a number' => ['1,S=x', ['uniq' => '1,S=x', 'flags' => [], 'size' => null]],
+            'huge size ignored' => [
+                '1,S=9999999999999999999',
+                ['uniq' => '1,S=9999999999999999999', 'flags' => [], 'size' => null],
+            ],
+            'no comma before S' => ['1S=42', ['uniq' => '1S=42', 'flags' => [], 'size' => null]],
+        ];
+    }
+
+    private static function removeFiles(string $path): void
+    {
+        foreach ((array) scandir($path) as $entry) {
+            if (! ('.' !== $entry && '..' !== $entry)) {
+                continue;
+            }
+
+            unlink("{$path}/{$entry}");
+        }
+
+        rmdir($path);
     }
 }

@@ -6,6 +6,7 @@ use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Imap;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -239,7 +240,7 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        static::assertFalse($mail->hasCreate);
+        static::assertFalse($mail->getCapabilities()['create']);
     }
 
     #[Test]
@@ -264,7 +265,7 @@ class ImapTest extends TestCase
         $mail        = new Storage\Imap($this->params);
         $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
 
-        $sizes = $mail->getSize();
+        $sizes = $mail->getSizes();
         static::assertEquals($shouldSizes, $sizes);
     }
 
@@ -282,7 +283,7 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        $subject = $mail->getMessage(1)->subject;
+        $subject = $mail->getMessage(1)->getSubject();
         static::assertEquals('Simple Message', $subject);
     }
 
@@ -291,7 +292,7 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        $subject = $mail->getMessage(1)->subject;
+        $subject = $mail->getMessage(1)->getSubject();
         static::assertEquals('Simple Message', $subject);
     }
 
@@ -355,14 +356,14 @@ class ImapTest extends TestCase
     public function globalName(): void
     {
         $mail = new Storage\Imap($this->params);
-        static::assertEquals($mail->getFolders()->subfolder->__toString(), 'subfolder');
+        static::assertEquals($mail->getFolders()->getFolder('subfolder')->__toString(), 'subfolder');
     }
 
     #[Test]
     public function localName(): void
     {
         $mail = new Storage\Imap($this->params);
-        static::assertEquals($mail->getFolders()->subfolder->key(), 'test');
+        static::assertEquals($mail->getFolders()->getFolder('subfolder')->getIterator()->key(), 'test');
     }
 
     #[Test]
@@ -417,7 +418,7 @@ class ImapTest extends TestCase
         $mail = new Storage\Imap($this->params);
 
         $mail->selectFolder('subfolder/test');
-        $sizes = $mail->getSize();
+        $sizes = $mail->getSizes();
         static::assertEquals([1 => 410], $sizes);
     }
 
@@ -427,7 +428,7 @@ class ImapTest extends TestCase
         $mail = new Storage\Imap($this->params);
 
         $mail->selectFolder('subfolder/test');
-        $subject = $mail->getMessage(1)->subject;
+        $subject = $mail->getMessage(1)->getSubject();
         static::assertEquals('Message in subfolder', $subject);
     }
 
@@ -436,7 +437,7 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        static::assertTrue($mail->getMessage(1)->hasFlag(Storage::FLAG_RECENT));
+        static::assertTrue($mail->getMessage(1)->hasFlag(Flag::Recent));
     }
 
     #[Test]
@@ -445,8 +446,8 @@ class ImapTest extends TestCase
         $mail = new Storage\Imap($this->params);
 
         $flags = $mail->getMessage(1)->getFlags();
-        static::assertTrue(isset($flags[Storage::FLAG_RECENT]));
-        static::assertContains(Storage::FLAG_RECENT, $flags);
+        static::assertContains(Flag::Recent, $flags);
+        static::assertContains(Flag::Recent, $flags);
     }
 
     #[Test]
@@ -465,7 +466,7 @@ class ImapTest extends TestCase
         static::assertTrue($mail->hasUniqueId);
         static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
-        $ids = $mail->getUniqueId();
+        $ids = $mail->getUniqueIds();
         foreach ($ids as $num => $id) {
             foreach ($ids as $innerNum => $innerId) {
                 if ($num == $innerNum) {
@@ -496,11 +497,11 @@ class ImapTest extends TestCase
         $mail = new Storage\Imap($this->params);
         $mail->createFolder('subfolder/test1');
         $mail->createFolder('test2', 'subfolder');
-        $mail->createFolder('test3', $mail->getFolders()->subfolder);
+        $mail->createFolder('test3', $mail->getFolders()->getFolder('subfolder'));
 
-        $mail->getFolders()->subfolder->test1;
-        $mail->getFolders()->subfolder->test2;
-        $mail->getFolders()->subfolder->test3;
+        $mail->getFolders()->getFolder('subfolder')->getFolder('test1');
+        $mail->getFolders()->getFolder('subfolder')->getFolder('test2');
+        $mail->getFolders()->getFolder('subfolder')->getFolder('test3');
     }
 
     #[Test]
@@ -519,17 +520,17 @@ class ImapTest extends TestCase
         $mail->removeFolder('subfolder/test');
 
         $this->expectException(Exception\InvalidArgumentException::class);
-        $mail->getFolders()->subfolder->test;
+        $mail->getFolders()->getFolder('subfolder')->getFolder('test');
     }
 
     #[Test]
     public function removeFolderInstance(): void
     {
         $mail = new Storage\Imap($this->params);
-        $mail->removeFolder($mail->getFolders()->subfolder->test);
+        $mail->removeFolder($mail->getFolders()->getFolder('subfolder')->getFolder('test'));
 
         $this->expectException(Exception\InvalidArgumentException::class);
-        $mail->getFolders()->subfolder->test;
+        $mail->getFolders()->getFolder('subfolder')->getFolder('test');
     }
 
     #[Test]
@@ -547,7 +548,7 @@ class ImapTest extends TestCase
         $mail = new Storage\Imap($this->params);
 
         $mail->renameFolder('subfolder/test', 'subfolder/test1');
-        $mail->renameFolder($mail->getFolders()->subfolder->test1, 'subfolder/test');
+        $mail->renameFolder($mail->getFolders()->getFolder('subfolder')->getFolder('test1'), 'subfolder/test');
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $mail->renameFolder('subfolder/test', 'INBOX');
@@ -568,7 +569,7 @@ class ImapTest extends TestCase
         $mail->appendMessage($message);
 
         static::assertEquals($count + 1, $mail->countMessages());
-        static::assertEquals($mail->getMessage($count + 1)->subject, 'append test');
+        static::assertEquals($mail->getMessage($count + 1)->getSubject(), 'append test');
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $mail->appendMessage('');
@@ -587,9 +588,9 @@ class ImapTest extends TestCase
         $mail->copyMessage(1, 'subfolder/test');
         $mail->selectFolder('subfolder/test');
         static::assertEquals($count + 1, $mail->countMessages());
-        static::assertEquals($mail->getMessage($count + 1)->subject, $message->subject);
-        static::assertEquals($mail->getMessage($count + 1)->from, $message->from);
-        static::assertEquals($mail->getMessage($count + 1)->to, $message->to);
+        static::assertEquals($mail->getMessage($count + 1)->getSubject(), $message->getSubject());
+        static::assertEquals($mail->getMessage($count + 1)->getFrom(), $message->getFrom());
+        static::assertEquals($mail->getMessage($count + 1)->getTo(), $message->getTo());
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $mail->copyMessage(1, 'justARandomFolder');
@@ -600,29 +601,29 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        $mail->setFlags(1, [Storage::FLAG_SEEN]);
+        $mail->setFlags(1, [Flag::Seen]);
         $message = $mail->getMessage(1);
-        static::assertTrue($message->hasFlag(Storage::FLAG_SEEN));
-        static::assertFalse($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertTrue($message->hasFlag(Flag::Seen));
+        static::assertFalse($message->hasFlag(Flag::Flagged));
 
-        $mail->setFlags(1, [Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]);
+        $mail->setFlags(1, [Flag::Seen, Flag::Flagged]);
         $message = $mail->getMessage(1);
-        static::assertTrue($message->hasFlag(Storage::FLAG_SEEN));
-        static::assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertTrue($message->hasFlag(Flag::Seen));
+        static::assertTrue($message->hasFlag(Flag::Flagged));
 
-        $mail->setFlags(1, [Storage::FLAG_FLAGGED]);
+        $mail->setFlags(1, [Flag::Flagged]);
         $message = $mail->getMessage(1);
-        static::assertFalse($message->hasFlag(Storage::FLAG_SEEN));
-        static::assertTrue($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertFalse($message->hasFlag(Flag::Seen));
+        static::assertTrue($message->hasFlag(Flag::Flagged));
 
         $mail->setFlags(1, ['myflag']);
         $message = $mail->getMessage(1);
-        static::assertFalse($message->hasFlag(Storage::FLAG_SEEN));
-        static::assertFalse($message->hasFlag(Storage::FLAG_FLAGGED));
+        static::assertFalse($message->hasFlag(Flag::Seen));
+        static::assertFalse($message->hasFlag(Flag::Flagged));
         static::assertTrue($message->hasFlag('myflag'));
 
         $this->expectException(Exception\InvalidArgumentException::class);
-        $mail->setFlags(1, [Storage::FLAG_RECENT]);
+        $mail->setFlags(1, [Flag::Recent]);
     }
 
     #[Test]
@@ -630,9 +631,9 @@ class ImapTest extends TestCase
     public function canMarkMessageUnseen(): void
     {
         $mail = new Storage\Imap($this->params);
-        $mail->setFlags(1, [Storage::FLAG_UNSEEN]);
+        $mail->setFlags(1, ['\\Unseen']);
         $message = $mail->getMessage(1);
-        static::assertTrue($message->hasFlag(Storage::FLAG_UNSEEN));
+        static::assertTrue($message->hasFlag('\\Unseen'));
     }
 
     #[Test]
@@ -767,17 +768,17 @@ class ImapTest extends TestCase
         foreach ($mail as $id => $message) {
             $mail->setFlags($id, []);
         }
-        static::assertEquals($mail->countMessages(Storage::FLAG_SEEN), 0);
-        static::assertEquals($mail->countMessages(Storage::FLAG_ANSWERED), 0);
-        static::assertEquals($mail->countMessages(Storage::FLAG_FLAGGED), 0);
+        static::assertEquals($mail->countMessages(Flag::Seen), 0);
+        static::assertEquals($mail->countMessages(Flag::Answered), 0);
+        static::assertEquals($mail->countMessages(Flag::Flagged), 0);
 
-        $mail->setFlags(1, [Storage::FLAG_SEEN, Storage::FLAG_ANSWERED]);
-        $mail->setFlags(2, [Storage::FLAG_SEEN]);
-        static::assertEquals($mail->countMessages(Storage::FLAG_SEEN), 2);
-        static::assertEquals($mail->countMessages(Storage::FLAG_ANSWERED), 1);
-        static::assertEquals($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_ANSWERED]), 1);
-        static::assertEquals($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]), 0);
-        static::assertEquals($mail->countMessages(Storage::FLAG_FLAGGED), 0);
+        $mail->setFlags(1, [Flag::Seen, Flag::Answered]);
+        $mail->setFlags(2, [Flag::Seen]);
+        static::assertEquals($mail->countMessages(Flag::Seen), 2);
+        static::assertEquals($mail->countMessages(Flag::Answered), 1);
+        static::assertEquals($mail->countMessages(Flag::Seen, Flag::Answered), 1);
+        static::assertEquals($mail->countMessages(Flag::Seen, Flag::Flagged), 0);
+        static::assertEquals($mail->countMessages(Flag::Flagged), 0);
     }
 
     #[Test]

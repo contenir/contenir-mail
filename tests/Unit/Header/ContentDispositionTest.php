@@ -6,8 +6,10 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header\ContentDisposition;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
-use Contenir\Mail\Header\HeaderParameters;
-use Contenir\Mail\Header\ParameterContinuation;
+use Contenir\Mail\Header\MimeParameterParser;
+use Contenir\Mail\Header\MimeParameters;
+use Contenir\Mail\Header\ParameterText;
+use Contenir\Mail\Header\SafeText;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -18,8 +20,10 @@ use function chr;
 use function str_repeat;
 
 #[CoversClass(ContentDisposition::class)]
-#[CoversClass(HeaderParameters::class)]
-#[CoversClass(ParameterContinuation::class)]
+#[CoversClass(MimeParameters::class)]
+#[CoversClass(MimeParameterParser::class)]
+#[CoversClass(ParameterText::class)]
+#[CoversClass(SafeText::class)]
 #[Group('unit')]
 final class ContentDispositionTest extends TestCase
 {
@@ -336,62 +340,111 @@ final class ContentDispositionTest extends TestCase
     }
 
     #[Test]
-    public function splitsLongValueIntoContinuations(): void
-    {
-        static::assertSame(
-            ";\r\n filename*0=\"this-file-name-is-so-long-that-it-does-not-even-fit-on-a-whole-\";"
-                . "\r\n filename*1=\"line-by-itself-so-we-need-to-split-it-with-value-continuation.t\";"
-                . "\r\n filename*2=\"xt\"",
-            ParameterContinuation::split('filename', self::LONG_FILENAME),
-        );
-    }
-
-    #[Test]
-    public function splitsEmptyValueIntoNothing(): void
-    {
-        static::assertSame('', ParameterContinuation::split('filename', value: ''));
-    }
-
-    #[Test]
     public function joinsSectionsWrittenOutOfOrder(): void
     {
-        static::assertSame(
-            ['filename' => 'first-second'],
-            ParameterContinuation::join([
-                ['filename*1', 'second'],
-                ['filename*0', 'first-'],
-            ], headerLine: ''),
-        );
-    }
-
-    #[Test]
-    public function passesUncontinuedParametersThrough(): void
-    {
-        static::assertSame(
-            ['size' => '10'],
-            ParameterContinuation::join([['size', '10']], headerLine: ''),
-        );
-    }
-
-    #[Test]
-    public function splitThenJoinRestoresLongValue(): void
-    {
         $header = ContentDisposition::fromString(
-            'Content-Disposition: attachment' . ParameterContinuation::split('filename', self::LONG_FILENAME),
+            'Content-Disposition: attachment; filename*1="second"; filename*0="first-"',
         );
 
-        static::assertSame(self::LONG_FILENAME, $header->getParameter('filename'));
+        static::assertSame(['filename' => 'first-second'], $header->getParameters());
     }
 
     #[Test]
-    public function encodedSplitThenJoinRestoresLongUtf8Value(): void
+    public function writesFilenameReadAsUntrustedText(): void
     {
-        $header = ContentDisposition::fromString(
-            'Content-Disposition: attachment'
-                . ParameterContinuation::splitEncoded('filename', self::LONG_UTF8_FILENAME),
-        );
+        $header = ContentDisposition::fromString('Content-Disposition: attachment; filename="../../etc/passwd"');
 
-        static::assertSame(self::LONG_UTF8_FILENAME, $header->getParameter('filename'));
+        static::assertSame('../../etc/passwd', $header->getFilename());
+    }
+
+    #[Test]
+    public function reducesFilenameToSafeBaseName(): void
+    {
+        $header = ContentDisposition::fromString('Content-Disposition: attachment; filename="../../etc/passwd"');
+
+        static::assertSame('passwd', $header->getSafeFilename());
+    }
+
+    #[Test]
+    public function hasNoSafeFilenameWithoutFilename(): void
+    {
+        static::assertNull((new ContentDisposition('attachment'))->getSafeFilename());
+    }
+
+    /**
+     * Header injection: a disposition is an RFC 2045 token, so it cannot carry a line break or a parameter.
+     */
+    #[DataProvider('invalidDispositionProvider')]
+    #[Test]
+    public function rejectsDispositionThatIsNotAToken(string $disposition): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content-Disposition expects a token such as "inline" or "attachment"');
+
+        new ContentDisposition($disposition);
+    }
+
+    /**
+     * Header injection: a quote or backslash in a value is escaped, so it cannot end the quoted string early.
+     */
+    #[Test]
+    public function escapesQuoteAndBackslashInParameterValue(): void
+    {
+        static::assertSame(
+            'Content-Disposition: attachment; filename="a\\\\\\"; size=\\"1.txt"',
+            (new ContentDisposition('attachment', ['filename' => 'a\"; size="1.txt']))->toString(),
+        );
+    }
+
+    #[Test]
+    public function readsBackEscapedParameterValue(): void
+    {
+        $header = new ContentDisposition('attachment', ['filename' => 'a\"; size="1.txt']);
+
+        static::assertSame(
+            ['filename' => 'a\"; size="1.txt'],
+            ContentDisposition::fromString($header->toString())->getParameters(),
+        );
+    }
+
+    /**
+     * Header injection: a value with a line break or NUL is rejected rather than written.
+     */
+    #[DataProvider('controlCharacterProvider')]
+    #[Test]
+    public function rejectsParameterValueWithControlCharacter(string $value): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Parameter value must be composed of printable US-ASCII or UTF-8 characters.');
+
+        new ContentDisposition('attachment', ['filename' => $value]);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidDispositionProvider(): array
+    {
+        return [
+            'line break' => ["attachment\r\nBcc: victim@example.com"],
+            'parameter'  => ['attachment; filename=x'],
+            'space'      => ['in line'],
+            'empty'      => [''],
+            'non-ASCII'  => ['pièce'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function controlCharacterProvider(): array
+    {
+        return [
+            'CRLF'          => ["a.txt\r\nBcc: victim@example.com"],
+            'bare LF'       => ["a.txt\nX: y"],
+            'NUL'           => ["a.txt\0.exe"],
+            'invalid UTF-8' => ["\xFF\xFE"],
+        ];
     }
 
     /**
@@ -411,7 +464,7 @@ final class ContentDispositionTest extends TestCase
      */
     public static function headerProvider(): array
     {
-        $continuationFieldValue =
+        $continuationHeaderValue =
             "attachment;\r\n filename*0=\"this-file-name-is-so-long-that-it-does-not-even-fit-on-a-whole-\";"
             . "\r\n filename*1=\"line-by-itself-so-we-need-to-split-it-with-value-continuation.t\";\r\n filename*2=\"xt\"";
 
@@ -429,20 +482,20 @@ final class ContentDispositionTest extends TestCase
             'parameter use header folding' => [
                 'attachment',
                 ['filename' => 'this-test-filename-is-long-enough-to-flow-to-two-lines.txt'],
-                "attachment;\r\n filename=\"this-test-filename-is-long-enough-to-flow-to-two-lines.txt\"",
+                'attachment; filename="this-test-filename-is-long-enough-to-flow-to-two-lines.txt"',
                 "Content-Disposition: attachment;\r\n filename=\"this-test-filename-is-long-enough-to-flow-to-two-lines.txt\"",
             ],
             'encoded characters'           => [
                 'attachment',
                 ['filename' => 'Ó'],
                 'attachment; filename="Ó"',
-                'Content-Disposition: attachment; filename="=?UTF-8?Q?=C3=93?="',
+                "Content-Disposition: attachment; filename*=UTF-8''%C3%93",
             ],
             'value continuation'           => [
                 'attachment',
                 ['filename' => self::LONG_FILENAME],
-                $continuationFieldValue,
-                "Content-Disposition: {$continuationFieldValue}",
+                'attachment; filename="' . self::LONG_FILENAME . '"',
+                "Content-Disposition: {$continuationHeaderValue}",
             ],
             'multiple simple parameters'   => [
                 'inline',
@@ -458,35 +511,31 @@ final class ContentDispositionTest extends TestCase
                     'attendees'     => 'Alice, Bob, Charlie',
                     'appologies'    => 'Mallory',
                 ],
-                "attachment; filename=\"nōtes-from-our-mēēting.rtf\";\r\n meeting-chair=\"Simon\";"
-                    . " attendees=\"Alice, Bob, Charlie\";\r\n appologies=\"Mallory\"",
-                "Content-Disposition: attachment;\r\n filename=\"=?UTF-8?Q?n=C5=8Dtes-from-our-m=C4=93=C4=93ting.rtf?=\";"
+                'attachment; filename="nōtes-from-our-mēēting.rtf"; meeting-chair="Simon";'
+                    . ' attendees="Alice, Bob, Charlie"; appologies="Mallory"',
+                "Content-Disposition: attachment;\r\n filename*=UTF-8''n%C5%8Dtes-from-our-m%C4%93%C4%93ting.rtf;"
                     . "\r\n meeting-chair=\"Simon\"; attendees=\"Alice, Bob, Charlie\";\r\n appologies=\"Mallory\"",
             ],
             'UTF-8 continuation'           => [
                 'attachment',
                 ['filename' => self::LONG_UTF8_FILENAME],
-                "attachment;\r\n filename*0=\"this-file-name-is-so-long-that-it-does-not-even-fit-on-a-whole-\";"
-                    . "\r\n filename*1=\"line-by-itself-so-we-need-to-split-it-with-value-continuation.a\";"
-                    . "\r\n filename*2=\"lso-UTF-8-characters-hērē.txt\"",
-                "Content-Disposition: attachment;\r\n filename*0=\"=?UTF-8?Q?this-file-name-is-so-long-that-it-does-not-even-fit?=\";"
-                    . "\r\n filename*1=\"=?UTF-8?Q?-on-a-whole-line-by-itself-so-we-need-to-split-it-w?=\";"
-                    . "\r\n filename*2=\"=?UTF-8?Q?ith-value-continuation.also-UTF-8-characters-h?=\";"
-                    . "\r\n filename*3=\"=?UTF-8?Q?=C4=93r=C4=93.txt?=\"",
+                'attachment; filename="' . self::LONG_UTF8_FILENAME . '"',
+                "Content-Disposition: attachment;\r\n filename*0*=UTF-8''this-file-name-is-so-long-that-it-does-not-even-fit-on-a-;"
+                    . "\r\n filename*1*=whole-line-by-itself-so-we-need-to-split-it-with-value-continuat;"
+                    . "\r\n filename*2*=ion.also-UTF-8-characters-h%C4%93r%C4%93.txt",
             ],
             'UTF-8 multibyte'              => [
                 'attachment',
                 ['filename' => $multibyteFilename],
                 "attachment; filename=\"{$multibyteFilename}\"",
-                "Content-Disposition: attachment;\r\n filename=\"=?UTF-8?Q?=E5=8A=9E=E5=85=AC.xlsx?=\"",
+                "Content-Disposition: attachment; filename*=UTF-8''%E5%8A%9E%E5%85%AC.xlsx",
             ],
             'UTF-8 multibyte continuation' => [
                 'attachment',
                 ['filename' => $multibyteContinuationFilename],
-                "attachment;\r\n filename=\"{$multibyteContinuationFilename}\"",
-                "Content-Disposition: attachment;\r\n filename*0=\"=?UTF-8?Q?=E5=8A=9E=E5=85=AC=E7=94=A8=E5=93=81=E9=A2=84?=\";"
-                    . "\r\n filename*1=\"=?UTF-8?Q?=E7=BA=A6Apply=20for=20office=20supplies=20online.x?=\";"
-                    . "\r\n filename*2=\"=?UTF-8?Q?lsx?=\"",
+                "attachment; filename=\"{$multibyteContinuationFilename}\"",
+                "Content-Disposition: attachment;\r\n filename*0*=UTF-8''%E5%8A%9E%E5%85%AC%E7%94%A8%E5%93%81%E9%A2%84%E7%BA%A6App;"
+                    . "\r\n filename*1*=ly%20for%20office%20supplies%20online.xlsx",
             ],
         ];
     }
@@ -564,17 +613,17 @@ final class ContentDispositionTest extends TestCase
         return [
             'without sequence number'                  => [
                 "Content-Disposition: attachment; filename*=UTF-8''%64%61%61%6D%69%2D%6D%C3%B5%72%76%2E%6A%70%67",
-                ['filename' => "UTF-8''%64%61%61%6D%69%2D%6D%C3%B5%72%76%2E%6A%70%67"],
+                ['filename' => 'daami-mõrv.jpg'],
             ],
             'two ordered extended sections'            => [
                 'Content-Disposition: attachment;'
                     . "filename*0*=UTF-8''%76%C3%A4%6C%6A%61%70%C3%A4%C3%A4%73%75%2D%65%69%2D%6F;"
                     . 'filename*1*=%6C%65%2E%6A%70%67',
-                ['filename' => "UTF-8''%76%C3%A4%6C%6A%61%70%C3%A4%C3%A4%73%75%2D%65%69%2D%6F%6C%65%2E%6A%70%67"],
+                ['filename' => 'väljapääsu-ei-ole.jpg'],
             ],
             'one item without sequence (laminas #111)' => [
                 "Content-Disposition: attachment; filename*=utf-8''Capture%20d%E2%80%99e%CC%81cran%202020%2D05%2D13%20a%CC%80%2017.13.47.png",
-                ['filename' => "utf-8''Capture%20d%E2%80%99e%CC%81cran%202020%2D05%2D13%20a%CC%80%2017.13.47.png"],
+                ['filename' => 'Capture d’écran 2020-05-13 à 17.13.47.png'],
             ],
         ];
     }
@@ -623,7 +672,7 @@ final class ContentDispositionTest extends TestCase
         $name = str_repeat('n', times: 60);
 
         static::assertSame(
-            "Content-Disposition: attachment;\r\n {$name}*0=\"=?UTF-8?Q?=C3=A9?=\";\r\n {$name}*1=\"=?UTF-8?Q?=C3=A9?=\"",
+            "Content-Disposition: attachment;\r\n {$name}*0*=UTF-8''%C3%A9;\r\n {$name}*1*=%C3%A9",
             (new ContentDisposition('attachment', [$name => 'éé']))->toString(),
         );
     }

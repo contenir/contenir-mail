@@ -11,8 +11,10 @@ use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderBlock;
+use Contenir\Mail\Header\HeaderLines;
 use Contenir\Mail\Header\HeaderLocator;
 use Contenir\Mail\Header\HeaderParser;
+use Contenir\Mail\Header\MimeParameterParser;
 use Contenir\Mail\Headers;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -22,10 +24,13 @@ use PHPUnit\Framework\TestCase;
 
 use function array_map;
 use function iterator_to_array;
+use function str_repeat;
 
 #[CoversClass(Headers::class)]
 #[CoversClass(HeaderParser::class)]
 #[CoversClass(HeaderBlock::class)]
+#[CoversClass(HeaderLines::class)]
+#[CoversClass(MimeParameterParser::class)]
 #[Group('unit')]
 final class HeadersTest extends TestCase
 {
@@ -470,7 +475,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=');
 
-        static::assertSame("Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=\r\n", $headers->toString());
+        static::assertSame('Subject: =?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=', $headers->get('Subject')?->toString());
     }
 
     /**
@@ -521,7 +526,7 @@ final class HeadersTest extends TestCase
     {
         $headers = Headers::fromString('To: "=?UTF-8?Q?=C3=B5lu?= <bar" <foo.bar@test.com>');
 
-        static::assertSame("To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>\r\n", $headers->toString());
+        static::assertSame('To: =?UTF-8?Q?=C3=B5lu=20=3Cbar?= <foo.bar@test.com>', $headers->get('To')?->toString());
     }
 
     #[Test]
@@ -612,6 +617,190 @@ final class HeadersTest extends TestCase
             'name and value' => [['Fake' => "foo-bar\r\n\r\nevilContent"]],
             'pair'           => [[['Fake', "foo-bar\r\n\r\nevilContent"]]],
             'bare line feed' => [['Fake' => "foo-bar\nBcc: evil@example.com"]],
+        ];
+    }
+
+    #[DataProvider('wireTextProvider')]
+    #[Test]
+    public function writesParsedHeadersWithTheTextTheyWereReadWith(string $block, string $eol, string $expected): void
+    {
+        static::assertSame($expected, Headers::fromString($block, $eol)->toString());
+    }
+
+    #[DataProvider('rewrittenTextProvider')]
+    #[Test]
+    public function writesParsedHeaderFromItsValueWhenItsTextCannotBeKept(string $block, string $eol): void
+    {
+        static::assertSame("Subject: a b\r\n", Headers::fromString($block, $eol)->toString());
+    }
+
+    #[Test]
+    public function writesReplacedHeaderFromItsValue(): void
+    {
+        $headers = Headers::fromString("subject:   =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n")->with(new Header\Subject('Grüße'));
+
+        static::assertSame("Subject: =?UTF-8?Q?Gr=C3=BC=C3=9Fe?=\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftInPlaceByWith(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->with(new GenericHeader('X-Id', '2'));
+
+        static::assertSame("subject:  Hello\r\nX-Id: 2\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfParsedHeaderSetAgainWithWith(): void
+    {
+        $parsed = Headers::fromString("subject:  Hello\r\n");
+        $header = $parsed->get('Subject');
+        static::assertNotNull($header);
+
+        static::assertSame("subject:  Hello\r\n", $parsed->with($header)->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersLeftByWithout(): void
+    {
+        $headers = Headers::fromString("subject:  Hello\r\nX-Id:   1\r\n")->without('X-Id');
+
+        static::assertSame("subject:  Hello\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function keepsTextOfHeadersBeforeOneAddedWithWithAdded(): void
+    {
+        $headers = Headers::fromString("received:  from a\r\n")->withAdded(new Header\Received('from b'));
+
+        static::assertSame("received:  from a\r\nReceived: from b\r\n", $headers->toString());
+    }
+
+    #[Test]
+    public function writesHeadersBuiltFromIterableFromTheirValues(): void
+    {
+        static::assertSame("Subject: Hello\r\n", Headers::fromIterable(['subject:   Hello'])->toString());
+    }
+
+    #[Test]
+    public function keepsUnfoldedValueOfParsedHeader(): void
+    {
+        $headers = Headers::fromString("Subject: Hello\r\n\tworld\r\n");
+
+        static::assertSame('Hello world', $headers->get('Subject')?->getFieldValue());
+    }
+
+    /**
+     * Resource exhaustion: a header block is read only up to a size limit.
+     */
+    #[Test]
+    public function rejectsHeaderBlockLargerThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may be at most 1048576 bytes');
+
+        Headers::fromString('X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES));
+    }
+
+    #[Test]
+    public function readsHeaderBlockOfExactlyTheLimit(): void
+    {
+        $block = 'X-Big: ' . str_repeat('a', times: HeaderLines::MAX_BLOCK_BYTES - 7);
+
+        static::assertCount(1, Headers::fromString($block));
+    }
+
+    /**
+     * Resource exhaustion: a header block holds a limited number of headers.
+     */
+    #[Test]
+    public function rejectsMoreHeadersThanTheLimit(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('A header block may hold at most 1000 headers');
+
+        Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS + 1));
+    }
+
+    #[Test]
+    public function readsExactlyTheLimitOfHeaders(): void
+    {
+        static::assertCount(
+            HeaderBlock::MAX_HEADERS,
+            Headers::fromString(str_repeat("X-A: 1\r\n", times: HeaderBlock::MAX_HEADERS)),
+        );
+    }
+
+    /**
+     * RFC 5322 line limit: a line read longer than 998 octets is not written back as it was.
+     */
+    #[Test]
+    public function writesOverlongReadLineFromItsValue(): void
+    {
+        $value = str_repeat('a', times: 993);
+
+        static::assertSame("X-A: {$value}\r\n", Headers::fromString("x-a:  {$value}")->toString());
+    }
+
+    #[Test]
+    public function keepsReadLineOfExactlyTheLineLimit(): void
+    {
+        $line = 'x-a:  ' . str_repeat('a', times: 992);
+
+        static::assertSame("{$line}\r\n", Headers::fromString($line)->toString());
+    }
+
+    #[Test]
+    public function refusesLineThatIsNeitherHeaderNorContinuation(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Line "not a header" does not match header format!');
+
+        Headers::fromString("Subject: x\r\nnot a header");
+    }
+
+    #[Test]
+    public function ignoresWhitespaceAfterTheBlankLines(): void
+    {
+        static::assertCount(1, Headers::fromString("Subject: a\r\n\r\n\r\n  "));
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function wireTextProvider(): array
+    {
+        return [
+            'encoded word'          => [
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+                "\r\n",
+                "Subject: =?ISO-8859-2?Q?PD=3A_My=3A_Go=B3?= =?ISO-8859-2?Q?blahblah?=\r\n",
+            ],
+            'folding'               => [
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+                "\r\n",
+                "DKIM-Signature: v=1; a=rsa-sha256;\r\n\tc=relaxed/simple; d=example.org;\r\n h=from:to\r\n",
+            ],
+            'name case and spacing' => ["subject:Hello  \r\n", "\r\n", "subject:Hello  \r\n"],
+            'line feeds'            => [
+                "Subject: a\n b\nTo: x@example.com\n",
+                "\n",
+                "Subject: a\r\n b\r\nTo: x@example.com\r\n",
+            ],
+            'crlf read as lf'       => ["Subject: a\r\n b\r\n\r\n", "\n", "Subject: a\r\n b\r\n"],
+            'blank line first'      => ["  \r\nSubject: a\r\n", "\r\n", "Subject: a\r\n"],
+            'empty group'           => ["To: undisclosed-recipients:;\r\n", "\r\n", "To: undisclosed-recipients:;\r\n"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function rewrittenTextProvider(): array
+    {
+        return [
+            'whitespace-only continuation' => ["Subject: a\r\n \r\n b\r\n", "\r\n"],
+            'stray carriage return'        => ["Subject: a\r\r\n b\r\n", "\r\n"],
         ];
     }
 

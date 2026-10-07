@@ -4,384 +4,563 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use ArrayObject;
-use Contenir\Mail\Storage;
-use Contenir\Mail\Storage\Exception;
-use Contenir\Mail\Tests\Trait\UsesProcessTempDirTrait;
+use ArrayIterator;
+use Contenir\Mail\Exception\InvalidArgumentException as ConfigException;
+use Contenir\Mail\Storage\AbstractStorage;
+use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Exception\OutOfBoundsException;
+use Contenir\Mail\Storage\Exception\RuntimeException;
+use Contenir\Mail\Storage\FileSystem;
+use Contenir\Mail\Storage\Flag;
+use Contenir\Mail\Storage\LocalPath;
+use Contenir\Mail\Storage\Mbox;
+use Contenir\Mail\Storage\MboxConfig;
+use Contenir\Mail\Storage\MboxFormat;
+use Contenir\Mail\Storage\MboxScanner;
+use Contenir\Mail\Storage\Message;
+use Contenir\Mail\Storage\Part;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
+use Contenir\Mail\Storage\Part\MultipartSplitter;
+use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
+use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_keys;
+use function array_map;
 use function chmod;
-use function clearstatcache;
-use function closedir;
-use function copy;
-use function explode;
-use function fclose;
-use function file_exists;
-use function fopen;
-use function function_exists;
-use function fwrite;
-use function getenv;
-use function mkdir;
-use function opendir;
-use function posix_getuid;
-use function readdir;
+use function file_put_contents;
+use function iterator_to_array;
 use function serialize;
-use function sleep;
-use function stat;
-use function trim;
-use function unlink;
+use function str_repeat;
 use function unserialize;
 
-use const INF;
-
-class MboxTest extends TestCase
+#[CoversClass(Mbox::class)]
+#[CoversClass(MboxScanner::class)]
+#[CoversClass(MboxConfig::class)]
+#[CoversClass(LocalPath::class)]
+#[CoversClass(AbstractStorage::class)]
+#[CoversClass(FileSystem::class)]
+#[CoversClass(Part::class)]
+#[CoversClass(Message::class)]
+#[CoversClass(Content::class)]
+#[CoversClass(MimeParser::class)]
+#[CoversClass(MultipartSplitter::class)]
+#[Group('unit')]
+final class MboxTest extends TestCase
 {
-    use UsesProcessTempDirTrait;
+    use UsesTemporaryDirectoryTrait;
 
-    /** @var string */
-    protected $mboxOriginalFile;
-    /** @var string */
-    protected $mboxFile;
-    /** @var string */
-    protected $mboxFileUnix;
-    /** @var string */
-    protected $tmpdir;
+    private string $directory;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
-        if (! isset($this->tmpdir)) {
-            if (getenv('TESTS_CONTENIR_MAIL_TEMPDIR') != null) {
-                $this->tmpdir = getenv('TESTS_CONTENIR_MAIL_TEMPDIR');
-            } else {
-                $this->tmpdir = self::processTempDir();
-            }
-            if (! file_exists($this->tmpdir)) {
-                mkdir($this->tmpdir);
-            }
-            $count = 0;
-            $dh    = opendir($this->tmpdir);
-            while (readdir($dh) !== false) {
-                ++$count;
-            }
-            closedir($dh);
-            if (2 != $count) {
-                $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
-                return;
-            }
-        }
-
-        $this->mboxOriginalFile = __DIR__ . '/../_files/test.mbox/INBOX';
-        $this->mboxFile         = "{$this->tmpdir}INBOX";
-
-        copy($this->mboxOriginalFile, $this->mboxFile);
+        $this->directory = $this->setUpTemporaryDirectory();
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
-        unlink($this->mboxFile);
-
-        if ($this->mboxFileUnix) {
-            unlink($this->mboxFileUnix);
-        }
+        $this->tearDownTemporaryDirectory();
     }
 
+    private function mbox(string $fixture = 'INBOX'): Mbox
+    {
+        return new Mbox(['filename' => Fixtures::mbox($this->directory, $fixture)]);
+    }
+
+    private function file(string $contents): string
+    {
+        $path = "{$this->directory}/mbox";
+        file_put_contents($path, data: $contents);
+
+        return $path;
+    }
+
+    #[DataProvider('fixtureProvider')]
     #[Test]
-    public function loadOk(): void
+    public function countsMessages(string $fixture): void
     {
-        new Storage\Mbox(['filename' => $this->mboxFile]);
-        $this->addToAssertionCount(1);
+        static::assertSame(7, $this->mbox($fixture)->countMessages());
     }
 
+    #[DataProvider('fixtureProvider')]
     #[Test]
-    public function loadConfig(): void
+    public function readsHeaders(string $fixture): void
     {
-        new Storage\Mbox(new ArrayObject(['filename' => $this->mboxFile]));
-        $this->addToAssertionCount(1);
+        static::assertSame('Simple Message', $this->mbox($fixture)->getMessage(1)->getSubject());
     }
 
-    #[Test]
-    public function noParams(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        new Storage\Mbox([]);
-    }
-
-    #[Test]
-    public function loadFailure(): void
-    {
-        $this->expectException(Exception\RuntimeException::class);
-        new Storage\Mbox(['filename' => 'ThisFileDoesNotExist']);
-    }
-
-    #[Test]
-    public function loadInvalid(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        new Storage\Mbox(['filename' => __FILE__]);
-    }
-
-    #[Test]
-    public function close(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $mail->close();
-        $this->addToAssertionCount(1);
-    }
-
-    #[Test]
-    public function hasTop(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        static::assertTrue($mail->hasTop);
-    }
-
-    #[Test]
-    public function hasCreate(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        static::assertFalse($mail->hasCreate);
-    }
-
-    #[Test]
-    public function noop(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        static::assertTrue($mail->noop());
-    }
-
-    #[Test]
-    public function countsMessages(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $count = $mail->countMessages();
-        static::assertSame(7, $count);
-    }
-
-    #[Test]
-    public function reportsMessageSizes(): void
-    {
-        $mail        = new Storage\Mbox(['filename' => $this->mboxFile]);
-        $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
-
-        $sizes = $mail->getSize();
-        static::assertSame($shouldSizes, $sizes);
-    }
-
-    #[Test]
-    public function singleSize(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $size = $mail->getSize(2);
-        static::assertSame(89, $size);
-    }
-
-    #[Test]
-    public function fetchHeader(): void
-    {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $subject = $mail->getMessage(1)->subject;
-        static::assertSame('Simple Message', $subject);
-    }
-
-    /*
-     * public function testFetchTopBody()
-     * {
-     * $mail = new Storage\Mbox(array('filename' => $this->mboxFile));
-     *
-     * $content = $mail->getHeader(3, 1)->getContent();
-     * $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
-     * }
+    /**
+     * Mbox files with bare LF line breaks read like CRLF ones.
      */
-
+    #[DataProvider('fixtureProvider')]
     #[Test]
-    #[Group('6775')]
-    public function fetchMessageHeaderUnix(): void
+    public function readsBody(string $fixture): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
+        static::assertSame("Message\r\n", $this->mbox($fixture)->getMessage(2)->getEncodedContent());
+    }
 
-        $subject = $mail->getMessage(1)->subject;
-        static::assertSame('Simple Message', $subject);
+    #[DataProvider('fixtureProvider')]
+    #[Test]
+    public function readsMultipartParts(string $fixture): void
+    {
+        static::assertSame('Again a simple message', $this->mbox($fixture)->getMessage(5)->getPart(2)->getContent());
+    }
+
+    #[DataProvider('fixtureProvider')]
+    #[Test]
+    public function readsMessageWithoutBody(string $fixture): void
+    {
+        static::assertSame('no body', $this->mbox($fixture)->getMessage(6)->getSubject());
     }
 
     #[Test]
-    public function fetchMessageHeader(): void
+    public function readsRepeatedHeaders(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
+        $twins = $this->mbox()->getMessage(3)->getHeaders()->all('X-Twin');
 
-        $subject = $mail->getMessage(1)->subject;
-        static::assertSame('Simple Message', $subject);
+        static::assertSame(
+            ['the good', 'the evil'],
+            array_map(static fn($header): string => $header->getFieldValue(), $twins),
+        );
     }
 
     #[Test]
-    public function fetchMessageBody(): void
+    public function readsRawHeader(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $content = $mail->getMessage(3)->getContent();
-        [$content] = explode("\n", $content, 2);
-        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame(
+            "To: bar@example.com\r\nSubject: A Really Simple Message\r\nFrom: foo@example.com\r\n\r\n",
+            $this->mbox()->getRawHeader(2),
+        );
     }
 
     #[Test]
-    #[Group('6775')]
-    public function fetchMessageBodyUnix(): void
+    public function readsRawContent(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
-
-        $content = $mail->getMessage(3)->getContent();
-        [$content] = explode("\n", $content, 2);
-        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame("Message\r\n", $this->mbox()->getRawContent(2));
     }
 
     #[Test]
-    public function failedRemove(): void
+    public function measuresMessage(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $this->expectException(Exception\RuntimeException::class);
-        $mail->removeMessage(1);
+        static::assertSame(89, $this->mbox()->getSize(2));
     }
 
     #[Test]
-    public function capabilities(): void
+    public function measuresEveryMessage(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-        $capa = $mail->getCapabilities();
-        static::assertTrue(isset($capa['uniqueid']));
+        static::assertSame([1, 2, 3, 4, 5, 6, 7], array_keys($this->mbox()->getSizes()));
     }
 
     #[Test]
-    public function valid(): void
+    public function measuresEveryMessageAlike(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
+        $mbox = $this->mbox();
 
-        static::assertFalse($mail->valid());
-        $mail->rewind();
-        static::assertTrue($mail->valid());
+        static::assertSame($mbox->getSize(2), $mbox->getSizes()[2]);
     }
 
     #[Test]
-    public function outOfBounds(): void
+    public function iteratesMessagesByNumber(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $this->expectException(Exception\OutOfBoundsException::class);
-        $mail->seek(INF);
+        static::assertSame([1, 2, 3, 4, 5, 6, 7], array_keys(iterator_to_array($this->mbox())));
     }
 
     #[Test]
-    public function sleepWake(): void
+    public function countsWithCount(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $count   = $mail->countMessages();
-        $content = $mail->getMessage(1)->getContent();
-
-        $serialzed = serialize($mail);
-        $mail      = null;
-        unlink($this->mboxFile);
-        // otherwise this test is to fast for a mtime change
-        sleep(2);
-        copy($this->mboxOriginalFile, $this->mboxFile);
-        $mail = unserialize($serialzed);
-
-        static::assertSame($mail->countMessages(), $count);
-        static::assertSame($mail->getMessage(1)->getContent(), $content);
+        static::assertCount(7, $this->mbox());
     }
 
     #[Test]
-    public function sleepWakeRemoved(): void
+    public function countsNoMessagesWithFlags(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        $count   = $mail->countMessages();
-        $content = $mail->getMessage(1)->getContent();
-
-        $serialzed = serialize($mail);
-        $mail      = null;
-
-        static::assertFileExists($this->mboxFile);
-
-        $stat = stat($this->mboxFile);
-        chmod($this->mboxFile, 0);
-        clearstatcache();
-        $statcheck = stat($this->mboxFile);
-        if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
-            chmod($this->mboxFile, $stat['mode']);
-            static::markTestSkipped(
-                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
-            );
-            return;
-        }
-
-        $check = false;
-        try {
-            $mail = unserialize($serialzed);
-        } catch (\Exception) {
-            $check = true;
-
-            // test ok
-        }
-
-        chmod($this->mboxFile, $stat['mode']);
-
-        if (! $check) {
-            if (function_exists('posix_getuid') && posix_getuid() === 0) {
-                static::markTestSkipped('seems like you are root and we therefore cannot test the error handling');
-            } elseif (! function_exists('posix_getuid')) {
-                static::markTestSkipped('Can\t test if you\'re root and we therefore cannot test the error handling');
-            }
-            static::fail('no exception while waking with non readable file');
-        }
+        static::assertSame(0, $this->mbox()->countMessages(Flag::Seen));
     }
 
     #[Test]
-    public function uniqueId(): void
+    public function usesNumbersAsUniqueIds(): void
     {
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-
-        static::assertFalse($mail->hasUniqueId);
-        static::assertSame(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
-
-        $ids = $mail->getUniqueId();
-        foreach ($ids as $num => $id) {
-            static::assertSame($num, $id);
-
-            if ($mail->getNumberByUniqueId($id) != $num) {
-                static::fail('reverse lookup failed');
-            }
-        }
+        static::assertSame('3', $this->mbox()->getUniqueId(3));
     }
 
     #[Test]
-    public function shortMbox(): void
+    public function listsNumbersAsUniqueIds(): void
     {
-        $fh = fopen($this->mboxFile, 'w');
-        fwrite($fh, "From \r\nSubject: test\r\nFrom \r\nSubject: test2\r\n");
-        fclose($fh);
-        $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-        static::assertSame($mail->countMessages(), 2);
-        static::assertSame($mail->getMessage(1)->subject, 'test');
-        static::assertSame($mail->getMessage(1)->getContent(), '');
-        static::assertSame($mail->getMessage(2)->subject, 'test2');
-        static::assertSame($mail->getMessage(2)->getContent(), '');
+        static::assertSame(
+            [1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7'],
+            $this->mbox()->getUniqueIds(),
+        );
     }
 
-    private function getUnixMboxFile(): string
+    #[Test]
+    public function findsNumberByUniqueId(): void
     {
-        $this->mboxFileUnix = "{$this->tmpdir}INBOX.unix";
+        static::assertSame(4, $this->mbox()->getNumberByUniqueId('4'));
+    }
 
-        copy(__DIR__ . '/../_files/test.mbox/INBOX.unix', $this->mboxFileUnix);
+    #[DataProvider('unknownUniqueIdProvider')]
+    #[Test]
+    public function refusesUnknownUniqueId(string $id): void
+    {
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage("There is no message {$id}");
 
-        return $this->mboxFileUnix;
+        $this->mbox()->getNumberByUniqueId($id);
+    }
+
+    #[DataProvider('unknownNumberProvider')]
+    #[Test]
+    public function refusesMessageNumberThatDoesNotExist(int $id): void
+    {
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage("There is no message {$id}");
+
+        $this->mbox()->getMessage($id);
+    }
+
+    #[Test]
+    public function refusesUniqueIdOfMessageThatDoesNotExist(): void
+    {
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('There is no message 8');
+
+        $this->mbox()->getUniqueId(8);
+    }
+
+    #[Test]
+    public function isReadOnly(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('mbox is read-only');
+
+        $this->mbox()->removeMessage(1);
+    }
+
+    #[Test]
+    public function hasTopAndNoUniqueIds(): void
+    {
+        $capabilities = $this->mbox()->getCapabilities();
+
+        static::assertSame([true, false], [$capabilities['top'], $capabilities['uniqueid']]);
+    }
+
+    #[Test]
+    public function doesNothingOnNoop(): void
+    {
+        $mbox = $this->mbox();
+        $mbox->noop();
+
+        static::assertSame(7, $mbox->countMessages());
+    }
+
+    #[Test]
+    public function hasNoMessagesOnceClosed(): void
+    {
+        $mbox = $this->mbox();
+        $mbox->close();
+
+        static::assertSame(0, $mbox->countMessages());
+    }
+
+    #[Test]
+    public function canBeClosedTwice(): void
+    {
+        $mbox = $this->mbox();
+        $mbox->close();
+        $mbox->close();
+
+        static::assertSame(0, $mbox->countMessages());
+    }
+
+    #[Test]
+    public function keepsMessagesReadableOnceClosed(): void
+    {
+        $mbox    = $this->mbox();
+        $message = $mbox->getMessage(2);
+        $mbox->close();
+
+        static::assertSame("Message\r\n", $message->getContent());
+    }
+
+    #[Test]
+    public function refusesMessagesOnceClosed(): void
+    {
+        $mbox = $this->mbox();
+        $mbox->close();
+
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('There is no message 1');
+
+        $mbox->getMessage(1);
+    }
+
+    #[Test]
+    public function takesConfigObject(): void
+    {
+        static::assertSame(7, (new Mbox(new MboxConfig(Fixtures::mbox($this->directory))))->countMessages());
+    }
+
+    #[Test]
+    public function takesTraversableConfig(): void
+    {
+        $config = new ArrayIterator(['filename' => Fixtures::mbox($this->directory)]);
+
+        static::assertSame(7, (new Mbox($config))->countMessages());
+    }
+
+    #[Test]
+    public function refusesFileThatIsNotMbox(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not an mbox file');
+
+        new Mbox(['filename' => $this->file("Subject: x\r\n\r\nnot mbox")]);
+    }
+
+    #[Test]
+    public function refusesEmptyFile(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not an mbox file');
+
+        new Mbox(['filename' => $this->file('')]);
+    }
+
+    #[Test]
+    public function refusesDirectory(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("{$this->directory} is not a file");
+
+        new Mbox(['filename' => $this->directory]);
+    }
+
+    #[Test]
+    public function refusesMissingFile(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not a file');
+
+        new Mbox(['filename' => "{$this->directory}/missing"]);
+    }
+
+    #[Test]
+    public function refusesUnreadableFile(): void
+    {
+        $path = $this->file("From a\r\n\r\n");
+        chmod($path, permissions: 0);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot open mbox file');
+
+        new Mbox(['filename' => $path]);
+    }
+
+    #[Test]
+    public function readsSingleMessage(): void
+    {
+        static::assertSame(
+            'only',
+            (new Mbox(['filename' => $this->file("From a\nSubject: only\n\nbody\n")]))->getMessage(1)
+                ->getSubject(),
+        );
+    }
+
+    #[Test]
+    public function readsFromLineLongerThanAChunk(): void
+    {
+        $mbox = new Mbox([
+            'filename' => $this->file('From ' . str_repeat('a', times: 9000) . "\nSubject: x\n\nbody\n"),
+        ]);
+
+        static::assertSame(1, $mbox->countMessages());
+    }
+
+    #[Test]
+    public function ignoresFromInsideALongLine(): void
+    {
+        $mbox = new Mbox([
+            'filename' => $this->file("From a\nSubject: x\n\n" . str_repeat('a', times: 8192) . "From b\n"),
+        ]);
+
+        static::assertSame(1, $mbox->countMessages());
+    }
+
+    #[Test]
+    public function endsMessageBeforeTheLineBreakAheadOfFrom(): void
+    {
+        $mbox = new Mbox(['filename' => $this->file("From a\nSubject: x\n\nbody\nFrom b\nSubject: y\n\n")]);
+
+        static::assertSame('body', $mbox->getMessage(1)->getContent());
+    }
+
+    /**
+     * mboxrd: one ">" is removed from ">From " lines, restoring the body exactly.
+     */
+    #[Test]
+    public function unquotesFromLinesInMboxrd(): void
+    {
+        $path = $this->file("From a\nSubject: x\n\n>From here\n>>From there\n");
+
+        static::assertSame(
+            "From here\n>From there\n",
+            (new Mbox(new MboxConfig($path, MboxFormat::Mboxrd)))->getMessage(1)
+                ->getContent(),
+        );
+    }
+
+    #[Test]
+    public function keepsQuotedFromLinesInMboxo(): void
+    {
+        $path = $this->file("From a\nSubject: x\n\n>From here\n");
+
+        static::assertSame(
+            ">From here\n",
+            (new Mbox(['filename' => $path]))->getMessage(1)
+                ->getContent(),
+        );
+    }
+
+    #[Test]
+    public function readsFormatSetting(): void
+    {
+        static::assertSame(
+            MboxFormat::Mboxrd,
+            MboxConfig::fromIterable(['filename' => 'x', 'format' => 'mboxrd'])->format,
+        );
+    }
+
+    /**
+     * Arbitrary file and remote reads: a stream wrapper in the filename is refused.
+     */
+    #[DataProvider('unsafePathProvider')]
+    #[Test]
+    public function refusesPathThatIsNotLocal(string $path): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('filename must be a local file system path');
+
+        new MboxConfig($path);
+    }
+
+    #[Test]
+    public function acceptsWindowsDrivePath(): void
+    {
+        static::assertSame('C:\\mail\\inbox', (new MboxConfig('C:\\mail\\inbox'))->filename);
+    }
+
+    #[Test]
+    public function requiresFilename(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Contenir\Mail\Storage\MboxConfig: option "filename" is required');
+
+        MboxConfig::fromIterable([]);
+    }
+
+    #[Test]
+    public function refusesUnknownSetting(): void
+    {
+        $this->expectException(ConfigException::class);
+        $this->expectExceptionMessage('unknown option "messageEOL"');
+
+        MboxConfig::fromIterable(['filename' => 'x', 'messageEOL' => "\n"]);
+    }
+
+    #[Test]
+    public function refusesFilenameOfTheWrongType(): void
+    {
+        $this->expectException(ConfigException::class);
+        $this->expectExceptionMessage('option "filename" must be a string, got int');
+
+        MboxConfig::fromIterable(['filename' => 1]);
+    }
+
+    /**
+     * Unserialize hazards: a storage can be neither serialized nor built by unserialize().
+     */
+    #[Test]
+    public function cannotBeSerialized(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Contenir\Mail\Storage\Mbox cannot be serialized');
+
+        serialize($this->mbox());
+    }
+
+    #[Test]
+    public function cannotBeUnserialized(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Contenir\Mail\Storage\Mbox cannot be unserialized');
+
+        unserialize('O:26:"Contenir\Mail\Storage\Mbox":1:{s:8:"filename";s:11:"/etc/passwd";}');
+    }
+
+    #[Test]
+    public function readsMessagesAsMessages(): void
+    {
+        static::assertInstanceOf(Message::class, $this->mbox()->getMessage(1));
+    }
+
+    #[Test]
+    public function measuresMissingFileAsEmpty(): void
+    {
+        static::assertFalse(MboxScanner::isMboxFile("{$this->directory}/missing"));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function fixtureProvider(): array
+    {
+        return [
+            'CRLF' => ['INBOX'],
+            'LF'   => ['INBOX.unix'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function unknownNumberProvider(): array
+    {
+        return [
+            'zero'     => [0],
+            'negative' => [-1],
+            'past end' => [8],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unknownUniqueIdProvider(): array
+    {
+        return [
+            'not a number' => ['x'],
+            'past end'     => ['8'],
+            'zero'         => ['0'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unsafePathProvider(): array
+    {
+        return [
+            'phar'  => ['phar:///tmp/x.phar/inbox'],
+            'http'  => ['http://example.com/inbox'],
+            'php'   => ['php://filter/resource=/etc/passwd'],
+            'data'  => ['data:text/plain,From x'],
+            'NUL'   => ["/tmp/inbox\0.txt"],
+            'empty' => [''],
+        ];
     }
 }

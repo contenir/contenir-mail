@@ -12,9 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function gethostname;
-use function preg_quote;
-
 #[CoversClass(MessageId::class)]
 #[Group('unit')]
 final class MessageIdTest extends TestCase
@@ -69,15 +66,22 @@ final class MessageIdTest extends TestCase
         );
     }
 
+    /**
+     * Information disclosure: the default domain does not reveal the sending machine's host name.
+     */
     #[Test]
-    public function generatesIdOnThisMachineByDefault(): void
+    public function generatesIdOnReservedDomainByDefault(): void
     {
-        $host = (string) gethostname();
+        static::assertMatchesRegularExpression('/^[0-9a-f]{32}@localhost\.invalid$/', MessageId::generate()->getId());
+    }
 
-        static::assertMatchesRegularExpression(
-            '/^[0-9a-f]{32}@' . preg_quote($host, delimiter: '/') . '$/',
-            MessageId::generate()->getId(),
-        );
+    #[Test]
+    public function rejectsDomainHoldingAnAtSign(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid ID detected');
+
+        MessageId::generate('a@example.org');
     }
 
     #[Test]

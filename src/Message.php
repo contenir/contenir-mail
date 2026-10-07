@@ -329,6 +329,11 @@ final class Message
 
     /**
      * Parse a raw message into its headers and body text.
+     *
+     * Headers keep the text they were read with, so toString() writes them
+     * back unchanged until they are replaced.
+     *
+     * @throws Exception\RuntimeException When the header block is malformed or too large.
      */
     public static function fromString(string $rawMessage): self
     {
