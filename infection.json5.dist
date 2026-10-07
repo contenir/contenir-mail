@@ -41,6 +41,9 @@
         },
         "IncrementInteger": {
             "ignore": [
+                // Skipping a fourth continuation byte also ends at a unit start: a byte after three
+                // continuation bytes is a unit of its own, so the slices come out equivalent.
+                "Contenir\\Mail\\Utf8::sliceEnd",
                 // Any read size gives the same output, as unencoded bytes carry over to the next read.
                 "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64",
                 // A nanosecond more or less on the deadline, or a microsecond on the 10 ms poll,
@@ -69,7 +72,16 @@
         "ReturnRemoval": {
             // The chunked stream encoder only saves memory: falling through to Mime::encode()
             // gives the same output, which PartTest asserts for many lengths and read sizes.
-            "ignore": ["Contenir\\Mail\\Mime\\Part::getEncodedContent"]
+            "ignore": [
+                "Contenir\\Mail\\Mime\\Part::getEncodedContent",
+                // Returning valid UTF-8 at once only saves time: scrubbing it changes nothing.
+                "Contenir\\Mail\\Utf8::scrub"
+            ]
+        },
+        "Coalesce": {
+            // Scrubbing by character gives the same result as scrubbing by run, only slower,
+            // which is why it is the fallback; Utf8ScrubTest checks both paths.
+            "ignore": ["Contenir\\Mail\\Utf8::scrub"]
         }
     },
     "staticAnalysisTool": "mago"
