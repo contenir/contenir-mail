@@ -7,7 +7,8 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Address;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Header;
-use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\AddressEncoder;
+use Contenir\Mail\Header\AddressListCodec;
 use Contenir\Mail\Header\Sender;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,282 +16,272 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-use function array_map;
-use function array_merge;
-use function array_slice;
-
 #[CoversClass(Sender::class)]
-class SenderTest extends TestCase
+#[CoversClass(AddressListCodec::class)]
+#[CoversClass(AddressEncoder::class)]
+#[Group('unit')]
+final class SenderTest extends TestCase
 {
     #[Test]
-    public function fromStringCreatesValidReceivedHeader(): void
+    public function reportsFieldName(): void
     {
-        $sender = Header\Sender::fromString('Sender: <foo@bar>');
-        static::assertInstanceOf(HeaderInterface::class, $sender);
-        static::assertInstanceOf(Sender::class, $sender);
+        static::assertSame('Sender', (new Sender(new Address('foo@bar')))->getFieldName());
     }
 
     #[Test]
-    public function getFieldNameReturnsHeaderName(): void
+    public function exposesTheAddressItWasGiven(): void
     {
-        $sender = new Header\Sender();
-        static::assertSame('Sender', $sender->getFieldName());
+        $address = new Address('foo@bar', 'foo');
+
+        static::assertSame($address, (new Sender($address))->getAddress());
     }
 
-    #[Test]
-    #[DataProvider('validSenderHeaderDataProvider')]
+    #[DataProvider('senderProvider')]
     #[Group('ZF2015-04')]
-    public function parseValidSenderHeader(string $expectedFieldValue, string $encodedValue, string $encoding): void
+    #[Test]
+    public function rendersDecodedFieldValue(string $email, ?string $name, string $expected): void
     {
-        $header = Header\Sender::fromString("Sender:{$encodedValue}");
+        static::assertSame($expected, (new Sender(new Address($email, $name)))->getFieldValue());
+    }
 
-        static::assertSame($expectedFieldValue, $header->getFieldValue());
-        static::assertSame($encoding, $header->getEncoding());
+    #[DataProvider('senderProvider')]
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function rendersEncodedHeaderLine(string $email, ?string $name, string $decoded, string $encoded): void
+    {
+        static::assertSame("Sender: {$encoded}", (new Sender(new Address($email, $name)))->toString());
+    }
+
+    #[DataProvider('senderProvider')]
+    #[Test]
+    public function parsesEncodedHeaderLine(string $email, ?string $name, string $decoded, string $encoded): void
+    {
+        static::assertSame($decoded, Sender::fromString("Sender:{$encoded}")->getFieldValue());
+    }
+
+    #[Test]
+    public function convertsNonAsciiDomainToPunycode(): void
+    {
+        static::assertSame(
+            'Sender: user@xn--bcher-kva.example',
+            (new Sender(new Address('user@bücher.example')))->toString(),
+        );
+    }
+
+    #[Test]
+    public function keepsNonAsciiDomainInDecodedFieldValue(): void
+    {
+        static::assertSame(
+            'user@bücher.example',
+            (new Sender(new Address('user@bücher.example')))->getFieldValue(),
+        );
     }
 
     /**
-     * @param string $decodedValue
-     * @param string $expectedException
+     * @param array{?string, string} $expected
      */
+    #[DataProvider('validHeaderLineProvider')]
     #[Test]
-    #[DataProvider('invalidSenderEncodedDataProvider')]
-    #[Group('ZF2015-04')]
-    public function parseInvalidSenderHeaderThrowException(
-        $decodedValue,
-        $expectedException,
-    ): void {
-        $this->expectException($expectedException);
-        Header\Sender::fromString("Sender:{$decodedValue}");
+    public function parsesNameAndEmailFromHeaderLine(string $headerLine, array $expected): void
+    {
+        $address = Sender::fromString($headerLine)->getAddress();
+
+        static::assertSame($expected, [$address->getName(), $address->getEmail()]);
     }
 
     /**
-     * @param string $email
-     * @param null|string $name
-     * @param string $encodedValue
-     * @param string $expectedFieldValue,
-     * @param string $encoding
+     * @param class-string<\Throwable> $exception
      */
-    #[Test]
-    #[DataProvider('validSenderDataProvider')]
+    #[DataProvider('invalidHeaderLineProvider')]
     #[Group('ZF2015-04')]
-    public function setAddressValidValue($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
+    #[Test]
+    public function rejectsInvalidHeaderLine(string $headerLine, string $exception, string $message): void
     {
-        $header = new Header\Sender();
-        $header->setAddress($email, $name);
+        $this->expectException($exception);
+        $this->expectExceptionMessage($message);
 
-        static::assertSame($expectedFieldValue, $header->getFieldValue());
-        static::assertSame("Sender: {$encodedValue}", $header->toString());
-        static::assertSame($encoding, $header->getEncoding());
+        Sender::fromString($headerLine);
     }
 
     /**
-     * @param string $email
-     * @param null|string $name
+     * @param class-string<\Throwable> $exception
      */
-    #[Test]
-    #[DataProvider('invalidSenderDataProvider')]
+    #[DataProvider('invalidAddressProvider')]
     #[Group('ZF2015-04')]
-    public function setAddressInvalidValue($email, $name): void
+    #[Test]
+    public function rejectsInvalidAddress(string $email, ?string $name, string $exception, string $message): void
     {
-        $header = new Header\Sender();
+        $this->expectException($exception);
+        $this->expectExceptionMessage($message);
+
+        new Sender(new Address($email, $name));
+    }
+
+    #[DataProvider('trailingLineBreakProvider')]
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function rejectsTrailingLineBreakInEmail(string $email): void
+    {
         $this->expectException(Exception\InvalidArgumentException::class);
-        $header->setAddress($email, $name);
+        $this->expectExceptionMessage('CRLF injection detected');
+
+        new Sender(new Address($email));
+    }
+
+    #[DataProvider('hostileNameProvider')]
+    #[Test]
+    public function displayNameCannotChangeTheAddressWhenReparsed(string $name): void
+    {
+        $reparsed = Sender::fromString((new Sender(new Address('victim@example.com', $name)))->toString());
+
+        static::assertSame('victim@example.com', $reparsed->getAddress()->getEmail());
     }
 
     /**
-     * @param string $email
-     * @param null|string $name
-     * @param string $expectedFieldValue,
-     * @param string $encodedValue
-     * @param string $encoding
+     * @return array<string, array{string, ?string, string, string}>
      */
-    #[Test]
-    #[DataProvider('validSenderDataProvider')]
-    #[Group('ZF2015-04')]
-    public function setAddressValidAddressObject($email, $name, $expectedFieldValue, $encodedValue, $encoding): void
-    {
-        $address = new Address($email, $name);
-
-        $header = new Header\Sender();
-        $header->setAddress($address);
-
-        static::assertSame($address, $header->getAddress());
-        static::assertSame($expectedFieldValue, $header->getFieldValue());
-        static::assertSame("Sender: {$encodedValue}", $header->toString());
-        static::assertSame($encoding, $header->getEncoding());
-    }
-
-    public static function validSenderDataProvider(): array
+    public static function senderProvider(): array
     {
         return [
-            // Description => [sender address, sender name, getFieldValue, encoded version, encoding],
-            'ASCII address' => [
-                'foo@bar',
-                null,
-                '<foo@bar>',
-                '<foo@bar>',
-                'ASCII',
-            ],
-            'ASCII name'    => [
-                'foo@bar',
-                'foo',
-                'foo <foo@bar>',
-                'foo <foo@bar>',
-                'ASCII',
-            ],
-            'UTF-8 name'    => [
+            'ASCII address'           => ['foo@bar', null, 'foo@bar', 'foo@bar'],
+            'ASCII name'              => ['foo@bar', 'foo', 'foo <foo@bar>', 'foo <foo@bar>'],
+            'UTF-8 name'              => [
                 'foo@bar',
                 'ázÁZ09',
                 'ázÁZ09 <foo@bar>',
                 '=?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>',
-                'UTF-8',
+            ],
+            'name with comma'         => [
+                'foo@bar',
+                'Last, First',
+                '"Last, First" <foo@bar>',
+                '"Last, First" <foo@bar>',
+            ],
+            'name with angle bracket' => [
+                'foo@bar',
+                '<weird name>',
+                '"<weird name>" <foo@bar>',
+                '"<weird name>" <foo@bar>',
             ],
         ];
     }
 
-    public static function validSenderHeaderDataProvider(): array
+    /**
+     * @return array<string, array{string, array{?string, string}}>
+     */
+    public static function validHeaderLineProvider(): array
     {
-        return array_merge(
-            array_map(static fn($parameters) => array_slice($parameters, 2), self::validSenderDataProvider()),
-            [
-                // Per RFC 2822, 3.4 and 3.6.2, "Sender: foo@bar" is valid.
-                'Unbracketed email' => [
-                    '<foo@bar>',
-                    'foo@bar',
-                    'ASCII',
-                ],
+        return [
+            'unbracketed email'        => ['Sender: foo@bar', [null, 'foo@bar']],
+            'bracketed email'          => ['Sender: <foo@bar>', [null, 'foo@bar']],
+            'extra leading whitespace' => ['Sender:    foo@bar', [null, 'foo@bar']],
+            'lower-case header name'   => ['sender: foo@bar', [null, 'foo@bar']],
+            'name'                     => ['Sender: name <foo@bar>', ['name', 'foo@bar']],
+            'name in angle brackets'   => ['Sender: <weird name> <foo@bar>', ['<weird name>', 'foo@bar']],
+            'several words'            => ['Sender: moar words <foo@bar>', ['moar words', 'foo@bar']],
+            'quoted name'              => ['Sender: "Last, First" <foo@bar>', ['Last, First', 'foo@bar']],
+            'RFC 2047 encoded name'    => [
+                'Sender: =?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>',
+                ['ázÁZ09', 'foo@bar'],
             ],
-        );
-    }
-
-    public static function invalidSenderDataProvider(): array
-    {
-        $mailInvalidArgumentException = Exception\InvalidArgumentException::class;
-
-        return [
-            // Description => [sender address, sender name, exception class, exception message],
-            'Empty'      => ['', null, $mailInvalidArgumentException, null],
-            'any ASCII'  => ['azAZ09-_', null, $mailInvalidArgumentException, null],
-            'any UTF-8'  => ['ázÁZ09-_', null, $mailInvalidArgumentException, null],
-            'non-string' => [null, null, $mailInvalidArgumentException, null],
-
-            // CRLF @group ZF2015-04 cases
-            ["foo@bar\n", null, $mailInvalidArgumentException, null],
-            ["foo@bar\r", null, $mailInvalidArgumentException, null],
-            ["foo@bar\r\n", null, $mailInvalidArgumentException, null],
-            ['foo@bar', "\r", $mailInvalidArgumentException, null],
-            ['foo@bar', "\n", $mailInvalidArgumentException, null],
-            ['foo@bar', "\r\n", $mailInvalidArgumentException, null],
-            ['foo@bar', "foo\r\nevilBody", $mailInvalidArgumentException, null],
-            ['foo@bar', "\r\nevilBody", $mailInvalidArgumentException, null],
-        ];
-    }
-
-    public static function invalidSenderEncodedDataProvider(): array
-    {
-        $mailInvalidArgumentException   = Exception\InvalidArgumentException::class;
-        $headerInvalidArgumentException = Header\Exception\InvalidArgumentException::class;
-
-        return [
-            // Description => [decoded format, exception class, exception message],
-            'Empty'     => ['', $mailInvalidArgumentException],
-            'any ASCII' => ['azAZ09-_', $mailInvalidArgumentException],
-            'any UTF-8' => ['ázÁZ09-_', $mailInvalidArgumentException],
-            ["xxx yyy\n", $mailInvalidArgumentException],
-            ["xxx yyy\r\n", $mailInvalidArgumentException],
-            ["xxx yyy\r\n\r\n", $mailInvalidArgumentException],
-            ["xxx\r\ny\r\nyy", $mailInvalidArgumentException],
-            ["foo\r\n@\r\nbar", $mailInvalidArgumentException],
-            ['ázÁZ09 <foo@bar>', $headerInvalidArgumentException],
-            'newline'   => ["<foo@bar>\n", $headerInvalidArgumentException],
-            'cr-lf'     => ["<foo@bar>\r\n", $headerInvalidArgumentException],
-            'cr-lf-wsp' => ["<foo@bar>\r\n\r\n", $headerInvalidArgumentException],
-            'multiline' => ["<foo\r\n@\r\nbar>", $headerInvalidArgumentException],
         ];
     }
 
     /**
-     * @param string $headerString
-     * @param string $expectedName
-     * @param string $expectedEmail
+     * @return array<string, array{string, class-string<\Throwable>, string}>
      */
-    #[Test]
-    #[DataProvider('validHeaderLinesProvider')]
-    public function fromStringWithValidInput($headerString, $expectedName, $expectedEmail): void
+    public static function invalidHeaderLineProvider(): array
     {
-        $header = Header\Sender::fromString($headerString);
+        $headerException = Header\Exception\InvalidArgumentException::class;
+        $mailException   = Exception\InvalidArgumentException::class;
+        $invalidEmail    = 'The input is not a valid email address. Use the basic format local-part@hostname';
 
-        static::assertSame($expectedName, $header->getAddress()->getName());
-        static::assertSame($expectedEmail, $header->getAddress()->getEmail());
-    }
-
-    public static function validHeaderLinesProvider(): array
-    {
-        // @codingStandardsIgnoreStart
         return [
-            // [ header line,                                  expected sender name, expected email address ]
-            ['Sender: foo@bar',                                null,           'foo@bar'],
-            ['Sender: <foo@bar>',                              null,           'foo@bar'],
-            ['Sender:    foo@bar',                             null,           'foo@bar'],
-            ['Sender: name <foo@bar>',                         'name',         'foo@bar'],
-            ['Sender: <weird name> <foo@bar>',                 '<weird name>', 'foo@bar'],
-            ['Sender: moar words <foo@bar>',                   'moar words',   'foo@bar'],
-            ['Sender: =?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>', 'ázÁZ09',       'foo@bar'],
+            'another header'          => ['Foo: bar', $headerException, 'Invalid header name for Sender string'],
+            'empty'                   => ['Sender: ', $headerException, 'Invalid header value for Sender string'],
+            'ASCII without at-sign'   => ['Sender: azAZ09-_', $mailException, $invalidEmail],
+            'single word'             => ['Sender: foo', $mailException, $invalidEmail],
+            'word before bracket'     => ['Sender: foo<foo>', $mailException, $invalidEmail],
+            'two words'               => [
+                'Sender: foo foo',
+                $headerException,
+                'Invalid header value for Sender string',
+            ],
+            'word after bracket'      => [
+                'Sender: <foo> foo',
+                $headerException,
+                'Invalid header value for Sender string',
+            ],
+            'raw UTF-8'               => ['Sender: ázÁZ09-_', $headerException, 'Invalid header value detected'],
+            'raw UTF-8 name'          => [
+                'Sender: ázÁZ09 <foo@bar>',
+                $headerException,
+                'Invalid header value detected',
+            ],
+            'newline'                 => ["Sender: xxx yyy\n", $headerException, 'Invalid header value detected'],
+            'cr-lf'                   => ["Sender: xxx yyy\r\n", $headerException, 'Invalid header value detected'],
+            'cr-lf twice'             => ["Sender: xxx yyy\r\n\r\n", $headerException, 'Invalid header value detected'],
+            'multiline'               => ["Sender: xxx\r\ny\r\nyy", $headerException, 'Invalid header value detected'],
+            'line breaks around at'   => ["Sender: foo\r\n@\r\nbar", $headerException, 'Invalid header value detected'],
+            'address then newline'    => ["Sender: <foo@bar>\n", $headerException, 'Invalid header value detected'],
+            'address then cr-lf'      => ["Sender: <foo@bar>\r\n", $headerException, 'Invalid header value detected'],
+            'address then two cr-lf'  => [
+                "Sender: <foo@bar>\r\n\r\n",
+                $headerException,
+                'Invalid header value detected',
+            ],
+            'line breaks in brackets' => [
+                "Sender: <foo\r\n@\r\nbar>",
+                $headerException,
+                'Invalid header value detected',
+            ],
         ];
-
-        // @codingStandardsIgnoreEnd
     }
 
     /**
-     * @param string $headerString
-     * @param string $expectedException
-     * @param string $expectedMessagePart
+     * @return array<string, array{string, ?string, class-string<\Throwable>, string}>
      */
-    #[Test]
-    #[DataProvider('invalidHeaderLinesProvider')]
-    public function fromStringWithInvalidInput($headerString, $expectedException, $expectedMessagePart = ''): void
+    public static function invalidAddressProvider(): array
     {
-        $this->expectException($expectedException);
-        if ($expectedMessagePart) {
-            $this->expectExceptionMessage($expectedMessagePart);
-        }
-
-        Header\Sender::fromString($headerString);
-    }
-
-    public static function invalidHeaderLinesProvider(): array
-    {
-        $mailInvalidArgumentException   = Exception\InvalidArgumentException::class;
-        $headerInvalidArgumentException = Header\Exception\InvalidArgumentException::class;
+        $exception    = Exception\InvalidArgumentException::class;
+        $invalidEmail = 'The input is not a valid email address. Use the basic format local-part@hostname';
+        $crlf         = 'CRLF injection detected';
 
         return [
-            ['Sender: foo',       $mailInvalidArgumentException],
-            ['Sender: foo<foo>',  $mailInvalidArgumentException],
-            ['Sender: foo foo',   $headerInvalidArgumentException],
-            ['Sender: <foo> foo', $headerInvalidArgumentException],
+            'empty'                 => ['', null, $exception, 'Email must be a valid email address'],
+            'ASCII without at-sign' => ['azAZ09-_', null, $exception, $invalidEmail],
+            'UTF-8 without at-sign' => ['ázÁZ09-_', null, $exception, $invalidEmail],
+            'cr in name'            => ['foo@bar', "\r", $exception, $crlf],
+            'lf in name'            => ['foo@bar', "\n", $exception, $crlf],
+            'cr-lf in name'         => ['foo@bar', "\r\n", $exception, $crlf],
+            'body after name'       => ['foo@bar', "foo\r\nevilBody", $exception, $crlf],
+            'body injected as name' => ['foo@bar', "\r\nevilBody", $exception, $crlf],
+            'cr-lf inside email'    => ["foo\r\n@bar", null, $exception, $crlf],
         ];
     }
 
-    #[Test]
-    public function defaultEncoding(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function trailingLineBreakProvider(): array
     {
-        $header = new Header\Sender();
-        static::assertSame('ASCII', $header->getEncoding());
+        return [
+            'newline' => ["foo@bar\n"],
+            'cr'      => ["foo@bar\r"],
+            'cr-lf'   => ["foo@bar\r\n"],
+        ];
     }
 
-    #[Test]
-    public function setEncoding(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function hostileNameProvider(): array
     {
-        $header = new Header\Sender();
-        $header->setEncoding('UTF-8');
-        static::assertSame('UTF-8', $header->getEncoding());
-    }
-
-    #[Test]
-    public function fromStringRaisesExceptionOnInvalidHeader(): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid header name for Sender string');
-        Header\Sender::fromString('Foo: bar');
+        return [
+            'quote breaks out'        => ['a" <attacker@example.net>'],
+            'escaped backslash quote' => ['a\\" <attacker@example.net>'],
+            'angle-bracketed address' => ['<attacker@example.net>'],
+            'UTF-8 with address'      => ['é <attacker@example.net>'],
+        ];
     }
 }

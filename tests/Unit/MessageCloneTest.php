@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit;
 
 use Contenir\Mail\Header\AbstractAddressList;
+use Contenir\Mail\Header\Date;
+use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -46,9 +49,42 @@ final class MessageCloneTest extends TestCase
         $original = $this->makeMessage();
         $copy     = clone $original;
 
-        $copy->getHeaders()->addHeaderLine('X-Copy', 'yes');
+        $copy->addHeader(new GenericHeader('X-Copy', 'yes'));
 
         static::assertFalse($original->getHeaders()->has('X-Copy'));
+    }
+
+    #[Test]
+    public function removingHeaderFromCloneLeavesOriginalUnchanged(): void
+    {
+        $original = $this->makeMessage();
+        $copy     = clone $original;
+
+        $copy->removeHeader('Subject');
+
+        static::assertSame('Original', $original->getSubject());
+    }
+
+    #[Test]
+    public function replacingRecipientsOfCloneLeavesOriginalUnchanged(): void
+    {
+        $original = $this->makeMessage();
+        $copy     = clone $original;
+
+        $copy->setTo('other@example.com');
+
+        static::assertSame(['first@example.com'], $this->recipients($original));
+    }
+
+    #[Test]
+    public function changingBodyOfCloneLeavesOriginalUnchanged(): void
+    {
+        $original = $this->makeMessage();
+        $copy     = clone $original;
+
+        $copy->setBody('Changed');
+
+        static::assertSame('Original body', $original->getBodyText());
     }
 
     #[Test]
@@ -62,7 +98,7 @@ final class MessageCloneTest extends TestCase
     #[Test]
     public function clonesMessageWithoutHeaders(): void
     {
-        $copy = clone new Message();
+        $copy = clone new Message(new Headers());
 
         $copy->setSubject('Only on the copy');
 
@@ -71,9 +107,10 @@ final class MessageCloneTest extends TestCase
 
     private function makeMessage(): Message
     {
-        $message = new Message();
+        $message = new Message(new Headers(new Date(new DateTimeImmutable('2024-01-01T00:00:00Z'))));
         $message->addTo('first@example.com');
         $message->setSubject('Original');
+        $message->setBody('Original body');
 
         return $message;
     }

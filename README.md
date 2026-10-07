@@ -48,17 +48,13 @@ $message->setBody('This is the text of the e-mail.');
 See the [documentation](docs/book/index.md) for transports, attachments,
 character sets and reading mail.
 
-## Migrating from laminas-mail and laminas-mime
+## Coming from laminas-mail and laminas-mime
 
-The public API is kept as close to laminas-mail 2.25 and laminas-mime 2.12 as
-possible: classes, methods and options keep their names and signatures, and only
-the namespace changes.
-
-| laminas                                         | contenir-mail            |
-| ----------------------------------------------- | ------------------------ |
-| `Laminas\Mail\*`                                | `Contenir\Mail\*`        |
-| `Laminas\Mime\*`                                | `Contenir\Mail\Mime\*`   |
-| `laminas/laminas-mail` + `laminas/laminas-mime` | `contenir/contenir-mail` |
+contenir-mail keeps the Zend_Mail and laminas-mail vocabulary: `Message`,
+`Headers`, `Address`, MIME parts, transports, protocols and storage keep their
+names and their roles. The API underneath is modernised for PHP 8.3, so it is not
+a drop-in replacement: values are typed and immutable, and a few classes have
+gone.
 
 1. Replace both packages:
 
@@ -77,7 +73,40 @@ the namespace changes.
 3. Register `Contenir\Mail\ConfigProvider` (Mezzio) or the `Contenir\Mail` module
    (laminas-mvc) in place of the Laminas ones.
 
-There are no `Laminas\*` class aliases. The following were also removed:
+4. Update code that touches the APIs below.
+
+### Addresses and headers
+
+Addresses, address lists, every header class and the `Headers` collection are
+immutable values. `Message` is still built step by step with its setters, but
+each setter swaps in a new value rather than changing a shared one, so a cloned
+message never affects the original.
+
+| laminas-mail | contenir-mail |
+| --- | --- |
+| `$message->getTo()->add($email, $name)` | `$message->addTo($email, $name)` |
+| `$message->getHeaders()->addHeaderLine('X-Id', '1')` | `$message->addHeader(new GenericHeader('X-Id', '1'))` |
+| `$message->getHeaders()->removeHeader('X-Id')` | `$message->removeHeader('X-Id')` |
+| `$headers->get('Received')` returning a header, an `ArrayIterator` or `false` | `$headers->get('Received')` (first or `null`) and `$headers->all('Received')` (list) |
+| `$headers->addHeader($h)` / `removeHeader($name)` | `$headers->with($h)` (replace), `withAdded($h)` (append), `without($name)` |
+| `$header->setEncoding('UTF-8')`, `$message->setEncoding('UTF-8')` for headers | Headers encode themselves: plain ASCII stays readable, anything else is RFC 2047 encoded as UTF-8. `Message::setEncoding()` now only names the body's character set |
+| `$header->getFieldValue(HeaderInterface::FORMAT_ENCODED)` | `$header->getEncodedFieldValue()` |
+| `new Subject(); $subject->setSubject('Hi')` and other setters | Constructors: `new Subject('Hi')`, `new ContentType('text/plain', ['charset' => 'UTF-8'])`, `new Date(new DateTimeImmutable())` |
+| `$contentType->addParameter('charset', 'UTF-8')` | `$contentType->withParameter('charset', 'UTF-8')` |
+| `new ContentTransferEncoding(); ->setTransferEncoding('base64')` | `new ContentTransferEncoding(TransferEncoding::Base64)` |
+| `$messageId->setId()` (generated) | `MessageId::generate()` |
+| `$references->setIds([...])` | `new References(...$ids)` |
+| `AddressList::add()`, `addMany()`, `merge()`, `delete()` | `with()`, `fromIterable()`, `withList()`, `without()` |
+| `Address\AddressInterface` | `Address` (a `final readonly` value) |
+| `Header\HeaderLocator::add()` / `remove()` | `new HeaderLocator(['x-name' => MyHeader::class])` or `->with()`, passed to `Headers::fromString()` |
+| `GenericMultiHeader`, `MultipleHeadersInterface`, `StructuredInterface`, `UnstructuredInterface` | Removed; `Headers` keeps repeated headers such as `Received` as separate entries |
+| `IdentificationField` | `AbstractIdentificationField` |
+
+Reading mail is more forgiving: a header that its class cannot parse, such as a
+malformed `Date`, is kept as a `GenericHeader` rather than making the whole
+message unreadable.
+
+### Removed
 
 - The legacy `Zend\Mail\*` service names, and the normalised `zendmail*` and
   `laminasmail*` aliases of `SmtpPluginManager`. Use the class names or the short
@@ -85,28 +114,29 @@ There are no `Laminas\*` class aliases. The following were also removed:
 - The `TESTS_LAMINAS_MAIL_*` test environment variables, now `TESTS_CONTENIR_MAIL_*`.
 - `Headers::setPluginClassLoader()`, `Headers::getPluginClassLoader()` and
   `Header\HeaderLoader`, deprecated since laminas-mail 2.12, together with the
-  abandoned `laminas/laminas-loader` dependency. Use `Headers::setHeaderLocator()`
-  and `Headers::getHeaderLocator()` with a `Header\HeaderLocatorInterface`.
+  abandoned `laminas/laminas-loader` dependency.
 - The `laminas/laminas-validator` dependency. Addresses and host names are checked
   by internal validators that accept and reject what laminas-validator 2 did, so
   an application is free to use either laminas-validator major version.
   `AbstractProtocol::$validHost` is now a
   `Contenir\Mail\Validator\HostnameValidator` rather than a `ValidatorChain`.
 
-Behaviour changes:
+### Behaviour changes
 
 - `HeaderWrap::mimeDecodeValue()` no longer uses ext-imap, which left PHP core in
   8.4. A built-in RFC 2047 decoder handles multibyte characters split across
-  encoded words on every PHP version.
+  encoded words, words in any charset case, and tab-folded lines.
 - A failed `AbstractProtocol::_connect()` no longer leaves its temporary error
   handler installed.
-- Address-list headers quote a display name containing any RFC 5322 special
-  other than `.`, and escape `"` and `\` inside it, so a name can no longer add
-  recipients. Names with a `,` or `;` were already quoted.
+- Display names are quoted when they contain RFC 5322 specials, and encoded with
+  those specials escaped when they are not ASCII, so a name can never add
+  recipients.
 - Parsing an address-list header no longer reads a quoted display name containing
-  `:` or `;` as group syntax, and keeps addresses written before a group.
-- Cloning a `Message` clones its headers, so changing the clone leaves the
-  original untouched.
+  `:` or `;` as group syntax, keeps addresses written before a group, and accepts
+  a comment after a named address.
+- Long `Content-Disposition` parameters with a long name are split into RFC 2231
+  continuations instead of looping forever, and extended sections such as
+  `filename*0*=` are read.
 - `Imap` no longer hangs on a server response with two spaces in a row.
 - `Storage\Writable\Maildir` quota checks no longer fail on the blank line after
   the last entry of a `maildirsize` file, which every rewrite of that file left.

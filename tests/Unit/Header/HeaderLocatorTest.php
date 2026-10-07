@@ -6,97 +6,150 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\HeaderLocator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class HeaderLocatorTest extends TestCase
+#[CoversClass(HeaderLocator::class)]
+#[Group('unit')]
+final class HeaderLocatorTest extends TestCase
 {
-    private HeaderLocator $headerLocator;
-
-    public function setUp(): void
+    /**
+     * @param class-string<Header\HeaderInterface> $class
+     */
+    #[DataProvider('defaultHeaderProvider')]
+    #[Test]
+    public function resolvesBuiltInHeaderClass(string $name, string $class): void
     {
-        $this->headerLocator = new Header\HeaderLocator();
+        static::assertSame($class, (new HeaderLocator())->get($name));
     }
 
-    public static function provideHeaderNames(): array
+    #[DataProvider('defaultHeaderProvider')]
+    #[Test]
+    public function knowsBuiltInHeader(string $name): void
+    {
+        static::assertTrue((new HeaderLocator())->has($name));
+    }
+
+    #[DataProvider('unknownNameProvider')]
+    #[Test]
+    public function returnsNullForUnknownHeader(string $name): void
+    {
+        static::assertNull((new HeaderLocator())->get($name));
+    }
+
+    #[DataProvider('unknownNameProvider')]
+    #[Test]
+    public function doesNotKnowUnknownHeader(string $name): void
+    {
+        static::assertFalse((new HeaderLocator())->has($name));
+    }
+
+    #[Test]
+    public function constructorClassesOverrideDefaults(): void
+    {
+        $locator = new HeaderLocator(['To' => Header\GenericHeader::class]);
+
+        static::assertSame(Header\GenericHeader::class, $locator->get('to'));
+    }
+
+    #[Test]
+    public function constructorClassesAddNewHeaders(): void
+    {
+        $locator = new HeaderLocator(['X-Custom' => Header\GenericHeader::class]);
+
+        static::assertSame(Header\GenericHeader::class, $locator->get('x_custom'));
+    }
+
+    #[Test]
+    public function constructorClassesKeepRemainingDefaults(): void
+    {
+        $locator = new HeaderLocator(['To' => Header\GenericHeader::class]);
+
+        static::assertSame(Header\Subject::class, $locator->get('subject'));
+    }
+
+    #[Test]
+    public function withAddsHeaderToNewLocator(): void
+    {
+        $locator = (new HeaderLocator())->with('X-Custom', Header\GenericHeader::class);
+
+        static::assertSame(Header\GenericHeader::class, $locator->get('x.custom'));
+    }
+
+    #[Test]
+    public function withOverridesExistingHeader(): void
+    {
+        $locator = (new HeaderLocator())->with('Content_Type', Header\GenericHeader::class);
+
+        static::assertSame(Header\GenericHeader::class, $locator->get('Content-Type'));
+    }
+
+    #[Test]
+    public function withLeavesOriginalLocatorUnchanged(): void
+    {
+        $locator = new HeaderLocator();
+        $locator->with('X-Custom', Header\GenericHeader::class);
+
+        static::assertFalse($locator->has('X-Custom'));
+    }
+
+    #[Test]
+    public function withKeepsEarlierOverrides(): void
+    {
+        $locator = (new HeaderLocator(['To' => Header\GenericHeader::class]))->with('X-Custom', Header\Subject::class);
+
+        static::assertSame(Header\GenericHeader::class, $locator->get('to'));
+    }
+
+    /**
+     * @return array<string, array{string, class-string<Header\HeaderInterface>}>
+     */
+    public static function defaultHeaderProvider(): array
     {
         return [
-            'with existing name'     => ['to', Header\To::class],
-            'with non-existent name' => ['foo', null],
-            'with default value'     => ['foo', Header\GenericHeader::class, Header\GenericHeader::class],
+            'bcc'                       => ['bcc', Header\Bcc::class],
+            'cc'                        => ['cc', Header\Cc::class],
+            'content-disposition'       => ['content-disposition', Header\ContentDisposition::class],
+            'content-transfer-encoding' => ['content-transfer-encoding', Header\ContentTransferEncoding::class],
+            'contenttype'               => ['contenttype', Header\ContentType::class],
+            'content_type'              => ['content_type', Header\ContentType::class],
+            'content-type'              => ['content-type', Header\ContentType::class],
+            'content type'              => ['content type', Header\ContentType::class],
+            'content.type'              => ['content.type', Header\ContentType::class],
+            'date'                      => ['date', Header\Date::class],
+            'from'                      => ['from', Header\From::class],
+            'in-reply-to'               => ['in-reply-to', Header\InReplyTo::class],
+            'message-id'                => ['message-id', Header\MessageId::class],
+            'mimeversion'               => ['mimeversion', Header\MimeVersion::class],
+            'mime_version'              => ['mime_version', Header\MimeVersion::class],
+            'mime-version'              => ['mime-version', Header\MimeVersion::class],
+            'received'                  => ['received', Header\Received::class],
+            'references'                => ['references', Header\References::class],
+            'replyto'                   => ['replyto', Header\ReplyTo::class],
+            'reply_to'                  => ['reply_to', Header\ReplyTo::class],
+            'reply-to'                  => ['reply-to', Header\ReplyTo::class],
+            'Reply_to'                  => ['Reply_to', Header\ReplyTo::class],
+            'sender'                    => ['sender', Header\Sender::class],
+            'subject'                   => ['subject', Header\Subject::class],
+            'SUBJECT'                   => ['SUBJECT', Header\Subject::class],
+            'to'                        => ['to', Header\To::class],
+            'To'                        => ['To', Header\To::class],
         ];
     }
 
     /**
-     * @param null|class-string<Header\HeaderInterface> $expected
-     * @param null|class-string<Header\HeaderInterface> $default
+     * @return array<string, array{string}>
      */
-    #[Test]
-    #[DataProvider('provideHeaderNames')]
-    public function headerIsProperlyLoaded(string $name, ?string $expected, ?string $default = null): void
-    {
-        static::assertSame($expected, $this->headerLocator->get($name, $default));
-    }
-
-    #[Test]
-    public function headerExistenceIsProperlyChecked(): void
-    {
-        static::assertTrue($this->headerLocator->has('to'));
-        static::assertTrue($this->headerLocator->has('To'));
-        static::assertTrue($this->headerLocator->has('Reply_to'));
-        static::assertTrue($this->headerLocator->has('SUBJECT'));
-        static::assertFalse($this->headerLocator->has('foo'));
-        static::assertFalse($this->headerLocator->has('bar'));
-    }
-
-    #[Test]
-    public function headerCanBeAdded(): void
-    {
-        static::assertFalse($this->headerLocator->has('foo'));
-        $this->headerLocator->add('foo', Header\GenericHeader::class);
-        static::assertTrue($this->headerLocator->has('foo'));
-    }
-
-    #[Test]
-    public function headerCanBeRemoved(): void
-    {
-        static::assertTrue($this->headerLocator->has('to'));
-        $this->headerLocator->remove('to');
-        static::assertFalse($this->headerLocator->has('to'));
-    }
-
-    public static function expectedHeaders(): array
+    public static function unknownNameProvider(): array
     {
         return [
-            'bcc'          => ['bcc', Header\Bcc::class],
-            'cc'           => ['cc', Header\Cc::class],
-            'contenttype'  => ['contenttype', Header\ContentType::class],
-            'content_type' => ['content_type', Header\ContentType::class],
-            'content-type' => ['content-type', Header\ContentType::class],
-            'date'         => ['date', Header\Date::class],
-            'from'         => ['from', Header\From::class],
-            'mimeversion'  => ['mimeversion', Header\MimeVersion::class],
-            'mime_version' => ['mime_version', Header\MimeVersion::class],
-            'mime-version' => ['mime-version', Header\MimeVersion::class],
-            'received'     => ['received', Header\Received::class],
-            'replyto'      => ['replyto', Header\ReplyTo::class],
-            'reply_to'     => ['reply_to', Header\ReplyTo::class],
-            'reply-to'     => ['reply-to', Header\ReplyTo::class],
-            'sender'       => ['sender', Header\Sender::class],
-            'subject'      => ['subject', Header\Subject::class],
-            'to'           => ['to', Header\To::class],
+            'foo'                => ['foo'],
+            'bar'                => ['bar'],
+            'x-mailer'           => ['x-mailer'],
+            'prefix of a header' => ['content'],
         ];
-    }
-
-    /**
-     * @param string $name
-     * @param Header\HeaderInterface $class
-     */
-    #[Test]
-    #[DataProvider('expectedHeaders')]
-    public function defaultHeadersMapResolvesProperHeader($name, $class): void
-    {
-        static::assertSame($class, $this->headerLocator->get($name));
     }
 }

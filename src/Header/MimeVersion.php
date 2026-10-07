@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use Override;
@@ -7,105 +9,66 @@ use Override;
 use function in_array;
 use function preg_match;
 use function strtolower;
+use function trim;
 
-class MimeVersion implements HeaderInterface
+final readonly class MimeVersion implements HeaderInterface
 {
-    /** @var string Version string */
-    protected $version = '1.0';
+    private string $version;
 
     /**
-     * @param string $headerLine
-     * @return static
+     * @throws Exception\InvalidArgumentException When the version is not "major.minor".
      */
-    #[Override]
-    public static function fromString($headerLine)
+    public function __construct(string $version = '1.0')
     {
-        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (! in_array(strtolower($name), ['mimeversion', 'mime_version', 'mime-version'])) {
-            throw new Exception\InvalidArgumentException('Invalid header line for MIME-Version string');
+        if (1 !== preg_match('/^[1-9]\d*\.\d+$/', $version)) {
+            throw new Exception\InvalidArgumentException('Invalid MIME-Version value detected');
         }
 
-        // Check for version, and set if found
-        $header = new static();
-        if (preg_match('/^(?P<version>\d+\.\d+)$/', $value, $matches)) {
-            $header->setVersion($matches['version']);
-        }
-
-        return $header;
+        $this->version = $version;
     }
 
     /**
-     * @return string
+     * An unreadable version falls back to 1.0, the only version ever defined.
      */
     #[Override]
-    public function getFieldName()
+    public static function fromString(string $headerLine): static
+    {
+        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
+        if (! in_array(strtolower($name), ['mimeversion', 'mime_version', 'mime-version'], strict: true)) {
+            throw new Exception\InvalidArgumentException('Invalid header line for MIME-Version string');
+        }
+
+        $value = trim(HeaderWrap::mimeDecodeValue($value));
+
+        return new self(1 === preg_match('/^[1-9]\d*\.\d+$/', $value) ? $value : '1.0');
+    }
+
+    public function getVersion(): string
+    {
+        return $this->version;
+    }
+
+    #[Override]
+    public function getFieldName(): string
     {
         return 'MIME-Version';
     }
 
-    /**
-     * @inheritDoc
-     */
     #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
+    public function getFieldValue(): string
     {
         return $this->version;
     }
 
-    /**
-     * @param string $encoding
-     * @return self
-     */
     #[Override]
-    public function setEncoding($encoding)
-    {
-        // This header must be always in US-ASCII
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function getEncoding()
-    {
-        return 'ASCII';
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function toString()
-    {
-        return "MIME-Version: {$this->getFieldValue()}";
-    }
-
-    /**
-     * Set the version string used in this header
-     *
-     * @param  string $version
-     * @return MimeVersion
-     */
-    public function setVersion($version)
-    {
-        if (! preg_match('/^[1-9]\d*\.\d+$/', $version)) {
-            throw new Exception\InvalidArgumentException('Invalid MIME-Version value detected');
-        }
-        $this->version = $version;
-        return $this;
-    }
-
-    /**
-     * Retrieve the version string for this header
-     *
-     * @return string
-     */
-    public function getVersion()
+    public function getEncodedFieldValue(): string
     {
         return $this->version;
+    }
+
+    #[Override]
+    public function toString(): string
+    {
+        return "MIME-Version: {$this->version}";
     }
 }

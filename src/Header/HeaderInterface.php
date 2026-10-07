@@ -1,70 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
+/**
+ * A single e-mail header field.
+ *
+ * Headers are immutable. Values are held decoded as UTF-8; the encoded form
+ * is produced on output, as printable US-ASCII when possible and as RFC 2047
+ * encoded words otherwise.
+ *
+ * @api
+ */
 interface HeaderInterface
 {
     /**
-     * Format value in Mime-Encoding (Quoted-Printable). Result is valid US-ASCII string
+     * Parse a complete header line, such as "Subject: Hello".
      *
-     * @var bool
+     * @throws Exception\InvalidArgumentException When the line is not a valid header of this type.
      */
-    public const FORMAT_ENCODED = true;
+    public static function fromString(string $headerLine): static;
+
+    public function getFieldName(): string;
 
     /**
-     * Return value in internal encoding which is usually UTF-8
-     *
-     * @var bool
+     * The decoded value, as a reader would see it.
      */
-    public const FORMAT_RAW = false;
+    public function getFieldValue(): string;
 
     /**
-     * Factory to generate a header object from a string
-     *
-     * @see http://tools.ietf.org/html/rfc2822#section-2.2
-     *
-     * @param string $headerLine
-     * @return static
-     * @throws Exception\InvalidArgumentException If the header does not match with RFC 2822 definition.
+     * The value as it is written on the wire: folded, and encoded where needed.
      */
-    public static function fromString($headerLine);
+    public function getEncodedFieldValue(): string;
 
     /**
-     * Retrieve header name
-     *
-     * @return string
+     * The complete header line, "Name: encoded value", without a trailing line break.
      */
-    public function getFieldName();
-
-    /**
-     * Retrieve header value
-     *
-     * @param  HeaderInterface::FORMAT_* $format Return the value in Mime::Encoded or in Raw format
-     * @return string
-     */
-    public function getFieldValue($format = self::FORMAT_RAW);
-
-    /**
-     * Set header encoding
-     *
-     * @param  string $encoding
-     * @return $this
-     */
-    public function setEncoding($encoding);
-
-    /**
-     * Get header encoding
-     *
-     * @return string
-     */
-    public function getEncoding();
-
-    /**
-     * Cast to string
-     *
-     * Returns in form of "NAME: VALUE"
-     *
-     * @return string
-     */
-    public function toString();
+    public function toString(): string;
 }

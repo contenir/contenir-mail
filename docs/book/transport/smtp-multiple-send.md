@@ -12,25 +12,30 @@ the correct SMTP handshake is followed.
 ```php
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\Smtp;
+use Contenir\Mail\Transport\SmtpOptions;
 
 // Create transport
-$transport = new Smtp([
-    'host' => 'mail.example.com'
-]);
+$transport = new Smtp(new SmtpOptions([
+    'host' => 'mail.example.com',
+]));
 
 // Create a base message:
 $message = (new Message())
-                ->addFrom('sender@example.com', 'John Doe')
-                ->addReplyTo('replyto@example.com', 'Jane Doe')
-                ->setSubject('Demo of multiple mails per SMTP connection')
-                ->setBody('... Your message here ...');
+    ->addFrom('sender@example.com', 'John Doe')
+    ->addReplyTo('replyto@example.com', 'Jane Doe')
+    ->setSubject('Demo of multiple mails per SMTP connection')
+    ->setBody('... Your message here ...');
 
-// Loop through recipients:
+// Loop through recipients, replacing the To header each time:
 foreach ($recipients as $address) {
     $message->setTo($address);
     $transport->send($message);
 }
 ```
+
+Each entry in `$recipients` can be anything `setTo()` accepts, such as an
+e-mail address string, `'Name <email@example.com>'`, or a
+`Contenir\Mail\Address` instance.
 
 If you wish to have a separate connection for each mail delivery, you will need
 to create and destroy your transport before and after each `send()` method is
@@ -63,11 +68,11 @@ foreach ($recipients as $address) {
     $mail->setSubject(
         'Demonstration - Sending Multiple Mails per SMTP Connection'
     );
-    $mail->setBodyText('...Your message here...');
+    $mail->setBody('...Your message here...');
 
     // Manually control the connection
     $protocol->rset();
-    $transport->send($message);
+    $transport->send($mail);
 }
 
 $protocol->quit();

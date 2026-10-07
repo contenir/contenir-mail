@@ -11,6 +11,7 @@ The following example creates an email with two parts, HTML content and an
 image.
 
 ```php
+use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Message as MimeMessage;
 use Contenir\Mail\Mime\Mime;
@@ -32,14 +33,16 @@ $body->setParts([$html, $image]);
 
 $message = new Message();
 $message->setBody($body);
-
-$contentTypeHeader = $message->getHeaders()->get('Content-Type');
-$contentTypeHeader->setType('multipart/related');
+$message->setHeader(new ContentType('multipart/related', [
+    'boundary' => $body->getMime()->boundary(),
+]));
 ```
 
-Note that the above code requires us to manually specify the message content
-type; `Contenir\Mail\Mime` does not automatically select the multipart type for us, nor
-does contenir-mail populate it by default.
+When the body is a multipart MIME message, `setBody()` sets a `MIME-Version`
+header and a `multipart/mixed` `Content-Type` header carrying the MIME boundary.
+`Contenir\Mail\Mime` does not select any other multipart type for us, so when
+the parts are related (or alternatives), replace the `Content-Type` header with
+`setHeader()`, keeping the same boundary.
 
 ## multipart/alternative content
 
@@ -47,6 +50,7 @@ One of the most common email types sent by web applications is
 `multipart/alternative` messages with both text and HTML parts.
 
 ```php
+use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Message as MimeMessage;
 use Contenir\Mail\Mime\Mime;
@@ -67,9 +71,9 @@ $body->setParts([$text, $html]);
 
 $message = new Message();
 $message->setBody($body);
-
-$contentTypeHeader = $message->getHeaders()->get('Content-Type');
-$contentTypeHeader->setType('multipart/alternative');
+$message->setHeader(new ContentType('multipart/alternative', [
+    'boundary' => $body->getMime()->boundary(),
+]));
 ```
 
 The only differences from the first example are:
@@ -95,12 +99,11 @@ The following example creates a MIME message with three parts: text and HTML
 alternative versions of an email, and an image attachment.
 
 ```php
+use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Message as MimeMessage;
 use Contenir\Mail\Mime\Mime;
 use Contenir\Mail\Mime\Part as MimePart;
-
-$body = new MimeMessage();
 
 $text           = new MimePart($textContent);
 $text->type     = Mime::TYPE_TEXT;
@@ -131,9 +134,9 @@ $body->setParts([$contentPart, $image]);
 
 $message = new Message();
 $message->setBody($body);
-
-$contentTypeHeader = $message->getHeaders()->get('Content-Type');
-$contentTypeHeader->setType('multipart/related');
+$message->setHeader(new ContentType('multipart/related', [
+    'boundary' => $body->getMime()->boundary(),
+]));
 ```
 
 ## Setting custom MIME boundaries
@@ -141,10 +144,13 @@ $contentTypeHeader->setType('multipart/related');
 In a multipart message, a MIME boundary for separating the different parts of
 the message is normally generated at random. In some cases, however, you might
 want to specify the MIME boundary that is used. This can be done by injecting a
-new `Contenir\Mail\Mime\Mime` instance into the MIME message.
+new `Contenir\Mail\Mime\Mime` instance into the MIME message. Do this before
+passing the MIME message to `setBody()`, as the `Content-Type` header records
+the boundary at that point.
 
 ```php
 use Contenir\Mail\Mime\Mime;
 
 $mimeMessage->setMime(new Mime($customBoundary));
+$message->setBody($mimeMessage);
 ```

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use Contenir\Mail\Address\AddressInterface;
+use Contenir\Mail\Address;
 use Contenir\Mail\Exception as MailException;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\To;
@@ -17,6 +17,7 @@ use Contenir\Mail\Storage\Message;
 use Exception as GeneralException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
@@ -29,6 +30,7 @@ use function var_export;
 
 #[CoversClass(Message::class)]
 #[CoversClass(Headers::class)]
+#[Group('unit')]
 class MessageTest extends TestCase
 {
     /** @var string */
@@ -538,7 +540,7 @@ class MessageTest extends TestCase
         $addressList = $header->getAddressList();
         static::assertSame(2, $addressList->count());
         $address = $addressList->get('bar@example.pl');
-        static::assertInstanceOf(AddressInterface::class, $address);
+        static::assertInstanceOf(Address::class, $address);
         static::assertSame('nicpoń', $address->getName());
     }
 

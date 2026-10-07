@@ -1,220 +1,113 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-use Contenir\Mail\Header\Exception\InvalidArgumentException;
-use Contenir\Mail\Mime\Mime;
 use Override;
 
 use function count;
 use function explode;
-use function is_string;
 use function ltrim;
 use function str_replace;
-use function strtoupper;
 use function ucwords;
 
-class GenericHeader implements HeaderInterface, UnstructuredInterface
+/**
+ * Any header without a dedicated class, and the fallback for headers that
+ * fail to parse as their dedicated class.
+ */
+final readonly class GenericHeader implements HeaderInterface
 {
-    /** @var string */
-    protected $fieldName;
+    private string $fieldName;
 
-    /** @var string */
-    protected $fieldValue = '';
+    private string $fieldValue;
 
     /**
-     * Header encoding
-     *
-     * @var null|string
+     * @throws Exception\InvalidArgumentException When the name or value is invalid.
      */
-    protected $encoding;
-
-    /**
-     * @param string $headerLine
-     * @return GenericHeader
-     */
-    #[Override]
-    public static function fromString($headerLine)
+    public function __construct(string $fieldName, string $fieldValue = '')
     {
-        [$name, $value] = self::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-        return new static($name, $value);
-    }
-
-    /**
-     * Splits the header line in `name` and `value` parts.
-     *
-     * @param string $headerLine
-     * @return string[] `name` in the first index and `value` in the second.
-     * @throws InvalidArgumentException If header does not match with the format ``name:value``.
-     */
-    public static function splitHeaderLine($headerLine)
-    {
-        $parts = explode(':', $headerLine, 2);
-        if (count($parts) !== 2) {
-            throw new InvalidArgumentException('Header must match with the format "name:value"');
-        }
-
-        if (! HeaderName::isValid($parts[0])) {
-            throw new InvalidArgumentException('Invalid header name detected');
-        }
-
-        if (! HeaderValue::isValid($parts[1])) {
-            throw new InvalidArgumentException('Invalid header value detected');
-        }
-
-        $parts[1] = ltrim($parts[1]);
-
-        return $parts;
-    }
-
-    /**
-     * Constructor
-     *
-     * @param string $fieldName  Optional
-     * @param null|string $fieldValue Optional
-     */
-    public function __construct($fieldName = null, $fieldValue = null)
-    {
-        if (! $fieldName) {
-            throw new InvalidArgumentException('Header MUST contain a field name');
-        }
-
-        $this->setFieldName($fieldName);
-
-        if (null !== $fieldValue) {
-            $this->setFieldValue($fieldValue);
-        }
-    }
-
-    /**
-     * Set header name
-     *
-     * @param  string $fieldName
-     * @return GenericHeader
-     * @throws Exception\InvalidArgumentException;
-     */
-    public function setFieldName($fieldName)
-    {
-        if (! is_string($fieldName) || empty($fieldName)) {
-            throw new InvalidArgumentException('Header name must be a string');
-        }
-
-        // Pre-filter to normalize valid characters, change underscore to dash
-        $fieldName = str_replace(' ', '-', ucwords(str_replace(['_', '-'], ' ', $fieldName)));
-
+        // Normalise "content_type" and "content type" to "Content-Type"
+        $fieldName = str_replace(
+            search: ' ',
+            replace: '-',
+            subject: ucwords(str_replace(
+                search: ['_', '-'],
+                replace: ' ',
+                subject: $fieldName,
+            )),
+        );
         if (! HeaderName::isValid($fieldName)) {
-            throw new InvalidArgumentException(
+            throw new Exception\InvalidArgumentException(
                 'Header name must be composed of printable US-ASCII characters, except colon.',
             );
         }
 
-        $this->fieldName = $fieldName;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function getFieldName()
-    {
-        return $this->fieldName;
-    }
-
-    /**
-     * Set header value
-     *
-     * @param  string $fieldValue
-     * @return GenericHeader
-     * @throws Exception\InvalidArgumentException;
-     */
-    public function setFieldValue($fieldValue)
-    {
-        $fieldValue = (string) $fieldValue;
-
         if (! HeaderWrap::canBeEncoded($fieldValue)) {
-            throw new InvalidArgumentException(
+            throw new Exception\InvalidArgumentException(
                 'Header value must be composed of printable US-ASCII characters and valid folding sequences.',
             );
         }
 
+        $this->fieldName  = $fieldName;
         $this->fieldValue = $fieldValue;
-        $this->encoding   = null;
+    }
 
-        return $this;
+    #[Override]
+    public static function fromString(string $headerLine): static
+    {
+        [$name, $value] = self::splitHeaderLine($headerLine);
+
+        return new self($name, HeaderWrap::mimeDecodeValue($value));
     }
 
     /**
-     * @inheritDoc
+     * Split a header line into its name and its value, with leading whitespace removed from the value.
+     *
+     * @return array{string, string}
+     * @throws Exception\InvalidArgumentException When the line is not `name: value` or either part is invalid.
      */
-    #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
+    public static function splitHeaderLine(string $headerLine): array
     {
-        if (HeaderInterface::FORMAT_ENCODED === $format) {
-            return HeaderWrap::wrap($this->fieldValue, $this);
+        $parts = explode(':', $headerLine, limit: 2);
+        if (2 !== count($parts)) {
+            throw new Exception\InvalidArgumentException('Header must match with the format "name:value"');
         }
 
+        $name  = $parts[0];
+        $value = $parts[1] ?? '';
+        if (! HeaderName::isValid($name)) {
+            throw new Exception\InvalidArgumentException('Invalid header name detected');
+        }
+
+        if (! HeaderValue::isValid($value)) {
+            throw new Exception\InvalidArgumentException('Invalid header value detected');
+        }
+
+        return [$name, ltrim($value)];
+    }
+
+    #[Override]
+    public function getFieldName(): string
+    {
+        return $this->fieldName;
+    }
+
+    #[Override]
+    public function getFieldValue(): string
+    {
         return $this->fieldValue;
     }
 
-    /**
-     * @param string $encoding
-     * @return self
-     */
     #[Override]
-    public function setEncoding($encoding)
+    public function getEncodedFieldValue(): string
     {
-        if ($encoding === $this->encoding) {
-            return $this;
-        }
-
-        if (null === $encoding) {
-            $this->encoding = null;
-            return $this;
-        }
-
-        $encoding = strtoupper($encoding);
-        if ('UTF-8' === $encoding) {
-            $this->encoding = $encoding;
-            return $this;
-        }
-
-        if ('ASCII' === $encoding && Mime::isPrintable($this->fieldValue)) {
-            $this->encoding = $encoding;
-            return $this;
-        }
-
-        $this->encoding = null;
-
-        return $this;
+        return HeaderWrap::fold($this->fieldName, $this->fieldValue);
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function getEncoding()
+    public function toString(): string
     {
-        if (! $this->encoding) {
-            $this->encoding = Mime::isPrintable($this->fieldValue) ? 'ASCII' : 'UTF-8';
-        }
-
-        return $this->encoding;
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function toString()
-    {
-        $name = $this->getFieldName();
-        if (empty($name)) {
-            throw new Exception\RuntimeException('Header name is not set, use setFieldName()');
-        }
-        $value = $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
-
-        return "{$name}: {$value}";
+        return "{$this->fieldName}: {$this->getEncodedFieldValue()}";
     }
 }

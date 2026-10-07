@@ -1,143 +1,75 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
+use Contenir\Mail\Mime\TransferEncoding;
 use Override;
 
-use function implode;
 use function in_array;
 use function sprintf;
 use function strtolower;
+use function trim;
 
-class ContentTransferEncoding implements HeaderInterface
+final readonly class ContentTransferEncoding implements HeaderInterface
 {
-    /**
-     * Allowed Content-Transfer-Encoding parameters specified by RFC 1521
-     * (reduced set)
-     *
-     * @var array
-     */
-    protected static $allowedTransferEncodings = [
-        '7bit',
-        '8bit',
-        'quoted-printable',
-        'base64',
-        'binary',
-        /*
-         * not implemented:
-         * x-token: 'X-'
-         */
-    ];
-
-    /** @var string */
-    protected $transferEncoding;
-
-    /** @var array */
-    protected $parameters = [];
+    public function __construct(
+        private TransferEncoding $transferEncoding,
+    ) {}
 
     /**
-     * @param string $headerLine
-     * @return static
+     * @throws Exception\InvalidArgumentException When the line is not a Content-Transfer-Encoding header
+     *     or names an unknown mechanism.
      */
     #[Override]
-    public static function fromString($headerLine)
+    public static function fromString(string $headerLine): static
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (
-            ! in_array(
-                strtolower($name),
-                ['contenttransferencoding', 'content_transfer_encoding', 'content-transfer-encoding'],
-            )
-        ) {
+        $names = ['contenttransferencoding', 'content_transfer_encoding', 'content-transfer-encoding'];
+        if (! in_array(strtolower($name), $names, strict: true)) {
             throw new Exception\InvalidArgumentException('Invalid header line for Content-Transfer-Encoding string');
         }
 
-        $header = new static();
-        $header->setTransferEncoding($value);
+        // The mechanism is case-insensitive (RFC 2045, section 6.1)
+        $value    = strtolower(trim(HeaderWrap::mimeDecodeValue($value)));
+        $encoding = TransferEncoding::tryFrom($value);
+        if (null === $encoding) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'Unknown Content-Transfer-Encoding "%s"',
+                $value,
+            ));
+        }
 
-        return $header;
+        return new self($encoding);
     }
 
-    /**
-     * @return string
-     */
+    public function getTransferEncoding(): TransferEncoding
+    {
+        return $this->transferEncoding;
+    }
+
     #[Override]
-    public function getFieldName()
+    public function getFieldName(): string
     {
         return 'Content-Transfer-Encoding';
     }
 
-    /**
-     * @inheritDoc
-     */
     #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
+    public function getFieldValue(): string
     {
-        return $this->transferEncoding;
+        return $this->transferEncoding->value;
     }
 
-    /**
-     * @param string $encoding
-     * @return self
-     */
     #[Override]
-    public function setEncoding($encoding)
+    public function getEncodedFieldValue(): string
     {
-        // Header must be always in US-ASCII
-        return $this;
+        return $this->transferEncoding->value;
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function getEncoding()
+    public function toString(): string
     {
-        return 'ASCII';
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function toString()
-    {
-        return "Content-Transfer-Encoding: {$this->getFieldValue()}";
-    }
-
-    /**
-     * Set the content transfer encoding
-     *
-     * @param  string $transferEncoding
-     * @throws Exception\InvalidArgumentException
-     * @return $this
-     */
-    public function setTransferEncoding($transferEncoding)
-    {
-        // Per RFC 1521, the value of the header is not case sensitive
-        $transferEncoding = strtolower($transferEncoding);
-
-        if (! in_array($transferEncoding, static::$allowedTransferEncodings)) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                '%s expects one of "' . implode(', ', static::$allowedTransferEncodings) . '"; received "%s"',
-                __METHOD__,
-                (string) $transferEncoding,
-            ));
-        }
-        $this->transferEncoding = $transferEncoding;
-        return $this;
-    }
-
-    /**
-     * Retrieve the content transfer encoding
-     *
-     * @return string
-     */
-    public function getTransferEncoding()
-    {
-        return $this->transferEncoding;
+        return "Content-Transfer-Encoding: {$this->transferEncoding->value}";
     }
 }

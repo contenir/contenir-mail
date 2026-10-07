@@ -8,9 +8,9 @@ creates a mail file for each message sent; these can later be introspected as
 logs or consumed for the purposes of sending via an alternate transport
 mechanism later.
 
-The `Contenir\Mail\Transport` interface defines exactly one method, `send()`. This
-method accepts a `Contenir\Mail\Message` instance, which it then introspects and
-serializes in order to send.
+The `Contenir\Mail\Transport\TransportInterface` interface defines exactly one
+method, `send()`. This method accepts a `Contenir\Mail\Message` instance, which
+it then introspects and serializes in order to send.
 
 ## Quick Start
 
@@ -35,10 +35,12 @@ $transport->send($message);
 
 ### SMTP Transport Usage
 
-> ### Installation requirements
+> ### Custom connection classes
 >
-> The SMTP transport depends on the laminas-servicemanager component, so be sure to
-> have it installed before getting started:
+> The built-in connection classes (`smtp`, `plain`, `login`, `crammd5` and
+> `xoauth2`) need no extra packages. To use a connection class of your own,
+> install laminas-servicemanager and give the transport a
+> `Contenir\Mail\Protocol\SmtpPluginManager` with `setPluginManager()`:
 >
 > ```bash
 > $ composer require laminas/laminas-servicemanager
@@ -122,17 +124,8 @@ $received = $transport->getLastMessage();
 The `InMemory` transport is primarily of interest when in development or when
 testing.
 
-### Migration from 2.0-2.3 to 2.4+
-
-Version 2.4 adds support for PHP 7. In PHP 7, `null` is a reserved keyword,
-which required renaming the `Null` transport. If you were using the `Null`
-transport directly previously, you will now receive an `E_USER_DEPRECATED`
-notice on instantiation. Please update your code to refer to the `InMemory`
-class instead.
-
-Users pulling their `Null` transport instance from the transport factory
-(`Contenir\Mail\Transport\Factory`) receive an `InMemory` instance instead starting
-in 2.4.0.
+The transport factory (`Contenir\Mail\Transport\Factory`) also accepts the
+names `memory` and `null` for the `InMemory` transport.
 
 ## Configuration Options
 

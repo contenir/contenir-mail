@@ -7,855 +7,698 @@ namespace Contenir\Mail\Tests\Unit;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
-use Contenir\Mail\Header;
+use Contenir\Mail\Header\ContentTransferEncoding;
 use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\Sender;
+use Contenir\Mail\Header\To;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Message as MimeMessage;
 use Contenir\Mail\Mime\Mime;
 use Contenir\Mail\Mime\Part as MimePart;
+use Contenir\Mail\Mime\TransferEncoding;
+use DateTimeImmutable;
+use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use stdClass;
+use TypeError;
 
-use function count;
-use function date;
+use function array_map;
 use function file_get_contents;
-use function implode;
-use function substr;
 
 #[CoversClass(Message::class)]
-class MessageTest extends TestCase
+#[Group('unit')]
+final class MessageTest extends TestCase
 {
-    /** @var Message */
-    public $message;
+    private const string FIXED_DATE = 'Date: Mon, 01 Jan 2024 00:00:00 +0000';
 
-    public function setUp(): void
+    private const string INJECTED_VALUE =
+        "test1\r\n"
+            . "Content-Type: text/html; charset = \"iso-8859-1\"\r\n"
+            . "\r\n"
+            . '<html><body><iframe src="http://example.com/"></iframe></body></html> <!--';
+
+    private const string NON_ASCII_SUBJECT = 'Non “ascii” characters like accented vowels òàùèéì';
+
+    private const string ENCODED_NON_ASCII_VALUE =
+        '=?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
+
+    #[Test]
+    public function isInvalidWithoutFromAddress(): void
     {
-        $this->message = new Message();
+        static::assertFalse($this->makeMessage()->isValid());
     }
 
     #[Test]
-    public function invalidByDefault(): void
+    public function isValidOnceFromAddressIsAdded(): void
     {
-        static::assertFalse($this->message->isValid());
+        $message = $this->makeMessage()->addFrom('test@example.com');
+
+        static::assertTrue($message->isValid());
     }
 
     #[Test]
-    public function setsOrigDateHeaderByDefault(): void
+    public function setsDateHeaderByDefault(): void
     {
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('date'));
-        $header = $headers->get('date');
-        $date   = date('r');
-        $date   = substr($date, 0, 16);
-        $test   = $header->getFieldValue();
-        $test   = substr($test, 0, 16);
-        static::assertSame($date, $test);
+        static::assertInstanceOf(Date::class, (new Message())->getHeaders()->get('Date'));
     }
 
     #[Test]
-    public function addingFromAddressMarksAsValid(): void
+    public function usesGivenHeadersInsteadOfDefaultDate(): void
     {
-        $this->message->addFrom('test@example.com');
-        static::assertTrue($this->message->isValid());
+        static::assertFalse((new Message(new Headers()))->getHeaders()->has('Date'));
     }
 
     #[Test]
-    public function headersMethodReturnsHeadersObject(): void
+    public function returnsHeadersSetOnMessage(): void
     {
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
+        $headers = new Headers(new GenericHeader('X-Test', 'value'));
+
+        static::assertSame($headers, $this->makeMessage()->setHeaders($headers)->getHeaders());
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function getterReturnsEmptyListWhenHeaderIsAbsent(string $header): void
+    {
+        static::assertTrue($this->getAddresses($this->makeMessage(), $header)->isEmpty());
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function getterDoesNotAddHeader(string $header): void
+    {
+        $message = $this->makeMessage();
+        $this->getAddresses($message, $header);
+
+        static::assertFalse($message->getHeaders()->has($header));
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addedAddressLivesInHeader(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'test@example.com');
+
+        static::assertSame('test@example.com', $message->getHeaders()->get($header)?->getFieldValue());
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addsAddressUsingEmailAndName(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'test@example.com', 'Example Test');
+
+        static::assertSame(['test@example.com' => 'Example Test'], $this->namesByEmail($message, $header));
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addsAddressUsingNameAndEmailString(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'Example Test <test@example.com>');
+
+        static::assertSame(['test@example.com' => 'Example Test'], $this->namesByEmail($message, $header));
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addsAddressObject(string $header): void
+    {
+        $address = new Address('test@example.com', 'Example Test');
+        $message = $this->addAddresses($this->makeMessage(), $header, $address);
+
+        static::assertSame($address, $this->getAddresses($message, $header)->first());
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addsManyAddressesFromArray(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, [
+            'test@example.com',
+            'list@example.com' => 'Laminas Contributors List',
+            new Address('announce@example.com', 'Laminas Announce List'),
+        ]);
+
+        static::assertSame(
+            [
+                'test@example.com'     => null,
+                'list@example.com'     => 'Laminas Contributors List',
+                'announce@example.com' => 'Laminas Announce List',
+            ],
+            $this->namesByEmail($message, $header),
+        );
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addingAddressListKeepsExistingAddresses(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'announce@example.com');
+        $message = $this->addAddresses($message, $header, new AddressList(new Address('test@example.com')));
+
+        static::assertSame(
+            ['announce@example.com' => null, 'test@example.com' => null],
+            $this->namesByEmail($message, $header),
+        );
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function addingKnownAddressAgainKeepsOneCopy(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'test@example.com', 'First');
+        $message = $this->addAddresses($message, $header, 'TEST@example.com', 'Second');
+
+        static::assertSame(['test@example.com' => 'First'], $this->namesByEmail($message, $header));
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function settingAddressListReplacesExistingAddresses(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'announce@example.com');
+        $message = $this->setAddresses($message, $header, new AddressList(new Address('test@example.com')));
+
+        static::assertSame(['test@example.com' => null], $this->namesByEmail($message, $header));
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function settingAddressesKeepsOneHeader(string $header): void
+    {
+        $message = $this->setAddresses($this->makeMessage(), $header, 'first@example.com');
+        $message = $this->setAddresses($message, $header, 'second@example.com');
+
+        static::assertCount(1, $message->getHeaders()->all($header));
+    }
+
+    /**
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param array<string, null|string> $expected
+     */
+    #[DataProvider('toInputProvider')]
+    #[Test]
+    public function setToAcceptsEachInputType(
+        Address|AddressList|string|iterable $addresses,
+        ?string $name,
+        array $expected,
+    ): void {
+        $message = $this->makeMessage()->setTo($addresses, $name);
+
+        static::assertSame($expected, $this->namesByEmail($message, 'To'));
     }
 
     #[Test]
-    public function toMethodReturnsAddressListObject(): void
+    public function setToAcceptsGenerator(): void
     {
-        $this->message->addTo('test@example.com');
-        $to = $this->message->getTo();
-        static::assertInstanceOf(AddressList::class, $to);
+        $generator = (static function (): Generator {
+            yield 'first@example.com' => 'First';
+            yield 'second@example.com' => null;
+        })();
+
+        $message = $this->makeMessage()->setTo($generator);
+
+        static::assertSame(
+            ['first@example.com' => 'First', 'second@example.com' => null],
+            $this->namesByEmail($message, 'To'),
+        );
     }
 
     #[Test]
-    public function toAddressListLivesInHeaders(): void
+    public function rejectsEmptyEntryInAddressArray(): void
     {
-        $this->message->addTo('test@example.com');
-        $to      = $this->message->getTo();
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('to'));
-        $header = $headers->get('to');
-        static::assertSame($header->getAddressList(), $to);
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('An address list entry is empty');
+
+        $this->makeMessage()->setTo([null]);
     }
 
     #[Test]
-    public function fromMethodReturnsAddressListObject(): void
+    public function getterReflectsAddressHeaderSetDirectly(): void
     {
-        $this->message->addFrom('test@example.com');
-        $from = $this->message->getFrom();
-        static::assertInstanceOf(AddressList::class, $from);
-    }
+        $message = $this->makeMessage()->setHeader(new To(new AddressList(new Address('test@example.com'))));
 
-    #[Test]
-    public function fromAddressListLivesInHeaders(): void
-    {
-        $this->message->addFrom('test@example.com');
-        $from    = $this->message->getFrom();
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('from'));
-        $header = $headers->get('from');
-        static::assertSame($header->getAddressList(), $from);
-    }
-
-    #[Test]
-    public function ccMethodReturnsAddressListObject(): void
-    {
-        $this->message->addCc('test@example.com');
-        $cc = $this->message->getCc();
-        static::assertInstanceOf(AddressList::class, $cc);
-    }
-
-    #[Test]
-    public function ccAddressListLivesInHeaders(): void
-    {
-        $this->message->addCc('test@example.com');
-        $cc      = $this->message->getCc();
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('cc'));
-        $header = $headers->get('cc');
-        static::assertSame($header->getAddressList(), $cc);
-    }
-
-    #[Test]
-    public function bccMethodReturnsAddressListObject(): void
-    {
-        $this->message->addBcc('test@example.com');
-        $bcc = $this->message->getBcc();
-        static::assertInstanceOf(AddressList::class, $bcc);
-    }
-
-    #[Test]
-    public function bccAddressListLivesInHeaders(): void
-    {
-        $this->message->addBcc('test@example.com');
-        $bcc     = $this->message->getBcc();
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('bcc'));
-        $header = $headers->get('bcc');
-        static::assertSame($header->getAddressList(), $bcc);
-    }
-
-    #[Test]
-    public function replyToMethodReturnsAddressListObject(): void
-    {
-        $this->message->addReplyTo('test@example.com');
-        $replyTo = $this->message->getReplyTo();
-        static::assertInstanceOf(AddressList::class, $replyTo);
-    }
-
-    #[Test]
-    public function replyToAddressListLivesInHeaders(): void
-    {
-        $this->message->addReplyTo('test@example.com');
-        $replyTo = $this->message->getReplyTo();
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('reply-to'));
-        $header = $headers->get('reply-to');
-        static::assertSame($header->getAddressList(), $replyTo);
+        static::assertSame(['test@example.com' => null], $this->namesByEmail($message, 'To'));
     }
 
     #[Test]
     public function senderIsNullByDefault(): void
     {
-        static::assertNull($this->message->getSender());
+        static::assertNull($this->makeMessage()->getSender());
     }
 
     #[Test]
-    public function nullSenderDoesNotCreateHeader(): void
+    public function readingAbsentSenderDoesNotAddHeader(): void
     {
-        $sender  = $this->message->getSender();
-        $headers = $this->message->getHeaders();
-        static::assertFalse($headers->has('sender'));
+        $message = $this->makeMessage();
+        $message->getSender();
+
+        static::assertFalse($message->getHeaders()->has('Sender'));
     }
 
     #[Test]
-    public function settingSenderCreatesAddressObject(): void
+    public function setsSenderFromEmail(): void
     {
-        $this->message->setSender('test@example.com');
-        $sender = $this->message->getSender();
-        static::assertInstanceOf(Address::class, $sender);
+        $message = $this->makeMessage()->setSender('test@example.com');
+
+        static::assertSame('test@example.com', $message->getSender()?->getEmail());
     }
 
     #[Test]
-    public function canSpecifyNameWhenSettingSender(): void
+    public function setsSenderWithName(): void
     {
-        $this->message->setSender('test@example.com', 'Example Test');
-        $sender = $this->message->getSender();
-        static::assertInstanceOf(Address::class, $sender);
-        static::assertSame('Example Test', $sender->getName());
+        $message = $this->makeMessage()->setSender('test@example.com', 'Example Test');
+
+        static::assertSame('Example Test', $message->getSender()?->getName());
     }
 
     #[Test]
-    public function canProvideAddressObjectWhenSettingSender(): void
+    public function setsSenderFromAddressObject(): void
     {
         $sender = new Address('test@example.com');
-        $this->message->setSender($sender);
-        $test = $this->message->getSender();
-        static::assertSame($sender, $test);
+
+        static::assertSame($sender, $this->makeMessage()->setSender($sender)->getSender());
     }
 
     #[Test]
-    public function senderAccessorsProxyToSenderHeader(): void
+    public function settingSenderReplacesSenderHeader(): void
     {
-        $header = new Header\Sender();
-        $this->message->getHeaders()->addHeader($header);
-        $address = new Address('test@example.com', 'Example Test');
-        $this->message->setSender($address);
-        static::assertSame($address, $header->getAddress());
-    }
+        $message = $this->makeMessage()
+            ->setSender('first@example.com')
+            ->setSender('second@example.com');
 
-    #[Test]
-    public function canAddFromAddressUsingName(): void
-    {
-        $this->message->addFrom('test@example.com', 'Example Test');
-        $addresses = $this->message->getFrom();
-        static::assertSame(1, count($addresses));
-        $address = $addresses->current();
-        static::assertSame('test@example.com', $address->getEmail());
-        static::assertSame('Example Test', $address->getName());
-    }
-
-    #[Test]
-    public function canAddFromAddressUsingEmailAndNameAsString(): void
-    {
-        $this->message->addFrom('Example Test <test@example.com>');
-        $addresses = $this->message->getFrom();
-        static::assertSame(1, count($addresses));
-        $address = $addresses->current();
-        static::assertSame('test@example.com', $address->getEmail());
-        static::assertSame('Example Test', $address->getName());
-    }
-
-    #[Test]
-    public function canAddFromAddressUsingAddressObject(): void
-    {
-        $address = new Address('test@example.com', 'Example Test');
-        $this->message->addFrom($address);
-
-        $addresses = $this->message->getFrom();
-        static::assertSame(1, count($addresses));
-        $test = $addresses->current();
-        static::assertSame($address, $test);
-    }
-
-    #[Test]
-    public function canAddManyFromAddressesUsingArray(): void
-    {
-        $addresses = [
-            'test@example.com',
-            'list@example.com' => 'Laminas Contributors List',
-            new Address('announce@example.com', 'Laminas Announce List'),
-        ];
-        $this->message->addFrom($addresses);
-
-        $from = $this->message->getFrom();
-        static::assertSame(3, count($from));
-
-        static::assertTrue($from->has('test@example.com'));
-        static::assertTrue($from->has('list@example.com'));
-        static::assertTrue($from->has('announce@example.com'));
-    }
-
-    #[Test]
-    public function canAddManyFromAddressesUsingAddressListObject(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addFrom('announce@example.com');
-        $this->message->addFrom($list);
-        $from = $this->message->getFrom();
-        static::assertSame(2, count($from));
-        static::assertTrue($from->has('announce@example.com'));
-        static::assertTrue($from->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canSetFromListFromAddressList(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addFrom('announce@example.com');
-        $this->message->setFrom($list);
-        $from = $this->message->getFrom();
-        static::assertSame(1, count($from));
-        static::assertFalse($from->has('announce@example.com'));
-        static::assertTrue($from->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canAddCcAddressUsingName(): void
-    {
-        $this->message->addCc('test@example.com', 'Example Test');
-        $addresses = $this->message->getCc();
-        static::assertSame(1, count($addresses));
-        $address = $addresses->current();
-        static::assertSame('test@example.com', $address->getEmail());
-        static::assertSame('Example Test', $address->getName());
-    }
-
-    #[Test]
-    public function canAddCcAddressUsingAddressObject(): void
-    {
-        $address = new Address('test@example.com', 'Example Test');
-        $this->message->addCc($address);
-
-        $addresses = $this->message->getCc();
-        static::assertSame(1, count($addresses));
-        $test = $addresses->current();
-        static::assertSame($address, $test);
-    }
-
-    #[Test]
-    public function canAddManyCcAddressesUsingArray(): void
-    {
-        $addresses = [
-            'test@example.com',
-            'list@example.com' => 'Laminas Contributors List',
-            new Address('announce@example.com', 'Laminas Announce List'),
-        ];
-        $this->message->addCc($addresses);
-
-        $cc = $this->message->getCc();
-        static::assertSame(3, count($cc));
-
-        static::assertTrue($cc->has('test@example.com'));
-        static::assertTrue($cc->has('list@example.com'));
-        static::assertTrue($cc->has('announce@example.com'));
-    }
-
-    #[Test]
-    public function canAddManyCcAddressesUsingAddressListObject(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addCc('announce@example.com');
-        $this->message->addCc($list);
-        $cc = $this->message->getCc();
-        static::assertSame(2, count($cc));
-        static::assertTrue($cc->has('announce@example.com'));
-        static::assertTrue($cc->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canSetCcListFromAddressList(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addCc('announce@example.com');
-        $this->message->setCc($list);
-        $cc = $this->message->getCc();
-        static::assertSame(1, count($cc));
-        static::assertFalse($cc->has('announce@example.com'));
-        static::assertTrue($cc->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canAddBccAddressUsingName(): void
-    {
-        $this->message->addBcc('test@example.com', 'Example Test');
-        $addresses = $this->message->getBcc();
-        static::assertSame(1, count($addresses));
-        $address = $addresses->current();
-        static::assertSame('test@example.com', $address->getEmail());
-        static::assertSame('Example Test', $address->getName());
-    }
-
-    #[Test]
-    public function canAddBccAddressUsingAddressObject(): void
-    {
-        $address = new Address('test@example.com', 'Example Test');
-        $this->message->addBcc($address);
-
-        $addresses = $this->message->getBcc();
-        static::assertSame(1, count($addresses));
-        $test = $addresses->current();
-        static::assertSame($address, $test);
-    }
-
-    #[Test]
-    public function canAddManyBccAddressesUsingArray(): void
-    {
-        $addresses = [
-            'test@example.com',
-            'list@example.com' => 'Laminas Contributors List',
-            new Address('announce@example.com', 'Laminas Announce List'),
-        ];
-        $this->message->addBcc($addresses);
-
-        $bcc = $this->message->getBcc();
-        static::assertSame(3, count($bcc));
-
-        static::assertTrue($bcc->has('test@example.com'));
-        static::assertTrue($bcc->has('list@example.com'));
-        static::assertTrue($bcc->has('announce@example.com'));
-    }
-
-    #[Test]
-    public function canAddManyBccAddressesUsingAddressListObject(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addBcc('announce@example.com');
-        $this->message->addBcc($list);
-        $bcc = $this->message->getBcc();
-        static::assertSame(2, count($bcc));
-        static::assertTrue($bcc->has('announce@example.com'));
-        static::assertTrue($bcc->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canSetBccListFromAddressList(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addBcc('announce@example.com');
-        $this->message->setBcc($list);
-        $bcc = $this->message->getBcc();
-        static::assertSame(1, count($bcc));
-        static::assertFalse($bcc->has('announce@example.com'));
-        static::assertTrue($bcc->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canAddReplyToAddressUsingName(): void
-    {
-        $this->message->addReplyTo('test@example.com', 'Example Test');
-        $addresses = $this->message->getReplyTo();
-        static::assertSame(1, count($addresses));
-        $address = $addresses->current();
-        static::assertSame('test@example.com', $address->getEmail());
-        static::assertSame('Example Test', $address->getName());
-    }
-
-    #[Test]
-    public function canAddReplyToAddressUsingAddressObject(): void
-    {
-        $address = new Address('test@example.com', 'Example Test');
-        $this->message->addReplyTo($address);
-
-        $addresses = $this->message->getReplyTo();
-        static::assertSame(1, count($addresses));
-        $test = $addresses->current();
-        static::assertSame($address, $test);
-    }
-
-    #[Test]
-    public function canAddManyReplyToAddressesUsingArray(): void
-    {
-        $addresses = [
-            'test@example.com',
-            'list@example.com' => 'Laminas Contributors List',
-            new Address('announce@example.com', 'Laminas Announce List'),
-        ];
-        $this->message->addReplyTo($addresses);
-
-        $replyTo = $this->message->getReplyTo();
-        static::assertSame(3, count($replyTo));
-
-        static::assertTrue($replyTo->has('test@example.com'));
-        static::assertTrue($replyTo->has('list@example.com'));
-        static::assertTrue($replyTo->has('announce@example.com'));
-    }
-
-    #[Test]
-    public function canAddManyReplyToAddressesUsingAddressListObject(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addReplyTo('announce@example.com');
-        $this->message->addReplyTo($list);
-        $replyTo = $this->message->getReplyTo();
-        static::assertSame(2, count($replyTo));
-        static::assertTrue($replyTo->has('announce@example.com'));
-        static::assertTrue($replyTo->has('test@example.com'));
-    }
-
-    #[Test]
-    public function canSetReplyToListFromAddressList(): void
-    {
-        $list = new AddressList();
-        $list->add('test@example.com');
-
-        $this->message->addReplyTo('announce@example.com');
-        $this->message->setReplyTo($list);
-        $replyTo = $this->message->getReplyTo();
-        static::assertSame(1, count($replyTo));
-        static::assertFalse($replyTo->has('announce@example.com'));
-        static::assertTrue($replyTo->has('test@example.com'));
-    }
-
-    #[Test]
-    public function subjectIsEmptyByDefault(): void
-    {
-        static::assertNull($this->message->getSubject());
-    }
-
-    #[Test]
-    public function subjectIsMutable(): void
-    {
-        $this->message->setSubject('test subject');
-        $subject = $this->message->getSubject();
-        static::assertSame('test subject', $subject);
-    }
-
-    #[Test]
-    public function subjectIsMutableReplaceExisting(): void
-    {
-        $this->message->setSubject('test subject');
-        $this->message->setSubject('new subject');
-        static::assertSame('new subject', $this->message->getSubject());
-    }
-
-    #[Test]
-    public function settingSubjectProxiesToHeader(): void
-    {
-        $this->message->setSubject('test subject');
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-        static::assertTrue($headers->has('subject'));
-        $header = $headers->get('subject');
-        static::assertSame('test subject', $header->getFieldValue());
-    }
-
-    #[Test]
-    public function bodyIsEmptyByDefault(): void
-    {
-        static::assertNull($this->message->getBody());
-    }
-
-    #[Test]
-    public function maySetBodyFromString(): void
-    {
-        $this->message->setBody('body');
-        static::assertSame('body', $this->message->getBody());
-    }
-
-    #[Test]
-    public function maySetBodyFromStringSerializableObject(): void
-    {
-        $object = new TestAsset\StringSerializableObject('body');
-        $this->message->setBody($object);
-        static::assertSame($object, $this->message->getBody());
-        static::assertSame('body', $this->message->getBodyText());
-    }
-
-    #[Test]
-    public function maySetBodyFromMimeMessage(): void
-    {
-        $body = new MimeMessage();
-        $this->message->setBody($body);
-        static::assertSame($body, $this->message->getBody());
-    }
-
-    #[Test]
-    public function maySetNullBody(): void
-    {
-        $this->message->setBody(null);
-        static::assertNull($this->message->getBody());
-    }
-
-    public static function invalidBodyValues(): array
-    {
-        return [
-            [['foo']],
-            [true],
-            [false],
-            [new stdClass()],
-        ];
-    }
-
-    #[Test]
-    #[DataProvider('invalidBodyValues')]
-    public function settingNonScalarNonMimeNonStringSerializableValueForBodyRaisesException(mixed $body): void
-    {
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->message->setBody($body);
-    }
-
-    #[Test]
-    public function settingBodyFromSinglePartMimeMessageSetsAppropriateHeaders(): void
-    {
-        $mime       = new Mime('foo-bar');
-        $part       = new MimePart('<b>foo</b>');
-        $part->type = 'text/html';
-        $body       = new MimeMessage();
-        $body->setMime($mime);
-        $body->addPart($part);
-
-        $this->message->setBody($body);
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-
-        static::assertTrue($headers->has('mime-version'));
-        $header = $headers->get('mime-version');
-        static::assertSame('1.0', $header->getFieldValue());
-
-        static::assertTrue($headers->has('content-type'));
-        $header = $headers->get('content-type');
-        static::assertSame('text/html', $header->getFieldValue());
-    }
-
-    #[Test]
-    public function settingUtf8MailBodyFromSinglePartMimeUtf8MessageSetsAppropriateHeaders(): void
-    {
-        $mime           = new Mime('foo-bar');
-        $part           = new MimePart('UTF-8 TestString: AaÜüÄäÖöß');
-        $part->type     = Mime::TYPE_TEXT;
-        $part->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-        $part->charset  = 'utf-8';
-        $body           = new MimeMessage();
-        $body->setMime($mime);
-        $body->addPart($part);
-
-        $this->message->setEncoding('UTF-8');
-        $this->message->setBody($body);
-
-        static::assertStringContainsString(
-            'Content-Type: text/plain;'
-                . Headers::FOLDING
-                . 'charset="utf-8"'
-                . Headers::EOL
-                . 'Content-Transfer-Encoding: quoted-printable'
-                . Headers::EOL,
-            $this->message->getHeaders()->toString(),
+        static::assertSame(
+            ['Sender: second@example.com'],
+            array_map(static fn($header): string => $header->toString(), $message->getHeaders()->all('Sender')),
         );
     }
 
     #[Test]
-    public function settingBodyFromMultiPartMimeMessageSetsAppropriateHeaders(): void
+    public function readsSenderFromSenderHeader(): void
     {
-        $mime       = new Mime('foo-bar');
-        $text       = new MimePart('foo');
-        $text->type = 'text/plain';
-        $html       = new MimePart('<b>foo</b>');
-        $html->type = 'text/html';
-        $body       = new MimeMessage();
-        $body->setMime($mime);
-        $body->addPart($text);
-        $body->addPart($html);
+        $address = new Address('test@example.com', 'Example Test');
+        $message = $this->makeMessage()->setHeader(new Sender($address));
 
-        $this->message->setBody($body);
-        $headers = $this->message->getHeaders();
-        static::assertInstanceOf(Headers::class, $headers);
-
-        static::assertTrue($headers->has('mime-version'));
-        $header = $headers->get('mime-version');
-        static::assertSame('1.0', $header->getFieldValue());
-
-        static::assertTrue($headers->has('content-type'));
-        $header = $headers->get('content-type');
-        static::assertSame("multipart/mixed;\r\n boundary=\"foo-bar\"", $header->getFieldValue());
+        static::assertSame($address, $message->getSender());
     }
 
     #[Test]
-    public function retrievingBodyTextFromMessageWithMultiPartMimeBodyReturnsMimeSerialization(): void
+    public function subjectIsNullByDefault(): void
     {
-        $mime       = new Mime('foo-bar');
-        $text       = new MimePart('foo');
-        $text->type = 'text/plain';
-        $html       = new MimePart('<b>foo</b>');
-        $html->type = 'text/html';
-        $body       = new MimeMessage();
-        $body->setMime($mime);
-        $body->addPart($text);
-        $body->addPart($html);
-
-        $this->message->setBody($body);
-
-        $text = $this->message->getBodyText();
-        static::assertSame($body->generateMessage(Headers::EOL), $text);
-        static::assertStringContainsString('--foo-bar', $text);
-        static::assertStringContainsString('--foo-bar--', $text);
-        static::assertStringContainsString('Content-Type: text/plain', $text);
-        static::assertStringContainsString('Content-Type: text/html', $text);
+        static::assertNull($this->makeMessage()->getSubject());
     }
 
     #[Test]
-    public function encodingIsAsciiByDefault(): void
+    public function setsSubject(): void
     {
-        static::assertSame('ASCII', $this->message->getEncoding());
+        static::assertSame('test subject', $this->makeMessage()->setSubject('test subject')->getSubject());
     }
 
     #[Test]
-    public function encodingIsMutable(): void
+    public function settingSubjectReplacesExistingSubject(): void
     {
-        $this->message->setEncoding('UTF-8');
-        static::assertSame('UTF-8', $this->message->getEncoding());
+        $message = $this->makeMessage()
+            ->setSubject('test subject')
+            ->setSubject('new subject');
+
+        static::assertSame('Subject: new subject', $message->getHeaders()->get('Subject')?->toString());
     }
 
     #[Test]
-    public function messageReturnsNonEncodedSubject(): void
+    public function subjectLivesInHeader(): void
     {
-        $this->message->setSubject('This is a subject');
-        $this->message->setEncoding('UTF-8');
-        static::assertSame('This is a subject', $this->message->getSubject());
+        $message = $this->makeMessage()->setSubject('test subject');
+
+        static::assertSame('test subject', $message->getHeaders()->get('Subject')?->getFieldValue());
     }
 
     #[Test]
-    public function settingNonAsciiEncodingForcesMimeEncodingOfSomeHeaders(): void
+    public function returnsDecodedNonAsciiSubject(): void
     {
-        $this->message->addTo('test@example.com', 'Laminas DevTeam');
-        $this->message->addFrom('matthew@example.com', "Matthew Weier O'Phinney");
-        $this->message->addCc('list@example.com', 'Laminas Contributors List');
-        $this->message->addBcc('devs@example.com', 'Laminas CR Team');
-        $this->message->setSubject('This is a subject');
-        $this->message->setEncoding('UTF-8');
+        $message = $this->makeMessage()->setSubject(self::NON_ASCII_SUBJECT);
 
-        $test = $this->message->getHeaders()->toString();
+        static::assertSame(self::NON_ASCII_SUBJECT, $message->getSubject());
+    }
 
-        $expected = '=?UTF-8?Q?Laminas=20DevTeam?=';
-        static::assertStringContainsString($expected, $test);
-        static::assertStringContainsString('<test@example.com>', $test);
+    #[Test]
+    public function encodesNonAsciiSubjectOnTheWire(): void
+    {
+        $message = $this->makeMessage()->setSubject(self::NON_ASCII_SUBJECT);
 
-        $expected = "=?UTF-8?Q?Matthew=20Weier=20O'Phinney?=";
-        static::assertStringContainsString($expected, $test, $test);
-        static::assertStringContainsString('<matthew@example.com>', $test);
+        static::assertStringContainsString(
+            'Subject: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
+            $message->toString(),
+        );
+    }
 
-        $expected = '=?UTF-8?Q?Laminas=20Contributors=20List?=';
-        static::assertStringContainsString($expected, $test);
-        static::assertStringContainsString('<list@example.com>', $test);
+    #[Test]
+    public function reEncodesSubjectParsedFromString(): void
+    {
+        $rawMessage =
+            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
 
-        $expected = '=?UTF-8?Q?Laminas=20CR=20Team?=';
-        static::assertStringContainsString($expected, $test);
-        static::assertStringContainsString('<devs@example.com>', $test);
+        static::assertStringContainsString(
+            'Subject: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
+            Message::fromString($rawMessage)->toString(),
+        );
+    }
 
-        $expected = 'Subject: =?UTF-8?Q?This=20is=20a=20subject?=';
-        static::assertStringContainsString($expected, $test);
+    /**
+     * Headers choose their own encoding: plain ASCII stays readable whatever the body encoding.
+     */
+    #[DataProvider('bodyEncodingTimingProvider')]
+    #[Test]
+    public function leavesAsciiSubjectUnencodedWhateverBodyEncoding(string $encodingSet): void
+    {
+        $message = $this->makeMessage();
+        if ('before subject' === $encodingSet) {
+            $message->setEncoding('UTF-8');
+        }
+
+        $message->setSubject('hello world');
+        if ('after subject' === $encodingSet) {
+            $message->setEncoding('UTF-8');
+        }
+
+        static::assertSame('Subject: hello world', $message->getHeaders()->get('Subject')?->toString());
+    }
+
+    #[Test]
+    public function leavesAsciiHeadersUnencodedWhenBodyEncodingIsUtf8(): void
+    {
+        $message = $this->makeMessage()
+            ->addTo('test@example.com', 'Laminas DevTeam')
+            ->addFrom('matthew@example.com', "Matthew Weier O'Phinney")
+            ->addCc('list@example.com', 'Laminas Contributors List')
+            ->addBcc('devs@example.com', 'Laminas CR Team')
+            ->setSubject('This is a subject')
+            ->setEncoding('UTF-8');
+
+        static::assertSame(
+            self::FIXED_DATE
+                . "\r\n"
+                . "To: Laminas DevTeam <test@example.com>\r\n"
+                . "From: Matthew Weier O'Phinney <matthew@example.com>\r\n"
+                . "Cc: Laminas Contributors List <list@example.com>\r\n"
+                . "Bcc: Laminas CR Team <devs@example.com>\r\n"
+                . "Subject: This is a subject\r\n",
+            $message->getHeaders()->toString(),
+        );
+    }
+
+    #[DataProvider('addressHeaderProvider')]
+    #[Test]
+    public function encodesNonAsciiDisplayNameOnTheWire(string $header): void
+    {
+        $message = $this->addAddresses($this->makeMessage(), $header, 'test@example.com', 'Jösé Ünïcode');
+
+        static::assertSame(
+            "{$header}: =?UTF-8?Q?J=C3=B6s=C3=A9=20=C3=9Cn=C3=AFcode?= <test@example.com>",
+            $message->getHeaders()->get($header)?->toString(),
+        );
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF2-507
      */
     #[Test]
-    public function defaultDateHeaderEncodingIsAlwaysAscii(): void
+    public function dateHeaderStaysAsciiWhenBodyEncodingIsUtf8(): void
     {
-        $this->message->setEncoding('utf-8');
-        $headers = $this->message->getHeaders();
-        $header  = $headers->get('date');
-        $date    = date('r');
-        $date    = substr($date, 0, 16);
-        $test    = $header->getFieldValue();
-        $test    = substr($test, 0, 16);
-        static::assertSame($date, $test);
+        $message = $this->makeMessage()->setEncoding('utf-8');
+
+        static::assertSame(self::FIXED_DATE, $message->getHeaders()->get('Date')?->toString());
     }
 
     #[Test]
-    public function restoreFromSerializedString(): void
+    public function encodingIsAsciiByDefault(): void
     {
-        $this->message->addTo('test@example.com', 'Example Test');
-        $this->message->addFrom('matthew@example.com', "Matthew Weier O'Phinney");
-        $this->message->addCc('list@example.com', 'Laminas Contributors List');
-        $this->message->setSubject('This is a subject');
-        $this->message->setBody('foo');
-        $serialized      = $this->message->toString();
-        $restoredMessage = Message::fromString($serialized);
-        static::assertSame($serialized, $restoredMessage->toString());
+        static::assertSame('ASCII', $this->makeMessage()->getEncoding());
     }
 
     #[Test]
-    #[Group('45')]
-    public function canRestoreFromSerializedStringWhenBodyContainsMultipleNewlines(): void
+    public function encodingCanBeChanged(): void
     {
-        $this->message->addTo('test@example.com', 'Example Test');
-        $this->message->addFrom('matthew@example.com', "Matthew Weier O'Phinney");
-        $this->message->addCc('list@example.com', 'Laminas Contributors List');
-        $this->message->setSubject('This is a subject');
-        $this->message->setBody("foo\n\ntest");
-        $serialized      = $this->message->toString();
-        $restoredMessage = Message::fromString($serialized);
-        static::assertSame($serialized, $restoredMessage->toString());
+        static::assertSame('UTF-8', $this->makeMessage()->setEncoding('UTF-8')->getEncoding());
+    }
+
+    #[Test]
+    public function setHeaderReplacesHeadersOfSameName(): void
+    {
+        $message = $this->makeMessage()
+            ->addHeader(new GenericHeader('X-Test', 'first'))
+            ->addHeader(new GenericHeader('X-Test', 'second'))
+            ->setHeader(new GenericHeader('X-Test', 'third'));
+
+        static::assertSame(['third'], $this->fieldValues($message, 'X-Test'));
+    }
+
+    #[Test]
+    public function setHeaderKeepsPositionOfReplacedHeader(): void
+    {
+        $message = $this->makeMessage()
+            ->addHeader(new GenericHeader('X-First', 'one'))
+            ->addHeader(new GenericHeader('X-Second', 'two'))
+            ->setHeader(new GenericHeader('X-First', 'three'));
+
+        static::assertSame(
+            self::FIXED_DATE . "\r\nX-First: three\r\nX-Second: two\r\n",
+            $message->getHeaders()->toString(),
+        );
+    }
+
+    #[Test]
+    public function addHeaderKeepsHeadersOfSameName(): void
+    {
+        $message = $this->makeMessage()
+            ->addHeader(new GenericHeader('X-Test', 'first'))
+            ->addHeader(new GenericHeader('X-Test', 'second'));
+
+        static::assertSame(['first', 'second'], $this->fieldValues($message, 'X-Test'));
+    }
+
+    #[Test]
+    public function removeHeaderRemovesEveryHeaderOfThatName(): void
+    {
+        $message = $this->makeMessage()
+            ->addHeader(new GenericHeader('X-Test', 'first'))
+            ->addHeader(new GenericHeader('X-Test', 'second'))
+            ->removeHeader('x-test');
+
+        static::assertFalse($message->getHeaders()->has('X-Test'));
+    }
+
+    #[Test]
+    public function removeHeaderKeepsOtherHeaders(): void
+    {
+        $message = $this->makeMessage()
+            ->addHeader(new GenericHeader('X-Test', 'first'))
+            ->removeHeader('X-Test');
+
+        static::assertSame(self::FIXED_DATE . "\r\n", $message->getHeaders()->toString());
+    }
+
+    #[Test]
+    public function removingAbsentHeaderLeavesHeadersUnchanged(): void
+    {
+        $message = $this->makeMessage()->removeHeader('X-Missing');
+
+        static::assertSame(self::FIXED_DATE . "\r\n", $message->getHeaders()->toString());
+    }
+
+    #[Test]
+    public function encodesNonAsciiValueOfAddedHeader(): void
+    {
+        $message = $this->makeMessage()->addHeader(new GenericHeader('X-Test', self::NON_ASCII_SUBJECT));
+
+        static::assertStringContainsString(
+            'X-Test: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
+            $message->toString(),
+        );
+    }
+
+    #[Test]
+    public function encodesNonAsciiValueOfHeadersSetOnMessage(): void
+    {
+        $message = $this->makeMessage()->setHeaders(new Headers(new GenericHeader('X-Test', self::NON_ASCII_SUBJECT)));
+
+        static::assertStringContainsString(
+            'X-Test: ' . self::ENCODED_NON_ASCII_VALUE . "\r\n",
+            $message->toString(),
+        );
+    }
+
+    #[Test]
+    public function reEncodesHeaderParsedFromString(): void
+    {
+        $header = GenericHeader::fromString(
+            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
+                . "\r\n"
+                . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
+        );
+        $message = $this->makeMessage()->addHeader($header);
+
+        static::assertStringContainsString('X-Test: ' . self::ENCODED_NON_ASCII_VALUE, $message->toString());
+    }
+
+    #[Test]
+    public function bodyIsNullByDefault(): void
+    {
+        static::assertNull($this->makeMessage()->getBody());
+    }
+
+    #[Test]
+    public function bodyTextIsEmptyWithoutBody(): void
+    {
+        static::assertSame('', $this->makeMessage()->getBodyText());
+    }
+
+    #[Test]
+    public function setsBodyFromString(): void
+    {
+        static::assertSame('body', $this->makeMessage()->setBody('body')->getBody());
+    }
+
+    #[Test]
+    public function setsBodyFromStringableObject(): void
+    {
+        $object = new TestAsset\StringSerializableObject('body');
+
+        static::assertSame($object, $this->makeMessage()->setBody($object)->getBody());
+    }
+
+    #[Test]
+    public function bodyTextOfStringableObjectIsItsString(): void
+    {
+        $message = $this->makeMessage()->setBody(new TestAsset\StringSerializableObject('body'));
+
+        static::assertSame('body', $message->getBodyText());
+    }
+
+    #[Test]
+    public function setsBodyFromMimeMessage(): void
+    {
+        $body = new MimeMessage();
+
+        static::assertSame($body, $this->makeMessage()->setBody($body)->getBody());
+    }
+
+    #[Test]
+    public function setsNullBody(): void
+    {
+        static::assertNull($this->makeMessage()->setBody('body')->setBody(null)->getBody());
+    }
+
+    #[DataProvider('invalidBodyProvider')]
+    #[Test]
+    public function rejectsBodyOfUnsupportedType(mixed $body): void
+    {
+        $this->expectException(TypeError::class);
+        $this->expectExceptionMessage('must be of type Stringable|Contenir\Mail\Mime\Message|string|null');
+
+        /** @psalm-suppress MixedArgument */
+        $this->makeMessage()->setBody($body);
+    }
+
+    #[Test]
+    public function singlePartMimeBodySetsMimeVersion(): void
+    {
+        $message = $this->makeMessage()->setBody($this->makeSinglePartBody());
+
+        static::assertSame('1.0', $message->getHeaders()->get('MIME-Version')?->getFieldValue());
+    }
+
+    #[Test]
+    public function singlePartMimeBodySetsContentTypeOfPart(): void
+    {
+        $message = $this->makeMessage()->setBody($this->makeSinglePartBody());
+
+        static::assertSame('text/html', $message->getHeaders()->get('Content-Type')?->getFieldValue());
+    }
+
+    #[Test]
+    public function singlePartUtf8MimeBodySetsContentHeadersOfPart(): void
+    {
+        $part           = new MimePart('UTF-8 TestString: AaÜüÄäÖöß');
+        $part->type     = Mime::TYPE_TEXT;
+        $part->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
+        $part->charset  = 'utf-8';
+        $body           = new MimeMessage();
+        $body->setMime(new Mime('foo-bar'));
+        $body->addPart($part);
+
+        $message = $this->makeMessage()->setEncoding('UTF-8')->setBody($body);
+
+        static::assertStringContainsString(
+            "Content-Type: text/plain;\r\n charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            $message->getHeaders()->toString(),
+        );
+    }
+
+    #[Test]
+    public function multipartMimeBodySetsMimeVersion(): void
+    {
+        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
+
+        static::assertSame('1.0', $message->getHeaders()->get('MIME-Version')?->getFieldValue());
+    }
+
+    #[Test]
+    public function multipartMimeBodySetsContentTypeWithBoundary(): void
+    {
+        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
+
+        static::assertSame(
+            "Content-Type: multipart/mixed;\r\n boundary=\"foo-bar\"",
+            $message->getHeaders()->get('Content-Type')?->toString(),
+        );
+    }
+
+    #[Test]
+    public function bodyTextOfMultipartMimeBodyIsMimeSerialization(): void
+    {
+        $body = $this->makeMultipartBody();
+
+        static::assertSame(
+            $body->generateMessage(Headers::EOL),
+            $this->makeMessage()->setBody($body)->getBodyText(),
+        );
+    }
+
+    #[DataProvider('multipartFragmentProvider')]
+    #[Test]
+    public function bodyTextOfMultipartMimeBodyContainsPartsAndBoundaries(string $fragment): void
+    {
+        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
+
+        static::assertStringContainsString($fragment, $message->getBodyText());
     }
 
     /**
      * @see https://zendframework.com/issues/browse/ZF-5962
      */
     #[Test]
-    public function passEmptyArrayIntoSetPartsOfMimeMessageShouldReturnEmptyBodyString(): void
+    public function mimeBodyWithoutPartsHasEmptyBodyText(): void
     {
         $mimeMessage = new MimeMessage();
         $mimeMessage->setParts([]);
 
-        $this->message->setBody($mimeMessage);
-        static::assertSame('', $this->message->getBodyText());
-    }
-
-    public static function messageRecipients(): array
-    {
-        return [
-            'setFrom'    => ['setFrom'],
-            'addFrom'    => ['addFrom'],
-            'setTo'      => ['setTo'],
-            'addTo'      => ['addTo'],
-            'setCc'      => ['setCc'],
-            'addCc'      => ['addCc'],
-            'setBcc'     => ['setBcc'],
-            'addBcc'     => ['addBcc'],
-            'setReplyTo' => ['setReplyTo'],
-            'setSender'  => ['setSender'],
-        ];
+        static::assertSame('', $this->makeMessage()->setBody($mimeMessage)->getBodyText());
     }
 
     #[Test]
-    #[Group('ZF2015-04')]
-    #[DataProvider('messageRecipients')]
-    public function exceptionWhenAttemptingToSerializeMessageWithCRLFInjectionViaHeader(
-        string $recipientMethod,
-    ): void {
-        $subject = [
-            'test1',
-            'Content-Type: text/html; charset = "iso-8859-1"',
-            '',
-            '<html><body><iframe src="http://example.com/"></iframe></body></html> <!--',
-        ];
-        $this->expectException(Exception\InvalidArgumentException::class);
-        $this->message->{$recipientMethod}(implode(Headers::EOL, $subject));
-    }
-
-    #[Test]
-    #[Group('ZF2015-04')]
-    public function detectsCRLFInjectionViaSubject(): void
-    {
-        $subject = [
-            'test1',
-            'Content-Type: text/html; charset = "iso-8859-1"',
-            '',
-            '<html><body><iframe src="http://example.com/"></iframe></body></html> <!--',
-        ];
-        $this->message->setSubject(implode(Headers::EOL, $subject));
-
-        $serializedHeaders = $this->message->getHeaders()->toString();
-        static::assertStringContainsString('example', $serializedHeaders);
-        static::assertStringNotContainsString("\r\n<html>", $serializedHeaders);
-    }
-
-    #[Test]
-    public function headerUnfoldingWorksAsExpectedForMultipartMessages(): void
+    public function nestedMultipartBodySetsContentTypeOfPart(): void
     {
         $text              = new MimePart('Test content');
         $text->type        = Mime::TYPE_TEXT;
@@ -878,206 +721,502 @@ class MessageTest extends TestCase
         $multipartPart->type     = 'multipart/alternative';
         $multipartPart->boundary = $multipartContent->getMime()->boundary();
 
-        $message = new MimeMessage();
-        $message->addPart($multipartPart);
+        $body = new MimeMessage();
+        $body->addPart($multipartPart);
 
-        $this->message->getHeaders()->addHeaderLine('Content-Transfer-Encoding', Mime::ENCODING_QUOTEDPRINTABLE);
-        $this->message->setBody($message);
+        $message = $this->makeMessage()
+            ->addHeader(new ContentTransferEncoding(TransferEncoding::QuotedPrintable))
+            ->setBody($body);
 
-        $contentType = $this->message->getHeaders()->get('Content-Type');
+        $contentType = $message->getHeaders()->get('Content-Type');
         static::assertInstanceOf(ContentType::class, $contentType);
-        static::assertStringContainsString('multipart/alternative', $contentType->getFieldValue());
-        static::assertStringContainsString($multipartContent->getMime()->boundary(), $contentType->getFieldValue());
+        static::assertSame(
+            ['multipart/alternative', $multipartContent->getMime()->boundary()],
+            [$contentType->getType(), $contentType->getParameter('boundary')],
+        );
+    }
+
+    #[Test]
+    public function writesPinnedWireOutput(): void
+    {
+        $message = $this->makeMessage()
+            ->addTo('test@example.com', 'Example Test')
+            ->addFrom('matthew@example.com', "Matthew Weier O'Phinney")
+            ->addCc('list@example.com', 'Ünïcode Name')
+            ->setSubject(self::NON_ASCII_SUBJECT)
+            ->setBody('foo');
+
+        static::assertSame(
+            self::FIXED_DATE
+                . "\r\n"
+                . "To: Example Test <test@example.com>\r\n"
+                . "From: Matthew Weier O'Phinney <matthew@example.com>\r\n"
+                . "Cc: =?UTF-8?Q?=C3=9Cn=C3=AFcode=20Name?= <list@example.com>\r\n"
+                . 'Subject: '
+                . self::ENCODED_NON_ASCII_VALUE
+                . "\r\n"
+                . "\r\n"
+                . 'foo',
+            $message->toString(),
+        );
+    }
+
+    #[Test]
+    public function writesHeadersAndBlankLineWithoutBody(): void
+    {
+        static::assertSame(self::FIXED_DATE . "\r\n\r\n", $this->makeMessage()->toString());
+    }
+
+    #[DataProvider('serializedBodyProvider')]
+    #[Test]
+    public function restoresFromSerializedString(string $body): void
+    {
+        $message = $this->makeMessage()
+            ->addTo('test@example.com', 'Example Test')
+            ->addFrom('matthew@example.com', "Matthew Weier O'Phinney")
+            ->addCc('list@example.com', 'Laminas Contributors List')
+            ->setSubject('This is a subject')
+            ->setBody($body);
+
+        static::assertSame($message->toString(), Message::fromString($message->toString())->toString());
+    }
+
+    #[Test]
+    public function parsedMessageHasNoDateWhenRawMessageHasNone(): void
+    {
+        $message = Message::fromString("Subject: Hello\r\n\r\nbody");
+
+        static::assertFalse($message->getHeaders()->has('Date'));
+    }
+
+    #[Test]
+    public function parsedMessageKeepsBody(): void
+    {
+        static::assertSame('body', Message::fromString("Subject: Hello\r\n\r\nbody")->getBody());
+    }
+
+    #[Test]
+    public function parsedMessageExposesAddressesThroughGetters(): void
+    {
+        $message = Message::fromString("To: Example Test <test@example.com>\r\n\r\nbody");
+
+        static::assertSame(['test@example.com' => 'Example Test'], $this->namesByEmail($message, 'To'));
+    }
+
+    #[DataProvider('multipartReportHeaderProvider')]
+    #[Test]
+    #[Group('19')]
+    public function parsesHeadersOfMultipartReport(string $header): void
+    {
+        static::assertTrue($this->parseMultipartReport()->getHeaders()->has($header));
     }
 
     #[Test]
     #[Group('19')]
-    public function canParseMultipartReport(): void
+    public function parsesEveryHeaderOfMultipartReport(): void
     {
-        $raw     = file_get_contents(__DIR__ . '/_files/laminas-mail-19.eml');
-        $message = Message::fromString($raw);
-        static::assertInstanceOf(Message::class, $message);
-        static::assertIsString($message->getBody());
+        static::assertCount(8, $this->parseMultipartReport()->getHeaders());
+    }
 
-        $headers = $message->getHeaders();
-        static::assertCount(8, $headers);
-        static::assertTrue($headers->has('Date'));
-        static::assertTrue($headers->has('From'));
-        static::assertTrue($headers->has('Message-Id'));
-        static::assertTrue($headers->has('To'));
-        static::assertTrue($headers->has('MIME-Version'));
-        static::assertTrue($headers->has('Content-Type'));
-        static::assertTrue($headers->has('Subject'));
-        static::assertTrue($headers->has('Auto-Submitted'));
+    #[Test]
+    #[Group('19')]
+    public function keepsBodyOfMultipartReportAsText(): void
+    {
+        static::assertIsString($this->parseMultipartReport()->getBody());
+    }
 
-        $contentType = $headers->get('Content-Type');
+    #[Test]
+    #[Group('19')]
+    public function parsesContentTypeOfMultipartReport(): void
+    {
+        $contentType = $this->parseMultipartReport()->getHeaders()->get('Content-Type');
+
+        static::assertInstanceOf(ContentType::class, $contentType);
         static::assertSame('multipart/report', $contentType->getType());
     }
 
     #[Test]
-    public function mailHeaderContainsZeroValue(): void
+    public function keepsHeaderWithZeroValue(): void
     {
-        $message =
+        $message = Message::fromString(
             "From: someone@example.com\r\n"
-            . "To: someone@example.com\r\n"
-            . "Subject: plain text email example\r\n"
-            . "X-Spam-Score: 0\r\n"
-            . "X-Some-Value: 1\r\n"
-            . "\r\n"
-            . "I am a test message\r\n";
+                . "To: someone@example.com\r\n"
+                . "Subject: plain text email example\r\n"
+                . "X-Spam-Score: 0\r\n"
+                . "X-Some-Value: 1\r\n"
+                . "\r\n"
+                . "I am a test message\r\n",
+        );
 
-        $msg = Message::fromString($message);
-        static::assertStringContainsString('X-Spam-Score: 0', $msg->toString());
+        static::assertStringContainsString("X-Spam-Score: 0\r\n", $message->toString());
+    }
+
+    #[DataProvider('crlfInjectionProvider')]
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function rejectsCrlfInjectionViaAddress(string $method, string $value, ?string $name, string $error): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage($error);
+
+        $this->makeMessage()->{$method}($value, $name);
+    }
+
+    #[DataProvider('injectedLineProvider')]
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function encodesCrlfInSubjectInsteadOfStartingNewLines(string $injectedLine): void
+    {
+        $message = $this->makeMessage()->setSubject(self::INJECTED_VALUE);
+
+        static::assertStringNotContainsString($injectedLine, $message->getHeaders()->toString());
+    }
+
+    #[Group('ZF2015-04')]
+    #[Test]
+    public function keepsInjectedSubjectAsOneDecodedValue(): void
+    {
+        $message = $this->makeMessage()->setSubject(self::INJECTED_VALUE);
+
+        static::assertSame(self::INJECTED_VALUE, $message->getSubject());
     }
 
     /**
      * @ref CVE-2016-10033 which targeted WordPress
      */
     #[Test]
-    public function secondCodeInjectionInFromHeader(): void
+    public function rejectsShellCodeInFromAddress(): void
     {
-        $message = new Message();
         $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not a valid hostname for the email address');
+
         // @codingStandardsIgnoreStart
-        $message->setFrom(
+        $this->makeMessage()->setFrom(
             'user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)',
-            'Sender\'s name',
+            "Sender's name",
         );
 
         // @codingStandardsIgnoreEnd
     }
 
-    #[Test]
-    public function messageSubjectFromString(): void
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function addressHeaderProvider(): array
     {
-        $rawMessage =
-            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
-        $mail = Message::fromString($rawMessage);
+        return [
+            'From'     => ['From'],
+            'To'       => ['To'],
+            'Cc'       => ['Cc'],
+            'Bcc'      => ['Bcc'],
+            'Reply-To' => ['Reply-To'],
+        ];
+    }
 
-        static::assertStringContainsString(
-            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-                . "\r\n",
-            $mail->toString(),
+    /**
+     * @return array<string, array{Address|AddressList|string|iterable<int|string, Address|string|null>, ?string, array<string, null|string>}>
+     */
+    public static function toInputProvider(): array
+    {
+        return [
+            'bare email string'        => ['test@example.com', null, ['test@example.com' => null]],
+            'name and email string'    => [
+                'Example Test <test@example.com>',
+                null,
+                ['test@example.com' => 'Example Test'],
+            ],
+            'email with name argument' => [
+                'test@example.com',
+                'Example Test',
+                ['test@example.com' => 'Example Test'],
+            ],
+            'address object'           => [
+                new Address('test@example.com', 'Example Test'),
+                null,
+                ['test@example.com' => 'Example Test'],
+            ],
+            'address list'             => [
+                new AddressList(new Address('first@example.com'), new Address('second@example.com', 'Second')),
+                null,
+                ['first@example.com' => null, 'second@example.com' => 'Second'],
+            ],
+            'list of address strings'  => [
+                ['first@example.com', 'Second <second@example.com>'],
+                null,
+                ['first@example.com' => null, 'second@example.com' => 'Second'],
+            ],
+            'email to name map'        => [
+                ['first@example.com' => 'First', 'second@example.com' => null],
+                null,
+                ['first@example.com' => 'First', 'second@example.com' => null],
+            ],
+            'list of address objects'  => [
+                [new Address('first@example.com'), new Address('second@example.com', 'Second')],
+                null,
+                ['first@example.com' => null, 'second@example.com' => 'Second'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function bodyEncodingTimingProvider(): array
+    {
+        return [
+            'encoding set before subject' => ['before subject'],
+            'encoding set after subject'  => ['after subject'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function invalidBodyProvider(): array
+    {
+        return [
+            'array'  => [['foo']],
+            'true'   => [true],
+            'false'  => [false],
+            'object' => [new stdClass()],
+            'int'    => [42],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function multipartFragmentProvider(): array
+    {
+        return [
+            'opening boundary' => ['--foo-bar'],
+            'closing boundary' => ['--foo-bar--'],
+            'plain text part'  => ['Content-Type: text/plain'],
+            'html part'        => ['Content-Type: text/html'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function serializedBodyProvider(): array
+    {
+        return [
+            'single line'       => ['foo'],
+            'multiple newlines' => ["foo\n\ntest"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function multipartReportHeaderProvider(): array
+    {
+        return [
+            'Date'           => ['Date'],
+            'From'           => ['From'],
+            'Message-Id'     => ['Message-Id'],
+            'To'             => ['To'],
+            'MIME-Version'   => ['MIME-Version'],
+            'Content-Type'   => ['Content-Type'],
+            'Subject'        => ['Subject'],
+            'Auto-Submitted' => ['Auto-Submitted'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function injectedLineProvider(): array
+    {
+        return [
+            'injected header line' => ["\r\nContent-Type:"],
+            'injected blank line'  => ["\r\n\r\n"],
+            'injected body line'   => ["\r\n<html>"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string, ?string, string}>
+     */
+    public static function crlfInjectionProvider(): array
+    {
+        $methods = [
+            'setFrom',
+            'addFrom',
+            'setTo',
+            'addTo',
+            'setCc',
+            'addCc',
+            'setBcc',
+            'addBcc',
+            'setReplyTo',
+            'addReplyTo',
+        ];
+
+        $cases = [];
+        foreach ($methods as $method) {
+            $cases["{$method} with injected address"] = [$method, self::INJECTED_VALUE, null, 'Invalid address format'];
+            $cases["{$method} with injected name"]    = [
+                $method,
+                'test@example.com',
+                "Name\r\nBcc: attacker@example.net",
+                'CRLF injection detected',
+            ];
+        }
+
+        $cases['setSender with injected address'] = [
+            'setSender',
+            self::INJECTED_VALUE,
+            null,
+            'CRLF injection detected',
+        ];
+        $cases['setSender with injected name'] = [
+            'setSender',
+            'test@example.com',
+            "Name\r\nBcc: attacker@example.net",
+            'CRLF injection detected',
+        ];
+
+        return $cases;
+    }
+
+    private function makeMessage(): Message
+    {
+        return new Message(new Headers(new Date(new DateTimeImmutable('2024-01-01T00:00:00Z'))));
+    }
+
+    private function makeSinglePartBody(): MimeMessage
+    {
+        $part       = new MimePart('<b>foo</b>');
+        $part->type = 'text/html';
+        $body       = new MimeMessage();
+        $body->setMime(new Mime('foo-bar'));
+        $body->addPart($part);
+
+        return $body;
+    }
+
+    private function makeMultipartBody(): MimeMessage
+    {
+        $text       = new MimePart('foo');
+        $text->type = 'text/plain';
+        $html       = new MimePart('<b>foo</b>');
+        $html->type = 'text/html';
+        $body       = new MimeMessage();
+        $body->setMime(new Mime('foo-bar'));
+        $body->addPart($text);
+        $body->addPart($html);
+
+        return $body;
+    }
+
+    private function parseMultipartReport(): Message
+    {
+        return Message::fromString((string) file_get_contents(__DIR__ . '/_files/laminas-mail-19.eml'));
+    }
+
+    /**
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     */
+    private function addAddresses(
+        Message $message,
+        string $header,
+        Address|AddressList|string|iterable $addresses,
+        ?string $name = null,
+    ): Message {
+        return match ($header) {
+            'From'  => $message->addFrom($addresses, $name),
+            'To'    => $message->addTo($addresses, $name),
+            'Cc'    => $message->addCc($addresses, $name),
+            'Bcc'   => $message->addBcc($addresses, $name),
+            default => $message->addReplyTo($addresses, $name),
+        };
+    }
+
+    /**
+     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     */
+    private function setAddresses(
+        Message $message,
+        string $header,
+        Address|AddressList|string|iterable $addresses,
+    ): Message {
+        return match ($header) {
+            'From'  => $message->setFrom($addresses),
+            'To'    => $message->setTo($addresses),
+            'Cc'    => $message->setCc($addresses),
+            'Bcc'   => $message->setBcc($addresses),
+            default => $message->setReplyTo($addresses),
+        };
+    }
+
+    private function getAddresses(Message $message, string $header): AddressList
+    {
+        return match ($header) {
+            'From'  => $message->getFrom(),
+            'To'    => $message->getTo(),
+            'Cc'    => $message->getCc(),
+            'Bcc'   => $message->getBcc(),
+            default => $message->getReplyTo(),
+        };
+    }
+
+    /**
+     * @return array<string, null|string>
+     */
+    private function namesByEmail(Message $message, string $header): array
+    {
+        $names = [];
+        foreach ($this->getAddresses($message, $header) as $address) {
+            $names[$address->getEmail()] = $address->getName();
+        }
+
+        return $names;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fieldValues(Message $message, string $name): array
+    {
+        return array_map(
+            static fn($header): string => $header->getFieldValue(),
+            $message->getHeaders()->all($name),
         );
     }
 
+    #[DataProvider('nonStringAddressesProvider')]
     #[Test]
-    public function messageSubjectSetSubject(): void
+    public function rejectsDisplayNameWithAnythingButAnEmailString(Address|AddressList|array $addresses): void
     {
-        $mail = new Message();
-        $mail->setSubject('Non “ascii” characters like accented vowels òàùèéì');
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('A display name can only be given with a single e-mail address');
 
-        static::assertStringContainsString(
-            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-                . "\r\n",
-            $mail->toString(),
-        );
+        (new Message())->setTo($addresses, 'Name');
+    }
+
+    /**
+     * @return array<string, array{Address|AddressList|list<string>}>
+     */
+    public static function nonStringAddressesProvider(): array
+    {
+        return [
+            'address'      => [new Address('first@example.com')],
+            'address list' => [new AddressList(new Address('first@example.com'))],
+            'list'         => [['first@example.com']],
+        ];
     }
 
     #[Test]
-    public function correctHeaderEncodingAddHeader(): void
+    public function keepsTheAddressListItIsGiven(): void
     {
-        $mail   = new Message();
-        $header = new GenericHeader('X-Test', 'Non “ascii” characters like accented vowels òàùèéì');
-        $mail->getHeaders()->addHeader($header);
+        $list = new AddressList(new Address('first@example.com'));
 
-        static::assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-                . "\r\n",
-            $mail->toString(),
-        );
-    }
-
-    #[Test]
-    public function correctHeaderEncodingSetHeaders(): void
-    {
-        $mail    = new Message();
-        $header  = new GenericHeader('X-Test', 'Non “ascii” characters like accented vowels òàùèéì');
-        $headers = new Headers();
-        $headers->addHeader($header);
-        $mail->setHeaders($headers);
-
-        static::assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-                . "\r\n",
-            $mail->toString(),
-        );
-    }
-
-    #[Test]
-    public function correctHeaderEncodingFromString(): void
-    {
-        $mail = new Message();
-        $str  = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
-        . "\r\n"
-        . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
-        $header = GenericHeader::fromString($str);
-        $mail->getHeaders()->addHeader($header);
-
-        static::assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
-            $mail->toString(),
-        );
-    }
-
-    #[Test]
-    public function correctHeaderEncodingFromStringAndSetHeaders(): void
-    {
-        $mail = new Message();
-        $str  = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
-        . "\r\n"
-        . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
-
-        $header  = GenericHeader::fromString($str);
-        $headers = new Headers();
-        $headers->addHeader($header);
-        $mail->setHeaders($headers);
-
-        static::assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-                . "\r\n"
-                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
-            $mail->toString(),
-        );
-    }
-
-    #[Test]
-    public function messageSubjectEncodingWhenEncodingSetAfterTheSubject(): void
-    {
-        $mail = new Message();
-        $mail->setSubject('hello world');
-        $mail->setEncoding('UTF-8');
-
-        static::assertSame('UTF-8', $mail->getHeaders()->get('subject')->getEncoding());
         static::assertSame(
-            'Subject: =?UTF-8?Q?hello=20world?=',
-            $mail->getHeaders()->get('subject')->toString(),
-        );
-    }
-
-    #[Test]
-    public function messageSubjectEncodingWhenEcodingSetBeforeTheSubject(): void
-    {
-        $mail = new Message();
-        $mail->setEncoding('UTF-8');
-        $mail->setSubject('hello world');
-
-        static::assertSame('UTF-8', $mail->getHeaders()->get('subject')->getEncoding());
-        static::assertSame(
-            'Subject: =?UTF-8?Q?hello=20world?=',
-            $mail->getHeaders()->get('subject')->toString(),
+            $list,
+            (new Message())->setTo($list)
+                ->getTo(),
         );
     }
 }
