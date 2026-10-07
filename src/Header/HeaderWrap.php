@@ -12,7 +12,6 @@ use function mb_check_encoding;
 use function preg_replace;
 use function str_pad;
 use function strlen;
-use function strtr;
 use function substr;
 use function wordwrap;
 
@@ -44,36 +43,37 @@ final class HeaderWrap
     /**
      * Fold a free-text header value to 78 characters, or RFC 2047 encode it as
      * UTF-8 when it is not printable US-ASCII.
+     *
+     * A printable word too long for one line is left whole; a transport
+     * splits lines over its limit.
      */
     public static function fold(string $fieldName, string $value): string
     {
         $headerNameColonSize = strlen("{$fieldName}: ");
 
         if (! Mime::isPrintable($value)) {
-            return self::mimeEncodeValue($value, lineLength: 78, firstLineGapSize: $headerNameColonSize);
+            return self::mimeEncodeValue($value, firstLineGapSize: $headerNameColonSize);
         }
 
         // Pad the value by the length of "Name: " so the first line folds at the right column.
         $headerLine       = str_pad('0', $headerNameColonSize, pad_string: '0') . $value;
         $foldedHeaderLine = wordwrap($headerLine, width: 78, break: Headers::FOLDING);
-
         return substr($foldedHeaderLine, $headerNameColonSize);
     }
 
     /**
-     * RFC 2047 encode a UTF-8 value as quoted-printable encoded words, without a trailing line break.
+     * RFC 2047 encode a UTF-8 value as quoted-printable encoded words, folded
+     * between words, without a trailing line break.
+     *
+     * Words break after a space where they can, and between characters when
+     * a run without spaces is too long. No word is longer than 75 characters
+     * (RFC 2047, section 2), and no line longer than $lineLength.
      *
      * @param int<0, max> $firstLineGapSize Length of "Name: " before the value, so the first line folds in time.
      */
-    public static function mimeEncodeValue(string $value, int $lineLength = 998, int $firstLineGapSize = 0): string
+    public static function mimeEncodeValue(string $value, int $firstLineGapSize): string
     {
-        return Mime::encodeQuotedPrintableHeader(
-            $value,
-            charset: 'UTF-8',
-            lineLength: $lineLength,
-            lineEnd: Headers::EOL,
-            headerNameSize: $firstLineGapSize,
-        );
+        return EncodedWords::encode($value, $firstLineGapSize);
     }
 
     /**
@@ -85,7 +85,7 @@ final class HeaderWrap
      */
     public static function encodePhrase(string $value): string
     {
-        return strtr(self::mimeEncodeValue($value), self::PHRASE_SPECIALS);
+        return EncodedWords::encodePhrase($value, self::PHRASE_SPECIALS);
     }
 
     /**
