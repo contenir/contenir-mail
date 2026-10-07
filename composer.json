@@ -32,7 +32,7 @@
         "symfony/process": "^7.3"
     },
     "suggest": {
-        "laminas/laminas-servicemanager": "^3.24 when using SMTP to deliver messages"
+        "laminas/laminas-servicemanager": "^3.24 only to pass a custom SmtpPluginManager to Transport\\Smtp::setPluginManager()"
     },
     "autoload": {
         "psr-4": {

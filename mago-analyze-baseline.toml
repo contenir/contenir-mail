@@ -6986,18 +6986,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Login.php"
-code = "impossible-condition"
-message = "This condition (type `false`) will always evaluate to false."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Login.php"
-code = "impossible-type-comparison"
-message = "Impossible type assertion: `$host` of type `string` can never be `array<array-key, mixed>`."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Login.php"
 code = "invalid-argument"
 message = 'Invalid argument type for argument #1 of `Contenir\Mail\Protocol\AbstractProtocol::_expect`: expected `array<array-key, mixed>|string`, but found `int(235)`.'
 count = 1
@@ -7088,12 +7076,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Login.php"
-code = "no-value"
-message = "Argument #1 passed to function `array_replace_recursive` has type `never`, meaning it cannot produce a value."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Login.php"
 code = "redundant-condition"
 message = "This condition (type `true`) will always evaluate to true."
 count = 2
@@ -7114,18 +7096,6 @@ count = 1
 file = "src/Protocol/Smtp/Auth/Plain.php"
 code = "class-must-be-final"
 message = 'Class `Contenir\Mail\Protocol\Smtp\Auth\Plain` should be declared `final`.'
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Plain.php"
-code = "impossible-condition"
-message = "This condition (type `false`) will always evaluate to false."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Plain.php"
-code = "impossible-type-comparison"
-message = "Impossible type assertion: `$host` of type `string` can never be `array<array-key, mixed>`."
 count = 1
 
 [[issues]]
@@ -7216,12 +7186,6 @@ count = 1
 file = "src/Protocol/Smtp/Auth/Plain.php"
 code = "mixed-argument"
 message = 'Invalid argument type for argument #1 of `Contenir\Mail\Protocol\Smtp\Auth\Plain::setUsername`: expected `string`, but found `nonnull`.'
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Plain.php"
-code = "no-value"
-message = "Argument #1 passed to function `array_replace_recursive` has type `never`, meaning it cannot produce a value."
 count = 1
 
 [[issues]]
@@ -11300,12 +11264,6 @@ count = 1
 
 [[issues]]
 file = "src/Transport/Smtp.php"
-code = "impossible-condition"
-message = "This condition (type `false`) will always evaluate to false."
-count = 1
-
-[[issues]]
-file = "src/Transport/Smtp.php"
 code = "imprecise-type"
 message = "Type `array` in parameter `$options` is imprecise, equivalent to `array<array-key, mixed>`."
 count = 1
@@ -11518,12 +11476,6 @@ count = 1
 file = "src/Transport/Smtp.php"
 code = "redundant-cast"
 message = "Redundant cast to `(bool)`: the expression already has this type."
-count = 1
-
-[[issues]]
-file = "src/Transport/Smtp.php"
-code = "redundant-comparison"
-message = "Redundant `===` comparison: left-hand side is never identical to right-hand side."
 count = 1
 
 [[issues]]

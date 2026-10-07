@@ -30,7 +30,7 @@ class Login extends Smtp
     protected $password;
 
     /**
-     * @param  string $host   (Default: 127.0.0.1)
+     * @param string|array $host (Default: 127.0.0.1)
      * @param  int    $port   (Default: null)
      * @param  array  $config Auth-specific parameters
      */
