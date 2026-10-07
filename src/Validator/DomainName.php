@@ -10,10 +10,6 @@ use function explode;
 use function idn_to_ascii;
 use function mb_strlen;
 use function preg_match;
-use function str_ends_with;
-use function str_starts_with;
-use function strtolower;
-use function substr;
 
 use const IDNA_DEFAULT;
 use const INTL_IDNA_VARIANT_UTS46;
@@ -46,11 +42,13 @@ final class DomainName
     /**
      * Internet domain names add what local network names lack: "_" in
      * labels below the registrable domain, and internationalised labels.
+     * UTS #46 conversion also rejects labels with a leading or trailing
+     * dash, or "--" in the third and fourth positions outside punycode.
      */
     private static function isDnsName(string $value): bool
     {
         $length = mb_strlen($value, encoding: 'UTF-8');
-        if ($length < 4 || $length > 254) {
+        if ($length < 4 || $length > 253) {
             return false;
         }
 
@@ -68,21 +66,11 @@ final class DomainName
         $registrable = count($labels) - 1;
         foreach ($labels as $index => $label) {
             $pattern = $index < $registrable ? self::SUBDOMAIN_LABEL : self::LABEL;
-            if (1 !== preg_match($pattern, $label) || self::hasMisplacedDash($label)) {
+            if (1 !== preg_match($pattern, $label)) {
                 return false;
             }
         }
 
         return true;
-    }
-
-    private static function hasMisplacedDash(string $label): bool
-    {
-        return (
-            str_starts_with($label, '-')
-                || str_ends_with($label, '-')
-                || ! str_starts_with(strtolower($label), 'xn--')
-                && '--' === substr($label, offset: 2, length: 2)
-        );
     }
 }

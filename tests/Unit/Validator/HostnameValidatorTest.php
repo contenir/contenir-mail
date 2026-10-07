@@ -104,22 +104,25 @@ final class HostnameValidatorTest extends TestCase
     public static function validForBothProvider(): array
     {
         return [
-            'domain'                              => ['example.com'],
-            'single label'                        => ['localhost'],
-            'single character labels'             => ['a.b'],
-            'one character TLD'                   => ['foo.c'],
-            'trailing dot'                        => ['example.com.'],
-            'mixed case'                          => ['UPPER.Example.COM'],
-            'leading dash, as local network name' => ['-foo.com'],
-            'double dash, as local network name'  => ['ab--cd.com'],
-            'punycode'                            => ['xn--mnchen-3ya.de'],
-            '63 character label'                  => [str_repeat('a', times: 63) . '.com'],
-            'numeric label'                       => ['123.com'],
-            'partial IPv4'                        => ['1.2.3'],
-            'underscore below registrable domain' => ['a_b.example.com'],
-            'underscore in service label'         => ['_dmarc.example.com'],
-            'internationalised'                   => ['münchen.de'],
-            'internationalised TLD'               => ['пример.рф'],
+            'domain'                                => ['example.com'],
+            'single label'                          => ['localhost'],
+            'single character labels'               => ['a.b'],
+            'one character TLD'                     => ['foo.c'],
+            'trailing dot'                          => ['example.com.'],
+            'mixed case'                            => ['UPPER.Example.COM'],
+            'leading dash, as local network name'   => ['-foo.com'],
+            'double dash, as local network name'    => ['ab--cd.com'],
+            'punycode'                              => ['xn--mnchen-3ya.de'],
+            '63 character label'                    => [str_repeat('a', times: 63) . '.com'],
+            'numeric label'                         => ['123.com'],
+            'partial IPv4'                          => ['1.2.3'],
+            'underscore below registrable domain'   => ['a_b.example.com'],
+            'underscore in service label'           => ['_dmarc.example.com'],
+            'internationalised'                     => ['münchen.de'],
+            'internationalised TLD'                 => ['пример.рф'],
+            'four character internationalised name' => ['é.ab'],
+            'punycode label after underscore label' => ['a_b.xn--mnchen-3ya.de'],
+            '253 character name with underscore'    => ['a_b.' . str_repeat('abcdefghi.', times: 24) . 'abcde.com'],
         ];
     }
 
@@ -129,11 +132,15 @@ final class HostnameValidatorTest extends TestCase
     public static function validForConnectionOnlyProvider(): array
     {
         return [
-            'underscore in single label'       => ['my_host'],
-            'URI sub-delims'                   => ['a!b'],
-            'percent-encoded octet'            => ['foo%20bar'],
-            'underscore in registrable domain' => ['x.a_b.com'],
-            'empty label'                      => ['foo..com'],
+            'underscore in single label'           => ['my_host'],
+            'URI sub-delims'                       => ['a!b'],
+            'percent-encoded octet'                => ['foo%20bar'],
+            'underscore in registrable domain'     => ['x.a_b.com'],
+            'empty label'                          => ['foo..com'],
+            'leading dash after underscore label'  => ['a_b.-x.com'],
+            'trailing dash after underscore label' => ['a_b.x-.com'],
+            'double dash after underscore label'   => ['a_b.ab--c.com'],
+            '254 character name with underscore'   => ['a_b.' . str_repeat('abcdefghi.', times: 24) . 'abcdef.com'],
         ];
     }
 
@@ -156,6 +163,7 @@ final class HostnameValidatorTest extends TestCase
             'internationalised label with misplaced double dash' => ['ab--é.com'],
             'internationalised name with numeric TLD'            => ['é.a.123'],
             'internationalised single label'                     => ['é'],
+            'three character internationalised name'             => ['é.é'],
         ];
     }
 
