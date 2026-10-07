@@ -74,32 +74,56 @@ final class EmailAddressValidatorTest extends TestCase
     public static function invalidAddressProvider(): array
     {
         return [
-            'no at-sign'          => ['plain', [EmailAddressValidator::INVALID_FORMAT]],
-            'empty local part'    => ['@example.com', [EmailAddressValidator::INVALID_FORMAT]],
-            'consecutive dots'    => ['a..b@example.com', [EmailAddressValidator::INVALID_FORMAT]],
-            'local part too long' => [
+            'no at-sign'                           => ['plain', [EmailAddressValidator::INVALID_FORMAT]],
+            'empty local part'                     => ['@example.com', [EmailAddressValidator::INVALID_FORMAT]],
+            'consecutive dots'                     => ['a..b@example.com', [EmailAddressValidator::INVALID_FORMAT]],
+            'local part too long'                  => [
                 str_repeat('l', times: 65) . '@example.com',
                 [EmailAddressValidator::LENGTH_EXCEEDED],
             ],
-            'host too long'       => [
+            'host too long'                        => [
                 'user@' . str_repeat('a.', times: 128),
                 [EmailAddressValidator::LENGTH_EXCEEDED],
             ],
-            'IP address host'     => [
+            'IP address host'                      => [
                 'user@192.0.2.1',
                 [
                     "'192.0.2.1' is not a valid hostname for the email address",
                     HostnameValidator::IP_ADDRESS_NOT_ALLOWED,
                 ],
             ],
-            'invalid host'        => [
+            'invalid host'                         => [
                 'user@my host',
                 [
                     "'my host' is not a valid hostname for the email address",
                     HostnameValidator::INVALID_HOSTNAME,
                 ],
             ],
-            'invalid local part'  => [
+            'local part too long and invalid host' => [
+                str_repeat('l', times: 65) . '@my host',
+                [
+                    EmailAddressValidator::LENGTH_EXCEEDED,
+                    "'my host' is not a valid hostname for the email address",
+                    HostnameValidator::INVALID_HOSTNAME,
+                ],
+            ],
+            'text before quoted string'            => [
+                'a"b c"@example.com',
+                [
+                    "'a\"b c\"' can not be matched against dot-atom format",
+                    "'a\"b c\"' can not be matched against quoted-string format",
+                    "'a\"b c\"' is not a valid local part for the email address",
+                ],
+            ],
+            'text after quoted string'             => [
+                '"b c"a@example.com',
+                [
+                    "'\"b c\"a' can not be matched against dot-atom format",
+                    "'\"b c\"a' can not be matched against quoted-string format",
+                    "'\"b c\"a' is not a valid local part for the email address",
+                ],
+            ],
+            'invalid local part'                   => [
                 'a b@example.com',
                 [
                     "'a b' can not be matched against dot-atom format",
