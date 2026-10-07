@@ -95,6 +95,14 @@ Behaviour changes:
   encoded words on every PHP version.
 - A failed `AbstractProtocol::_connect()` no longer leaves its temporary error
   handler installed.
+- Address-list headers quote a display name containing any RFC 5322 special
+  other than `.`, and escape `"` and `\` inside it, so a name can no longer add
+  recipients. Names with a `,` or `;` were already quoted.
+- Parsing an address-list header no longer reads a quoted display name containing
+  `:` or `;` as group syntax, and keeps addresses written before a group.
+- Cloning a `Message` clones its headers, so changing the clone leaves the
+  original untouched.
+- `Imap` no longer hangs on a server response with two spaces in a row.
 
 ## Development
 
