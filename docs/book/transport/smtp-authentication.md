@@ -1,6 +1,6 @@
 # SMTP Authentication
 
-laminas-mail supports the use of SMTP authentication, which can be enabled via
+contenir-mail supports the use of SMTP authentication, which can be enabled via
 configuration.  The available built-in authentication methods are PLAIN, LOGIN,
 and CRAM-MD5, all of which expect 'username' and 'password' values in the
 configuration array.
@@ -15,7 +15,7 @@ are briefly covered in the [SMTP transport configuration options](smtp-options.m
 
 The connection class should be a fully qualified class name of a
 `Contenir\Mail\Protocol\Smtp\Auth\*` class or extension, or the short name (name
-without leading namespace). laminas-mail ships with the following:
+without leading namespace). contenir-mail ships with the following:
 
 - `Contenir\Mail\Protocol\Smtp\Auth\Plain`, or `plain`
 - `Contenir\Mail\Protocol\Smtp\Auth\Login`, or `login`
@@ -85,15 +85,6 @@ $transport->setOptions($options);
 
 ### SMTP Transport Usage with CRAM-MD5 AUTH
 
-> ### Installation requirements
->
-> The CRAM-MD5 authentication depends on the laminas-crypt component, so be sure to
-> have it installed before getting started:
->
-> ```bash
-> $ composer require laminas/laminas-crypt
-> ```
-
 ```php
 use Contenir\Mail\Transport\Smtp as SmtpTransport;
 use Contenir\Mail\Transport\SmtpOptions;
@@ -155,8 +146,8 @@ exit;
 
 // E-mail sent
 // Soon to exit...
-// Notice: fwrite(): send of 6 bytes failed with errno=32 Broken pipe in ./laminas-mail/src/Protocol/AbstractProtocol.php on line 255
-// Fatal error: Uncaught Contenir\Mail\Protocol\Exception\RuntimeException: Could not read from 127.0.0.1 in ./laminas-mail/src/Protocol/AbstractProtocol.php:301
+// Notice: fwrite(): send of 6 bytes failed with errno=32 Broken pipe in ./contenir-mail/src/Protocol/AbstractProtocol.php on line 255
+// Fatal error: Uncaught Contenir\Mail\Protocol\Exception\RuntimeException: Could not read from 127.0.0.1 in ./contenir-mail/src/Protocol/AbstractProtocol.php:301
 ```
 
 To avoid this error, you can set a time limit for the SMTP connection in `SmtpOptions`:

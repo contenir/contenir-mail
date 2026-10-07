@@ -6,7 +6,7 @@
 setting mail headers and content.
 
 If desired, multi-part email messages may also be created. This can be done
-using the [laminas-mime](https://github.com/laminas/laminas-mime) component,
+using the bundled `Contenir\Mail\Mime` component,
 and assigning the generated MIME part to the mail message body.
 
 The `Message` class is a value object. It is not capable of sending or storing itself; for

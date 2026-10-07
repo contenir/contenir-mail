@@ -2,7 +2,7 @@
 
 `Contenir\Mail\Mime\Mime` is a support class for handling multipart
 [MIME](https://en.wikipedia.org/wiki/MIME) messages;
-[laminas-mail](https://github.com/laminas/laminas-mail) relies on it for both
+contenir-mail relies on it for both
 parsing and creating multipart messages. [`Contenir\Mail\Mime\Message`](message.md) can
 also be consumed by applications requiring general MIME support.
 
