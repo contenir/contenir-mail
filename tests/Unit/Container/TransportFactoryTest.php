@@ -38,22 +38,19 @@ final class TransportFactoryTest extends TestCase
         static::assertSame($expected, self::create(['type' => $type])::class);
     }
 
+    /**
+     * @param array<array-key, mixed> $services
+     */
+    #[DataProvider('missingTypeProvider')]
     #[Test]
-    public function createsSendmailTransportWithoutType(): void
+    public function rejectsConfigurationWithoutType(array $services): void
     {
-        static::assertInstanceOf(Sendmail::class, self::create([]));
-    }
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'config["mail"]["transport"]["type"] is required; set it to one of smtp, sendmail, file, inmemory',
+        );
 
-    #[Test]
-    public function createsSendmailTransportWithoutConfig(): void
-    {
-        static::assertInstanceOf(Sendmail::class, (new TransportFactory())(new ArrayContainer()));
-    }
-
-    #[Test]
-    public function createsSendmailTransportWithoutMailSection(): void
-    {
-        static::assertInstanceOf(Sendmail::class, (new TransportFactory())(new ArrayContainer(['config' => []])));
+        (new TransportFactory())(new ArrayContainer($services));
     }
 
     #[Test]
@@ -166,6 +163,20 @@ final class TransportFactoryTest extends TestCase
             'in-memory' => ['in-memory', InMemory::class],
             'in_memory' => ['in_memory', InMemory::class],
             'inmemory'  => ['inmemory', InMemory::class],
+        ];
+    }
+
+    /**
+     * @return array<string, array{array<array-key, mixed>}>
+     */
+    public static function missingTypeProvider(): array
+    {
+        return [
+            'no config'            => [[]],
+            'no mail section'      => [['config' => []]],
+            'no transport section' => [['config' => ['mail' => []]]],
+            'no type'              => [['config' => ['mail' => ['transport' => ['parameters' => '-oi']]]]],
+            'null type'            => [['config' => ['mail' => ['transport' => ['type' => null]]]]],
         ];
     }
 
