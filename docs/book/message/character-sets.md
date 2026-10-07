@@ -80,7 +80,8 @@ echo $subject->toString();             // Subject: =?UTF-8?Q?Caf=C3=A9=20menu?=
 RFC 5322 limits every line of a message to 998 characters. Headers are folded
 at spaces to stay well within that. A word too long to fold, such as a long URL
 in a Subject, or a display name too long for its line, is written as RFC 2047
-encoded words, which can be split anywhere. Values that cannot be encoded are
+encoded words, which can be split between any two characters. Each encoded
+word holds whole characters only (RFC 2047, section 5). Values that cannot be encoded are
 refused when the header is built: message IDs over 983 characters, Received
 lines over 988, and media-type or parameter names over 127 characters
 (RFC 6838).
