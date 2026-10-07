@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
-use function in_array;
 use function ord;
+use function preg_match;
 use function strlen;
 
 final class HeaderValue
@@ -16,12 +16,8 @@ final class HeaderValue
     private function __construct() {}
 
     /**
-     * Filter the header value according to RFC 2822
-     *
-     * @see    http://www.rfc-base.org/txt/rfc-2822.txt (section 2.2)
-     *
-     * @param  string $value
-     * @return string
+     * Drop the characters isValid() rejects: bytes outside US-ASCII, DEL, and
+     * CR and LF other than CRLF followed by a space (RFC 5322, section 2.2).
      */
     public static function filter(string $value): string
     {
@@ -32,7 +28,7 @@ final class HeaderValue
         // Long Header Fields (section 2.2.3 of RFC 2822)
         for ($i = 0; $i < $total; $i += 1) {
             $ord = ord($value[$i]);
-            if (10 === $ord || $ord > 127) {
+            if (10 === $ord || $ord >= 127) {
                 continue;
             }
 
@@ -60,42 +56,12 @@ final class HeaderValue
     }
 
     /**
-     * Determine if the header value contains any invalid characters.
-     *
-     * @see    http://www.rfc-base.org/txt/rfc-2822.txt (section 2.2)
-     *
-     * @param string $value
-     * @return bool
+     * Whether the header value holds only US-ASCII characters other than DEL,
+     * with CR and LF only as CRLF followed by a space or tab (RFC 5322, section 2.2).
      */
     public static function isValid(string $value): bool
     {
-        $total = strlen($value);
-        for ($i = 0; $i < $total; $i += 1) {
-            $ord = ord($value[$i]);
-
-            // bare LF means we aren't valid
-            if (10 === $ord || $ord > 127) {
-                return false;
-            }
-
-            if (13 === $ord) {
-                if (($i + 2) >= $total) {
-                    return false;
-                }
-
-                $lf = ord($value[$i + 1]);
-                $sp = ord($value[$i + 2]);
-
-                if (10 !== $lf || ! in_array($sp, [9, 32], strict: true)) {
-                    return false;
-                }
-
-                // skip over the LF following this
-                $i += 2;
-            }
-        }
-
-        return true;
+        return 1 === preg_match('/^(?:[^\r\n\x7F-\xFF]++|\r\n[ \t])*+$/D', $value);
     }
 
     /**
