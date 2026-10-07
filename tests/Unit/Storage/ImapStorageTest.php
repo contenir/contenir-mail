@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\InMemoryConnection;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
@@ -111,17 +112,24 @@ final class ImapStorageTest extends TestCase
     public function connectsWithSettings(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('connect')->with('imap.example.com', 993, 'ssl');
+        $protocol->expects($this->once())
+            ->method('connect')
+            ->with(new ConnectionConfig('imap.example.com', 993, Security::Tls, timeout: 5));
         $protocol->method('login')->willReturn(true);
 
-        new Imap(['host' => 'imap.example.com', 'port' => 993, 'security' => 'tls', 'user' => 'u'], $protocol);
+        new Imap(
+            ['host' => 'imap.example.com', 'port' => 993, 'security' => 'tls', 'timeout' => 5, 'user' => 'u'],
+            $protocol,
+        );
     }
 
     #[Test]
     public function connectsWithStartTlsByDefault(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('connect')->with('imap.example.com', null, 'tls');
+        $protocol->expects($this->once())
+            ->method('connect')
+            ->with(new ConnectionConfig('imap.example.com', security: Security::StartTls));
         $protocol->method('login')->willReturn(true);
 
         new Imap(['host' => 'imap.example.com', 'user' => 'u'], $protocol);
@@ -130,14 +138,41 @@ final class ImapStorageTest extends TestCase
     #[Test]
     public function turnsOffPeerVerificationWhenAsked(): void
     {
-        $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('setNoValidateCert')->with(true);
-        $protocol->method('login')->willReturn(true);
-
-        new Imap(new ImapConfig(new ConnectionConfig(
+        $config   = new ConnectionConfig(
             security: Security::Tls,
             verifyPeer: false,
-        ), 'u'), $protocol);
+        );
+        $protocol = $this->protocol();
+        $protocol->expects($this->once())->method('connect')->with($config);
+        $protocol->method('login')->willReturn(true);
+
+        new Imap(new ImapConfig($config, 'u'), $protocol);
+    }
+
+    /**
+     * Credentials must not cross the network in plain text when no security is configured.
+     */
+    #[Test]
+    public function upgradesWithStartTlsBeforeLoggingIn(): void
+    {
+        $server = (new InMemoryConnection())->reply("* OK ready\r\n")
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1 STARTTLS LOGINDISABLED\r\nTAG1 OK\r\n")
+            ->expect("TAG2 STARTTLS\r\n")
+            ->reply("TAG2 OK begin TLS\r\n")
+            ->startTls()
+            ->expect('TAG3 LOGIN "u" "' . self::PASSWORD . "\"\r\n")
+            ->reply("TAG3 OK logged in\r\n")
+            ->expect("TAG4 SELECT \"INBOX\"\r\n")
+            ->reply("TAG4 OK selected\r\n")
+            ->hangUp();
+
+        new Imap(
+            ['host' => 'imap.example.com', 'user' => 'u', 'password' => self::PASSWORD],
+            new Protocol\Imap(connection: $server),
+        );
+
+        static::assertTrue($server->isScriptComplete());
     }
 
     #[Test]
@@ -298,7 +333,7 @@ final class ImapStorageTest extends TestCase
     public function connectsWithoutSecurityWhenAsked(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('connect')->with('127.0.0.1', null, false);
+        $protocol->expects($this->once())->method('connect')->with(new ConnectionConfig(security: Security::None));
         $protocol->method('login')->willReturn(true);
 
         new Imap(['user' => 'u', 'security' => 'none'], $protocol);

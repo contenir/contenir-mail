@@ -73,12 +73,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
         $config         = is_iterable($config) ? ImapConfig::fromIterable($config) : $config;
         $this->protocol = $protocol ?? new Protocol\Imap();
-        $this->protocol->setNoValidateCert(! $config->connection->verifyPeer);
-        $this->protocol->connect(
-            $config->connection->host,
-            $config->connection->port,
-            RemoteConnection::legacySsl($config->connection->security),
-        );
+        $this->protocol->connect($config->connection);
         $this->open = true;
         if (! $this->protocol->login($config->user, $config->password)) {
             throw new Exception\RuntimeException('Cannot log in: the user or password is wrong');

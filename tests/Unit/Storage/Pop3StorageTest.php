@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
+use Contenir\Mail\Protocol\InMemoryConnection;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -60,16 +61,26 @@ final class Pop3StorageTest extends TestCase
     public function connectsWithSettings(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('connect')->with('pop.example.com', 995, 'ssl');
+        $protocol->expects($this->once())
+            ->method('connect')
+            ->with(new ConnectionConfig('pop.example.com', 995, Security::Tls, timeout: 5));
 
-        new Pop3(['host' => 'pop.example.com', 'port' => 995, 'ssl' => 'SSL', 'user' => 'u'], $protocol);
+        new Pop3([
+            'host'    => 'pop.example.com',
+            'port'    => 995,
+            'ssl'     => 'SSL',
+            'timeout' => 5,
+            'user'    => 'u',
+        ], $protocol);
     }
 
     #[Test]
     public function connectsWithStartTlsByDefault(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('connect')->with('pop.example.com', null, 'tls');
+        $protocol->expects($this->once())
+            ->method('connect')
+            ->with(new ConnectionConfig('pop.example.com', security: Security::StartTls));
 
         new Pop3(['host' => 'pop.example.com', 'user' => 'u'], $protocol);
     }
@@ -87,9 +98,35 @@ final class Pop3StorageTest extends TestCase
     public function turnsOffPeerVerificationWhenAsked(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('setNoValidateCert')->with(true);
+        $protocol->expects($this->once())->method('connect')->with(new ConnectionConfig(verifyPeer: false));
 
         new Pop3(['user' => 'u', 'novalidatecert' => true], $protocol);
+    }
+
+    /**
+     * Credentials must not cross the network in plain text when no security is configured.
+     */
+    #[Test]
+    public function upgradesWithStlsBeforeLoggingIn(): void
+    {
+        $server = (new InMemoryConnection())->reply("+OK POP3 ready\r\n")
+            ->expect("CAPA\r\n")
+            ->reply("+OK\r\nSTLS\r\n.\r\n")
+            ->expect("STLS\r\n")
+            ->reply("+OK begin TLS\r\n")
+            ->startTls()
+            ->expect("USER u\r\n")
+            ->reply("+OK\r\n")
+            ->expect('PASS ' . self::PASSWORD . "\r\n")
+            ->reply("+OK logged in\r\n")
+            ->hangUp();
+
+        new Pop3(
+            ['host' => 'pop.example.com', 'user' => 'u', 'password' => self::PASSWORD],
+            new Protocol\Pop3(connection: $server),
+        );
+
+        static::assertTrue($server->isScriptComplete());
     }
 
     #[Test]

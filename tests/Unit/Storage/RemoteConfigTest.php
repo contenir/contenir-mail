@@ -224,13 +224,6 @@ final class RemoteConfigTest extends TestCase
         static::assertSame($config->connection, $config->__debugInfo()['connection']);
     }
 
-    #[DataProvider('legacySslProvider')]
-    #[Test]
-    public function givesProtocolItsLegacySslArgument(Security $security, string|false $expected): void
-    {
-        static::assertSame($expected, RemoteConnection::legacySsl($security));
-    }
-
     #[Test]
     public function allowsEmptyRootFolder(): void
     {
@@ -328,18 +321,6 @@ final class RemoteConfigTest extends TestCase
         return [
             'imap' => [new ImapConfig(new ConnectionConfig(), 'u', self::PASSWORD)],
             'pop3' => [new Pop3Config(new ConnectionConfig(), 'u', self::PASSWORD)],
-        ];
-    }
-
-    /**
-     * @return array<string, array{Security, string|false}>
-     */
-    public static function legacySslProvider(): array
-    {
-        return [
-            'tls'      => [Security::Tls, 'ssl'],
-            'starttls' => [Security::StartTls, 'tls'],
-            'none'     => [Security::None, false],
         ];
     }
 }

@@ -9,8 +9,8 @@ use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
 
+use function is_string;
 use function sprintf;
-use function strtolower;
 
 /**
  * Reads the connection settings of ImapConfig and Pop3Config, with the
@@ -50,41 +50,32 @@ final class RemoteConnection
     }
 
     /**
-     * The "ssl" argument of the positional Protocol\Imap and Protocol\Pop3 connect() methods.
-     */
-    public static function legacySsl(Security $security): string|false
-    {
-        return match ($security) {
-            Security::Tls      => 'ssl',
-            Security::StartTls => 'tls',
-            Security::None     => false,
-        };
-    }
-
-    /**
-     * The laminas-mail "ssl" setting: "ssl" is TLS from the start, "tls" and
-     * "starttls" are STARTTLS, and false, "" and "none" a plain connection.
+     * The laminas-mail "ssl" setting, read by Security::fromLegacy(): "ssl" is
+     * TLS from the start, "tls" and "starttls" are STARTTLS, and false, "" and
+     * "none" a plain connection.
      *
      * @throws InvalidArgumentException When the value is anything else.
      */
     private static function legacySecurity(ConfigReader $reader, string $context): Security
     {
         try {
-            $ssl = (string) $reader->nullableString('ssl');
+            $ssl = $reader->nullableString('ssl');
         } catch (InvalidArgumentException) {
-            $ssl = $reader->bool('ssl', default: false) ? 'true' : '';
+            $ssl = $reader->bool('ssl', default: false);
         }
 
-        return match (strtolower($ssl)) {
-            'ssl'             => Security::Tls,
-            'tls', 'starttls' => Security::StartTls,
-            '', 'none'        => Security::None,
-            default           => throw new InvalidArgumentException(sprintf(
-                '%s: option "ssl" must be "ssl", "tls", "starttls", "none" or false, got "%s"',
-                $context,
-                $ssl,
-            )),
-        };
+        try {
+            return Security::fromLegacy($ssl);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    '%s: option "ssl" must be "ssl", "tls", "starttls", "none" or false, got "%s"',
+                    $context,
+                    is_string($ssl) ? $ssl : 'true',
+                ),
+                previous: $e,
+            );
+        }
     }
 
     /**

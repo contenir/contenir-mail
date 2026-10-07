@@ -111,7 +111,7 @@ final class ConnectTest extends TestCase
     public function refusesSecuritySettingsThatWouldSilentlyMeanPlainText(string|bool $ssl): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown security setting');
+        $this->expectExceptionMessage('Unknown connection security');
 
         new Imap('imap.example.com', null, $ssl, false, new InMemoryConnection());
     }
