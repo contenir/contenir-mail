@@ -26,8 +26,7 @@ use const E_USER_DEPRECATED;
 #[CoversClass(\Contenir\Mail\Headers::class)]
 class HeadersTest extends TestCase
 {
-    /** @var null|callable */
-    private $originalErrorHandler;
+    private bool $errorHandlerSet = false;
 
     public function tearDown(): void
     {
@@ -45,7 +44,8 @@ class HeadersTest extends TestCase
      */
     public function setDeprecationErrorHandler(): void
     {
-        $this->originalErrorHandler = set_error_handler(
+        $this->errorHandlerSet = true;
+        set_error_handler(
             static function (int $errno, string $errstr, string $errfile, int $errline): void {
                 throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
             },
@@ -55,12 +55,12 @@ class HeadersTest extends TestCase
 
     public function restoreErrorHandler(): void
     {
-        if (null !== $this->originalErrorHandler) {
+        if (! $this->errorHandlerSet) {
             return;
         }
 
         restore_error_handler();
-        $this->originalErrorHandler = null;
+        $this->errorHandlerSet = false;
     }
 
     public function testHeadersImplementsProperClasses(): void

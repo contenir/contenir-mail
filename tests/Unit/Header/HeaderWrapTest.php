@@ -3,7 +3,6 @@
 namespace Contenir\Mail\Tests\Unit\Header;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\UnstructuredInterface;
@@ -126,7 +125,6 @@ class HeaderWrapTest extends TestCase
         $this->assertTrue($res);
     }
 
-    #[RequiresPhpExtension('imap')]
     public function testMultilineWithMultibyteSplitAcrossCharacter(): void
     {
         $originalValue = 'аф';

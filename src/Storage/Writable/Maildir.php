@@ -855,7 +855,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
                     continue;
                 }
 
-                while (($entry = readdir()) !== false) {
+                while (($entry = readdir($dh)) !== false) {
                     if ($entry[0] == '.' || ! is_file($dirname . $entry)) {
                         continue;
                     }
@@ -877,6 +877,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
                     $totalSize += $size;
                     ++$messages;
                 }
+                closedir($dh);
             }
         }
 

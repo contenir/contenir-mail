@@ -7,6 +7,7 @@ use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\SmtpPluginManager;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\ServiceManager\Test\CommonPluginManagerTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class SmtpPluginManagerCompatibilityTest extends TestCase
@@ -26,5 +27,18 @@ class SmtpPluginManagerCompatibilityTest extends TestCase
     protected function getInstanceOf(): string
     {
         return Smtp::class;
+    }
+
+    /**
+     * Redeclared from CommonPluginManagerTrait, whose doc-comment metadata
+     * PHPUnit 12 no longer reads.
+     *
+     * @param string $alias
+     * @param string $expected
+     */
+    #[DataProvider('aliasProvider')]
+    public function testPluginAliasesResolve($alias, $expected): void
+    {
+        $this->assertInstanceOf($expected, $this->getPluginManager()->get($alias), "Alias '$alias' does not resolve'");
     }
 }
