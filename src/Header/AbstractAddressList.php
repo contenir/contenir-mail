@@ -72,7 +72,7 @@ abstract class AbstractAddressList implements HeaderInterface
      */
     private const string NAME_SPECIALS = '()<>[]:;@\\,"';
 
-    /** @var AddressList */
+    /** @var null|AddressList */
     protected $addressList;
 
     /** @var string Normalized field name */
@@ -146,6 +146,16 @@ abstract class AbstractAddressList implements HeaderInterface
         }
 
         return $header;
+    }
+
+    /**
+     * Give the clone its own address list.
+     */
+    public function __clone(): void
+    {
+        if (null !== $this->addressList) {
+            $this->addressList = clone $this->addressList;
+        }
     }
 
     /**
