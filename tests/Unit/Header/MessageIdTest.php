@@ -1,0 +1,118 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Contenir\Mail\Tests\Unit\Header;
+
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\MessageId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+use function sprintf;
+
+#[CoversClass(MessageId::class)]
+class MessageIdTest extends TestCase
+{
+    #[Test]
+    public function settingManually(): void
+    {
+        $id        = 'CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com';
+        $messageid = new Header\MessageId();
+        $messageid->setId($id);
+
+        $expected = sprintf('<%s>', $id);
+        static::assertSame($expected, $messageid->getFieldValue());
+        static::assertSame($expected, $messageid->getId());
+        static::assertSame("Message-ID: {$expected}", $messageid->toString());
+    }
+
+    #[Test]
+    public function autoGeneration(): void
+    {
+        $messageid = new Header\MessageId();
+        $messageid->setId();
+
+        static::assertStringContainsString('@', $messageid->getFieldValue());
+    }
+
+    #[Test]
+    public function autoGenerationWithServerVars(): void
+    {
+        $serverBeforeTest       = $_SERVER;
+        $_SERVER['REMOTE_ADDR'] = '172.16.0.1';
+        $_SERVER['SERVER_NAME'] = 'server-name.test';
+        $messageid              = new Header\MessageId();
+        $messageid->setId();
+
+        static::assertStringContainsString('@server-name.test', $messageid->getFieldValue());
+        $_SERVER = $serverBeforeTest;
+    }
+
+    public static function headerLines(): array
+    {
+        return [
+            'newline'   => ["Message-ID: foo\nbar"],
+            'cr-lf'     => ["Message-ID: bar\r\nfoo"],
+            'cr-lf-wsp' => ["Message-ID: bar\r\n\r\n baz"],
+            'multiline' => ["Message-ID: baz\r\nbar\r\nbau"],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('headerLines')]
+    #[Group('ZF2015-04')]
+    public function fromStringPreventsCrlfInjectionOnDetection(string $header): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $messageid = Header\MessageId::fromString($header);
+    }
+
+    public static function invalidIdentifiers(): array
+    {
+        return [
+            'newline'   => ["foo\nbar"],
+            'cr-lf'     => ["bar\r\nfoo"],
+            'cr-lf-wsp' => ["bar\r\n\r\n baz"],
+            'multiline' => ["baz\r\nbar\r\nbau"],
+            'folding'   => ["bar\r\n baz"],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('invalidIdentifiers')]
+    #[Group('ZF2015-04')]
+    public function invalidIdentifierRaisesException(string $id): void
+    {
+        $header = new Header\MessageId();
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $header->setId($id);
+    }
+
+    #[Test]
+    public function fromStringRaisesExceptionOnInvalidHeader(): void
+    {
+        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid header line for Message-ID string');
+        Header\MessageId::fromString('Foo: bar');
+    }
+
+    #[Test]
+    public function defaultEncoding(): void
+    {
+        $header = new Header\MessageId();
+        static::assertSame('ASCII', $header->getEncoding());
+    }
+
+    #[Test]
+    public function setEncodingHasNoEffect(): void
+    {
+        $header = new Header\MessageId();
+        $header->setEncoding('UTF-8');
+        static::assertSame('ASCII', $header->getEncoding());
+    }
+}

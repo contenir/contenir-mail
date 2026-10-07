@@ -1,0 +1,86 @@
+{
+    "name": "contenir/contenir-mail",
+    "description": "Compose, parse, store and send text and MIME-compliant multipart e-mail messages. A maintained continuation of laminas/laminas-mail and laminas/laminas-mime.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "contenir",
+        "mail",
+        "mime",
+        "smtp",
+        "imap",
+        "pop3"
+    ],
+    "homepage": "https://github.com/contenir/contenir-mail",
+    "support": {
+        "issues": "https://github.com/contenir/contenir-mail/issues",
+        "source": "https://github.com/contenir/contenir-mail"
+    },
+    "require": {
+        "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
+        "ext-iconv": "*",
+        "laminas/laminas-stdlib": "^3.21",
+        "symfony/polyfill-intl-idn": "^1.27.0",
+        "symfony/polyfill-mbstring": "^1.27.0",
+        "webmozart/assert": "^1.11.0"
+    },
+    "require-dev": {
+        "contenir/contenir-qa-tools": "0.1.x-dev",
+        "infection/infection": "^0.34.1",
+        "laminas/laminas-servicemanager": "^3.24",
+        "phpunit/phpunit": "^11.5.42",
+        "symfony/process": "^7.3"
+    },
+    "suggest": {
+        "laminas/laminas-servicemanager": "^3.24 only to pass a custom SmtpPluginManager to Transport\\Smtp::setPluginManager()"
+    },
+    "autoload": {
+        "psr-4": {
+            "Contenir\\Mail\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Contenir\\Mail\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@static-analysis",
+            "@test"
+        ],
+        "cs-check": [
+            "mago format --check",
+            "mago lint"
+        ],
+        "cs-fix": [
+            "mago format",
+            "mago lint --fix"
+        ],
+        "static-analysis": "mago analyze",
+        "test": "phpunit --colors=always --testsuite unit",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml",
+        "mutation-test": "infection"
+    },
+    "config": {
+        "platform": {
+            "php": "8.3.99"
+        },
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        },
+        "laminas": {
+            "component": "Contenir\\Mail",
+            "config-provider": "Contenir\\Mail\\ConfigProvider"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

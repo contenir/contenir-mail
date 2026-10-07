@@ -1,0 +1,14 @@
+# Mechanical "Apply mago formatting" reformat
+8619c41754047cb92f474c9b3b696e20a591daf9
+
+# Mechanical "Apply mago 1.52 formatting" reformat
+73fe362b3c18e819bddcefd3e781e5aca732979a
+
+# Mechanical "Use static assertions and #[Test] attributes in tests"
+7a4aaeb92e74c830ffcb79cfebe048e1cf937946
+
+# Mechanical "Apply mago's safe syntax fixes"
+03ef1dd5d3878980905a950abcb5dc7cd4ca5952
+
+# Mechanical "Add #[Override] to overriding methods"
+4a237b4ecafef9e2358c0f2eacd7ddda9535c11b
