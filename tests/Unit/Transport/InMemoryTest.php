@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\InMemory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(InMemory::class)]
-class InMemoryTest extends TestCase
+#[Group('unit')]
+final class InMemoryTest extends TestCase
 {
-    public function getMessage(): Message
+    private function makeMessage(): Message
     {
         $message = new Message();
         $message->addTo('test@example.com', 'Example Test')
@@ -25,18 +28,16 @@ class InMemoryTest extends TestCase
             ])
             ->setSender('ralph@example.com', 'Ralph Schindler')
             ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-            ->setBody('This is only a test.');
-        $message->getHeaders()
-            ->addHeaders([
-                'X-Foo-Bar' => 'Matthew',
-            ]);
+            ->setBody('This is only a test.')
+            ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
+
         return $message;
     }
 
     #[Test]
     public function receivesMailArtifacts(): void
     {
-        $message   = $this->getMessage();
+        $message   = $this->makeMessage();
         $transport = new InMemory();
 
         $transport->send($message);

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\FileOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -20,7 +22,8 @@ use function sys_get_temp_dir;
 use function unlink;
 
 #[CoversClass(File::class)]
-class FileTest extends TestCase
+#[Group('unit')]
+final class FileTest extends TestCase
 {
     private string $tempDir;
     private File $transport;
@@ -30,9 +33,9 @@ class FileTest extends TestCase
         $this->tempDir = sys_get_temp_dir() . '/mail_file_transport';
         if (! is_dir($this->tempDir)) {
             mkdir($this->tempDir);
-        } else {
-            $this->cleanup($this->tempDir);
         }
+
+        $this->cleanup($this->tempDir);
 
         $fileOptions = new FileOptions([
             'path' => $this->tempDir,
@@ -46,14 +49,14 @@ class FileTest extends TestCase
         rmdir($this->tempDir);
     }
 
-    protected function cleanup(string $dir): void
+    private function cleanup(string $dir): void
     {
         foreach (glob("{$dir}/*.*") as $file) {
             unlink($file);
         }
     }
 
-    public function getMessage(): Message
+    private function makeMessage(): Message
     {
         $message = new Message();
         $message->addTo('test@example.com', 'Example Test')
@@ -65,18 +68,16 @@ class FileTest extends TestCase
             ])
             ->setSender('ralph@example.com', 'Ralph Schindler')
             ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-            ->setBody('This is only a test.');
-        $message->getHeaders()
-            ->addHeaders([
-                'X-Foo-Bar' => 'Matthew',
-            ]);
+            ->setBody('This is only a test.')
+            ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
+
         return $message;
     }
 
     #[Test]
     public function receivesMailArtifacts(): void
     {
-        $message = $this->getMessage();
+        $message = $this->makeMessage();
         $this->transport->send($message);
 
         static::assertNotNull($this->transport->getLastFile());

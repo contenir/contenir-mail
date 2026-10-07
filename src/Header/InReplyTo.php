@@ -1,11 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-class InReplyTo extends IdentificationField
+final readonly class InReplyTo extends AbstractIdentificationField
 {
-    /** @var string  */
-    protected $fieldName = 'In-Reply-To';
-    /** @var string  */
-    protected static $type = 'in-reply-to';
+    protected const string FIELD_NAME = 'In-Reply-To';
 }

@@ -1,174 +1,134 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail;
 
 use Contenir\Mail\Validator\EmailAddressValidator;
-use Override;
 
-use function array_shift;
-use function is_string;
+use function addcslashes;
+use function mb_check_encoding;
 use function preg_match;
 use function sprintf;
+use function strpbrk;
 use function trim;
 
-class Address implements Address\AddressInterface
+/**
+ * An e-mail address with an optional display name and comment.
+ */
+final readonly class Address
 {
-    /** @var null|string  */
-    protected $comment;
-    /** @var string  */
-    protected $email;
-    /** @var null|string  */
-    protected $name;
+    /**
+     * RFC 5322 specials that force a display name into a quoted-string.
+     *
+     * "." is left out: unquoted in a display name it is accepted obsolete
+     * syntax, and quoting it would change the output for names such as
+     * "John Q. Public".
+     */
+    private const string NAME_SPECIALS = '()<>[]:;@\\,"';
+
+    private string $email;
+
+    private ?string $name;
+
+    private ?string $comment;
 
     /**
-     * Create an instance from a string value.
-     *
-     * Parses a string representing a single address. If it is a valid format,
-     * it then creates and returns an instance of itself using the name and
-     * email it has parsed from the value.
-     *
-     * @param string $address
-     * @param null|string $comment Comment associated with the address, if any.
-     * @throws Exception\InvalidArgumentException
-     * @return self
+     * @throws Exception\InvalidArgumentException When the address is invalid or a part contains CR or LF.
      */
-    public static function fromString($address, $comment = null)
+    public function __construct(string $email, ?string $name = null, ?string $comment = null)
     {
-        if (! preg_match('/^((?P<name>.*)<(?P<namedEmail>[^>]+)>|(?P<email>.+))$/', $address, $matches)) {
-            throw new Exception\InvalidArgumentException('Invalid address format');
-        }
-
-        $name = null;
-        if (isset($matches['name'])) {
-            $name = trim($matches['name']);
-        }
-        if (empty($name)) {
-            $name = null;
-        }
-
-        if (isset($matches['namedEmail'])) {
-            $email = $matches['namedEmail'];
-        }
-        if (isset($matches['email'])) {
-            $email = $matches['email'];
-        }
-        $email = trim($email);
-        //trim single quotes, because outlook does add single quotes to emails sometimes which is technically not valid
-        $email = trim($email, '\'');
-
-        return new static($email, $name, $comment);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param  string $email
-     * @param  null|string $name
-     * @param  null|string $comment
-     * @throws Exception\InvalidArgumentException
-     */
-    public function __construct($email, $name = null, $comment = null)
-    {
-        $emailAddressValidator = new EmailAddressValidator();
-        if (! is_string($email) || empty($email)) {
-            throw new Exception\InvalidArgumentException('Email must be a valid email address');
-        }
-
-        if (preg_match("/[\r\n]/", $email)) {
+        // Checked before trimming, so a trailing line break is rejected rather than silently removed
+        if (1 === preg_match("/[\r\n]/", $email . ($name ?? '') . ($comment ?? ''))) {
             throw new Exception\InvalidArgumentException('CRLF injection detected');
         }
 
-        if (! $emailAddressValidator->isValid($email)) {
-            $invalidMessages = $emailAddressValidator->getMessages();
-            throw new Exception\InvalidArgumentException(array_shift($invalidMessages));
+        $email = trim($email);
+        if ('' === $email) {
+            throw new Exception\InvalidArgumentException('Email must be a valid email address');
         }
 
-        if (null !== $name) {
-            if (! is_string($name)) {
-                throw new Exception\InvalidArgumentException('Name must be a string');
-            }
-
-            if (preg_match("/[\r\n]/", $name)) {
-                throw new Exception\InvalidArgumentException('CRLF injection detected');
-            }
-
-            $this->name = $name;
+        if (! mb_check_encoding($email . ($name ?? '') . ($comment ?? ''), encoding: 'UTF-8')) {
+            throw new Exception\InvalidArgumentException('Address must be UTF-8 text');
         }
 
-        $this->email = $email;
-
-        if (null !== $comment) {
-            $this->comment = $comment;
+        $validator = new EmailAddressValidator();
+        if (! $validator->isValid($email)) {
+            throw new Exception\InvalidArgumentException($validator->getMessages()[0] ?? 'Invalid email address');
         }
+
+        $this->email   = $email;
+        $this->name    = self::nonEmpty($name);
+        $this->comment = self::nonEmpty($comment);
     }
 
     /**
-     * Retrieve email
+     * Parse "Display Name <user@example.com>" or a bare address.
      *
-     * @return string
+     * @throws Exception\InvalidArgumentException When the string is not an address.
      */
-    #[Override]
-    public function getEmail()
+    public static function fromString(string $address, ?string $comment = null): self
+    {
+        $matches = [];
+        if (1 !== preg_match('/^((?P<name>.*)<(?P<namedEmail>[^>]+)>|(?P<email>.+))$/', $address, $matches)) {
+            throw new Exception\InvalidArgumentException('Invalid address format');
+        }
+
+        $email = $matches['email'] ?? '';
+        if ('' === $email) {
+            $email = $matches['namedEmail'] ?? '';
+        }
+
+        // Outlook sometimes wraps addresses in single quotes, which is not valid
+        return new self(trim(trim($email), characters: "'"), $matches['name'] ?? null, $comment);
+    }
+
+    public function getEmail(): string
     {
         return $this->email;
     }
 
-    /**
-     * Retrieve name, if any
-     *
-     * @return null|string
-     */
-    #[Override]
-    public function getName()
+    public function getName(): ?string
     {
         return $this->name;
     }
 
-    /**
-     * Retrieve comment, if any
-     *
-     * @return null|string
-     */
-    public function getComment()
+    public function getComment(): ?string
     {
         return $this->comment;
     }
 
     /**
-     * String representation of address
+     * The address as it appears in a header: `"Name" <user@example.com>` or `user@example.com`.
      *
-     * @return string
+     * The display name is quoted when it contains RFC 5322 specials, so it can
+     * never be read back as extra addresses.
      */
-    #[Override]
-    public function toString()
+    public function toString(): string
     {
-        $string = sprintf('<%s>', $this->getEmail());
-        $name   = $this->constructName();
-        if (null === $name) {
-            return $string;
+        if (null === $this->name) {
+            return $this->email;
         }
 
-        return sprintf('%s %s', $name, $string);
+        return sprintf('%s <%s>', self::quoteDisplayName($this->name), $this->email);
     }
 
     /**
-     * Constructs the name string
-     *
-     * If a comment is present, appends the comment (commented using parens) to
-     * the name before returning it; otherwise, returns just the name.
-     *
-     * @return null|string
+     * @internal Shared with the address-list headers, which encode names that are not ASCII.
      */
-    private function constructName()
+    public static function quoteDisplayName(string $name): string
     {
-        $name    = $this->getName();
-        $comment = $this->getComment();
-
-        if (null === $comment || '' === $comment) {
+        if (false === strpbrk($name, self::NAME_SPECIALS)) {
             return $name;
         }
 
-        $string = sprintf('%s (%s)', $name, $comment);
-        return trim($string);
+        return sprintf('"%s"', addcslashes($name, characters: '\\"'));
+    }
+
+    private static function nonEmpty(?string $value): ?string
+    {
+        $value = trim($value ?? '');
+
+        return '' === $value ? null : $value;
     }
 }

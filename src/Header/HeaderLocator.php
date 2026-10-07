@@ -6,70 +6,79 @@ namespace Contenir\Mail\Header;
 
 use Override;
 
+use function array_key_exists;
+use function str_replace;
 use function strtolower;
 
 /**
- * Plugin Class Loader implementation for HTTP headers
+ * The built-in header classes, with any custom classes layered on top.
  */
-final class HeaderLocator implements HeaderLocatorInterface
+final readonly class HeaderLocator implements HeaderLocatorInterface
 {
-    /** @var array Pre-aliased Header plugins */
-    private array $plugins = [
-        'bcc'                       => Bcc::class,
-        'cc'                        => Cc::class,
-        'contentdisposition'        => ContentDisposition::class,
-        'content_disposition'       => ContentDisposition::class,
-        'content-disposition'       => ContentDisposition::class,
-        'contenttype'               => ContentType::class,
-        'content_type'              => ContentType::class,
-        'content-type'              => ContentType::class,
-        'contenttransferencoding'   => ContentTransferEncoding::class,
-        'content_transfer_encoding' => ContentTransferEncoding::class,
-        'content-transfer-encoding' => ContentTransferEncoding::class,
-        'date'                      => Date::class,
-        'from'                      => From::class,
-        'in-reply-to'               => InReplyTo::class,
-        'message-id'                => MessageId::class,
-        'mimeversion'               => MimeVersion::class,
-        'mime_version'              => MimeVersion::class,
-        'mime-version'              => MimeVersion::class,
-        'received'                  => Received::class,
-        'references'                => References::class,
-        'replyto'                   => ReplyTo::class,
-        'reply_to'                  => ReplyTo::class,
-        'reply-to'                  => ReplyTo::class,
-        'sender'                    => Sender::class,
-        'subject'                   => Subject::class,
-        'to'                        => To::class,
+    private const array DEFAULTS = [
+        'bcc'                     => Bcc::class,
+        'cc'                      => Cc::class,
+        'contentdisposition'      => ContentDisposition::class,
+        'contenttransferencoding' => ContentTransferEncoding::class,
+        'contenttype'             => ContentType::class,
+        'date'                    => Date::class,
+        'from'                    => From::class,
+        'inreplyto'               => InReplyTo::class,
+        'messageid'               => MessageId::class,
+        'mimeversion'             => MimeVersion::class,
+        'received'                => Received::class,
+        'references'              => References::class,
+        'replyto'                 => ReplyTo::class,
+        'sender'                  => Sender::class,
+        'subject'                 => Subject::class,
+        'to'                      => To::class,
     ];
 
-    #[Override]
-    public function get(string $name, ?string $default = null): ?string
+    /** @var array<string, class-string<HeaderInterface>> */
+    private array $classes;
+
+    /**
+     * @param array<string, class-string<HeaderInterface>> $classes header name => class, overriding the defaults
+     */
+    public function __construct(array $classes = [])
     {
-        $name = $this->normalizeName($name);
-        return $this->plugins[$name] ?? $default;
+        $normalised = self::DEFAULTS;
+        foreach ($classes as $name => $class) {
+            $normalised[self::normalise($name)] = $class;
+        }
+
+        $this->classes = $normalised;
+    }
+
+    /**
+     * @param class-string<HeaderInterface> $class
+     */
+    public function with(string $name, string $class): self
+    {
+        return new self([...$this->classes, self::normalise($name) => $class]);
+    }
+
+    #[Override]
+    public function get(string $name): ?string
+    {
+        return $this->classes[self::normalise($name)] ?? null;
     }
 
     #[Override]
     public function has(string $name): bool
     {
-        return isset($this->plugins[$this->normalizeName($name)]);
+        return array_key_exists(self::normalise($name), $this->classes);
     }
 
-    #[Override]
-    public function add(string $name, string $class): void
+    /**
+     * "Content-Type", "content_type" and "contenttype" all name the same header.
+     */
+    private static function normalise(string $name): string
     {
-        $this->plugins[$this->normalizeName($name)] = $class;
-    }
-
-    #[Override]
-    public function remove(string $name): void
-    {
-        unset($this->plugins[$this->normalizeName($name)]);
-    }
-
-    private function normalizeName(string $name): string
-    {
-        return strtolower($name);
+        return str_replace(
+            search: ['-', '_', ' ', '.'],
+            replace: '',
+            subject: strtolower($name),
+        );
     }
 }

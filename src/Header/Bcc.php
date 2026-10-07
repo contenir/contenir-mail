@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-class Bcc extends AbstractAddressList
+final readonly class Bcc extends AbstractAddressList
 {
-    /** @var string */
-    protected $fieldName = 'Bcc';
+    protected const string FIELD_NAME = 'Bcc';
 
-    /** @var string */
-    protected static $type = 'bcc';
+    protected const array FIELD_NAMES = ['bcc'];
 }

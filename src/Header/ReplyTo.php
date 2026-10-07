@@ -1,13 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-class ReplyTo extends AbstractAddressList
+final readonly class ReplyTo extends AbstractAddressList
 {
-    /** @var string  */
-    protected $fieldName = 'Reply-To';
-    /** @var string  */
-    protected static $type = 'reply-to';
-    /** @var string[] */
-    protected static $typeAliases = ['replyto', 'reply_to'];
+    protected const string FIELD_NAME = 'Reply-To';
+
+    protected const array FIELD_NAMES = ['reply-to', 'replyto', 'reply_to'];
 }

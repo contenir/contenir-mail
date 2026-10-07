@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
+use Contenir\Mail\Header\Date;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Exception;
+use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use Contenir\Mail\Transport\Smtp;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Protocol\Smtp::class)]
+#[CoversClass(SmtpProtocol::class)]
+#[Group('unit')]
 class SmtpTest extends TestCase
 {
     /** @var Smtp */
@@ -31,8 +36,7 @@ class SmtpTest extends TestCase
     #[Test]
     public function sendMinimalMail(): void
     {
-        $headers = new Headers();
-        $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
+        $headers = new Headers(new Date(new DateTimeImmutable('Sun, 10 Jun 2012 20:07:24 +0200')));
 
         $message = new Message();
         $message->setHeaders($headers);
@@ -60,8 +64,7 @@ class SmtpTest extends TestCase
     #[Test]
     public function sendEscapedEmail(): void
     {
-        $headers = new Headers();
-        $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
+        $headers = new Headers(new Date(new DateTimeImmutable('Sun, 10 Jun 2012 20:07:24 +0200')));
 
         $message = new Message();
         $message->setHeaders($headers);
@@ -203,8 +206,7 @@ class SmtpTest extends TestCase
         );
         $this->expectExceptionCode(SmtpProtocolSpy::ERRONEOUS_RECIPIENT_CODE);
 
-        $headers = new Headers();
-        $headers->addHeaderLine('Date', 'Sun, 10 Jun 2012 20:07:24 +0200');
+        $headers = new Headers(new Date(new DateTimeImmutable('Sun, 10 Jun 2012 20:07:24 +0200')));
 
         $message = new Message();
         $message->setHeaders($headers);

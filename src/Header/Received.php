@@ -1,116 +1,66 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
-use Contenir\Mail\Headers;
 use Override;
 
-use function implode;
 use function strtolower;
 
 /**
- * @todo       Allow setting date from DateTime, Laminas\Date, or string
+ * A trace field added by each server that handled the message (RFC 5322, section 3.6.7).
+ *
+ * The value is kept as written; it is not split into its from, by and date parts.
  */
-class Received implements HeaderInterface, MultipleHeadersInterface
+final readonly class Received implements HeaderInterface
 {
-    /** @var string */
-    protected $value;
+    private string $value;
 
     /**
-     * @param string $headerLine
-     * @return static
+     * @throws Exception\InvalidArgumentException When the value contains invalid characters.
      */
-    #[Override]
-    public static function fromString($headerLine)
-    {
-        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (strtolower($name) !== 'received') {
-            throw new Exception\InvalidArgumentException('Invalid header line for Received string');
-        }
-
-        return new static($value);
-    }
-
-    /**
-     * @param string $value
-     */
-    public function __construct($value = '')
+    public function __construct(string $value)
     {
         if (! HeaderValue::isValid($value)) {
             throw new Exception\InvalidArgumentException('Invalid Received value provided');
         }
+
         $this->value = $value;
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function getFieldName()
+    public static function fromString(string $headerLine): static
+    {
+        [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
+        if ('received' !== strtolower($name)) {
+            throw new Exception\InvalidArgumentException('Invalid header line for Received string');
+        }
+
+        return new self(HeaderWrap::mimeDecodeValue($value));
+    }
+
+    #[Override]
+    public function getFieldName(): string
     {
         return 'Received';
     }
 
-    /**
-     * @inheritDoc
-     */
     #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
+    public function getFieldValue(): string
     {
         return $this->value;
     }
 
-    /**
-     * @param string $encoding
-     * @return self
-     */
     #[Override]
-    public function setEncoding($encoding)
+    public function getEncodedFieldValue(): string
     {
-        // This header must be always in US-ASCII
-        return $this;
+        return $this->value;
     }
 
-    /**
-     * @return string
-     */
     #[Override]
-    public function getEncoding()
+    public function toString(): string
     {
-        return 'ASCII';
-    }
-
-    /**
-     * @return string
-     */
-    #[Override]
-    public function toString()
-    {
-        return "Received: {$this->getFieldValue()}";
-    }
-
-    /**
-     * Serialize collection of Received headers to string
-     *
-     * @param  array $headers
-     * @throws Exception\RuntimeException
-     * @return string
-     */
-    #[Override]
-    public function toStringMultipleHeaders(array $headers)
-    {
-        $strings = [$this->toString()];
-        foreach ($headers as $header) {
-            if (! $header instanceof self) {
-                throw new Exception\RuntimeException(
-                    'The Received multiple header implementation can only accept an array of Received headers',
-                );
-            }
-            $strings[] = $header->toString();
-        }
-        return implode(Headers::EOL, $strings);
+        return "Received: {$this->value}";
     }
 }

@@ -5,589 +5,216 @@ declare(strict_types=1);
 namespace Contenir\Mail;
 
 use ArrayIterator;
-use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\HeaderLocator;
 use Contenir\Mail\Header\HeaderLocatorInterface;
+use Contenir\Mail\Header\HeaderParser;
 use Countable;
-use Iterator;
+use IteratorAggregate;
 use Override;
-use ReturnTypeWillChange;
-use Traversable;
 
-use function array_keys;
-use function array_shift;
-use function assert;
+use function array_filter;
+use function array_map;
+use function array_values;
 use function count;
-use function current;
-use function explode;
-use function gettype;
-use function in_array;
-use function is_array;
-use function is_int;
-use function is_object;
-use function is_string;
-use function key;
-use function next;
-use function preg_match;
-use function reset;
-use function sprintf;
 use function str_replace;
 use function strtolower;
-use function trim;
 
 /**
- * Basic mail headers collection functionality
+ * An ordered, immutable set of message headers.
  *
- * Handles aggregation of headers
+ * Names are matched case-insensitively and ignoring "-", "_", "." and spaces,
+ * so "Content-Type" and "content_type" name the same header.
  *
- * @implements Iterator<int, HeaderInterface>
+ * @mago-expect lint:too-many-methods A collection: construction, with/without, lookup, output and iteration.
+ * @implements IteratorAggregate<int, HeaderInterface>
  */
-class Headers implements Countable, Iterator
+final readonly class Headers implements Countable, IteratorAggregate
 {
-    /** @var string End of Line for fields */
-    public const EOL = "\r\n";
+    /** End of line for header fields */
+    public const string EOL = "\r\n";
 
-    /** @var string Start of Line when folding */
-    public const FOLDING = "\r\n ";
+    /** Start of a continuation line when folding */
+    public const string FOLDING = "\r\n ";
 
-    private ?HeaderLocatorInterface $headerLocator = null;
+    /** @var list<HeaderInterface> */
+    private array $headers;
 
-    /** @var list<string> key names for $headers array */
-    protected $headersKeys = [];
-
-    /** @var  list<HeaderInterface> instances */
-    protected $headers = [];
-
-    /**
-     * Header encoding; defaults to ASCII
-     *
-     * @var string
-     */
-    protected $encoding = 'ASCII';
-
-    /**
-     * Clone each header, so the copy can be changed without touching the original.
-     */
-    public function __clone(): void
+    public function __construct(HeaderInterface ...$headers)
     {
-        foreach ($this->headers as $index => $header) {
-            $this->headers[$index] = clone $header;
-        }
+        $this->headers = array_values($headers);
     }
 
     /**
-     * Populates headers from string representation
+     * Parse a header block, as found at the start of a message or MIME part.
      *
-     * Parses a string for headers, and aggregates them, in order, in the
-     * current instance, primarily as strings until they are needed (they
-     * will be lazy loaded)
+     * Each header is parsed by the class the locator names for it. A header
+     * that class rejects is kept as a GenericHeader, so one malformed header
+     * does not make the whole message unreadable.
      *
-     * @param  string $string
-     * @param  string $eol EOL string; defaults to {@link EOL}
-     * @return Headers
-     * @throws Exception\RuntimeException
+     * @throws Exception\RuntimeException When the block is not a sequence of header lines.
      */
-    public static function fromString($string, $eol = self::EOL)
+    public static function fromString(
+        string $string,
+        string $eol = self::EOL,
+        HeaderLocatorInterface $locator = new HeaderLocator(),
+    ): self {
+        return new self(...(new HeaderParser($locator))->parseBlock($string, $eol));
+    }
+
+    /**
+     * Build headers from header objects, complete lines, `[name, value]` pairs or `name => value` entries.
+     *
+     * @param iterable<int|string, HeaderInterface|string|array{string, string}> $headers
+     */
+    public static function fromIterable(iterable $headers, HeaderLocatorInterface $locator = new HeaderLocator()): self
     {
-        $headers     = new static();
-        $currentLine = '';
-        $emptyLine   = 0;
+        return new self(...(new HeaderParser($locator))->parseIterable($headers));
+    }
 
-        // iterate the header lines, some might be continuations
-        $lines = explode($eol, $string);
-        $total = count($lines);
-        for ($i = 0; $i < $total; $i += 1) {
-            $line = $lines[$i];
-
-            if ('' === $line) {
-                // Empty line indicates end of headers
-                // EXCEPT if there are more lines, in which case, there's a possible error condition
-                $emptyLine += 1;
-                if ($emptyLine > 2) {
-                    throw new Exception\RuntimeException('Malformed header detected');
-                }
+    /**
+     * Set a header, replacing any headers of the same name.
+     *
+     * The new header takes the position of the first one it replaces, or goes last.
+     */
+    public function with(HeaderInterface $header): self
+    {
+        $key      = self::normalise($header->getFieldName());
+        $headers  = [];
+        $replaced = false;
+        foreach ($this->headers as $existing) {
+            if (self::normalise($existing->getFieldName()) !== $key) {
+                $headers[] = $existing;
                 continue;
             }
 
-            if (preg_match('/^\s*$/', $line)) {
-                // skip empty continuation line
-                continue;
-            }
-
-            if ($emptyLine > 1) {
-                throw new Exception\RuntimeException('Malformed header detected');
-            }
-
-            // check if a header name is present
-            if (preg_match('/^[\x21-\x39\x3B-\x7E]+:.*$/', $line)) {
-                if ($currentLine) {
-                    // a header name was present, then store the current complete line
-                    $headers->addHeaderLine($currentLine);
-                }
-                $currentLine = trim($line);
-                continue;
-            }
-
-            // continuation: append to current line
-            // recover the whitespace that break the line (unfolding, rfc2822#section-2.2.3)
-            if (preg_match('/^\s+.*$/', $line)) {
-                $currentLine .= ' ' . trim($line);
-                continue;
-            }
-
-            // Line does not match header format!
-            throw new Exception\RuntimeException(sprintf(
-                'Line "%s" does not match header format!',
-                $line,
-            ));
-        }
-        if ($currentLine) {
-            $headers->addHeaderLine($currentLine);
-        }
-        return $headers;
-    }
-
-    /**
-     * Retrieve the header class locator for customizing headers.
-     *
-     * Lazyloads a Header\HeaderLocator instance if necessary.
-     */
-    public function getHeaderLocator(): HeaderLocatorInterface
-    {
-        if (! $this->headerLocator) {
-            $this->setHeaderLocator(new Header\HeaderLocator());
-        }
-
-        assert($this->headerLocator instanceof HeaderLocatorInterface);
-
-        return $this->headerLocator;
-    }
-
-    /**
-     * @todo Return self when we update to 7.4 or later as minimum PHP version.
-     * @return $this
-     */
-    public function setHeaderLocator(HeaderLocatorInterface $headerLocator)
-    {
-        $this->headerLocator = $headerLocator;
-        return $this;
-    }
-
-    /**
-     * Set the header encoding
-     *
-     * @param  string $encoding
-     * @return Headers
-     */
-    public function setEncoding($encoding)
-    {
-        $this->encoding = $encoding;
-        foreach ($this as $header) {
-            $header->setEncoding($encoding);
-        }
-        return $this;
-    }
-
-    /**
-     * Get the header encoding
-     *
-     * @return string
-     */
-    public function getEncoding()
-    {
-        return $this->encoding;
-    }
-
-    /**
-     * Add many headers at once
-     *
-     * Expects an array (or Traversable object) of type/value pairs.
-     *
-     * @param  array|Traversable $headers
-     * @throws Exception\InvalidArgumentException
-     * @return Headers
-     */
-    public function addHeaders($headers)
-    {
-        if (! is_array($headers) && ! $headers instanceof Traversable) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                'Expected array or Traversable; received "%s"',
-                is_object($headers) ? $headers::class : gettype($headers),
-            ));
-        }
-
-        foreach ($headers as $name => $value) {
-            if (is_int($name)) {
-                if (is_string($value)) {
-                    $this->addHeaderLine($value);
-                } elseif (is_array($value) && count($value) == 1) {
-                    $this->addHeaderLine(key($value), current($value));
-                } elseif (is_array($value) && count($value) == 2) {
-                    $this->addHeaderLine($value[0], $value[1]);
-                } elseif ($value instanceof Header\HeaderInterface) {
-                    $this->addHeader($value);
-                }
-            } elseif (is_string($name)) {
-                $this->addHeaderLine($name, $value);
+            if (! $replaced) {
+                $headers[] = $header;
+                $replaced  = true;
             }
         }
 
-        return $this;
+        if (! $replaced) {
+            $headers[] = $header;
+        }
+
+        return new self(...$headers);
     }
 
     /**
-     * Add a raw header line, either in name => value, or as a single string 'name: value'
-     *
-     * This method allows for lazy-loading in that the parsing and instantiation of HeaderInterface object
-     * will be delayed until they are retrieved by either get() or current()
-     *
-     * @throws Exception\InvalidArgumentException
-     * @param  string $headerFieldNameOrLine
-     * @param  string $fieldValue optional
-     * @return Headers
+     * Add a header after the existing ones, keeping any of the same name, as for Received.
      */
-    public function addHeaderLine($headerFieldNameOrLine, $fieldValue = null)
+    public function withAdded(HeaderInterface $header): self
     {
-        if (! is_string($headerFieldNameOrLine)) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                '%s expects its first argument to be a string; received "%s"',
-                __METHOD__,
-                is_object($headerFieldNameOrLine)
-                    ? $headerFieldNameOrLine::class
-                    : gettype($headerFieldNameOrLine),
-            ));
-        }
+        return new self(...[...$this->headers, $header]);
+    }
 
-        if (null === $fieldValue) {
-            $headers = $this->loadHeader($headerFieldNameOrLine);
-            $headers = is_array($headers) ? $headers : [$headers];
-            foreach ($headers as $header) {
-                $this->addHeader($header);
-            }
-        } elseif (is_array($fieldValue)) {
-            foreach ($fieldValue as $i) {
-                $this->addHeader(Header\GenericMultiHeader::fromString("{$headerFieldNameOrLine}:{$i}"));
-            }
-        } else {
-            $this->addHeader(GenericHeader::fromString("{$headerFieldNameOrLine}:{$fieldValue}"));
-        }
+    public function without(string $name): self
+    {
+        $key = self::normalise($name);
 
-        return $this;
+        return new self(...array_filter(
+            $this->headers,
+            static fn(HeaderInterface $header): bool => self::normalise($header->getFieldName()) !== $key,
+        ));
     }
 
     /**
-     * Add a Header\Interface to this container, for raw values see {@link addHeaderLine()} and {@link addHeaders()}
-     *
-     * @return Headers
+     * The first header with this name.
      */
-    public function addHeader(HeaderInterface $header)
+    public function get(string $name): ?HeaderInterface
     {
-        $key                 = $this->normalizeFieldName($header->getFieldName());
-        $this->headersKeys[] = $key;
-        $this->headers[]     = $header;
-        if ($this->getEncoding() !== 'ASCII') {
-            $header->setEncoding($this->getEncoding());
-        }
-        return $this;
+        return $this->all($name)[0] ?? null;
     }
 
     /**
-     * Remove a Header from the container
+     * Every header with this name, in order.
      *
-     * @param  string|HeaderInterface $instanceOrFieldName field name or specific header instance to remove
-     * @return bool
+     * @return list<HeaderInterface>
      */
-    public function removeHeader($instanceOrFieldName)
+    public function all(string $name): array
     {
-        if (! $instanceOrFieldName instanceof Header\HeaderInterface && ! is_string($instanceOrFieldName)) {
-            throw new Exception\InvalidArgumentException(sprintf(
-                '%s requires a string or %s instance; received %s',
-                __METHOD__,
-                HeaderInterface::class,
-                is_object($instanceOrFieldName) ? $instanceOrFieldName::class : gettype($instanceOrFieldName),
-            ));
-        }
+        $key = self::normalise($name);
 
-        if ($instanceOrFieldName instanceof Header\HeaderInterface) {
-            $indexes = array_keys($this->headers, $instanceOrFieldName, true);
-        }
+        return array_values(array_filter(
+            $this->headers,
+            static fn(HeaderInterface $header): bool => self::normalise($header->getFieldName()) === $key,
+        ));
+    }
 
-        if (is_string($instanceOrFieldName)) {
-            $key     = $this->normalizeFieldName($instanceOrFieldName);
-            $indexes = array_keys($this->headersKeys, $key, true);
-        }
-
-        if (! empty($indexes)) {
-            foreach ($indexes as $index) {
-                unset($this->headersKeys[$index]);
-                unset($this->headers[$index]);
-            }
-            return true;
-        }
-
-        return false;
+    public function has(string $name): bool
+    {
+        return null !== $this->get($name);
     }
 
     /**
-     * Clear all headers
-     *
-     * Removes all headers from queue
-     *
-     * @return Headers
+     * The header block, one line per header, each ending with a CRLF.
      */
-    public function clearHeaders()
+    public function toString(): string
     {
-        $this->headers = $this->headersKeys = [];
-        return $this;
-    }
-
-    /**
-     * Get all headers of a certain name/type
-     *
-     * @param  string $name
-     * @return false|ArrayIterator|HeaderInterface Returns false if there is no headers with $name in this
-     * contain, an ArrayIterator if the header is a MultipleHeadersInterface instance and finally returns
-     * HeaderInterface for the rest of cases.
-     */
-    public function get($name)
-    {
-        $key     = $this->normalizeFieldName($name);
-        $results = [];
-
-        foreach (array_keys($this->headersKeys, $key, true) as $index) {
-            if ($this->headers[$index] instanceof Header\GenericHeader) {
-                $results[] = $this->lazyLoadHeader($index);
-            } else {
-                $results[] = $this->headers[$index];
+        $result = '';
+        foreach ($this->headers as $header) {
+            $line = $header->toString();
+            if ('' !== $line) {
+                $result .= $line . self::EOL;
             }
         }
 
-        switch (count($results)) {
-            case 0:
-                return false;
-            case 1:
-                if ($results[0] instanceof Header\MultipleHeadersInterface) {
-                    return new ArrayIterator($results);
-                }
-                return $results[0];
-            default:
-                return new ArrayIterator($results);
-        }
+        return $result;
     }
 
     /**
-     * Test for existence of a type of header
+     * Decoded values by header name; a name that appears more than once maps to a list.
      *
-     * @param  string $name
-     * @return bool
+     * @return array<string, string|list<string>>
      */
-    public function has($name)
+    public function toArray(): array
     {
-        $name = $this->normalizeFieldName($name);
-        return in_array($name, $this->headersKeys, true);
+        /** @var array<string, list<string>> $values */
+        $values = [];
+        foreach ($this->headers as $header) {
+            $values[$header->getFieldName()][] = $header->getFieldValue();
+        }
+
+        return array_map(
+            /**
+             * @param list<string> $list
+             * @return string|list<string>
+             */
+            static fn(array $list): string|array => 1 === count($list) ? $list[0] : $list,
+            $values,
+        );
     }
 
     /**
-     * Advance the pointer for this object as an iterator
+     * @return list<HeaderInterface>
      */
+    public function toList(): array
+    {
+        return $this->headers;
+    }
+
     #[Override]
-    #[ReturnTypeWillChange]
-    public function next()
-    {
-        next($this->headers);
-    }
-
-    /**
-     * Return the current key for this object as an iterator
-     *
-     * @return mixed
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function key()
-    {
-        return key($this->headers);
-    }
-
-    /**
-     * Is this iterator still valid?
-     *
-     * @return bool
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function valid()
-    {
-        return current($this->headers) !== false;
-    }
-
-    /**
-     * Reset the internal pointer for this object as an iterator
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function rewind()
-    {
-        reset($this->headers);
-    }
-
-    /**
-     * Return the current value for this iterator, lazy loading it if need be
-     *
-     * @return HeaderInterface
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function current()
-    {
-        $current = current($this->headers);
-        if ($current instanceof Header\GenericHeader) {
-            $current = $this->lazyLoadHeader(key($this->headers));
-        }
-        return $current;
-    }
-
-    /**
-     * Return the number of headers in this contain, if all headers have not been parsed, actual count could
-     * increase if MultipleHeader objects exist in the Request/Response.  If you need an exact count, iterate
-     *
-     * @return int count of currently known headers
-     */
-    #[Override]
-    #[ReturnTypeWillChange]
-    public function count()
+    public function count(): int
     {
         return count($this->headers);
     }
 
     /**
-     * Render all headers at once
-     *
-     * This method handles the normal iteration of headers; it is up to the
-     * concrete classes to prepend with the appropriate status/request line.
-     *
-     * @return string
+     * @return ArrayIterator<int, HeaderInterface>
      */
-    public function toString()
+    #[Override]
+    public function getIterator(): ArrayIterator
     {
-        $headers = '';
-        foreach ($this as $header) {
-            if (! ($str = $header->toString())) {
-                continue;
-            }
-
-            $headers .= $str . self::EOL;
-        }
-
-        return $headers;
+        return new ArrayIterator($this->headers);
     }
 
-    /**
-     * Return the headers container as an array
-     *
-     * @param  bool $format Return the values in Mime::Encoded or in Raw format
-     * @return array<string, list<string>|string>
-     * @todo determine how to produce single line headers, if they are supported
-     */
-    public function toArray($format = HeaderInterface::FORMAT_RAW)
+    private static function normalise(string $name): string
     {
-        $headers = [];
-        foreach ($this->headers as $header) {
-            if ($header instanceof Header\MultipleHeadersInterface) {
-                $name = $header->getFieldName();
-                if (! isset($headers[$name])) {
-                    $headers[$name] = [];
-                }
-                $headers[$name][] = $header->getFieldValue($format);
-            } else {
-                $headers[$header->getFieldName()] = $header->getFieldValue($format);
-            }
-        }
-        return $headers;
-    }
-
-    /**
-     * By calling this, it will force parsing and loading of all headers, after this count() will be accurate
-     *
-     * @return bool
-     */
-    public function forceLoading()
-    {
-        // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedForeach
-        foreach ($this as $item) {
-            // $item should now be loaded
-        }
-        return true;
-    }
-
-    /**
-     * Create Header object from header line
-     *
-     * @param string $headerLine
-     * @return HeaderInterface|HeaderInterface[]
-     */
-    public function loadHeader($headerLine)
-    {
-        [$name] = GenericHeader::splitHeaderLine($headerLine);
-
-        $class = $this->resolveHeaderClass($name);
-        assert(null !== $class);
-
-        return $class::fromString($headerLine);
-    }
-
-    /**
-     * @param array-key $index
-     * @return mixed
-     */
-    protected function lazyLoadHeader($index)
-    {
-        $current = $this->headers[$index];
-
-        $key = $this->headersKeys[$index];
-
-        $class = $this->resolveHeaderClass($key);
-        assert(null !== $class);
-
-        $encoding = $current->getEncoding();
-        $headers  = $class::fromString($current->toString());
-        if (is_array($headers)) {
-            $current = array_shift($headers);
-            assert($current instanceof HeaderInterface);
-            $current->setEncoding($encoding);
-            $this->headers[$index] = $current;
-            foreach ($headers as $header) {
-                assert($header instanceof HeaderInterface);
-                $header->setEncoding($encoding);
-                $this->headersKeys[] = $key;
-                $this->headers[]     = $header;
-            }
-            return $current;
-        }
-
-        $current = $headers;
-        $current->setEncoding($encoding);
-        $this->headers[$index] = $current;
-        return $current;
-    }
-
-    /**
-     * Normalize a field name
-     *
-     * @param  string $fieldName
-     * @return string
-     */
-    protected function normalizeFieldName($fieldName)
-    {
-        return str_replace(['-', '_', ' ', '.'], '', strtolower($fieldName));
-    }
-
-    /**
-     * @param string $key
-     * @return null|class-string<HeaderInterface>
-     */
-    private function resolveHeaderClass($key): ?string
-    {
-        return $this->getHeaderLocator()->get($key, GenericHeader::class);
+        return str_replace(
+            search: ['-', '_', ' ', '.'],
+            replace: '',
+            subject: strtolower($name),
+        );
     }
 }

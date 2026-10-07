@@ -1,332 +1,180 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
 use Override;
 
+use function array_key_last;
 use function count;
 use function explode;
-use function gettype;
 use function in_array;
-use function is_numeric;
-use function mb_strlen;
-use function mb_substr;
 use function sprintf;
-use function str_replace;
 use function strlen;
-use function strpos;
 use function strtolower;
 use function trim;
-use function var_export;
 
-class ContentDisposition implements UnstructuredInterface
+/**
+ * How a part is presented, inline or as an attachment, with its parameters (RFC 2183).
+ *
+ * @mago-expect lint:too-many-methods The HeaderInterface methods plus typed accessors and with*() for each part.
+ */
+final readonly class ContentDisposition implements HeaderInterface
 {
+    /** Longest parameter line before RFC 2231 continuation splits it */
+    public const int MAX_PARAMETER_LENGTH = 76;
+
+    private string $disposition;
+
+    /** @var array<string, string> keyed by lower-cased parameter name */
+    private array $parameters;
+
     /**
-     * 78 chars (RFC 2822) - (semicolon + space (Header::FOLDING))
-     *
-     * @var int
+     * @param array<string, string> $parameters
+     * @throws Exception\InvalidArgumentException When a parameter name is invalid or too long.
      */
-    public const MAX_PARAMETER_LENGTH = 76;
+    public function __construct(string $disposition = 'inline', array $parameters = [])
+    {
+        $normalised = [];
+        foreach ($parameters as $name => $value) {
+            $name = strtolower($name);
+            if (! HeaderValue::isValid($name)) {
+                throw new Exception\InvalidArgumentException('Invalid content-disposition parameter name detected');
+            }
 
-    /** @var string */
-    protected $disposition = 'inline';
+            // 5 covers the quotes and equals sign of name="value", and the space and semicolon of folding
+            if ((strlen($name) + 5) >= self::MAX_PARAMETER_LENGTH) {
+                throw new Exception\InvalidArgumentException(
+                    'Invalid content-disposition parameter name detected (too long)',
+                );
+            }
+
+            $normalised[$name] = $value;
+        }
+
+        $this->disposition = strtolower($disposition);
+        $this->parameters  = $normalised;
+    }
 
     /**
-     * Header encoding
-     *
-     * @var string
-     */
-    protected $encoding = 'ASCII';
-
-    /** @var array */
-    protected $parameters = [];
-
-    /**
-     * @inheritDoc
+     * Reassembles parameters split with RFC 2231 continuations (filename*0=, filename*1=).
      */
     #[Override]
-    public static function fromString($headerLine)
+    public static function fromString(string $headerLine): static
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value = HeaderWrap::mimeDecodeValue($value);
-
-        // check to ensure proper header type for this factory
-        if (! in_array(strtolower($name), ['contentdisposition', 'content_disposition', 'content-disposition'])) {
+        $names = ['contentdisposition', 'content_disposition', 'content-disposition'];
+        if (! in_array(strtolower($name), $names, strict: true)) {
             throw new Exception\InvalidArgumentException('Invalid header line for Content-Disposition string');
         }
 
-        $value = str_replace(Headers::FOLDING, ' ', $value);
-        $parts = explode(';', $value, 2);
+        $value      = HeaderWrap::mimeDecodeValue($value);
+        $parts      = explode(';', $value, limit: 2);
+        $parameters = HeaderParameters::parse($parts[1] ?? '');
 
-        $header = new static();
-        $header->setDisposition($parts[0]);
-
-        if (isset($parts[1])) {
-            $values          = ListParser::parse(trim($parts[1]), [';', '=']);
-            $length          = count($values);
-            $continuedValues = [];
-
-            for ($i = 0; $i < $length; $i += 2) {
-                $value = $values[$i + 1];
-                $value = trim($value, "'\" \t\n\r\0\x0B");
-                $name  = trim($values[$i], "'\" \t\n\r\0\x0B");
-
-                if (strpos($name, '*')) {
-                    [$name, $count] = explode('*', $name);
-                    // allow optional count:
-                    // Content-Disposition: attachment; filename*=UTF-8''%64%61%61%6D%69%2D%6D%C3%B5%72%76%2E%6A%70%67
-                    if ('' === $count) {
-                        $count = 0;
-                    }
-
-                    if (! is_numeric($count)) {
-                        $type  = gettype($count);
-                        $value = var_export($count, true);
-                        throw new Exception\InvalidArgumentException(sprintf(
-                            'Invalid header line for Content-Disposition string'
-                                . ' - count expected to be numeric, got %s with value %s',
-                            $type,
-                            $value,
-                        ));
-                    }
-                    if (! isset($continuedValues[$name])) {
-                        $continuedValues[$name] = [];
-                    }
-                    $continuedValues[$name][$count] = $value;
-                } else {
-                    $header->setParameter($name, $value);
-                }
-            }
-
-            foreach ($continuedValues as $name => $values) {
-                $value = '';
-                for ($i = 0, $iMax = count($values); $i < $iMax; $i++) {
-                    if (! isset($values[$i])) {
-                        throw new Exception\InvalidArgumentException(
-                            "Invalid header line for Content-Disposition string - incomplete continuation; HeaderLine: {$headerLine}",
-                        );
-                    }
-                    $value .= $values[$i];
-                }
-                $header->setParameter($name, $value);
-            }
-        }
-
-        return $header;
+        return new self(trim($parts[0]), ParameterContinuation::join($parameters, $headerLine));
     }
 
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function getFieldName()
-    {
-        return 'Content-Disposition';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function getFieldValue($format = HeaderInterface::FORMAT_RAW)
-    {
-        $result = $this->disposition;
-        if (empty($this->parameters)) {
-            return $result;
-        }
-
-        foreach ($this->parameters as $attribute => $value) {
-            $valueIsEncoded = false;
-            if (HeaderInterface::FORMAT_ENCODED === $format && ! Mime::isPrintable($value)) {
-                $value          = $this->getEncodedValue($value);
-                $valueIsEncoded = true;
-            }
-
-            $line = sprintf('%s="%s"', $attribute, $value);
-
-            if (strlen($line) < self::MAX_PARAMETER_LENGTH) {
-                $lines = explode(Headers::FOLDING, $result);
-
-                if (count($lines) === 1) {
-                    $existingLineLength = strlen("Content-Disposition: {$result}");
-                } else {
-                    $existingLineLength = 1 + strlen($lines[count($lines) - 1]);
-                }
-
-                if ((2 + $existingLineLength + strlen($line)) <= self::MAX_PARAMETER_LENGTH) {
-                    $result .= "; {$line}";
-                } else {
-                    $result .= ';' . Headers::FOLDING . $line;
-                }
-            } else {
-                // Use 'continuation' per RFC 2231
-                if ($valueIsEncoded) {
-                    $value = HeaderWrap::mimeDecodeValue($value);
-                }
-
-                $i          = 0;
-                $fullLength = mb_strlen($value, 'UTF-8');
-                while ($fullLength > 0) {
-                    $attributePart = $attribute . '*' . $i++ . '="';
-                    $attLen        = mb_strlen($attributePart, 'UTF-8');
-
-                    $subPos    = 1;
-                    $valuePart = '';
-                    while ($subPos <= $fullLength) {
-                        $sub = mb_substr($value, 0, $subPos, 'UTF-8');
-                        if ($valueIsEncoded) {
-                            $sub = $this->getEncodedValue($sub);
-                        }
-                        if (($attLen + mb_strlen($sub, 'UTF-8')) >= self::MAX_PARAMETER_LENGTH) {
-                            $subPos--;
-                            break;
-                        }
-                        $subPos++;
-                        $valuePart = $sub;
-                    }
-
-                    $value      = mb_substr($value, $subPos, null, 'UTF-8');
-                    $fullLength = mb_strlen($value, 'UTF-8');
-                    $result     .= ';' . Headers::FOLDING . $attributePart . $valuePart . '"';
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param string $value
-     * @return string
-     */
-    protected function getEncodedValue($value)
-    {
-        $configuredEncoding = $this->encoding;
-        $this->encoding     = 'UTF-8';
-        $value              = HeaderWrap::wrap($value, $this);
-        $this->encoding     = $configuredEncoding;
-        return $value;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function setEncoding($encoding)
-    {
-        $this->encoding = $encoding;
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function getEncoding()
-    {
-        return $this->encoding;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    public function toString()
-    {
-        return "Content-Disposition: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
-    }
-
-    /**
-     * Set the content disposition
-     * Expected values include 'inline', 'attachment'
-     *
-     * @param string $disposition
-     * @return ContentDisposition
-     */
-    public function setDisposition($disposition)
-    {
-        $this->disposition = strtolower($disposition);
-        return $this;
-    }
-
-    /**
-     * Retrieve the content disposition
-     *
-     * @return string
-     */
-    public function getDisposition()
+    public function getDisposition(): string
     {
         return $this->disposition;
     }
 
     /**
-     * Add a parameter pair
-     *
-     * @param string $name
-     * @param string $value
-     * @return ContentDisposition
+     * @return array<string, string>
      */
-    public function setParameter($name, $value)
-    {
-        $name = strtolower($name);
-
-        if (! HeaderValue::isValid($name)) {
-            throw new Exception\InvalidArgumentException(
-                'Invalid content-disposition parameter name detected',
-            );
-        }
-        // '5' here is for the quotes & equal sign in `name="value"`,
-        // and the space & semicolon for line folding
-        if ((strlen($name) + 5) >= self::MAX_PARAMETER_LENGTH) {
-            throw new Exception\InvalidArgumentException(
-                'Invalid content-disposition parameter name detected (too long)',
-            );
-        }
-
-        $this->parameters[$name] = $value;
-        return $this;
-    }
-
-    /**
-     * Get all parameters
-     *
-     * @return array
-     */
-    public function getParameters()
+    public function getParameters(): array
     {
         return $this->parameters;
     }
 
-    /**
-     * Get a parameter by name
-     *
-     * @param string $name
-     * @return null|string
-     */
-    public function getParameter($name)
+    public function getParameter(string $name): ?string
     {
-        $name = strtolower($name);
-        if (isset($this->parameters[$name])) {
-            return $this->parameters[$name];
+        return $this->parameters[strtolower($name)] ?? null;
+    }
+
+    public function withDisposition(string $disposition): self
+    {
+        return new self($disposition, $this->parameters);
+    }
+
+    public function withParameter(string $name, string $value): self
+    {
+        return new self($this->disposition, [...$this->parameters, $name => $value]);
+    }
+
+    public function withoutParameter(string $name): self
+    {
+        $parameters = $this->parameters;
+        unset($parameters[strtolower($name)]);
+
+        return new self($this->disposition, $parameters);
+    }
+
+    #[Override]
+    public function getFieldName(): string
+    {
+        return 'Content-Disposition';
+    }
+
+    #[Override]
+    public function getFieldValue(): string
+    {
+        $result = $this->disposition;
+        foreach ($this->parameters as $attribute => $value) {
+            $result .= self::appendParameter($result, $attribute, $value, encoded: null);
         }
-        return null;
+
+        return $result;
+    }
+
+    #[Override]
+    public function getEncodedFieldValue(): string
+    {
+        $result = $this->disposition;
+        foreach ($this->parameters as $attribute => $value) {
+            $encoded = Mime::isPrintable($value) ? null : HeaderWrap::fold('Content-Disposition', $value);
+            $result  .= self::appendParameter($result, $attribute, $value, $encoded);
+        }
+
+        return $result;
+    }
+
+    #[Override]
+    public function toString(): string
+    {
+        return "Content-Disposition: {$this->getEncodedFieldValue()}";
     }
 
     /**
-     * Remove a named parameter
+     * One parameter, on the current line when it fits, on a folded line when
+     * it does not, or split into RFC 2231 continuations when it is too long
+     * for any line.
      *
-     * @param string $name
-     * @return bool
+     * @param string|null $encoded The RFC 2047 encoded value, when the value is not ASCII.
      */
-    public function removeParameter($name)
+    private static function appendParameter(string $result, string $attribute, string $value, ?string $encoded): string
     {
-        $name = strtolower($name);
-        if (isset($this->parameters[$name])) {
-            unset($this->parameters[$name]);
-            return true;
+        $line = sprintf('%s="%s"', $attribute, $encoded ?? $value);
+        if (strlen($line) >= self::MAX_PARAMETER_LENGTH) {
+            return null === $encoded
+                ? ParameterContinuation::split($attribute, $value)
+                : ParameterContinuation::splitEncoded($attribute, $value);
         }
-        return false;
+
+        return self::fitsOnCurrentLine($result, $line) ? "; {$line}" : ';' . Headers::FOLDING . $line;
+    }
+
+    private static function fitsOnCurrentLine(string $result, string $line): bool
+    {
+        $lines              = explode(Headers::FOLDING, $result);
+        $existingLineLength = 1 === count($lines)
+            ? strlen("Content-Disposition: {$result}")
+            : 1 + strlen($lines[array_key_last($lines)] ?? '');
+
+        return (2 + $existingLineLength + strlen($line)) <= self::MAX_PARAMETER_LENGTH;
     }
 }
