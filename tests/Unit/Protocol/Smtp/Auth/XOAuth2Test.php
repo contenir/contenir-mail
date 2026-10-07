@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 
+use Closure;
 use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Tests\Unit\TestAsset\ScriptedChannel;
@@ -114,6 +116,155 @@ final class XOAuth2Test extends TestCase
             ['username' => 'jo@example.com', 'accessToken' => Credentials::HIDDEN],
             (new XOAuth2('jo@example.com', self::AUTH_VALUE))->__debugInfo(),
         );
+    }
+
+    #[Test]
+    public function sendsTokenFromProvider(): void
+    {
+        $channel = new ScriptedChannel();
+
+        (new XOAuth2('jo@example.com', static fn(): string => self::AUTH_VALUE))->authenticate($channel);
+
+        static::assertSame(
+            base64_encode("user=jo@example.com\x01auth=Bearer " . self::AUTH_VALUE . "\x01\x01"),
+            $channel->steps()[1]['line'],
+        );
+    }
+
+    /**
+     * A long-running worker authenticates again with a fresh token each time.
+     */
+    #[Test]
+    public function callsProviderOncePerAuthentication(): void
+    {
+        $calls         = 0;
+        $authenticator = new XOAuth2('jo@example.com', static function () use (&$calls): string {
+            $calls += 1;
+
+            return self::AUTH_VALUE . $calls;
+        });
+
+        $channel = new ScriptedChannel();
+        $authenticator->authenticate($channel);
+        $authenticator->authenticate($channel);
+
+        static::assertSame(
+            [
+                2,
+                base64_encode("user=jo@example.com\x01auth=Bearer " . self::AUTH_VALUE . "1\x01\x01"),
+                base64_encode("user=jo@example.com\x01auth=Bearer " . self::AUTH_VALUE . "2\x01\x01"),
+            ],
+            [$calls, $channel->steps()[1]['line'], $channel->steps()[3]['line']],
+        );
+    }
+
+    #[Test]
+    public function doesNotCallProviderBeforeAuthentication(): void
+    {
+        $calls = 0;
+        new XOAuth2('jo@example.com', static function () use (&$calls): string {
+            $calls += 1;
+
+            return self::AUTH_VALUE;
+        });
+
+        static::assertSame(0, $calls);
+    }
+
+    #[DataProvider('invalidProvidedTokenProvider')]
+    #[Test]
+    public function rejectsInvalidTokenFromProvider(#[SensitiveParameter] string $token, string $message): void
+    {
+        $authenticator = new XOAuth2('jo@example.com', static fn(): string => $token);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        $authenticator->authenticate(new ScriptedChannel());
+    }
+
+    #[Test]
+    public function sendsNothingWhenProviderFails(): void
+    {
+        $channel       = new ScriptedChannel();
+        $authenticator = new XOAuth2('jo@example.com', static fn(): string => '');
+
+        try {
+            $authenticator->authenticate($channel);
+        } catch (InvalidArgumentException) {
+            static::assertSame([], $channel->steps());
+
+            return;
+        }
+
+        static::fail('The empty token was accepted');
+    }
+
+    #[Test]
+    public function rejectsProviderReturningNonString(): void
+    {
+        /** @var Closure(): string $provider */
+        $provider      = static fn(): mixed => null;
+        $authenticator = new XOAuth2('jo@example.com', $provider);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The XOAUTH2 access token provider must return a string, got null');
+
+        $authenticator->authenticate(new ScriptedChannel());
+    }
+
+    #[Test]
+    public function readsTokenProviderFromSettings(): void
+    {
+        $channel = new ScriptedChannel();
+
+        XOAuth2::fromIterable([
+            'username'     => 'jo@example.com',
+            'access_token' => static fn(): string => self::AUTH_VALUE,
+        ])->authenticate($channel);
+
+        static::assertSame(
+            base64_encode("user=jo@example.com\x01auth=Bearer " . self::AUTH_VALUE . "\x01\x01"),
+            $channel->steps()[1]['line'],
+        );
+    }
+
+    #[Test]
+    public function rejectsTokenSettingThatIsNeitherStringNorCallable(): void
+    {
+        $this->expectException(MailInvalidArgumentException::class);
+        $this->expectExceptionMessage('option "access_token" must be a string or a callable, got array');
+
+        XOAuth2::fromIterable(['username' => 'jo@example.com', 'access_token' => ['not', 'callable']]);
+    }
+
+    #[Test]
+    public function rejectsMissingTokenSetting(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('XOAUTH2 authentication requires an access token');
+
+        XOAuth2::fromIterable(['username' => 'jo@example.com']);
+    }
+
+    #[Test]
+    public function keepsTokenProviderOutOfDumps(): void
+    {
+        static::assertSame(
+            ['username' => 'jo@example.com', 'accessToken' => Credentials::HIDDEN],
+            (new XOAuth2('jo@example.com', static fn(): string => self::AUTH_VALUE))->__debugInfo(),
+        );
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function invalidProvidedTokenProvider(): array
+    {
+        return [
+            'empty'     => ['', 'XOAUTH2 authentication requires an access token'],
+            'separator' => ["x\x01\x01", 'The XOAUTH2 access token must not contain control characters'],
+        ];
     }
 
     /**

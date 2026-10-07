@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit;
 
 use ArrayIterator;
+use Closure;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
@@ -635,5 +636,39 @@ final class ConfigReaderTest extends TestCase
             'int'              => [1, 'int'],
             'list with an int' => [['-oi', 1], 'int'],
         ];
+    }
+
+    /**
+     * A string is a value such as a token, never the name of a function to call.
+     */
+    #[Test]
+    public function readsStringOrCallableStringAsString(): void
+    {
+        static::assertSame('strtoupper', self::reader(['connection' => 'strtoupper'])->stringOrCallable('connection'));
+    }
+
+    #[Test]
+    public function readsStringOrCallableCallableAsClosure(): void
+    {
+        $callable = self::reader(['connection' => [self::class, 'missingProvider']])->stringOrCallable(
+            'connection',
+        );
+
+        static::assertSame(self::missingProvider(), $callable instanceof Closure ? $callable() : null);
+    }
+
+    #[Test]
+    public function readsAbsentStringOrCallableAsNull(): void
+    {
+        static::assertNull(self::reader([])->stringOrCallable('connection'));
+    }
+
+    #[Test]
+    public function rejectsValueThatIsNeitherStringNorCallable(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Example: option "connection" must be a string or a callable, got array');
+
+        self::reader(['connection' => ['not', 'callable']])->stringOrCallable('connection');
     }
 }
