@@ -504,7 +504,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
         // TODO: handle class instances for $message
         if (! $this->protocol->append($folder, $message, $flags)) {
             throw new Exception\RuntimeException(
-                'cannot create message, please check if the folder exists and your flags'
+                'cannot create message, please check if the folder exists and your flags',
             );
         }
     }
@@ -551,7 +551,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
     {
         if (! $this->protocol->store($flags, $id)) {
             throw new Exception\RuntimeException(
-                'cannot set flags, have you tried to set the recent flag or special chars?'
+                'cannot set flags, have you tried to set the recent flag or special chars?',
             );
         }
     }

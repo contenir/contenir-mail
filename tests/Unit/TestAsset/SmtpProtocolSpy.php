@@ -13,17 +13,19 @@ class SmtpProtocolSpy extends Smtp
     public const ERRONEOUS_RECIPIENT_CODE          = '550';
     public const ERRONEOUS_RECIPIENT_ENHANCED_CODE = '5.1.1';
     public const ERRONEOUS_RECIPIENT_MESSAGE       = 'Mailbox "nosuchuser" does not exist';
-    public const ERRONEOUS_RECIPIENT_RESPONSE      = self::ERRONEOUS_RECIPIENT_CODE . ' '
-                                                . self::ERRONEOUS_RECIPIENT_ENHANCED_CODE . ' '
-                                                . self::ERRONEOUS_RECIPIENT_MESSAGE;
+    public const ERRONEOUS_RECIPIENT_RESPONSE      = self::ERRONEOUS_RECIPIENT_CODE
+        . ' '
+        . self::ERRONEOUS_RECIPIENT_ENHANCED_CODE
+        . ' '
+        . self::ERRONEOUS_RECIPIENT_MESSAGE;
 
     /** @var bool */
     public $calledQuit = false;
     /** @var bool */
     protected $connect = false;
     /** @var string[] */
-    protected $rcptTest            = [];
-    protected bool $useReceive     = false;
+    protected $rcptTest     = [];
+    protected bool   $useReceive   = false;
     protected string $fakeResponse = '';
 
     public function connect(): bool
@@ -77,6 +79,7 @@ class SmtpProtocolSpy extends Smtp
         // Save request to internal log
         $this->_addLog($request . self::EOL);
     }
+
     // @codingStandardsIgnoreEnd
 
     // @codingStandardsIgnoreStart
@@ -87,6 +90,7 @@ class SmtpProtocolSpy extends Smtp
         }
         return '';
     }
+
     // @codingStandardsIgnoreEnd
 
     // @codingStandardsIgnoreStart
@@ -94,6 +98,7 @@ class SmtpProtocolSpy extends Smtp
     {
         return $this->fakeResponse;
     }
+
     // @codingStandardsIgnoreEnd
 
     /**

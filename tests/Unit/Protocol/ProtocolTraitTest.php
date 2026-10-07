@@ -15,7 +15,7 @@ class ProtocolTraitTest extends TestCase
 
         $this->assertNotEmpty(
             STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT & $mock->getCryptoMethod(),
-            'TLSv1.2 must be present in crypto method list'
+            'TLSv1.2 must be present in crypto method list',
         );
     }
 }

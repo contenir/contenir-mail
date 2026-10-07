@@ -108,7 +108,7 @@ class Imap
                 break;
             case 'tls':
                 $isTls = true;
-                // break intentionally omitted
+            // break intentionally omitted
             default:
                 if (! $port) {
                     $port = 143;
@@ -187,19 +187,19 @@ class Imap
         $stack  = [];
 
         /*
-            We start to decode the response here. The understood tokens are:
-                literal
-                "literal" or also "lit\\er\"al"
-                {bytes}<NL>literal
-                (literals*)
-            All tokens are returned in an array. Literals in braces (the last understood
-            token in the list) are returned as an array of tokens. I.e. the following response:
-                "foo" baz {3}<NL>bar ("f\\\"oo" bar)
-            would be returned as:
-                array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
-
-            // TODO: add handling of '[' and ']' to parser for easier handling of response text
-        */
+         * We start to decode the response here. The understood tokens are:
+         * literal
+         * "literal" or also "lit\\er\"al"
+         * {bytes}<NL>literal
+         * (literals*)
+         * All tokens are returned in an array. Literals in braces (the last understood
+         * token in the list) are returned as an array of tokens. I.e. the following response:
+         * "foo" baz {3}<NL>bar ("f\\\"oo" bar)
+         * would be returned as:
+         * array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
+         *
+         * // TODO: add handling of '[' and ']' to parser for easier handling of response text
+         */
         //  replace any trailing <NL> including spaces with a single space
         $line = rtrim($line) . ' ';
         while (($pos = strpos($line, ' ')) !== false) {
@@ -285,7 +285,7 @@ class Imap
      */
     public function readLine(&$tokens = [], $wantedTag = '*', $dontParse = false)
     {
-        $tag  = null;                         // define $tag variable before first use
+        $tag = null; // define $tag variable before first use
         $line = $this->nextTaggedLine($tag); // get next tag
         if (! $dontParse) {
             $tokens = $this->decodeLine($line);
@@ -505,7 +505,8 @@ class Imap
                     $result['uidvalidity'] = (int) $tokens[2];
                     break;
                 default:
-                    // ignore
+
+                // ignore
             }
         }
 
@@ -569,7 +570,7 @@ class Imap
         $items    = (array) $items;
         $itemList = $this->escapeList($items);
 
-        $tag = null;  // define $tag variable before first use
+        $tag = null; // define $tag variable before first use
         $this->sendRequest(($uid ? 'UID ' : '') . 'FETCH', [$set, $itemList], $tag);
 
         $result = [];

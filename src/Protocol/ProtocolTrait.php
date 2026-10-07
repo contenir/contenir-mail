@@ -70,14 +70,16 @@ trait ProtocolTrait
      */
     private function prepareSocketOptions(): array
     {
-        return $this->novalidatecert
-            ? [
-                'ssl' => [
-                    'verify_peer_name' => false,
-                    'verify_peer'      => false,
-                ],
-            ]
-            : [];
+        return (
+            $this->novalidatecert
+                ? [
+                    'ssl' => [
+                        'verify_peer_name' => false,
+                        'verify_peer'      => false,
+                    ],
+                ]
+                : []
+        );
     }
 
     /**
@@ -93,7 +95,7 @@ trait ProtocolTrait
         string $transport,
         string $host,
         ?int $port,
-        int $timeout
+        int $timeout,
     ) {
         ErrorHandler::start();
         $socket = stream_socket_client(
@@ -102,15 +104,19 @@ trait ProtocolTrait
             $errstr,
             $timeout,
             STREAM_CLIENT_CONNECT,
-            stream_context_create($this->prepareSocketOptions())
+            stream_context_create($this->prepareSocketOptions()),
         );
-        $error  = ErrorHandler::stop();
+        $error = ErrorHandler::stop();
 
         if (! $socket) {
-            throw new Exception\RuntimeException(sprintf(
-                'cannot connect to host%s',
-                $error ? sprintf('; error = %s (errno = %d )', $error->getMessage(), $error->getCode()) : ''
-            ), 0, $error);
+            throw new Exception\RuntimeException(
+                sprintf(
+                    'cannot connect to host%s',
+                    $error ? sprintf('; error = %s (errno = %d )', $error->getMessage(), $error->getCode()) : '',
+                ),
+                0,
+                $error,
+            );
         }
 
         if (false === stream_set_timeout($socket, $timeout)) {

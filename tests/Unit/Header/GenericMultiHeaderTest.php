@@ -2,9 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericMultiHeader;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -48,7 +48,7 @@ class GenericMultiHeaderTest extends TestCase
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'This method toStringMultipleHeaders was expecting an array of headers of the same type'
+            'This method toStringMultipleHeaders was expecting an array of headers of the same type',
         );
         $multiHeader->toStringMultipleHeaders([null]);
     }

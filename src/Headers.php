@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Contenir\Mail;
 
 use ArrayIterator;
-use Countable;
-use Iterator;
-use Laminas\Loader\PluginClassLocator;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderLocatorInterface;
+use Countable;
+use Iterator;
+use Laminas\Loader\PluginClassLocator;
 use ReturnTypeWillChange;
 use Traversable;
 
@@ -98,7 +98,7 @@ class Headers implements Countable, Iterator
         for ($i = 0; $i < $total; $i += 1) {
             $line = $lines[$i];
 
-            if ($line === "") {
+            if ($line === '') {
                 // Empty line indicates end of headers
                 // EXCEPT if there are more lines, in which case, there's a possible error condition
                 $emptyLine += 1;
@@ -135,7 +135,7 @@ class Headers implements Countable, Iterator
             // Line does not match header format!
             throw new Exception\RuntimeException(sprintf(
                 'Line "%s" does not match header format!',
-                $line
+                $line,
             ));
         }
         if ($currentLine) {
@@ -158,7 +158,7 @@ class Headers implements Countable, Iterator
         @trigger_error(sprintf(
             'Since laminas/laminas-mail 2.12.0: Usage of %s is deprecated; use %s::setHeaderLocator() instead',
             __METHOD__,
-            self::class
+            self::class,
         ), E_USER_DEPRECATED);
 
         $this->pluginClassLoader = $pluginClassLoader;
@@ -181,7 +181,7 @@ class Headers implements Countable, Iterator
         @trigger_error(sprintf(
             'Since laminas/laminas-mail 2.12.0: Usage of %s is deprecated; use %s::getHeaderLocator() instead',
             __METHOD__,
-            self::class
+            self::class,
         ), E_USER_DEPRECATED);
 
         if (! $this->pluginClassLoader) {
@@ -256,7 +256,7 @@ class Headers implements Countable, Iterator
         if (! is_array($headers) && ! $headers instanceof Traversable) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Expected array or Traversable; received "%s"',
-                is_object($headers) ? $headers::class : gettype($headers)
+                is_object($headers) ? $headers::class : gettype($headers),
             ));
         }
 
@@ -297,8 +297,8 @@ class Headers implements Countable, Iterator
                 '%s expects its first argument to be a string; received "%s"',
                 __METHOD__,
                 is_object($headerFieldNameOrLine)
-                ? $headerFieldNameOrLine::class
-                : gettype($headerFieldNameOrLine)
+                    ? $headerFieldNameOrLine::class
+                    : gettype($headerFieldNameOrLine),
             ));
         }
 
@@ -348,7 +348,7 @@ class Headers implements Countable, Iterator
                 '%s requires a string or %s instance; received %s',
                 __METHOD__,
                 HeaderInterface::class,
-                is_object($instanceOrFieldName) ? $instanceOrFieldName::class : gettype($instanceOrFieldName)
+                is_object($instanceOrFieldName) ? $instanceOrFieldName::class : gettype($instanceOrFieldName),
             ));
         }
 

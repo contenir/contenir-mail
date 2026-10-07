@@ -2,12 +2,12 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Exception;
-use Contenir\Mail\Transport\Smtp;
 use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
+use Contenir\Mail\Transport\Smtp;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(\Contenir\Mail\Protocol\Smtp::class)]
@@ -36,7 +36,8 @@ class SmtpTest extends TestCase
         $message->setBody('testSendMailWithoutMinimalHeaders');
         $message->addTo('recipient@example.com', 'Recipient Name');
 
-        $expectedMessage = "EHLO localhost\r\n"
+        $expectedMessage =
+            "EHLO localhost\r\n"
             . "MAIL FROM:<sender@example.com>\r\n"
             . "RCPT TO:<recipient@example.com>\r\n"
             . "DATA\r\n"
@@ -63,7 +64,8 @@ class SmtpTest extends TestCase
         $message->setBody("This is a test\n.");
         $message->addTo('recipient@example.com', 'Recipient Name');
 
-        $expectedMessage = "EHLO localhost\r\n"
+        $expectedMessage =
+            "EHLO localhost\r\n"
             . "MAIL FROM:<sender@example.com>\r\n"
             . "RCPT TO:<recipient@example.com>\r\n"
             . "DATA\r\n"
@@ -181,7 +183,7 @@ class SmtpTest extends TestCase
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage(
-            SmtpProtocolSpy::ERRONEOUS_RECIPIENT_ENHANCED_CODE . ' ' . SmtpProtocolSpy::ERRONEOUS_RECIPIENT_MESSAGE
+            SmtpProtocolSpy::ERRONEOUS_RECIPIENT_ENHANCED_CODE . ' ' . SmtpProtocolSpy::ERRONEOUS_RECIPIENT_MESSAGE,
         );
         $this->expectExceptionCode(SmtpProtocolSpy::ERRONEOUS_RECIPIENT_CODE);
 

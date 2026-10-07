@@ -2,17 +2,17 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Protocol\SmtpPluginManager;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
 use Contenir\Mail\Transport\Envelope;
 use Contenir\Mail\Transport\Exception;
 use Contenir\Mail\Transport\Smtp;
 use Contenir\Mail\Transport\SmtpOptions;
-use Contenir\Mail\Tests\Unit\TestAsset\SmtpProtocolSpy;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -51,9 +51,10 @@ class SmtpTest extends TestCase
         $message->setSubject('Testing Contenir\Mail\Transport\Sendmail');
         $message->setBody('This is only a test.');
 
-        $message->getHeaders()->addHeaders([
-            'X-Foo-Bar' => 'Matthew',
-        ]);
+        $message->getHeaders()
+            ->addHeaders([
+                'X-Foo-Bar' => 'Matthew',
+            ]);
 
         return $message;
     }
@@ -65,7 +66,7 @@ class SmtpTest extends TestCase
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage(
-            'transport expects either a Sender or at least one From address in the Message; none provided'
+            'transport expects either a Sender or at least one From address in the Message; none provided',
         );
         $message = new Message();
         $this->transport->send($message);
@@ -145,11 +146,12 @@ class SmtpTest extends TestCase
         $message->setBody('testSendMailWithoutMinimalHeaders');
         $message->addTo('test@example.com', 'Example Test');
 
-        $expectedMessage = "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
+        $expectedMessage =
+            "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
             . "Sender: Ralph Schindler <ralph@example.com>\r\n"
             . "To: Example Test <test@example.com>\r\n"
             . "\r\n"
-            . "testSendMailWithoutMinimalHeaders";
+            . 'testSendMailWithoutMinimalHeaders';
 
         $this->transport->send($message);
 
@@ -167,11 +169,12 @@ class SmtpTest extends TestCase
         $message->setBody('testSendMinimalMailWithoutSender');
         $message->addTo('test@example.com', 'Example Test');
 
-        $expectedMessage = "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
+        $expectedMessage =
+            "Date: Sun, 10 Jun 2012 20:07:24 +0200\r\n"
             . "From: Ralph Schindler <ralph@example.com>\r\n"
             . "To: Example Test <test@example.com>\r\n"
             . "\r\n"
-            . "testSendMinimalMailWithoutSender";
+            . 'testSendMinimalMailWithoutSender';
 
         $this->transport->send($message);
 
@@ -216,10 +219,11 @@ class SmtpTest extends TestCase
         $maxLen                         = SmtpProtocol::SMTP_LINE_LIMIT;
         $headerWithLargeValue           = $buffer;
         $headerWithExactlyMaxLineLength = substr($buffer, 0, $maxLen - strlen('X-Exact-Length: '));
-        $message->getHeaders()->addHeaders([
-            'X-Ms-Exchange-Antispam-Messagedata' => $headerWithLargeValue,
-            'X-Exact-Length'                     => $headerWithExactlyMaxLineLength,
-        ]);
+        $message->getHeaders()
+            ->addHeaders([
+                'X-Ms-Exchange-Antispam-Messagedata' => $headerWithLargeValue,
+                'X-Exact-Length'                     => $headerWithExactlyMaxLineLength,
+            ]);
 
         $this->transport->send($message);
         $data = $this->connection->getLog();
@@ -234,18 +238,18 @@ class SmtpTest extends TestCase
         $this->assertStringNotContainsString(
             $headerWithLargeValue,
             $data,
-            "The original header can't be present if it's wrapped"
+            "The original header can't be present if it's wrapped",
         );
         $this->assertStringContainsString(
             $headerWithExactlyMaxLineLength,
             $data,
-            "Header with exact length is not wrapped"
+            'Header with exact length is not wrapped',
         );
     }
 
     public function testCanUseAuthenticationExtensionsViaPluginManager(): void
     {
-        $options    = new SmtpOptions([
+        $options = new SmtpOptions([
             'connection_class' => 'login',
         ]);
         $transport  = new Smtp($options);
@@ -318,36 +322,29 @@ class SmtpTest extends TestCase
             ->onlyMethods(['connect', 'helo', 'hasSession', 'mail', 'rcpt', 'data', 'rset'])
             ->getMock();
 
-        $connectionMock
-            ->expects(self::exactly(2))
+        $connectionMock->expects(self::exactly(2))
             ->method('hasSession')
             ->willReturnOnConsecutiveCalls(
                 false,
-                true
+                true,
             );
 
-        $connectionMock
-            ->expects(self::exactly(2))
+        $connectionMock->expects(self::exactly(2))
             ->method('connect');
 
-        $connectionMock
-            ->expects(self::exactly(2))
+        $connectionMock->expects(self::exactly(2))
             ->method('helo');
 
-        $connectionMock
-            ->expects(self::exactly(3))
+        $connectionMock->expects(self::exactly(3))
             ->method('mail');
 
-        $connectionMock
-            ->expects(self::exactly(9))
+        $connectionMock->expects(self::exactly(9))
             ->method('rcpt');
 
-        $connectionMock
-            ->expects(self::exactly(3))
+        $connectionMock->expects(self::exactly(3))
             ->method('data');
 
-        $connectionMock
-            ->expects(self::exactly(1))
+        $connectionMock->expects(self::exactly(1))
             ->method('rset');
 
         $this->transport->setConnection($connectionMock);
@@ -358,8 +355,7 @@ class SmtpTest extends TestCase
             ->onlyMethods(['get'])
             ->getMock();
 
-        $pluginManagerMock
-            ->expects(self::once())
+        $pluginManagerMock->expects(self::once())
             ->method('get')
             ->willReturn($connectionMock);
 
@@ -383,7 +379,7 @@ class SmtpTest extends TestCase
         $this->assertEquals($connectedTimeAfterFirstMail, $connectedTimeProperty->getValue($this->transport));
 
         // Manipulate the timestamp to trigger the auto-reconnect
-        $connectedTimeProperty->setValue($this->transport, time() - 10 * 3600);
+        $connectedTimeProperty->setValue($this->transport, time() - (10 * 3600));
 
         // Send the third email - it should trigger a new connect()
         $this->transport->send($this->getMessage());

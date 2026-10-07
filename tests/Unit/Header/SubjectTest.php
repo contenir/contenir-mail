@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use Contenir\Mail\Header;
+use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Header;
-use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
@@ -20,11 +20,12 @@ class SubjectTest extends TestCase
         $subject = new Header\Subject();
         $subject->setSubject($string);
 
-        $expected = "foobarblahblahblah baz batfoobarblahblahblah baz\r\n "
-                    . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
-                    . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
-                    . "batfoobarblahblahblah baz batfoobarblahblahblah baz bat";
-        $test     = $subject->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
+        $expected =
+            "foobarblahblahblah baz batfoobarblahblahblah baz\r\n "
+            . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
+            . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
+            . 'batfoobarblahblahblah baz batfoobarblahblahblah baz bat';
+        $test = $subject->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
         $this->assertEquals($expected, $test);
     }
 
@@ -66,7 +67,7 @@ class SubjectTest extends TestCase
     public function testParseInvalidSubjectHeaderThrowException(
         $decodedValue,
         $expectedException,
-        $expectedExceptionMessage
+        $expectedExceptionMessage,
     ): void {
         $this->expectException($expectedException);
         $this->expectExceptionMessage($expectedExceptionMessage);

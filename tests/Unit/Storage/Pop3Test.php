@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function closedir;
@@ -50,16 +50,17 @@ class Pop3Test extends TestCase
             ) {
                 $this->markTestSkipped(
                     'There is no file name "inbox" or "INBOX" in '
-                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') . '. I won\'t use it for testing. '
+                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
+                    . '. I won\'t use it for testing. '
                     . 'This is you safety net. If you think it is the right directory just '
-                    . 'create an empty file named INBOX or remove/deactived this message.'
+                    . 'create an empty file named INBOX or remove/deactived this message.',
                 );
             }
 
             $this->cleanDir(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'));
             $this->copyDir(
                 __DIR__ . '/../_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
-                getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
+                getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'),
             );
         }
     }
@@ -248,7 +249,7 @@ class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
@@ -351,8 +352,8 @@ class Pop3Test extends TestCase
 
     public function testDotMessage(): void
     {
-        $mail     = new Storage\Pop3($this->params);
-        $content  = '';
+        $mail    = new Storage\Pop3($this->params);
+        $content = '';
         $content .= "Before the dot\r\n";
         $content .= ".\r\n";
         $content .= "is after the dot\r\n";

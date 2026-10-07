@@ -13,9 +13,9 @@ use function iconv_mime_encode;
 use function implode;
 use function preg_match_all;
 use function quoted_printable_decode;
-use function str_replace;
 use function str_contains;
 use function str_pad;
+use function str_replace;
 use function str_starts_with;
 use function strlen;
 use function strpos;
@@ -173,7 +173,7 @@ abstract class HeaderWrap
 
             // Whitespace between adjacent encoded words is not displayed (RFC 2047, section 6.2)
             if ($charset === null || trim($between) !== '') {
-                $result .= self::convertToUtf8($buffer, $charset) . $between;
+                $result  .= self::convertToUtf8($buffer, $charset) . $between;
                 $buffer  = '';
                 $charset = null;
             }
@@ -181,11 +181,11 @@ abstract class HeaderWrap
             $wordCharset = strtoupper($match[1][0]);
             if ($charset !== null && $wordCharset !== $charset) {
                 $result .= self::convertToUtf8($buffer, $charset);
-                $buffer  = '';
+                $buffer = '';
             }
 
             $charset = $wordCharset;
-            $buffer .= strtoupper($match[2][0]) === 'B'
+            $buffer  .= strtoupper($match[2][0]) === 'B'
                 ? (string) base64_decode($match[3][0])
                 : quoted_printable_decode(str_replace('_', ' ', $match[3][0]));
         }
@@ -206,9 +206,11 @@ abstract class HeaderWrap
 
     private static function isNotDecoded(string $originalValue, string $value): bool
     {
-        return str_starts_with($value, '=?')
-            && strlen($value) - 2 === strpos($value, '?=')
-            && str_contains($originalValue, $value);
+        return (
+            str_starts_with($value, '=?')
+            && (strlen($value) - 2) === strpos($value, '?=')
+            && str_contains($originalValue, $value)
+        );
     }
 
     /**
@@ -224,7 +226,7 @@ abstract class HeaderWrap
         // "x-test: =?ISO-8859-1?B?dGVzdA==?=" -> 33
         //  8       +2          +3         +3  -> 16
         $charset    = 'UTF-8';
-        $lineLength = strlen($value) * 4 + strlen($charset) + 16;
+        $lineLength = (strlen($value) * 4) + strlen($charset) + 16;
 
         $preferences = [
             'scheme'         => 'Q',

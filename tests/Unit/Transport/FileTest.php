@@ -2,10 +2,10 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\FileOptions;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function file_get_contents;
@@ -31,7 +31,7 @@ class FileTest extends TestCase
             $this->cleanup($this->tempDir);
         }
 
-        $fileOptions     = new FileOptions([
+        $fileOptions = new FileOptions([
             'path' => $this->tempDir,
         ]);
         $this->transport = new File($fileOptions);
@@ -54,18 +54,19 @@ class FileTest extends TestCase
     {
         $message = new Message();
         $message->addTo('test@example.com', 'Example Test')
-                ->addCc('matthew@example.com')
-                ->addBcc('list@example.com', 'Example List')
-                ->addFrom([
-                    'test@example.com',
-                    'matthew@example.com' => 'Matthew',
-                ])
-                ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-                ->setBody('This is only a test.');
-        $message->getHeaders()->addHeaders([
-            'X-Foo-Bar' => 'Matthew',
-        ]);
+            ->addCc('matthew@example.com')
+            ->addBcc('list@example.com', 'Example List')
+            ->addFrom([
+                'test@example.com',
+                'matthew@example.com' => 'Matthew',
+            ])
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.');
+        $message->getHeaders()
+            ->addHeaders([
+                'X-Foo-Bar' => 'Matthew',
+            ]);
         return $message;
     }
 

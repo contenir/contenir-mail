@@ -36,14 +36,14 @@ class ListParser
             // If we are in an escape sequence, append the character and continue.
             if ($inEscape) {
                 $currentValue .= $char;
-                $inEscape      = false;
+                $inEscape     = false;
                 continue;
             }
 
             // If we are not in a quoted string, and have a delimiter, append
             // the current value to the list, and reset the current value.
             if (in_array($char, $delims, true) && ! $inQuote) {
-                $values []    = $currentValue;
+                $values[]     = $currentValue;
                 $currentValue = '';
                 continue;
             }
@@ -86,7 +86,7 @@ class ListParser
         // If we reached the end of the string and still have a current value,
         // append it to the list (no delimiter was reached).
         if ('' !== $currentValue) {
-            $values [] = $currentValue;
+            $values[] = $currentValue;
         }
 
         return $values;

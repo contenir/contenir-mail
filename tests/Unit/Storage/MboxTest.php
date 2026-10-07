@@ -2,10 +2,10 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\Group;
 use ArrayObject;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function chmod;
@@ -173,15 +173,15 @@ class MboxTest extends TestCase
         $this->assertEquals('Simple Message', $subject);
     }
 
-/*
-    public function testFetchTopBody()
-    {
-        $mail = new Storage\Mbox(array('filename' => $this->mboxFile));
-
-        $content = $mail->getHeader(3, 1)->getContent();
-        $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
-    }
-*/
+    /*
+     * public function testFetchTopBody()
+     * {
+     * $mail = new Storage\Mbox(array('filename' => $this->mboxFile));
+     *
+     * $content = $mail->getHeader(3, 1)->getContent();
+     * $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
+     * }
+     */
 
     /**
      */
@@ -206,7 +206,7 @@ class MboxTest extends TestCase
     {
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
@@ -216,7 +216,7 @@ class MboxTest extends TestCase
     {
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
@@ -288,10 +288,10 @@ class MboxTest extends TestCase
         chmod($this->mboxFile, 0);
         clearstatcache();
         $statcheck = stat($this->mboxFile);
-        if ($statcheck['mode'] % (8 * 8 * 8) !== 0) {
+        if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
             chmod($this->mboxFile, $stat['mode']);
             $this->markTestSkipped(
-                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)'
+                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
             return;
         }
@@ -301,6 +301,7 @@ class MboxTest extends TestCase
             $mail = unserialize($serialzed);
         } catch (\Exception) {
             $check = true;
+
             // test ok
         }
 

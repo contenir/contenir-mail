@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Pop3\Xoauth2;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3\Response;
 use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function fopen;
@@ -26,7 +26,7 @@ class MicrosoftTest extends TestCase
          * @psalm-suppress PropertyNotSetInConstructor
          * @psalm-suppress InvalidExtendClass
          */
-        $protocol = new class () extends Microsoft {
+        $protocol = new class() extends Microsoft {
             private string $step;
 
             /** @psalm-suppress InternalClass */
@@ -64,7 +64,7 @@ class MicrosoftTest extends TestCase
              */
             public function connect($host, $port = null, $ssl = false)
             {
-                $this->socket = fopen("php://memory", 'rw+');
+                $this->socket = fopen('php://memory', 'rw+');
                 return '';
             }
 
@@ -95,7 +95,7 @@ class MicrosoftTest extends TestCase
 
         $this->assertEquals(
             'AUTH XOAUTH2' . "\n" . $xoauth2Sasl . "\n",
-            $streamContents
+            $streamContents,
         );
     }
 }

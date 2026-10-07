@@ -39,7 +39,7 @@ class Sender implements HeaderInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (strtolower($name) !== 'sender') {
@@ -57,7 +57,7 @@ class Sender implements HeaderInterface
         $hasMatches = preg_match(
             '/^(?:(?P<name>.+)\s)?(?(name)<|<?)(?P<email>[^\s]+?)(?(name)>|>?)$/',
             $value,
-            $matches
+            $matches,
         );
 
         if ($hasMatches !== 1) {
@@ -156,7 +156,7 @@ class Sender implements HeaderInterface
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects a string or AddressInterface object; received "%s"',
                 __METHOD__,
-                is_object($emailOrAddress) ? $emailOrAddress::class : gettype($emailOrAddress)
+                is_object($emailOrAddress) ? $emailOrAddress::class : gettype($emailOrAddress),
             ));
         }
         $this->address = $emailOrAddress;

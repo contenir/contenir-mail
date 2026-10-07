@@ -2,8 +2,6 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Header\AbstractAddressList;
@@ -12,6 +10,8 @@ use Contenir\Mail\Header\Cc;
 use Contenir\Mail\Header\From;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\To;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -77,6 +77,7 @@ class AddressListHeaderTest extends TestCase
     {
         // @codingStandardsIgnoreStart
         return "Example Test <test@example.com>,\r\n list@example.com,\r\n Example Announce List <announce@example.com>,\r\n \"Last, First\" <first@last.example.com>";
+
         // @codingStandardsIgnoreEnd
     }
 
@@ -219,7 +220,7 @@ class AddressListHeaderTest extends TestCase
     public static function getAddressListsWithGroup(): array
     {
         return [
-            ['To: undisclosed-recipients:;', 0, null],
+            ['To: undisclosed-recipients:;',                                                0, null],
             ['To: friends: john@example.com; enemies: john@example.net, bart@example.net;', 3, 'john@example.net'],
         ];
     }
@@ -228,7 +229,7 @@ class AddressListHeaderTest extends TestCase
     {
         return [
             [
-                "To: =?UTF-8?B?dGVzdCxsYWJlbA==?= <john@example.com>, john2@example.com",
+                'To: =?UTF-8?B?dGVzdCxsYWJlbA==?= <john@example.com>, john2@example.com',
                 ['john@example.com' => 'test,label', 'john2@example.com' => null],
                 'UTF-8',
             ],
@@ -244,7 +245,7 @@ class AddressListHeaderTest extends TestCase
     public function testDeserializationFromSpecialCharString(
         string $headerLine,
         array $expected,
-        string $encoding
+        string $encoding,
     ): void {
         $header = To::fromString($headerLine);
 

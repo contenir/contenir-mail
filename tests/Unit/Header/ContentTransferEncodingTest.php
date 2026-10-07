@@ -2,12 +2,12 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\ContentTransferEncoding;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\HeaderInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
@@ -38,7 +38,7 @@ class ContentTransferEncodingTest extends TestCase
 
     #[DataProvider('dataValidEncodings')]
     public function testContentTransferEncodingFromStringCreatesValidContentTransferEncodingHeader(
-        string $encoding
+        string $encoding,
     ): void {
         $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: ' . $encoding);
         $this->assertInstanceOf(HeaderInterface::class, $contentTransferEncodingHeader);
@@ -80,7 +80,7 @@ class ContentTransferEncodingTest extends TestCase
     {
         $contentTransferEncodingHeader = new ContentTransferEncoding();
         $contentTransferEncodingHeader->setTransferEncoding($encoding);
-        $this->assertEquals("Content-Transfer-Encoding: " . $encoding, $contentTransferEncodingHeader->toString());
+        $this->assertEquals('Content-Transfer-Encoding: ' . $encoding, $contentTransferEncodingHeader->toString());
     }
 
     public function testProvidingParametersIntroducesHeaderFolding(): void
@@ -89,7 +89,7 @@ class ContentTransferEncodingTest extends TestCase
         $header->setTransferEncoding('quoted-printable');
         $string = $header->toString();
 
-        $this->assertStringContainsString("Content-Transfer-Encoding: quoted-printable", $string);
+        $this->assertStringContainsString('Content-Transfer-Encoding: quoted-printable', $string);
     }
 
     #[Group('ZF2015-04')]

@@ -2,13 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Address\AddressInterface;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Message;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\Sendmail;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
@@ -48,14 +48,14 @@ class SendmailTest extends TestCase
                 string $subject,
                 string $message,
                 string $additionalHeaders,
-                ?string $additionalParameters = null
+                ?string $additionalParameters = null,
             ): void {
                 $this->to                   = $to;
                 $this->subject              = $subject;
                 $this->message              = $message;
                 $this->additionalHeaders    = $additionalHeaders;
                 $this->additionalParameters = $additionalParameters;
-            }
+            },
         );
         $this->operatingSystem = strtoupper(substr(PHP_OS, 0, 3));
     }
@@ -64,18 +64,19 @@ class SendmailTest extends TestCase
     {
         $message = new Message();
         $message->addTo('test@example.com', 'Example Test')
-                ->addCc('matthew@example.com')
-                ->addBcc('list@example.com', 'Example, List')
-                ->addFrom([
-                    'test@example.com',
-                    'matthew@example.com' => 'Matthew',
-                ])
-                ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-                ->setBody('This is only a test.');
-        $message->getHeaders()->addHeaders([
-            'X-Foo-Bar' => 'Matthew',
-        ]);
+            ->addCc('matthew@example.com')
+            ->addBcc('list@example.com', 'Example, List')
+            ->addFrom([
+                'test@example.com',
+                'matthew@example.com' => 'Matthew',
+            ])
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.');
+        $message->getHeaders()
+            ->addHeaders([
+                'X-Foo-Bar' => 'Matthew',
+            ]);
         return $message;
     }
 
@@ -103,37 +104,37 @@ class SendmailTest extends TestCase
             $this->assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\n", $this->additionalHeaders);
             $this->assertStringContainsString(
                 "From: test@example.com,\n Matthew <matthew@example.com>\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString("X-Foo-Bar: Matthew\n", $this->additionalHeaders);
             $this->assertStringContainsString(
                 "Sender: Ralph Schindler <ralph@example.com>\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
         } else {
             $this->assertStringNotContainsString(
                 "To: Example Test <test@example.com>\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString(
                 "Cc: matthew@example.com\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString(
                 "Bcc: \"Example, List\" <list@example.com>\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString(
                 "From: test@example.com,\r\n Matthew <matthew@example.com>\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString(
                 "X-Foo-Bar: Matthew\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
             $this->assertStringContainsString(
                 "Sender: Ralph Schindler <ralph@example.com>\r\n",
-                $this->additionalHeaders
+                $this->additionalHeaders,
             );
         }
         $this->assertEquals('-R hdrs -f\'ralph@example.com\'', $this->additionalParameters);
@@ -156,7 +157,7 @@ class SendmailTest extends TestCase
         $this->assertStringContainsString("Bcc: \"Example, List\" <list@example.com>\r\n", $this->additionalHeaders);
         $this->assertStringContainsString(
             "From: test@example.com,\r\n Matthew <matthew@example.com>\r\n",
-            $this->additionalHeaders
+            $this->additionalHeaders,
         );
         $this->assertStringContainsString("X-Foo-Bar: Matthew\r\n", $this->additionalHeaders);
         $this->assertStringContainsString("Sender: Ralph Schindler <ralph@example.com>\r\n", $this->additionalHeaders);
@@ -267,9 +268,9 @@ class SendmailTest extends TestCase
     {
         $message = new Message();
         $message->addCc('matthew@example.com')
-                ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-                ->setBody('This is only a test.');
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.');
 
         $this->transport->send($message);
         $this->assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
@@ -279,9 +280,9 @@ class SendmailTest extends TestCase
     {
         $message = new Message();
         $message->addBcc('list@example.com', 'Example, List')
-                ->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-                ->setBody('This is only a test.');
+            ->setSender('ralph@example.com', 'Ralph Schindler')
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.');
 
         $this->transport->send($message);
         $this->assertStringContainsString('Sender: Ralph Schindler <ralph@example.com>', $this->additionalHeaders);
@@ -291,8 +292,8 @@ class SendmailTest extends TestCase
     {
         $message = new Message();
         $message->setSender('ralph@example.com', 'Ralph Schindler')
-                ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
-                ->setBody('This is only a test.');
+            ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
+            ->setBody('This is only a test.');
 
         $this->expectException(RuntimeException::class);
         $this->transport->send($message);
@@ -304,8 +305,7 @@ class SendmailTest extends TestCase
     public function testHeadersToAndSubjectAreNotDuplicated(): void
     {
         $message = new Message();
-        $message
-            ->addTo('matthew@example.org')
+        $message->addTo('matthew@example.org')
             ->addFrom('ralph@example.org')
             ->setSubject('Greetings and Salutations!')
             ->setBody("Sorry, I'm going to be late today!");
@@ -317,17 +317,17 @@ class SendmailTest extends TestCase
 
         $this->assertDoesNotMatchRegularExpression(
             '/^To: matthew\@example\.org$/m',
-            $this->additionalHeaders
+            $this->additionalHeaders,
         );
         $this->assertDoesNotMatchRegularExpression(
             '/^Subject: Greetings and Salutations!$/m',
-            $this->additionalHeaders
+            $this->additionalHeaders,
         );
     }
 
     public static function additionalParametersContainingFromSwitch(): iterable
     {
-        yield 'leading'     => ['-f\'foo@example.com\''];
+        yield 'leading' => ['-f\'foo@example.com\''];
         yield 'not-leading' => ['-bs -f\'foo@example.com\''];
     }
 

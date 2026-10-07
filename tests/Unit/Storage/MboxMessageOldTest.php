@@ -81,7 +81,7 @@ class MboxMessageOldTest extends TestCase
     {
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }

@@ -11,9 +11,7 @@ final class HeaderValue
     /**
      * No public constructor.
      */
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Filter the header value according to RFC 2822
@@ -37,7 +35,7 @@ final class HeaderValue
             }
 
             if ($ord === 13) {
-                if ($i + 2 >= $total) {
+                if (($i + 2) >= $total) {
                     continue;
                 }
 
@@ -79,7 +77,7 @@ final class HeaderValue
             }
 
             if ($ord === 13) {
-                if ($i + 2 >= $total) {
+                if (($i + 2) >= $total) {
                     return false;
                 }
 

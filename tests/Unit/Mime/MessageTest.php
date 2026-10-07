@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Mime\Message;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -18,14 +18,14 @@ class MessageTest extends TestCase
 {
     public function testMultiPart()
     {
-        $msg = new Mime\Message();  // No Parts
+        $msg = new Mime\Message(); // No Parts
         $this->assertFalse($msg->isMultiPart());
     }
 
     public function testSetGetParts()
     {
-        $msg = new Mime\Message();  // No Parts
-        $p   = $msg->getParts();
+        $msg = new Mime\Message(); // No Parts
+        $p = $msg->getParts();
         $this->assertIsArray($p);
         $this->assertEmpty($p);
 
@@ -40,11 +40,11 @@ class MessageTest extends TestCase
 
     public function testGetMime()
     {
-        $msg = new Mime\Message();  // No Parts
-        $m   = $msg->getMime();
+        $msg = new Mime\Message(); // No Parts
+        $m = $msg->getMime();
         $this->assertInstanceOf(\Contenir\Mail\Mime\Mime::class, $m);
 
-        $msg  = new Mime\Message();  // No Parts
+        $msg = new Mime\Message(); // No Parts
         $mime = new Mime\Mime('1234');
         $msg->setMime($mime);
         $m2 = $msg->getMime();
@@ -54,9 +54,9 @@ class MessageTest extends TestCase
 
     public function testGenerate()
     {
-        $msg = new Mime\Message();  // No Parts
-        $p1  = new Mime\Part('This is a test');
-        $p2  = new Mime\Part('This is another test');
+        $msg = new Mime\Message(); // No Parts
+        $p1 = new Mime\Part('This is a test');
+        $p2 = new Mime\Part('This is another test');
         $msg->addPart($p1);
         $msg->addPart($p2);
         $res      = $msg->generateMessage();
@@ -72,6 +72,7 @@ class MessageTest extends TestCase
         // check if the two test messages appear:
         $this->assertStringContainsString('This is a test', $res);
         $this->assertStringContainsString('This is another test', $res);
+
         // ... more in ZMailTest
     }
 
@@ -81,22 +82,22 @@ class MessageTest extends TestCase
     public function testDecodeMimeMessage()
     {
         $text = <<<EOD
-This is a message in Mime Format.  If you see this, your mail reader does not support this format.
+            This is a message in Mime Format.  If you see this, your mail reader does not support this format.
 
---=_af4357ef34b786aae1491b0a2d14399f
-Content-Type: application/octet-stream
-Content-Transfer-Encoding: 8bit
+            --=_af4357ef34b786aae1491b0a2d14399f
+            Content-Type: application/octet-stream
+            Content-Transfer-Encoding: 8bit
 
-This is a test
---=_af4357ef34b786aae1491b0a2d14399f
-Content-Type: image/gif
-Content-Transfer-Encoding: base64
-Content-ID: <12>
+            This is a test
+            --=_af4357ef34b786aae1491b0a2d14399f
+            Content-Type: image/gif
+            Content-Transfer-Encoding: base64
+            Content-ID: <12>
 
-This is another test
---=_af4357ef34b786aae1491b0a2d14399f--
-EOD;
-        $res  = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
+            This is another test
+            --=_af4357ef34b786aae1491b0a2d14399f--
+            EOD;
+        $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
         $this->assertEquals(2, count($parts));
@@ -117,21 +118,21 @@ EOD;
     public function testDecodeMimeMessageNoHeader()
     {
         $text = <<<EOD
-This is a MIME-encapsulated message
+            This is a MIME-encapsulated message
 
---=_af4357ef34b786aae1491b0a2d14399f
+            --=_af4357ef34b786aae1491b0a2d14399f
 
-The original message was received at Fri, 16 Aug 2013 00:00:48 -0700
-from localhost.localdomain [127.0.0.1]
-End content
+            The original message was received at Fri, 16 Aug 2013 00:00:48 -0700
+            from localhost.localdomain [127.0.0.1]
+            End content
 
---=_af4357ef34b786aae1491b0a2d14399f
-Content-Type: image/gif
+            --=_af4357ef34b786aae1491b0a2d14399f
+            Content-Type: image/gif
 
-This is a test
---=_af4357ef34b786aae1491b0a2d14399f--
-EOD;
-        $res  = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
+            This is a test
+            --=_af4357ef34b786aae1491b0a2d14399f--
+            EOD;
+        $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
 
         $parts = $res->getParts();
         $this->assertEquals(2, count($parts));
@@ -151,11 +152,11 @@ EOD;
     public function testDecodeNonMultipartMimeMessage()
     {
         $text = <<<EOD
-Content-Type: image/gif
+            Content-Type: image/gif
 
-This is a test
-EOD;
-        $res  = Mime\Message::createFromMessage($text);
+            This is a test
+            EOD;
+        $res = Mime\Message::createFromMessage($text);
 
         $parts = $res->getParts();
         $this->assertEquals(1, count($parts));
@@ -168,8 +169,8 @@ EOD;
 
     public function testNonMultipartMessageShouldNotRemovePartFromMessage()
     {
-        $message = new Mime\Message();  // No Parts
-        $part    = new Mime\Part('This is a test');
+        $message = new Mime\Message(); // No Parts
+        $part = new Mime\Part('This is a test');
         $message->addPart($part);
         $message->generateMessage();
 
@@ -202,14 +203,22 @@ EOD;
         // This is a fixture as provided by many mailservers
         // e.g. cyrus or dovecot
         $eol     = "\r\n";
-        $fixture = 'This is a MIME-encapsulated message' . $eol . $eol
-            . '--=_af4357ef34b786aae1491b0a2d14399f' . $eol
-            . 'Content-Type: text/plain' . $eol
-            . 'Content-Disposition: attachment;' . $eol
-            . "\t" . 'filename="test.txt"' . $eol // Valid folding
-            . $eol
-            . 'This is a test' . $eol
-            . '--=_af4357ef34b786aae1491b0a2d14399f--';
+        $fixture = 'This is a MIME-encapsulated message'
+        . $eol
+        . $eol
+        . '--=_af4357ef34b786aae1491b0a2d14399f'
+        . $eol
+        . 'Content-Type: text/plain'
+        . $eol
+        . 'Content-Disposition: attachment;'
+        . $eol
+        . "\t"
+        . 'filename="test.txt"'
+        . $eol // Valid folding
+        . $eol
+        . 'This is a test'
+        . $eol
+        . '--=_af4357ef34b786aae1491b0a2d14399f--';
 
         $message = Message::createFromMessage($fixture, '=_af4357ef34b786aae1491b0a2d14399f', $eol);
         $parts   = $message->getParts();

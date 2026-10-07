@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use Contenir\Mail\Mime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Mime;
 use PHPUnit\Framework\TestCase;
 
 use function base64_decode;
@@ -31,11 +31,12 @@ class PartTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->testText          = 'safdsafsa�lg ��gd�� sd�jg�sdjg�ld�gksd�gj�sdfg�dsj'
+        $this->testText =
+            'safdsafsa�lg ��gd�� sd�jg�sdjg�ld�gksd�gj�sdfg�dsj'
             . '�gjsd�gj�dfsjg�dsfj�djs�g kjhdkj fgaskjfdh gksjhgjkdh gjhfsdghdhgksdjhg';
         $this->part              = new Mime\Part($this->testText);
         $this->part->encoding    = Mime\Mime::ENCODING_BASE64;
-        $this->part->type        = "text/plain";
+        $this->part->type        = 'text/plain';
         $this->part->filename    = 'test.txt';
         $this->part->disposition = 'attachment';
         $this->part->charset     = 'iso8859-1';
@@ -141,18 +142,18 @@ class PartTest extends TestCase
     {
         $part = new Mime\Part();
         $part->setContent($this->testText)
-             ->setEncoding(Mime\Mime::ENCODING_8BIT)
-             ->setType('text/plain')
-             ->setFilename('test.txt')
-             ->setDisposition('attachment')
-             ->setCharset('iso8859-1')
-             ->setId('4711')
-             ->setBoundary('frontier')
-             ->setLocation('fiction1/fiction2')
-             ->setLanguage('en')
-             ->setIsStream(false)
-             ->setFilters(['foo'])
-             ->setDescription('foobar');
+            ->setEncoding(Mime\Mime::ENCODING_8BIT)
+            ->setType('text/plain')
+            ->setFilename('test.txt')
+            ->setDisposition('attachment')
+            ->setCharset('iso8859-1')
+            ->setId('4711')
+            ->setBoundary('frontier')
+            ->setLocation('fiction1/fiction2')
+            ->setLanguage('en')
+            ->setIsStream(false)
+            ->setFilters(['foo'])
+            ->setDescription('foobar');
 
         $this->assertEquals($this->testText, $part->getContent());
         $this->assertEquals(Mime\Mime::ENCODING_8BIT, $part->getEncoding());

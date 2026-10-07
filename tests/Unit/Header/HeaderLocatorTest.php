@@ -2,9 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\HeaderLocator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class HeaderLocatorTest extends TestCase

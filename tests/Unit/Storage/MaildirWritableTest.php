@@ -141,7 +141,7 @@ class MaildirWritableTest extends TestCase
 
     public function testCreateFolder(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->createFolder('subfolder.test1');
         $mail->createFolder('test2', 'INBOX.subfolder');
@@ -235,7 +235,7 @@ class MaildirWritableTest extends TestCase
 
     public function testRemoveSelectedFolder(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->selectFolder('subfolder.test');
 
@@ -266,7 +266,7 @@ class MaildirWritableTest extends TestCase
 
     public function testRenameSelectedFolder(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->selectFolder('subfolder.test');
 
@@ -288,7 +288,7 @@ class MaildirWritableTest extends TestCase
         $mail  = new Writable\Maildir($this->params);
         $count = $mail->countMessages();
 
-        $message  = '';
+        $message = '';
         $message .= "From: me@example.org\r\n";
         $message .= "To: you@example.org\r\n";
         $message .= "Subject: append test\r\n";
@@ -302,7 +302,7 @@ class MaildirWritableTest extends TestCase
 
     public function testCopy(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
 
         $mail->selectFolder('subfolder.test');
@@ -347,7 +347,7 @@ class MaildirWritableTest extends TestCase
 
     public function testSetFlagsRemovedFile(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         unlink($this->params['dirname'] . 'cur/1000000000.P1.example.org:2,S');
 
@@ -384,7 +384,7 @@ class MaildirWritableTest extends TestCase
 
     public function testCheckQuotaDetailed(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail        = new Writable\Maildir($this->params);
         $quotaResult = [
             'size'       => 2129,
@@ -401,7 +401,7 @@ class MaildirWritableTest extends TestCase
 
     public function testSetQuota(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $this->assertNull($mail->getQuota());
 
@@ -445,7 +445,7 @@ class MaildirWritableTest extends TestCase
 
     public function testMissingMaildirsizeWithFixedQuota(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         unlink($this->tmpdir . 'maildirsize');
         $mail->setQuota(['size' => 100, 'count' => 2, 'X' => 0]);
@@ -467,7 +467,7 @@ class MaildirWritableTest extends TestCase
 
     public function testAppendMessage(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 6, 'X' => 0]);
         $this->assertFalse($mail->checkQuota(false, true));
@@ -498,7 +498,7 @@ class MaildirWritableTest extends TestCase
 
     public function testRemoveMessage(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 5, 'X' => 0]);
         $this->assertTrue($mail->checkQuota(false, true));
@@ -509,7 +509,7 @@ class MaildirWritableTest extends TestCase
 
     public function testCopyMessage(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail = new Writable\Maildir($this->params);
         $mail->setQuota(['size' => 3000, 'count' => 6, 'X' => 0]);
         $this->assertFalse($mail->checkQuota(false, true));
@@ -541,7 +541,7 @@ class MaildirWritableTest extends TestCase
 
     public function testMove(): void
     {
-        $this->markTestIncomplete("Fail");
+        $this->markTestIncomplete('Fail');
         $mail   = new Writable\Maildir($this->params);
         $target = $mail->getFolders()->subfolder->test;
         $mail->selectFolder($target);

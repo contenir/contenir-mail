@@ -2,8 +2,8 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use Exception;
 use Contenir\Mail\Storage;
+use Exception;
 use PharData;
 use PHPUnit\Framework\TestCase;
 
@@ -133,7 +133,7 @@ class MaildirMessageOldTest extends TestCase
     {
         $mail = new TestAsset\MaildirOldMessage(['dirname' => $this->maildir]);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }

@@ -2,18 +2,18 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use ArrayIterator;
-use Countable;
-use ErrorException;
-use Iterator;
-use Laminas\Loader\PluginClassLocator;
 use Contenir\Mail;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\GenericMultiHeader;
+use Countable;
+use ErrorException;
+use Iterator;
+use Laminas\Loader\PluginClassLocator;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -49,7 +49,7 @@ class HeadersTest extends TestCase
             static function (int $errno, string $errstr, string $errfile, int $errline): void {
                 throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
             },
-            E_USER_DEPRECATED
+            E_USER_DEPRECATED,
         );
     }
 
@@ -72,7 +72,7 @@ class HeadersTest extends TestCase
 
     public function testHeadersFromStringFactoryCreatesSingleObject(): void
     {
-        $headers = Mail\Headers::fromString("Fake: foo-bar");
+        $headers = Mail\Headers::fromString('Fake: foo-bar');
         $this->assertEquals(1, $headers->count());
 
         $header = $headers->get('fake');
@@ -83,7 +83,7 @@ class HeadersTest extends TestCase
 
     public function testHeadersFromStringFactoryHandlesMissingWhitespace(): void
     {
-        $headers = Mail\Headers::fromString("Fake:foo-bar");
+        $headers = Mail\Headers::fromString('Fake:foo-bar');
         $this->assertEquals(1, $headers->count());
 
         $header = $headers->get('fake');
@@ -356,8 +356,12 @@ class HeadersTest extends TestCase
         $headers = new Mail\Headers();
 
         // @codingStandardsIgnoreStart
-        $received1 = Header\Received::fromString("Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id BBBBBBBBBBB\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:27 -0600 (CST)");
-        $received2 = Header\Received::fromString("Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id AAAAAAAAAAA\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:29 -0600 (CST)");
+        $received1 = Header\Received::fromString(
+            "Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id BBBBBBBBBBB\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:27 -0600 (CST)",
+        );
+        $received2 = Header\Received::fromString(
+            "Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id AAAAAAAAAAA\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:29 -0600 (CST)",
+        );
         // @codingStandardsIgnoreEnd
 
         $headers->addHeader($received1);
@@ -377,8 +381,12 @@ class HeadersTest extends TestCase
         $headers = new Mail\Headers();
 
         // @codingStandardsIgnoreStart
-        $received1 = Header\Received::fromString("Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id BBBBBBBBBBB\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:27 -0600 (CST)");
-        $received2 = Header\Received::fromString("Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id AAAAAAAAAAA\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:29 -0600 (CST)");
+        $received1 = Header\Received::fromString(
+            "Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id BBBBBBBBBBB\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:27 -0600 (CST)",
+        );
+        $received2 = Header\Received::fromString(
+            "Received: from framework (localhost [127.0.0.1])\r\n by framework (Postfix) with ESMTP id AAAAAAAAAAA\r\n for <laminas@framework>; Mon, 21 Nov 2011 12:50:29 -0600 (CST)",
+        );
         // @codingStandardsIgnoreEnd
 
         $headers->addHeader($received1);
@@ -631,13 +639,13 @@ class HeadersTest extends TestCase
 
     public function testStrictKeyComparisonInHas(): void
     {
-        $headers = Mail\Headers::fromString("000: foo-bar");
+        $headers = Mail\Headers::fromString('000: foo-bar');
         $this->assertFalse($headers->has('0'));
     }
 
     public function testStrictKeyComparisonInGet(): void
     {
-        $headers = Mail\Headers::fromString("000: foo-bar");
+        $headers = Mail\Headers::fromString('000: foo-bar');
         $this->assertFalse($headers->get('0'));
     }
 
@@ -648,6 +656,6 @@ class HeadersTest extends TestCase
 
         self::assertSame(['To' => 'foo@example.com'], $headers->toArray());
 
-        self::assertSame("To: foo@example.com" . Mail\Headers::EOL, $headers->toString());
+        self::assertSame('To: foo@example.com' . Mail\Headers::EOL, $headers->toString());
     }
 }

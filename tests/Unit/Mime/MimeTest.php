@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use Contenir\Mail\Mime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Mime;
 use PHPUnit\Framework\TestCase;
 
 use function base64_decode;
@@ -69,12 +69,13 @@ class MimeTest extends TestCase
 
     public function testQP()
     {
-        $text = "This is a cool Test Text with special chars: ����\n"
-              . "and with multiple lines���� some of the Lines are long, long"
-              . ", long, long, long, long, long, long, long, long, long, long"
-              . ", long, long, long, long, long, long, long, long, long, long"
-              . ", long, long, long, long, long, long, long, long, long, long"
-              . ", long, long, long, long and with ����";
+        $text =
+            "This is a cool Test Text with special chars: ����\n"
+            . 'and with multiple lines���� some of the Lines are long, long'
+            . ', long, long, long, long, long, long, long, long, long, long'
+            . ', long, long, long, long, long, long, long, long, long, long'
+            . ', long, long, long, long, long, long, long, long, long, long'
+            . ', long, long, long, long and with ����';
 
         $qp = Mime\Mime::encodeQuotedPrintable($text);
         $this->assertEquals(quoted_printable_decode($qp), $text);
@@ -95,7 +96,8 @@ class MimeTest extends TestCase
         $text = str_repeat(' ', Mime\Mime::LINELENGTH) . str_repeat('.', Mime\Mime::LINELENGTH);
         $qp   = Mime\Mime::encodeQuotedPrintable($text);
 
-        $expected = str_repeat(' ', Mime\Mime::LINELENGTH - 1)
+        $expected =
+            str_repeat(' ', Mime\Mime::LINELENGTH - 1)
             . "=20=\n=2E"
             . str_repeat('.', Mime\Mime::LINELENGTH - 1);
 
@@ -138,16 +140,37 @@ class MimeTest extends TestCase
     {
         // phpcs:disable Generic.Files.LineLength.TooLong
         return [
-            ["äöü", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?="],
-            ["äöü ", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?="],
-            ["Gimme more €", "UTF-8", "=?UTF-8?Q?Gimme=20more=20=E2=82=AC?="],
-            ["Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!", "UTF-8", "=?UTF-8?Q?Alle=20meine=20Entchen=20schwimmen=20in=20dem=20See=2C=20?=\n =?UTF-8?Q?schwimmen=20in=20dem=20See=2C=20K=C3=B6pfchen=20in=20das=20?=\n =?UTF-8?Q?Wasser=2C=20Schw=C3=A4nzchen=20in=20die=20H=C3=B6h!?="],
-            ["ääääääääääääääääääääääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
-            ["A0", "UTF-8", "=?UTF-8?Q?A0?="],
-            ["äääääääääääääää ä", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4?="],
-            ["äääääääääääääää äääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
-            ["ä äääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=20=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
+            ['äöü', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
+            ['äöü ', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
+            ['Gimme more €', 'UTF-8', '=?UTF-8?Q?Gimme=20more=20=E2=82=AC?='],
+            [
+                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!',
+                'UTF-8',
+                "=?UTF-8?Q?Alle=20meine=20Entchen=20schwimmen=20in=20dem=20See=2C=20?=\n =?UTF-8?Q?schwimmen=20in=20dem=20See=2C=20K=C3=B6pfchen=20in=20das=20?=\n =?UTF-8?Q?Wasser=2C=20Schw=C3=A4nzchen=20in=20die=20H=C3=B6h!?=",
+            ],
+            [
+                'ääääääääääääääääääääääääääääääääää',
+                'UTF-8',
+                '=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=',
+            ],
+            ['A0', 'UTF-8', '=?UTF-8?Q?A0?='],
+            [
+                'äääääääääääääää ä',
+                'UTF-8',
+                "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4?=",
+            ],
+            [
+                'äääääääääääääää äääääääääääääää',
+                'UTF-8',
+                "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=",
+            ],
+            [
+                'ä äääääääääääääää',
+                'UTF-8',
+                '=?UTF-8?Q?=C3=A4=20=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=',
+            ],
         ];
+
         // phpcs:enable
     }
 
@@ -156,7 +179,7 @@ class MimeTest extends TestCase
         string $str,
         string $charset,
         string $expectedResult,
-        int $headerLength
+        int $headerLength,
     ): void {
         $actualResult = Mime\Mime::encodeQuotedPrintableHeader($str, $charset, 78, Mime\Mime::LINEEND, $headerLength);
         $this->assertEquals($expectedResult, $actualResult);
@@ -167,30 +190,33 @@ class MimeTest extends TestCase
     {
         return [
             'long string with header name size'     => [
-                "xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx",
-                "UTF-8",
-                "=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?=" . Mime\Mime::LINEEND
-                . " =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=",
+                'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
+                'UTF-8',
+                '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
+                    . Mime\Mime::LINEEND
+                    . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=',
                 9,
             ],
             'long string without header name size'  => [
-                "xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx",
-                "UTF-8",
-                "=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?=" . Mime\Mime::LINEEND
-                . " =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=",
+                'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
+                'UTF-8',
+                '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
+                    . Mime\Mime::LINEEND
+                    . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=',
                 0,
             ],
             'short string with header name size'    => [
-                "xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx",
-                "UTF-8",
-                "=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?=" . Mime\Mime::LINEEND
-                . " =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx?=",
+                'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
+                'UTF-8',
+                '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
+                    . Mime\Mime::LINEEND
+                    . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx?=',
                 11,
             ],
             'short string without header name size' => [
-                "xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx",
-                "UTF-8",
-                "=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=",
+                'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
+                'UTF-8',
+                '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=',
                 11,
             ],
         ];
@@ -208,13 +234,14 @@ class MimeTest extends TestCase
     {
         // phpcs:disable Generic.Files.LineLength.TooLong
         return [
-            ["äöü", "UTF-8", "=?UTF-8?B?w6TDtsO8?="],
+            ['äöü', 'UTF-8', '=?UTF-8?B?w6TDtsO8?='],
             [
-                "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!",
-                "UTF-8",
+                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!',
+                'UTF-8',
                 "=?UTF-8?B?QWxsZSBtZWluZSBFbnRjaGVuIHNjaHdpbW1lbiBpbiBkZW0gU2VlLCBzY2h3?=\n =?UTF-8?B?aW1tZW4gaW4gZGVtIFNlZSwgS8O2cGZjaGVuIGluIGRhcyBXYXNzZXIsIFNj?=\n =?UTF-8?B?aHfDpG56Y2hlbiBpbiBkaWUgSMO2aCE=?=",
             ],
         ];
+
         // phpcs:enable
     }
 
@@ -225,20 +252,20 @@ class MimeTest extends TestCase
     #[DataProvider('dataTestEncodeMailHeaderBase64wrap')]
     public function testEncodeMailHeaderBase64wrap(string $str): void
     {
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 20)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 21)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 22)));
-        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 23)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 20)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 21)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 22)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 23)));
     }
 
     /** @psalm-return array<array-key, array{0: string}> */
     public static function dataTestEncodeMailHeaderBase64wrap(): array
     {
         return [
-            ["äöüäöüäöüäöüäöüäöüäöü"],
+            ['äöüäöüäöüäöüäöüäöüäöü'],
             [
-                "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, "
-                . "Köpfchen in das Wasser, Schwänzchen in die Höh!",
+                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
+                    . 'Köpfchen in das Wasser, Schwänzchen in die Höh!',
             ],
         ];
     }
@@ -246,29 +273,44 @@ class MimeTest extends TestCase
     public function testFromMessageMultiPart()
     {
         $message = Mime\Message::createFromMessage(
-            '--089e0141a1902f83ee04e0a07b7a' . "\r\n"
-            . 'Content-Type: multipart/alternative; boundary=089e0141a1902f83e904e0a07b78' . "\r\n"
+            '--089e0141a1902f83ee04e0a07b7a'
             . "\r\n"
-            . '--089e0141a1902f83e904e0a07b78' . "\r\n"
-            . 'Content-Type: text/plain; charset=UTF-8' . "\r\n"
+            . 'Content-Type: multipart/alternative; boundary=089e0141a1902f83e904e0a07b78'
             . "\r\n"
-            . 'Foo' . "\r\n"
             . "\r\n"
-            . '--089e0141a1902f83e904e0a07b78' . "\r\n"
-            . 'Content-Type: text/html; charset=UTF-8' . "\r\n"
+            . '--089e0141a1902f83e904e0a07b78'
             . "\r\n"
-            . '<p>Foo</p>' . "\r\n"
+            . 'Content-Type: text/plain; charset=UTF-8'
             . "\r\n"
-            . '--089e0141a1902f83e904e0a07b78--' . "\r\n"
-            . '--089e0141a1902f83ee04e0a07b7a' . "\r\n"
-            . 'Content-Type: image/png; name="1.png"' . "\r\n"
-            . 'Content-Disposition: attachment; filename="1.png"' . "\r\n"
-            . 'Content-Transfer-Encoding: base64' . "\r\n"
-            . 'X-Attachment-Id: barquux' . "\r\n"
             . "\r\n"
-            . 'Zm9vCg==' . "\r\n"
+            . 'Foo'
+            . "\r\n"
+            . "\r\n"
+            . '--089e0141a1902f83e904e0a07b78'
+            . "\r\n"
+            . 'Content-Type: text/html; charset=UTF-8'
+            . "\r\n"
+            . "\r\n"
+            . '<p>Foo</p>'
+            . "\r\n"
+            . "\r\n"
+            . '--089e0141a1902f83e904e0a07b78--'
+            . "\r\n"
+            . '--089e0141a1902f83ee04e0a07b7a'
+            . "\r\n"
+            . 'Content-Type: image/png; name="1.png"'
+            . "\r\n"
+            . 'Content-Disposition: attachment; filename="1.png"'
+            . "\r\n"
+            . 'Content-Transfer-Encoding: base64'
+            . "\r\n"
+            . 'X-Attachment-Id: barquux'
+            . "\r\n"
+            . "\r\n"
+            . 'Zm9vCg=='
+            . "\r\n"
             . '--089e0141a1902f83ee04e0a07b7a--',
-            '089e0141a1902f83ee04e0a07b7a'
+            '089e0141a1902f83ee04e0a07b7a',
         );
         $this->assertSame(2, count($message->getParts()));
     }
@@ -287,6 +329,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
             ],
             ['foobar', 'base64', 'Zm9vYmFyCg=='],
         ];
+
         // phpcs:enable
     }
 
@@ -294,13 +337,18 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     public function testFromMessageDecode(string $input, string $encoding, string $result): void
     {
         $parts = Mime\Message::createFromMessage(
-            '--089e0141a1902f83ee04e0a07b7a' . "\r\n"
-            . 'Content-Type: text/plain; charset=UTF-8' . "\r\n"
-            . 'Content-Transfer-Encoding: ' . $encoding . "\r\n"
+            '--089e0141a1902f83ee04e0a07b7a'
             . "\r\n"
-            . $result . "\r\n"
+            . 'Content-Type: text/plain; charset=UTF-8'
+            . "\r\n"
+            . 'Content-Transfer-Encoding: '
+            . $encoding
+            . "\r\n"
+            . "\r\n"
+            . $result
+            . "\r\n"
             . '--089e0141a1902f83ee04e0a07b7a--',
-            '089e0141a1902f83ee04e0a07b7a'
+            '089e0141a1902f83ee04e0a07b7a',
         )->getParts();
         $this->assertSame($input . "\n", $parts[0]->getRawContent());
     }
@@ -308,22 +356,23 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     #[Group('Laminas-1688')]
     public function testLineLengthInQuotedPrintableHeaderEncoding()
     {
-        $subject = "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, "
-            . "Köpfchen in das Wasser, Schwänzchen in die Höh!";
-        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, "UTF-8", 100);
+        $subject =
+            'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
+            . 'Köpfchen in das Wasser, Schwänzchen in die Höh!';
+        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 100);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
             $this->assertLessThanOrEqual(
                 100,
                 strlen($line),
-                "Line '" . $line . "' is " . strlen($line) . " chars long, only 100 allowed."
+                "Line '" . $line . "' is " . strlen($line) . ' chars long, only 100 allowed.',
             );
         }
-        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, "UTF-8", 40);
+        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 40);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
             $this->assertLessThanOrEqual(
                 40,
                 strlen($line),
-                "Line '" . $line . "' is " . strlen($line) . " chars long, only 40 allowed."
+                "Line '" . $line . "' is " . strlen($line) . ' chars long, only 40 allowed.',
             );
         }
     }
@@ -332,11 +381,11 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     public static function dataTestCharsetDetection(): array
     {
         return [
-            ["ASCII", "test"],
-            ["ASCII", "=?ASCII?Q?test?="],
-            ["UTF-8", "=?UTF-8?Q?test?="],
-            ["ISO-8859-1", "=?ISO-8859-1?Q?Pr=FCfung_f=FCr?= Entwerfen von einer MIME kopfzeile"],
-            ["UTF-8", "=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?="],
+            ['ASCII',      'test'],
+            ['ASCII',      '=?ASCII?Q?test?='],
+            ['UTF-8',      '=?UTF-8?Q?test?='],
+            ['ISO-8859-1', '=?ISO-8859-1?Q?Pr=FCfung_f=FCr?= Entwerfen von einer MIME kopfzeile'],
+            ['UTF-8',      '=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?='],
         ];
     }
 

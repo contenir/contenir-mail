@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Header\HeaderWrap;
 use Contenir\Mail\Header\UnstructuredInterface;
 use Contenir\Mail\Storage;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function base64_encode;
@@ -44,8 +44,9 @@ class HeaderWrapTest extends TestCase
         $header->expects($this->any())
             ->method('getEncoding')
             ->willReturn('UTF-8');
-        $expected = "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
-                    . " =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=";
+        $expected =
+            "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
+            . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
 
         $test = HeaderWrap::wrap($string, $header);
         $this->assertEquals($expected, $test);
@@ -76,7 +77,7 @@ class HeaderWrapTest extends TestCase
     {
         $expected = str_repeat('foobarblahblahblah baz bat', 3);
         $encoded  = "=?UTF-8?Q?foobarblahblahblah=20baz=20batfoobarblahblahblah=20baz=20?=\r\n"
-                    . " =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=";
+        . ' =?UTF-8?Q?batfoobarblahblahblah=20baz=20bat?=';
 
         $decoded = HeaderWrap::mimeDecodeValue($encoded);
 
@@ -91,9 +92,11 @@ class HeaderWrapTest extends TestCase
      */
     public function testMimeDecodeBreakageBug(): void
     {
-        $headerValue = 'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h='
-            . "\r\n\t" . 'content-language:content-type:content-type:in-reply-to';
-        $headers     = "DKIM-Signature: {$headerValue}";
+        $headerValue =
+            'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org; h='
+            . "\r\n\t"
+            . 'content-language:content-type:content-type:in-reply-to';
+        $headers = "DKIM-Signature: {$headerValue}";
 
         $message = new Storage\Message(['headers' => $headers, 'content' => 'irrelevant']);
         $headers = $message->getHeaders();
@@ -105,7 +108,7 @@ class HeaderWrapTest extends TestCase
         $this->assertEquals(
             'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org;'
             . ' h= content-language:content-type:content-type:in-reply-to',
-            $header->getFieldValue()
+            $header->getFieldValue(),
         );
     }
 
@@ -119,7 +122,7 @@ class HeaderWrapTest extends TestCase
     public function testCanBeEncoded(): void
     {
         // @codingStandardsIgnoreStart
-        $value   = "[#77675] New Issue:xxxxxxxxx xxxxxxx xxxxxxxx xxxxxxxxxxxxx xxxxxxxxxx xxxxxxxx, tähtaeg xx.xx, xxxx";
+        $value = '[#77675] New Issue:xxxxxxxxx xxxxxxx xxxxxxxx xxxxxxxxxxxxx xxxxxxxxxx xxxxxxxx, tähtaeg xx.xx, xxxx';
         // @codingStandardsIgnoreEnd
         $res = HeaderWrap::canBeEncoded($value);
         $this->assertTrue($res);
@@ -138,7 +141,7 @@ class HeaderWrapTest extends TestCase
 
         $this->assertEquals(
             $originalValue,
-            HeaderWrap::mimeDecodeValue($header)
+            HeaderWrap::mimeDecodeValue($header),
         );
     }
 }

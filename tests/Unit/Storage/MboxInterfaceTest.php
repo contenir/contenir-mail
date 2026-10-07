@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Message\MessageInterface;
 use LimitIterator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -79,7 +79,7 @@ class MboxInterfaceTest extends TestCase
             $this->assertInstanceOf(
                 MessageInterface::class,
                 $message,
-                'value in iteration is not a mail message'
+                'value in iteration is not a mail message',
             );
         }
     }

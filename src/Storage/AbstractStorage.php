@@ -3,8 +3,8 @@
 namespace Contenir\Mail\Storage;
 
 use ArrayAccess;
-use Countable;
 use Contenir\Mail\Storage\Message;
+use Countable;
 use ReturnTypeWillChange;
 use SeekableIterator;
 
@@ -12,10 +12,7 @@ use function str_starts_with;
 use function strtolower;
 use function substr;
 
-abstract class AbstractStorage implements
-    ArrayAccess,
-    Countable,
-    SeekableIterator
+abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterator
 {
     /**
      * class capabilities with default values

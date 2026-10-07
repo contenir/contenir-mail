@@ -2,8 +2,8 @@
 
 namespace Contenir\Mail\Protocol;
 
-use Generator;
 use Contenir\Mail\Headers;
+use Generator;
 
 use function array_key_exists;
 use function array_replace_recursive;
@@ -152,7 +152,7 @@ class Smtp extends AbstractProtocol
                     break;
 
                 case '':
-                    // fall-through
+                // fall-through
                 case 'none':
                     break;
 
@@ -197,7 +197,7 @@ class Smtp extends AbstractProtocol
      */
     private static function chunkedReader(string $data, int $chunkSize = 4096): Generator
     {
-        if (($fp = fopen("php://temp", "r+")) === false) {
+        if (($fp = fopen('php://temp', 'r+')) === false) {
             throw new Exception\RuntimeException('cannot fopen');
         }
         if (fwrite($fp, $data) === false) {
@@ -263,7 +263,7 @@ class Smtp extends AbstractProtocol
             $this->transport,
             $this->host,
             $this->port,
-            self::TIMEOUT_CONNECTION
+            self::TIMEOUT_CONNECTION,
         );
         return true;
     }

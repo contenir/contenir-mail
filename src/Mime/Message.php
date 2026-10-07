@@ -60,7 +60,7 @@ class Message
             if ($part === $row) {
                 throw new Exception\InvalidArgumentException(sprintf(
                     'Provided part %s already defined.',
-                    $part->getId()
+                    $part->getId(),
                 ));
             }
         }
@@ -139,13 +139,15 @@ class Message
 
             $boundaryLine = $mime->boundaryLine($EOL);
             $body         = 'This is a message in Mime Format.  If you see this, '
-                  . "your mail reader does not support this format." . $EOL;
+            . 'your mail reader does not support this format.'
+            . $EOL;
 
             foreach (array_keys($this->parts) as $p) {
-                $body .= $boundaryLine
-                       . $this->getPartHeaders($p, $EOL)
-                       . $EOL
-                       . $this->getPartContent($p, $EOL);
+                $body .=
+                    $boundaryLine
+                    . $this->getPartHeaders($p, $EOL)
+                    . $EOL
+                    . $this->getPartContent($p, $EOL);
             }
 
             $body .= $mime->mimeEnd($EOL);

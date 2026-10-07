@@ -92,7 +92,7 @@ class Sendmail implements TransportInterface
             throw new InvalidArgumentException(sprintf(
                 '%s expects a string, array, or Traversable object of parameters; received "%s"',
                 __METHOD__,
-                is_object($parameters) ? $parameters::class : gettype($parameters)
+                is_object($parameters) ? $parameters::class : gettype($parameters),
             ));
         }
 
@@ -120,7 +120,7 @@ class Sendmail implements TransportInterface
             throw new InvalidArgumentException(sprintf(
                 '%s expects a callable argument; received "%s"',
                 __METHOD__,
-                is_object($callable) ? $callable::class : gettype($callable)
+                is_object($callable) ? $callable::class : gettype($callable),
             ));
         }
         $this->callable = $callable;
@@ -163,7 +163,7 @@ class Sendmail implements TransportInterface
         $hasTo = $headers->has('to');
         if (! $hasTo && ! $headers->has('cc') && ! $headers->has('bcc')) {
             throw new RuntimeException(
-                'Invalid email; contains no at least one of "To", "Cc", and "Bcc" header'
+                'Invalid email; contains no at least one of "To", "Cc", and "Bcc" header',
             );
         }
 

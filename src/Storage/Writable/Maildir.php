@@ -189,7 +189,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         // check if we got tricked and would create a dir outside of the rootdir or not as direct child
         if (
-            str_contains($folder, DIRECTORY_SEPARATOR) || str_contains($folder, '/')
+            str_contains($folder, DIRECTORY_SEPARATOR)
+            || str_contains($folder, '/')
             || dirname($fulldir) . DIRECTORY_SEPARATOR != $this->rootdir
         ) {
             throw new StorageException\RuntimeException('invalid name - no directory separator allowed in folder name');
@@ -214,7 +215,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             throw new StorageException\RuntimeException(
                 'error while creating new folder, may be created incompletely',
                 0,
-                $error
+                $error,
             );
         }
         ErrorHandler::stop();
@@ -292,7 +293,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         if (! rmdir($this->rootdir . '.' . $name)) {
             // at least we should try to make it a valid maildir again
             mkdir($this->rootdir . '.' . $name . DIRECTORY_SEPARATOR . 'cur');
-            throw new StorageException\RuntimeException("error removing maindir");
+            throw new StorageException\RuntimeException('error removing maindir');
         }
 
         $parent    = strpos($name, $this->delim) ? substr($name, 0, strrpos($name, $this->delim)) : null;
@@ -381,7 +382,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
      */
     protected function createUniqueId()
     {
-        $id  = '';
+        $id = '';
         $id .= microtime(true);
         $id .= '.' . getmypid();
         $id .= '.' . php_uname('n');
@@ -436,7 +437,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         if (! $fh) {
             throw new StorageException\RuntimeException(
-                "tried {$maxTries} unique ids for a temp file, but all were taken - giving up"
+                "tried {$maxTries} unique ids for a temp file, but all were taken - giving up",
             );
         }
 
@@ -470,7 +471,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
             if (! isset($wantedFlags[$flag])) {
                 continue;
             }
-            $info        .= $char;
+            $info         .= $char;
             $flags[$char] = $flag;
             unset($wantedFlags[$flag]);
         }
@@ -528,7 +529,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         if ($size !== false) {
             $info = ',S=' . $size . $info;
         }
-        $newFilename  = $tempFile['dirname'] . DIRECTORY_SEPARATOR;
+        $newFilename = $tempFile['dirname'] . DIRECTORY_SEPARATOR;
         $newFilename .= $recent ? 'new' : 'cur';
         $newFilename .= DIRECTORY_SEPARATOR . $tempFile['uniq'] . $info;
 
@@ -616,7 +617,10 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         if (
             $folder->getGlobalName() == $this->currentFolder
-            || ($this->currentFolder == 'INBOX' && $folder->getGlobalName() == '/')
+            || (
+                $this->currentFolder == 'INBOX'
+                && $folder->getGlobalName() == '/'
+            )
         ) {
             $this->files[] = [
                 'uniq'     => $tempFile['uniq'],
@@ -645,7 +649,10 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         if (
             $folder->getGlobalName() == $this->currentFolder
-            || ($this->currentFolder == 'INBOX' && $folder->getGlobalName() == '/')
+            || (
+                $this->currentFolder == 'INBOX'
+                && $folder->getGlobalName() == '/'
+            )
         ) {
             throw new StorageException\RuntimeException('target is current folder');
         }
@@ -708,7 +715,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
 
         // NOTE: double dirname to make sure we always move to cur. if recent
         // flag has been set (message is in new) it will be moved to cur.
-        $newFilename = dirname($filedata['filename'], 2)
+        $newFilename =
+            dirname($filedata['filename'], 2)
             . DIRECTORY_SEPARATOR
             . 'cur'
             . DIRECTORY_SEPARATOR
@@ -959,8 +967,8 @@ class Maildir extends Folder\Maildir implements WritableInterface
             unset($maildirsize[0]);
             foreach ($maildirsize as $line) {
                 [$size, $count] = explode(' ', trim($line));
-                $totalSize     += $size;
-                $messages      += $count;
+                $totalSize += $size;
+                $messages  += $count;
             }
         }
 
@@ -971,7 +979,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
         // one line, because $maildirsize[0] gets unsetted.
         // Also we're using local time to calculate the 15 minute offset. Touching a file just for known the
         // local time of the file storage isn't worth the hassle.
-        if ($overQuota && ($maildirsize || filemtime($this->rootdir . 'maildirsize') > time() - 900)) {
+        if ($overQuota && ($maildirsize || filemtime($this->rootdir . 'maildirsize') > (time() - 900))) {
             $result    = $this->calculateMaildirsize();
             $totalSize = $result['size'];
             $messages  = $result['count'];
@@ -1002,7 +1010,7 @@ class Maildir extends Folder\Maildir implements WritableInterface
     protected function addQuotaEntry($size, $count = 1)
     {
         // if (! file_exists($this->rootdir . 'maildirsize')) {
-            // TODO: should get file handler from calculateQuota
+        // TODO: should get file handler from calculateQuota
         // }
         file_put_contents($this->rootdir . 'maildirsize', "$size $count\n", FILE_APPEND);
     }

@@ -25,7 +25,7 @@ class MessageFactory
             throw new Exception\InvalidArgumentException(sprintf(
                 '"%s" expects an array or Traversable; received "%s"',
                 __METHOD__,
-                is_object($options) ? $options::class : gettype($options)
+                is_object($options) ? $options::class : gettype($options),
             ));
         }
 
@@ -50,18 +50,18 @@ class MessageFactory
     private static function getSetterMethod($key)
     {
         return 'set'
-            . str_replace(
-                ' ',
-                '',
-                ucwords(
-                    strtr(
-                        $key,
-                        [
-                            '-' => ' ',
-                            '_' => ' ',
-                        ]
-                    )
-                )
-            );
+        . str_replace(
+            ' ',
+            '',
+            ucwords(
+                strtr(
+                    $key,
+                    [
+                        '-' => ' ',
+                        '_' => ' ',
+                    ],
+                ),
+            ),
+        );
     }
 }

@@ -87,10 +87,10 @@ abstract class AbstractAddressList implements HeaderInterface
     public static function fromString($headerLine)
     {
         [$fieldName, $fieldValue] = GenericHeader::splitHeaderLine($headerLine);
-        if ((strtolower($fieldName) !== static::$type) && ! in_array(strtolower($fieldName), static::$typeAliases)) {
+        if (strtolower($fieldName) !== static::$type && ! in_array(strtolower($fieldName), static::$typeAliases)) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Invalid header line for "%s" string',
-                self::class
+                self::class,
             ));
         }
 
@@ -103,7 +103,7 @@ abstract class AbstractAddressList implements HeaderInterface
         $addresses  = array_map(
             static function ($value) use (&$wasEncoded): ?Address {
                 $decodedValue = HeaderWrap::mimeDecodeValue($value);
-                $wasEncoded   = $wasEncoded || ($decodedValue !== $value);
+                $wasEncoded   = $wasEncoded || $decodedValue !== $value;
                 $value        = trim($decodedValue);
                 $comments     = self::getComments($value);
                 $value        = self::stripComments($value);
@@ -116,13 +116,13 @@ abstract class AbstractAddressList implements HeaderInterface
                         '\\1',
                         '\\1',
                     ],
-                    $value
+                    $value,
                 );
                 return empty($value) ? null : Address::fromString($value, $comments);
             },
-            $values
+            $values,
         );
-        $addresses  = array_filter($addresses);
+        $addresses = array_filter($addresses);
 
         $header = new static();
         if ($wasEncoded) {
@@ -172,7 +172,7 @@ abstract class AbstractAddressList implements HeaderInterface
 
         throw new RuntimeException(sprintf(
             'Failed encoding domain due to errors: %s',
-            implode(', ', $messages)
+            implode(', ', $messages),
         ));
     }
 
@@ -294,7 +294,7 @@ abstract class AbstractAddressList implements HeaderInterface
                 )+)
             \\)/x',
             $value,
-            $matches
+            $matches,
         );
         return isset($matches['comment']) ? implode(', ', $matches['comment']) : '';
     }
@@ -317,7 +317,7 @@ abstract class AbstractAddressList implements HeaderInterface
                 )+
             \\)/x',
             '',
-            $value
+            $value,
         );
     }
 }

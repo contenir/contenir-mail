@@ -314,7 +314,7 @@ class Part
         if (! is_string($content) && ! is_resource($content)) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Content must be string or resource; received "%s"',
-                is_object($content) ? $content::class : gettype($content)
+                is_object($content) ? $content::class : gettype($content),
             ));
         }
         $this->content = $content;
@@ -404,14 +404,14 @@ class Part
                 if (array_key_exists(Mime::ENCODING_QUOTEDPRINTABLE, $this->filters)) {
                     stream_filter_remove($this->filters[Mime::ENCODING_QUOTEDPRINTABLE]);
                 }
-                $filter                                        = stream_filter_append(
+                $filter = stream_filter_append(
                     $this->content,
                     'convert.quoted-printable-encode',
                     STREAM_FILTER_READ,
                     [
                         'line-length'      => 76,
                         'line-break-chars' => $EOL,
-                    ]
+                    ],
                 );
                 $this->filters[Mime::ENCODING_QUOTEDPRINTABLE] = $filter;
                 if (! is_resource($filter)) {
@@ -422,14 +422,14 @@ class Part
                 if (array_key_exists(Mime::ENCODING_BASE64, $this->filters)) {
                     stream_filter_remove($this->filters[Mime::ENCODING_BASE64]);
                 }
-                $filter                               = stream_filter_append(
+                $filter = stream_filter_append(
                     $this->content,
                     'convert.base64-encode',
                     STREAM_FILTER_READ,
                     [
                         'line-length'      => 76,
                         'line-break-chars' => $EOL,
-                    ]
+                    ],
                 );
                 $this->filters[Mime::ENCODING_BASE64] = $filter;
                 if (! is_resource($filter)) {
@@ -493,8 +493,12 @@ class Part
         }
 
         if ($this->boundary) {
-            $contentType .= ';' . $EOL
-                          . " boundary=\"" . $this->boundary . '"';
+            $contentType .=
+                ';'
+                . $EOL
+                . ' boundary="'
+                . $this->boundary
+                . '"';
         }
 
         $headers[] = ['Content-Type', $contentType];

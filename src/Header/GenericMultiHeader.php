@@ -18,7 +18,7 @@ class GenericMultiHeader extends GenericHeader implements MultipleHeadersInterfa
     public static function fromString($headerLine)
     {
         [$fieldName, $fieldValue] = GenericHeader::splitHeaderLine($headerLine);
-        $fieldValue               = HeaderWrap::mimeDecodeValue($fieldValue);
+        $fieldValue = HeaderWrap::mimeDecodeValue($fieldValue);
 
         if (strpos($fieldValue, ',')) {
             $headers = [];
@@ -46,7 +46,7 @@ class GenericMultiHeader extends GenericHeader implements MultipleHeadersInterfa
         foreach ($headers as $header) {
             if (! $header instanceof static) {
                 throw new Exception\InvalidArgumentException(
-                    'This method toStringMultipleHeaders was expecting an array of headers of the same type'
+                    'This method toStringMultipleHeaders was expecting an array of headers of the same type',
                 );
             }
             $values[] = $header->getFieldValue(HeaderInterface::FORMAT_ENCODED);

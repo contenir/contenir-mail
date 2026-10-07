@@ -2,9 +2,9 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp\Auth\Crammd5;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -26,7 +26,7 @@ class Crammd5Test extends TestCase
 
         $result = $method->invokeArgs(
             $this->auth,
-            ['frodo', 'speakfriendandenter']
+            ['frodo', 'speakfriendandenter'],
         );
 
         $this->assertEquals('be56fa81a5671e0c62e00134180aae2c', $result);
@@ -41,7 +41,7 @@ class Crammd5Test extends TestCase
         $this->expectExceptionMessage('CramMD5 authentication requires a non-empty password');
         $method->invokeArgs(
             $this->auth,
-            ['', 'data']
+            ['', 'data'],
         );
     }
 
@@ -54,7 +54,7 @@ class Crammd5Test extends TestCase
         $this->expectExceptionMessage('CramMD5 authentication requires a non-empty challenge');
         $method->invokeArgs(
             $this->auth,
-            ['foo', '']
+            ['foo', ''],
         );
     }
 

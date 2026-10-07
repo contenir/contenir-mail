@@ -180,7 +180,7 @@ class Smtp implements TransportInterface
         $this->connection = $connection;
         if (
             $connection instanceof Protocol\Smtp
-            && ($this->getOptions()->getConnectionTimeLimit() !== null)
+            && $this->getOptions()->getConnectionTimeLimit() !== null
         ) {
             $connection->setUseCompleteQuit(false);
         }
@@ -197,7 +197,7 @@ class Smtp implements TransportInterface
         if (
             $timeLimit !== null
             && $this->connectedTime !== null
-            && ((time() - $this->connectedTime) > $timeLimit)
+            && (time() - $this->connectedTime) > $timeLimit
         ) {
             $this->connection = null;
         }
@@ -244,13 +244,13 @@ class Smtp implements TransportInterface
         $headers    = $this->prepareHeaders($message);
         $body       = $this->prepareBody($message);
 
-        if ((count($recipients) == 0) && (! empty($headers) || ! empty($body))) {
+        if (count($recipients) == 0 && (! empty($headers) || ! empty($body))) {
             // Per RFC 2821 3.3 (page 18)
             throw new Exception\RuntimeException(
                 sprintf(
                     '%s transport expects at least one recipient if the message has at least one header or body',
-                    self::class
-                )
+                    self::class,
+                ),
             );
         }
 
@@ -288,7 +288,7 @@ class Smtp implements TransportInterface
             // Per RFC 2822 3.6
             throw new Exception\RuntimeException(sprintf(
                 '%s transport expects either a Sender or at least one From address in the Message; none provided',
-                self::class
+                self::class,
             ));
         }
 

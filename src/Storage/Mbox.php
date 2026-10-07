@@ -158,12 +158,12 @@ class Mbox extends AbstractStorage
         /* Once we know how to count body lines, we should uncomment the
          * following, which would append the body content to the headers.
          *
-        if ($bodyLines) {
-            $message .= "\n";
-            while ($bodyLines-- && ftell($this->fh) < $this->positions[$id - 1]['end']) {
-                $message .= fgets($this->fh);
-            }
-        }
+         * if ($bodyLines) {
+         * $message .= "\n";
+         * while ($bodyLines-- && ftell($this->fh) < $this->positions[$id - 1]['end']) {
+         * $message .= fgets($this->fh);
+         * }
+         * }
          */
 
         return new $this->messageClass(['handler' => $this, 'id' => $id, 'headers' => $message]);

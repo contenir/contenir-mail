@@ -2,6 +2,4 @@
 
 namespace Contenir\Mail\Mime\Exception;
 
-interface ExceptionInterface
-{
-}
+interface ExceptionInterface {}

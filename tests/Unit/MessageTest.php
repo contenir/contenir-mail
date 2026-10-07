@@ -2,9 +2,6 @@
 
 namespace Contenir\Mail\Tests\Unit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
@@ -16,6 +13,9 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Message as MimeMessage;
 use Contenir\Mail\Mime\Mime;
 use Contenir\Mail\Mime\Part as MimePart;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -583,9 +583,13 @@ class MessageTest extends TestCase
         $this->message->setBody($body);
 
         $this->assertStringContainsString(
-            'Content-Type: text/plain;' . Headers::FOLDING . 'charset="utf-8"' . Headers::EOL
-            . 'Content-Transfer-Encoding: quoted-printable' . Headers::EOL,
-            $this->message->getHeaders()->toString()
+            'Content-Type: text/plain;'
+            . Headers::FOLDING
+            . 'charset="utf-8"'
+            . Headers::EOL
+            . 'Content-Transfer-Encoding: quoted-printable'
+            . Headers::EOL,
+            $this->message->getHeaders()->toString(),
         );
     }
 
@@ -756,7 +760,7 @@ class MessageTest extends TestCase
     #[Group('ZF2015-04')]
     #[DataProvider('messageRecipients')]
     public function testExceptionWhenAttemptingToSerializeMessageWithCRLFInjectionViaHeader(
-        string $recipientMethod
+        string $recipientMethod,
     ): void {
         $subject = [
             'test1',
@@ -865,20 +869,28 @@ class MessageTest extends TestCase
         $message = new Message();
         $this->expectException(Exception\InvalidArgumentException::class);
         // @codingStandardsIgnoreStart
-        $message->setFrom('user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)', 'Sender\'s name');
+        $message->setFrom(
+            'user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)',
+            'Sender\'s name',
+        );
+
         // @codingStandardsIgnoreEnd
     }
 
     public function testMessageSubjectFromString(): void
     {
-        $rawMessage = 'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?=' . "\r\n"
+        $rawMessage =
+            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
+            . "\r\n"
             . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
-        $mail       = Message::fromString($rawMessage);
+        $mail = Message::fromString($rawMessage);
 
         $this->assertStringContainsString(
-            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=' . "\r\n",
-            $mail->toString()
+            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+            . "\r\n",
+            $mail->toString(),
         );
     }
 
@@ -888,9 +900,11 @@ class MessageTest extends TestCase
         $mail->setSubject('Non “ascii” characters like accented vowels òàùèéì');
 
         $this->assertStringContainsString(
-            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=' . "\r\n",
-            $mail->toString()
+            'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+            . "\r\n",
+            $mail->toString(),
         );
     }
 
@@ -901,9 +915,11 @@ class MessageTest extends TestCase
         $mail->getHeaders()->addHeader($header);
 
         $this->assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=' . "\r\n",
-            $mail->toString()
+            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+            . "\r\n",
+            $mail->toString(),
         );
     }
 
@@ -916,32 +932,37 @@ class MessageTest extends TestCase
         $mail->setHeaders($headers);
 
         $this->assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=' . "\r\n",
-            $mail->toString()
+            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
+            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+            . "\r\n",
+            $mail->toString(),
         );
     }
 
     public function testCorrectHeaderEncodingFromString(): void
     {
-        $mail   = new Message();
-        $str    = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?=' . "\r\n"
-            . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
+        $mail = new Message();
+        $str  = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
+        . "\r\n"
+        . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
         $header = GenericHeader::fromString($str);
         $mail->getHeaders()->addHeader($header);
 
         $this->assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
+            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
             . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
-            $mail->toString()
+            $mail->toString(),
         );
     }
 
     public function testCorrectHeaderEncodingFromStringAndSetHeaders(): void
     {
         $mail = new Message();
-        $str  = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?=' . "\r\n"
-            . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
+        $str  = 'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20accented=20?='
+        . "\r\n"
+        . ' =?UTF-8?Q?vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=';
 
         $header  = GenericHeader::fromString($str);
         $headers = new Headers();
@@ -949,9 +970,10 @@ class MessageTest extends TestCase
         $mail->setHeaders($headers);
 
         $this->assertStringContainsString(
-            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?=' . "\r\n"
+            'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
+            . "\r\n"
             . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
-            $mail->toString()
+            $mail->toString(),
         );
     }
 
@@ -964,7 +986,7 @@ class MessageTest extends TestCase
         $this->assertSame('UTF-8', $mail->getHeaders()->get('subject')->getEncoding());
         $this->assertSame(
             'Subject: =?UTF-8?Q?hello=20world?=',
-            $mail->getHeaders()->get('subject')->toString()
+            $mail->getHeaders()->get('subject')->toString(),
         );
     }
 
@@ -977,7 +999,7 @@ class MessageTest extends TestCase
         $this->assertSame('UTF-8', $mail->getHeaders()->get('subject')->getEncoding());
         $this->assertSame(
             'Subject: =?UTF-8?Q?hello=20world?=',
-            $mail->getHeaders()->get('subject')->toString()
+            $mail->getHeaders()->get('subject')->toString(),
         );
     }
 }

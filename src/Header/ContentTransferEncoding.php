@@ -40,13 +40,13 @@ class ContentTransferEncoding implements HeaderInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (
             ! in_array(
                 strtolower($name),
-                ['contenttransferencoding', 'content_transfer_encoding', 'content-transfer-encoding']
+                ['contenttransferencoding', 'content_transfer_encoding', 'content-transfer-encoding'],
             )
         ) {
             throw new Exception\InvalidArgumentException('Invalid header line for Content-Transfer-Encoding string');
@@ -116,7 +116,7 @@ class ContentTransferEncoding implements HeaderInterface
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects one of "' . implode(', ', static::$allowedTransferEncodings) . '"; received "%s"',
                 __METHOD__,
-                (string) $transferEncoding
+                (string) $transferEncoding,
             ));
         }
         $this->transferEncoding = $transferEncoding;

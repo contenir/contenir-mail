@@ -2,12 +2,12 @@
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use ArrayObject;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
@@ -53,16 +53,17 @@ class ImapTest extends TestCase
             ) {
                 $this->markTestSkipped(
                     'There is no file name "inbox" or "INBOX" in '
-                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR') . '. I won\'t use it for testing. '
+                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
+                    . '. I won\'t use it for testing. '
                     . 'This is you safety net. If you think it is the right directory just '
-                    . 'create an empty file named INBOX or remove/deactived this message.'
+                    . 'create an empty file named INBOX or remove/deactived this message.',
                 );
             }
 
             $this->cleanDir(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'));
             $this->copyDir(
                 __DIR__ . '/../_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
-                getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
+                getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'),
             );
         }
     }
@@ -274,7 +275,7 @@ class ImapTest extends TestCase
     {
         $mail = new Storage\Imap($this->params);
 
-        $content   = $mail->getMessage(3)->getContent();
+        $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
     }
@@ -342,7 +343,7 @@ class ImapTest extends TestCase
             'subfolder/test' => 'test',
             'INBOX'          => 'INBOX',
         ];
-        $foundFolders  = [];
+        $foundFolders = [];
 
         foreach ($iterator as $localName => $folder) {
             if (! isset($searchFolders[$folder->getGlobalName()])) {
@@ -509,7 +510,7 @@ class ImapTest extends TestCase
         $mail  = new Storage\Imap($this->params);
         $count = $mail->countMessages();
 
-        $message  = '';
+        $message = '';
         $message .= "From: me@example.org\r\n";
         $message .= "To: you@example.org\r\n";
         $message .= "Subject: append test\r\n";

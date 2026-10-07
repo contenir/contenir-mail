@@ -2,11 +2,11 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
+use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\HeaderName;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Contenir\Mail\Header\Exception;
-use Contenir\Mail\Header\HeaderName;
 use PHPUnit\Framework\TestCase;
 
 use function chr;

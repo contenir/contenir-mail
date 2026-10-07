@@ -2,14 +2,14 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Address;
 use Contenir\Mail\Exception;
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\Sender;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
@@ -50,7 +50,7 @@ class SenderTest extends TestCase
     #[Group('ZF2015-04')]
     public function testParseInvalidSenderHeaderThrowException(
         $decodedValue,
-        $expectedException
+        $expectedException,
     ): void {
         $this->expectException($expectedException);
         Header\Sender::fromString('Sender:' . $decodedValue);
@@ -140,15 +140,17 @@ class SenderTest extends TestCase
 
     public static function validSenderHeaderDataProvider(): array
     {
-        return array_merge(array_map(static fn($parameters)
-            => array_slice($parameters, 2), self::validSenderDataProvider()), [
-            // Per RFC 2822, 3.4 and 3.6.2, "Sender: foo@bar" is valid.
+        return array_merge(
+            array_map(static fn($parameters) => array_slice($parameters, 2), self::validSenderDataProvider()),
+            [
+                // Per RFC 2822, 3.4 and 3.6.2, "Sender: foo@bar" is valid.
                 'Unbracketed email' => [
                     '<foo@bar>',
                     'foo@bar',
                     'ASCII',
                 ],
-            ]);
+            ],
+        );
     }
 
     public static function invalidSenderDataProvider(): array
@@ -166,11 +168,11 @@ class SenderTest extends TestCase
             ["foo@bar\n", null, $mailInvalidArgumentException, null],
             ["foo@bar\r", null, $mailInvalidArgumentException, null],
             ["foo@bar\r\n", null, $mailInvalidArgumentException, null],
-            ["foo@bar", "\r", $mailInvalidArgumentException, null],
-            ["foo@bar", "\n", $mailInvalidArgumentException, null],
-            ["foo@bar", "\r\n", $mailInvalidArgumentException, null],
-            ["foo@bar", "foo\r\nevilBody", $mailInvalidArgumentException, null],
-            ["foo@bar", "\r\nevilBody", $mailInvalidArgumentException, null],
+            ['foo@bar', "\r", $mailInvalidArgumentException, null],
+            ['foo@bar', "\n", $mailInvalidArgumentException, null],
+            ['foo@bar', "\r\n", $mailInvalidArgumentException, null],
+            ['foo@bar', "foo\r\nevilBody", $mailInvalidArgumentException, null],
+            ['foo@bar', "\r\nevilBody", $mailInvalidArgumentException, null],
         ];
     }
 
@@ -189,7 +191,7 @@ class SenderTest extends TestCase
             ["xxx yyy\r\n\r\n", $mailInvalidArgumentException],
             ["xxx\r\ny\r\nyy", $mailInvalidArgumentException],
             ["foo\r\n@\r\nbar", $mailInvalidArgumentException],
-            ["ázÁZ09 <foo@bar>", $headerInvalidArgumentException],
+            ['ázÁZ09 <foo@bar>', $headerInvalidArgumentException],
             'newline'   => ["<foo@bar>\n", $headerInvalidArgumentException],
             'cr-lf'     => ["<foo@bar>\r\n", $headerInvalidArgumentException],
             'cr-lf-wsp' => ["<foo@bar>\r\n\r\n", $headerInvalidArgumentException],
@@ -216,14 +218,15 @@ class SenderTest extends TestCase
         // @codingStandardsIgnoreStart
         return [
             // [ header line,                                  expected sender name, expected email address ]
-            ['Sender: foo@bar',                                null,                 'foo@bar'],
-            ['Sender: <foo@bar>',                              null,                 'foo@bar'],
-            ['Sender:    foo@bar',                             null,                 'foo@bar'],
-            ['Sender: name <foo@bar>',                         'name',               'foo@bar'],
-            ['Sender: <weird name> <foo@bar>',                 '<weird name>',       'foo@bar'],
-            ['Sender: moar words <foo@bar>',                   'moar words',         'foo@bar'],
-            ['Sender: =?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>', 'ázÁZ09',             'foo@bar'],
+            ['Sender: foo@bar',                                null,           'foo@bar'],
+            ['Sender: <foo@bar>',                              null,           'foo@bar'],
+            ['Sender:    foo@bar',                             null,           'foo@bar'],
+            ['Sender: name <foo@bar>',                         'name',         'foo@bar'],
+            ['Sender: <weird name> <foo@bar>',                 '<weird name>', 'foo@bar'],
+            ['Sender: moar words <foo@bar>',                   'moar words',   'foo@bar'],
+            ['Sender: =?UTF-8?Q?=C3=A1z=C3=81Z09?= <foo@bar>', 'ázÁZ09',       'foo@bar'],
         ];
+
         // @codingStandardsIgnoreEnd
     }
 
@@ -249,9 +252,9 @@ class SenderTest extends TestCase
         $headerInvalidArgumentException = Header\Exception\InvalidArgumentException::class;
 
         return [
-            ['Sender: foo', $mailInvalidArgumentException],
-            ['Sender: foo<foo>', $mailInvalidArgumentException],
-            ['Sender: foo foo', $headerInvalidArgumentException],
+            ['Sender: foo',       $mailInvalidArgumentException],
+            ['Sender: foo<foo>',  $mailInvalidArgumentException],
+            ['Sender: foo foo',   $headerInvalidArgumentException],
             ['Sender: <foo> foo', $headerInvalidArgumentException],
         ];
     }

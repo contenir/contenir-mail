@@ -2,8 +2,6 @@
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Composer\InstalledVersions;
 use Contenir\Mail\Transport\Exception;
 use Contenir\Mail\Transport\Factory;
@@ -12,6 +10,8 @@ use Contenir\Mail\Transport\InMemory;
 use Contenir\Mail\Transport\Sendmail;
 use Contenir\Mail\Transport\Smtp;
 use Laminas\Stdlib\ArrayObject;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -53,9 +53,12 @@ class FactoryTest extends TestCase
     #[DataProvider('typeProvider')]
     public function testCanCreateClassUsingTypeKey(string $type): void
     {
-        set_error_handler(static function ($code, $message): void {
-            // skip deprecation notices
-        }, E_USER_DEPRECATED);
+        set_error_handler(
+            static function ($code, $message): void {
+                // skip deprecation notices
+            },
+            E_USER_DEPRECATED,
+        );
         $transport = Factory::create([
             'type' => $type,
         ]);
@@ -90,20 +93,20 @@ class FactoryTest extends TestCase
     public static function typeAliasProvider(): array
     {
         return [
-            ['file', File::class],
-            ['memory', InMemory::class],
+            ['file',     File::class],
+            ['memory',   InMemory::class],
             ['inmemory', InMemory::class],
             ['InMemory', InMemory::class],
             ['sendmail', Sendmail::class],
-            ['smtp', Smtp::class],
-            ['File', File::class],
-            ['null', InMemory::class],
-            ['Null', InMemory::class],
-            ['NULL', InMemory::class],
+            ['smtp',     Smtp::class],
+            ['File',     File::class],
+            ['null',     InMemory::class],
+            ['Null',     InMemory::class],
+            ['NULL',     InMemory::class],
             ['Sendmail', Sendmail::class],
             ['SendMail', Sendmail::class],
-            ['Smtp', Smtp::class],
-            ['SMTP', Smtp::class],
+            ['Smtp',     Smtp::class],
+            ['SMTP',     Smtp::class],
         ];
     }
 
@@ -114,7 +117,7 @@ class FactoryTest extends TestCase
             && version_compare((string) InstalledVersions::getVersion('laminas/laminas-stdlib'), '3.3.0') < 0
         ) {
             $this->markTestSkipped(
-                'continue statement inside of switch causes errors when testing against stdlib < 3.3.0 versions'
+                'continue statement inside of switch causes errors when testing against stdlib < 3.3.0 versions',
             );
         }
 

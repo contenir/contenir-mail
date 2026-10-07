@@ -2,13 +2,13 @@
 
 namespace Contenir\Mail\Tests\Unit\Header;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Contenir\Mail\Header\Exception;
 use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
@@ -48,8 +48,8 @@ class GenericHeaderTest extends TestCase
     public static function fieldNames(): array
     {
         return [
-            'append-chr-13'  => ["Subject" . chr(13)],
-            'append-chr-127' => ["Subject" . chr(127)],
+            'append-chr-13'  => ['Subject' . chr(13)],
+            'append-chr-127' => ['Subject' . chr(127)],
             'non-string'     => [null],
         ];
     }
@@ -66,8 +66,8 @@ class GenericHeaderTest extends TestCase
 
     /**
      */
-        #[DataProvider('fieldNames')]
-        #[Group('ZF2015-04')]
+    #[DataProvider('fieldNames')]
+    #[Group('ZF2015-04')]
     public function testSetFieldNameRaisesExceptionOnInvalidFieldName(?string $fieldName): void
     {
         $header = new GenericHeader('Subject');

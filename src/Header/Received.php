@@ -22,7 +22,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
     public static function fromString($headerLine)
     {
         [$name, $value] = GenericHeader::splitHeaderLine($headerLine);
-        $value          = HeaderWrap::mimeDecodeValue($value);
+        $value = HeaderWrap::mimeDecodeValue($value);
 
         // check to ensure proper header type for this factory
         if (strtolower($name) !== 'received') {
@@ -98,7 +98,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
         foreach ($headers as $header) {
             if (! $header instanceof self) {
                 throw new Exception\RuntimeException(
-                    'The Received multiple header implementation can only accept an array of Received headers'
+                    'The Received multiple header implementation can only accept an array of Received headers',
                 );
             }
             $strings[] = $header->toString();

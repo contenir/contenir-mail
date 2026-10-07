@@ -6,10 +6,10 @@
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Contenir\Mail\Protocol\AbstractProtocol;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\ProtocolTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
@@ -44,7 +44,7 @@ final class AbstractProtocolTest extends TestCase
 
     public function testExceptionShouldBeRaisedWhenConnectionHasTimedOut(): void
     {
-        $protocol = new class ('127.0.0.1', 8080) extends AbstractProtocol {
+        $protocol = new class('127.0.0.1', 8080) extends AbstractProtocol {
             use ProtocolTrait;
 
             public function connect(): void

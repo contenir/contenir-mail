@@ -151,7 +151,7 @@ class MboxFolderTest extends TestCase
 
         $this->assertEquals(
             $mail->getCurrentFolder(),
-            DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test'
+            DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test',
         );
     }
 
@@ -194,7 +194,7 @@ class MboxFolderTest extends TestCase
             DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test' => 'test',
             DIRECTORY_SEPARATOR . 'INBOX'                                    => 'INBOX',
         ];
-        $foundFolders  = [];
+        $foundFolders = [];
 
         foreach ($iterator as $localName => $folder) {
             if (! isset($searchFolders[$folder->getGlobalName()])) {
@@ -218,7 +218,7 @@ class MboxFolderTest extends TestCase
             DIRECTORY_SEPARATOR . 'subfolder' . DIRECTORY_SEPARATOR . 'test' => 'test',
             DIRECTORY_SEPARATOR . 'INBOX'                                    => 'INBOX',
         ];
-        $foundFolders  = [];
+        $foundFolders = [];
 
         foreach ($iterator as $localName => $folder) {
             if (! isset($searchFolders[$folder->getGlobalName()])) {
@@ -315,10 +315,10 @@ class MboxFolderTest extends TestCase
         chmod($this->params['dirname'] . 'subfolder', 0);
         clearstatcache();
         $statcheck = stat($this->params['dirname'] . 'subfolder');
-        if ($statcheck['mode'] % (8 * 8 * 8) !== 0) {
+        if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
             chmod($this->params['dirname'] . 'subfolder', $stat['mode']);
             $this->markTestSkipped(
-                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)'
+                'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
             return;
         }
@@ -328,6 +328,7 @@ class MboxFolderTest extends TestCase
             $mail = new Folder\Mbox($this->params);
         } catch (\Exception) {
             $check = true;
+
             // test ok
         }
 
