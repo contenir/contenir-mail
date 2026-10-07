@@ -13,7 +13,7 @@ The complete history of both repositories, back to 2009, is preserved here, so
 every contributor keeps their authorship in `git log` and `git blame`.
 
 - **Messages:** `Message`, `Headers` and the `Header\*` classes, `Address` and `AddressList`.
-- **MIME:** `Mime\Message`, `Mime\Part`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
+- **MIME:** `Mime\Part`, `Mime\Multipart`, `Mime\Attachment`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
 - **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`.
 - **Storage:** read and write `Mbox` and `Maildir`, and read over `Imap` and `Pop3`.
 
@@ -33,14 +33,16 @@ composer require contenir/contenir-mail
 
 ```php
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Attachment;
 use Contenir\Mail\Transport\Sendmail;
 
 $message = new Message();
-$message->setEncoding('UTF-8');
 $message->addFrom('sender@example.org', 'Sender');
 $message->addTo('recipient@example.com', 'Recipient');
 $message->setSubject('Hello');
-$message->setBody('This is the text of the e-mail.');
+$message->setText('This is the text of the e-mail.');
+$message->setHtml('<p>This is the text of the e-mail.</p>');
+$message->attach(Attachment::fromPath('/path/to/report.pdf'));
 
 (new Sendmail())->send($message);
 ```
@@ -89,7 +91,7 @@ message never affects the original.
 | `$message->getHeaders()->removeHeader('X-Id')` | `$message->removeHeader('X-Id')` |
 | `$headers->get('Received')` returning a header, an `ArrayIterator` or `false` | `$headers->get('Received')` (first or `null`) and `$headers->all('Received')` (list) |
 | `$headers->addHeader($h)` / `removeHeader($name)` | `$headers->with($h)` (replace), `withAdded($h)` (append), `without($name)` |
-| `$header->setEncoding('UTF-8')`, `$message->setEncoding('UTF-8')` for headers | Headers encode themselves: plain ASCII stays readable, anything else is RFC 2047 encoded as UTF-8. `Message::setEncoding()` now only names the body's character set |
+| `$header->setEncoding('UTF-8')`, `$message->setEncoding('UTF-8')` | Headers encode themselves: plain ASCII stays readable, anything else is RFC 2047 encoded as UTF-8. A body's character set is given with its text: `setText($text, 'ISO-8859-1')` |
 | `$header->getFieldValue(HeaderInterface::FORMAT_ENCODED)` | `$header->getEncodedFieldValue()` |
 | `new Subject(); $subject->setSubject('Hi')` and other setters | Constructors: `new Subject('Hi')`, `new ContentType('text/plain', ['charset' => 'UTF-8'])`, `new Date(new DateTimeImmutable())` |
 | `$contentType->addParameter('charset', 'UTF-8')` | `$contentType->withParameter('charset', 'UTF-8')` |
@@ -101,6 +103,26 @@ message never affects the original.
 | `Header\HeaderLocator::add()` / `remove()` | `new HeaderLocator(['x-name' => MyHeader::class])` or `->with()`, passed to `Headers::fromString()` |
 | `GenericMultiHeader`, `MultipleHeadersInterface`, `StructuredInterface`, `UnstructuredInterface` | Removed; `Headers` keeps repeated headers such as `Received` as separate entries |
 | `IdentificationField` | `AbstractIdentificationField` |
+
+### MIME bodies
+
+`Message` builds the MIME structure itself, choosing `multipart/alternative`,
+`related` and `mixed` as the parts require and adding `MIME-Version` and
+`Content-Type` with the boundary. MIME parts are immutable values.
+
+| laminas-mail and laminas-mime | contenir-mail |
+| --- | --- |
+| `new Mime\Message()`, `setParts()`, `$message->setBody($mimeMessage)` plus a hand-set `Content-Type` | `$message->setText()`, `setHtml()`, `attach()`, `embed()` |
+| A `Mime\Message` rendered into a `Mime\Part` to nest `multipart/alternative` | `new Multipart(MultipartType::Alternative, [...])`, nested directly |
+| `$part = new Part($c); $part->type = ...; $part->filename = ...` | `new Part($c, type: ..., filename: ...)`, `Part::text()`, `Part::html()` |
+| `Part` for an attachment, with disposition and encoding set by hand | `Attachment::fromPath()`, `fromString()`, `inline()` |
+| `Mime::DISPOSITION_*`, `Mime::ENCODING_*` strings on a part | `Disposition` and `TransferEncoding` enums |
+| `new Mime($boundary)`, `Mime\Message::setMime()` | `new Multipart($type, $parts, boundary: $boundary)` |
+| `Mime::boundary()`, `boundaryLine()`, `mimeEnd()`, `Mime\Message::generateMessage()` | `PartWriter::body($part)` |
+| `Mime\Message::createFromMessage()` | `Mime\Decode` and the storage classes, until parsing returns `PartInterface` trees |
+| `Part::isStream()`, `getEncodedStream()` | A stream given as content is read and encoded in chunks when the message is written |
+| `Message::getEncoding()` | Removed |
+| `Date` header from the current time | From an injected PSR-20 clock: `new Message(clock: $clock)` |
 
 Reading mail is more forgiving: a header that its class cannot parse, such as a
 malformed `Date`, is kept as a `GenericHeader` rather than making the whole
