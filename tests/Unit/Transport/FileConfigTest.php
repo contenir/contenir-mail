@@ -117,7 +117,7 @@ final class FileConfigTest extends TestCase
     public function rejectsCallbackThatIsNotCallable(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('option "callback" must be a callable, got string');
+        $this->expectExceptionMessage('option "callback" must be a Closure or an invokable object, got string');
 
         FileConfig::fromIterable(['callback' => 'not a function']);
     }

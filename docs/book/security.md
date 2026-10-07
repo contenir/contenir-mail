@@ -166,7 +166,7 @@ Zend Framework's.
 | CVE-2020-13625 (PHPMailer) | Unescaped quote in attachment names | Not exposed: `"` and `\` escaped |
 | CVE-2018-19296, CVE-2020-36326 (PHPMailer) | `phar://` attachment paths | Not exposed: local paths only |
 | CVE-2017-5223 (PHPMailer) | Local files attached through relative image paths | Not applicable: nothing is attached implicitly |
-| CVE-2021-3603 (PHPMailer) | A string naming a function used as a callable | **Partly exposed**: see open findings |
+| CVE-2021-3603 (PHPMailer) | A string naming a function used as a callable | Not exposed: settings accept only a Closure or an invokable object (`refusesCallableGivenByNameAgainstFunctionInjection`) |
 | CVE-2021-3007 (laminas-http), CVE-2024-28859 (SwiftMailer) | Destructor gadgets reached through `unserialize()` | Protocols and storage refuse unserialize; one transport does not (see open findings) |
 | CVE-2023-51764/5/6 (SMTP smuggling) | Bare CR or LF ending DATA early | Not exposed: line endings normalised before dot-stuffing |
 | CVE-2011-0411 and "NO STARTTLS" (2021) | Pre-handshake bytes processed after TLS | Not exposed: buffered bytes refused |

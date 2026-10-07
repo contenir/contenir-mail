@@ -21,7 +21,7 @@ echo $transport->getLastFile();
 Key        | Argument   | Default                  | Meaning
 ---------- | ---------- | ------------------------ | -------
 `path`     | `path`     | the system temp directory | A writable local directory.
-`callback` | `callback` | a random name            | Called with the transport; returns the name of the next file.
+`callback` | `callback` | a random name            | A Closure or invokable object, called with the transport; returns the name of the next file. Function names are not accepted.
 
 The default name is `ContenirMail_<time>_<16 random hex digits>.eml`.
 

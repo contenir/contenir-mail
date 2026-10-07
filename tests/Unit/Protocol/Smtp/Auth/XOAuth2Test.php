@@ -233,7 +233,9 @@ final class XOAuth2Test extends TestCase
     public function rejectsTokenSettingThatIsNeitherStringNorCallable(): void
     {
         $this->expectException(MailInvalidArgumentException::class);
-        $this->expectExceptionMessage('option "access_token" must be a string or a callable, got array');
+        $this->expectExceptionMessage(
+            'option "access_token" must be a string, a Closure or an invokable object, got array',
+        );
 
         XOAuth2::fromIterable(['username' => 'jo@example.com', 'access_token' => ['not', 'callable']]);
     }

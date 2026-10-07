@@ -33,7 +33,7 @@ $transport = new Smtp(new SmtpConfig(
 ```
 
 Access tokens expire. For a long-running worker, pass a Closure instead of the
-token, or a callable under `access_token`. It is called for a fresh token at
+token, or a Closure or invokable object under `access_token`. It is called for a fresh token at
 each AUTH:
 
 ```php

@@ -13,10 +13,11 @@ use function get_debug_type;
 use function implode;
 use function in_array;
 use function is_bool;
-use function is_callable;
 use function is_int;
 use function is_iterable;
+use function is_object;
 use function is_string;
+use function method_exists;
 use function preg_match;
 use function preg_replace;
 use function preg_split;
@@ -215,11 +216,11 @@ final readonly class ConfigReader
     }
 
     /**
-     * A string, or a callable as a Closure, such as a secret or a function that returns it.
+     * A string, or a Closure or invokable object, such as a secret or a function that returns it.
      *
      * A string is always read as a string, never as the name of a function to call.
      *
-     * @throws Exception\InvalidArgumentException When the value is neither a string nor callable.
+     * @throws Exception\InvalidArgumentException When the value is neither a string, a Closure nor an invokable object.
      */
     public function stringOrCallable(string $key): string|Closure|null
     {
@@ -228,17 +229,19 @@ final readonly class ConfigReader
             return $value;
         }
 
-        if (! is_callable($value)) {
-            throw $this->invalid($key, 'a string or a callable', $value);
-        }
-
-        return Closure::fromCallable($value);
+        return (
+            self::closure($value) ?? throw $this->invalid($key, 'a string, a Closure or an invokable object', $value)
+        );
     }
 
     /**
-     * A callable, as a Closure.
+     * A Closure or an invokable object, as a Closure.
      *
-     * @throws Exception\InvalidArgumentException When the value is not callable.
+     * Function names and [class, method] arrays are refused, so settings
+     * stored as data can never name a function for the library to call
+     * (the class of PHPMailer's CVE-2021-3603).
+     *
+     * @throws Exception\InvalidArgumentException When the value is neither a Closure nor an invokable object.
      */
     public function callable(string $key): ?Closure
     {
@@ -247,11 +250,7 @@ final readonly class ConfigReader
             return null;
         }
 
-        if (! is_callable($value)) {
-            throw $this->invalid($key, 'a callable', $value);
-        }
-
-        return Closure::fromCallable($value);
+        return self::closure($value) ?? throw $this->invalid($key, 'a Closure or an invokable object', $value);
     }
 
     /**
@@ -352,6 +351,11 @@ final readonly class ConfigReader
         }
 
         return $this->list($key, $value, 'a string or a list of strings');
+    }
+
+    private static function closure(mixed $value): ?Closure
+    {
+        return is_object($value) && method_exists($value, method: '__invoke') ? $value->__invoke(...) : null;
     }
 
     private static function normalise(string $key): string
