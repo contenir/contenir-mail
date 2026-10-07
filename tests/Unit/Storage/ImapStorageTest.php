@@ -78,7 +78,7 @@ final class ImapStorageTest extends TestCase
     private function protocol(): Protocol\Imap&MockObject
     {
         $protocol = $this->createMock(Protocol\Imap::class);
-        $protocol->method('select')->willReturn(true);
+        $protocol->method('select')->willReturn([]);
 
         return $protocol;
     }
@@ -246,6 +246,18 @@ final class ImapStorageTest extends TestCase
         $protocol->method('search')->with(['ALL'])->willReturn([1, 2, 3]);
 
         static::assertSame(3, $this->imap($protocol)->countMessages());
+    }
+
+    #[Test]
+    public function reportsRefusedSearch(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('search')->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The server refused the search');
+
+        $this->imap($protocol)->countMessages();
     }
 
     #[DataProvider('searchProvider')]
@@ -471,7 +483,7 @@ final class ImapStorageTest extends TestCase
     public function keepsTheConnectionAlive(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('noop')->willReturn(true);
+        $protocol->expects($this->once())->method('noop')->willReturn([]);
 
         $this->imap($protocol)->noop();
     }
@@ -560,7 +572,7 @@ final class ImapStorageTest extends TestCase
     public function reportsFolderThatCannotBeSelected(): void
     {
         $protocol = $this->createStub(Protocol\Imap::class);
-        $protocol->method('select')->willReturnMap([['INBOX', true], ['Missing', false]]);
+        $protocol->method('select')->willReturnMap([['INBOX', ['exists' => '1']], ['Missing', false]]);
         $imap = new Imap($protocol);
 
         $this->expectException(RuntimeException::class);

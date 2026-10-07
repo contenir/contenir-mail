@@ -161,7 +161,7 @@ final class Pop3StorageTest extends TestCase
     public function measuresMessage(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('getList')->with(2)->willReturn('120');
+        $protocol->method('getList')->with(2)->willReturn(120);
 
         static::assertSame(120, $this->pop3($protocol)->getSize(2));
     }
@@ -179,9 +179,9 @@ final class Pop3StorageTest extends TestCase
     public function measuresEveryMessage(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('getList')->willReturn([1 => 10, '2' => '20', 3 => []]);
+        $protocol->method('getList')->willReturn([1 => 10, 2 => 20]);
 
-        static::assertSame([1 => 10, 2 => 20, 3 => 0], $this->pop3($protocol)->getSizes());
+        static::assertSame([1 => 10, 2 => 20], $this->pop3($protocol)->getSizes());
     }
 
     #[Test]
@@ -312,9 +312,9 @@ final class Pop3StorageTest extends TestCase
     public function listsUniqueIds(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('uniqueid')->willReturn([1 => 'abc', '2' => 'def', 3 => []]);
+        $protocol->method('uniqueid')->willReturn([1 => 'abc', 2 => 'def']);
 
-        static::assertSame([1 => 'abc', 2 => 'def', 3 => ''], $this->pop3($protocol)->getUniqueIds());
+        static::assertSame([1 => 'abc', 2 => 'def'], $this->pop3($protocol)->getUniqueIds());
     }
 
     #[Test]

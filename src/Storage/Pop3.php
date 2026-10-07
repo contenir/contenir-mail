@@ -11,8 +11,8 @@ use Override;
 use SensitiveParameter;
 
 use function is_array;
+use function is_int;
 use function is_iterable;
-use function is_scalar;
 use function is_string;
 
 /**
@@ -25,7 +25,6 @@ use function is_string;
  *
  * @mago-expect lint:too-many-methods The AbstractStorage operations.
  * @mago-expect lint:cyclomatic-complexity Each AbstractStorage operation checks the server's untyped answer.
- * @mago-expect analysis:mixed-assignment The protocol returns server data untyped; it is typed here.
  *
  * @api
  */
@@ -98,7 +97,7 @@ final class Pop3 extends AbstractStorage
     {
         $size = $this->protocol->getList(self::checkNumber($id));
 
-        return is_scalar($size) ? (int) $size : 0;
+        return is_int($size) ? $size : 0;
     }
 
     /**
@@ -107,13 +106,9 @@ final class Pop3 extends AbstractStorage
     #[Override]
     public function getSizes(): array
     {
-        $sizes = [];
-        $list  = $this->protocol->getList();
-        foreach (is_array($list) ? $list : [] as $id => $size) {
-            $sizes[(int) $id] = is_scalar($size) ? (int) $size : 0;
-        }
+        $sizes = $this->protocol->getList();
 
-        return $sizes;
+        return is_array($sizes) ? $sizes : [];
     }
 
     /**
@@ -225,11 +220,8 @@ final class Pop3 extends AbstractStorage
         }
 
         $uids = $this->protocol->uniqueid();
-        foreach (is_array($uids) ? $uids : [] as $id => $uid) {
-            $ids[(int) $id] = is_scalar($uid) ? (string) $uid : '';
-        }
 
-        return $ids;
+        return is_array($uids) ? $uids : [];
     }
 
     /**

@@ -200,7 +200,7 @@ final class SmtpSocketTest extends TestCase
         );
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('cannot connect to host');
+        $this->expectExceptionMessage('Cannot connect to 127.0.0.1:');
 
         $smtp->connect();
     }
