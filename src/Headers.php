@@ -75,6 +75,16 @@ class Headers implements Countable, Iterator
     protected $encoding = 'ASCII';
 
     /**
+     * Clone each header, so the copy can be changed without touching the original.
+     */
+    public function __clone(): void
+    {
+        foreach ($this->headers as $index => $header) {
+            $this->headers[$index] = clone $header;
+        }
+    }
+
+    /**
      * Populates headers from string representation
      *
      * Parses a string for headers, and aggregates them, in order, in the

@@ -33,7 +33,7 @@ class Message
      */
     protected $body;
 
-    /** @var Headers */
+    /** @var null|Headers */
     protected $headers;
 
     /**
@@ -85,6 +85,16 @@ class Message
     }
 
     /**
+     * Give the clone its own headers, so changing one message leaves the other alone.
+     */
+    public function __clone(): void
+    {
+        if (null !== $this->headers) {
+            $this->headers = clone $this->headers;
+        }
+    }
+
+    /**
      * Compose headers
      *
      * @return Message
@@ -105,12 +115,13 @@ class Message
      */
     public function getHeaders()
     {
-        if (null === $this->headers) {
-            $this->setHeaders(new Headers());
-            $date = Header\Date::fromString('Date: ' . date('r'));
-            $this->headers->addHeader($date);
+        $headers = $this->headers;
+        if (null === $headers) {
+            $headers = new Headers();
+            $this->setHeaders($headers);
+            $headers->addHeader(Header\Date::fromString('Date: ' . date('r')));
         }
-        return $this->headers;
+        return $headers;
     }
 
     /**
