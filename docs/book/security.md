@@ -14,7 +14,7 @@ under mutation testing at 100% covered-code MSI, so a test that stopped guarding
 its protection would fail CI.
 
 This document describes the state of the code reviewed on 8 October 2026
-(commit `1ad388a3`). To report a vulnerability, see
+(commit `1ad388a3`) and the fixes made after that review. To report a vulnerability, see
 [SECURITY.md](../../SECURITY.md).
 
 ## Threat model
@@ -176,23 +176,21 @@ Zend Framework's.
 | Mailsploit (2017) | Encoded words decoding to controls or addresses | Not exposed: structure parsed first, controls refused, addr-spec never decoded |
 | "Splitting the email atom" (2024) | Encoded words and legacy syntax inside addresses | Not exposed: addr-spec never decoded; obsolete routes are not parsed as addresses |
 
-## Open findings
+## Findings from the review
 
-These were found in this review and are not yet fixed. None is exploitable
-without control of the configuration or an unpatched system library.
+The review of 8 October 2026 found five issues and one regression. All are
+fixed, each with a regression test.
 
-| # | Severity | Finding | Recommendation |
-| --- | --- | --- | --- |
-| 1 | Medium | `ConfigReader::callable()` and `stringOrCallable()` accept anything `is_callable()` does, including a string naming a function and a `[class, method]` array. Where configuration is stored somewhere less trusted than code, a setting such as FileConfig's `callback` can name any function or static method, which is then called with library objects. This is the class of PHPMailer CVE-2021-3603. | Accept only `Closure` and invokable objects. |
-| 2 | Low (system-dependent) | Encoded-word charsets come from the message and are passed to `iconv()`. On systems with an unpatched glibc (2.39 and earlier), ISO-2022-CN-EXT can overflow (CVE-2024-2961). | Decode only an allow-list of charsets, leaving others as they are. |
-| 3 | Low | `Transport\Smtp` can be unserialized, and its destructor then runs on an uninitialised object. It does nothing harmful today, but transports with destructors should refuse unserialize as protocols do. | Throw from `__unserialize()` in `Transport\Smtp`, as the protocol classes do. |
-| 4 | Low | `SendmailProcess` waits for sendmail with no time limit, so a hung sendmail blocks the worker. The message is briefly held in a 0600 temporary file. | Add a configurable timeout and terminate the process when it passes. |
-| 5 | Low | `Utf8::scrub()` maps a closure over every character: a hostile 1 MiB header value costs about 0.7 s and 31 MB. Header limits bound it. | Replace invalid sequences with one regular expression. |
+| # | Severity | Finding | Fix | Evidence |
+| --- | --- | --- | --- | --- |
+| 1 | Medium | Callable settings accepted a function name or `[class, method]` array, so stored settings could name any function to call (the class of PHPMailer's CVE-2021-3603). | Only a `Closure` or an invokable object is accepted. | `refusesCallableGivenByNameAgainstFunctionInjection` |
+| 2 | Low | Charsets named by a message reached `iconv()`, including glibc's ISO-2022-CN-EXT (CVE-2024-2961). | Only charsets mail is written in are converted. | `leavesTextInOtherCharsetsAsItIsAgainstConverterAbuse` |
+| 3 | Low | `Transport\Smtp` could be unserialized, reaching its destructor. | It refuses serialize and unserialize, as the protocols do. | `refusesToUnserializeSoACraftedPayloadNeverReachesTheDestructor` |
+| 4 | Low | A hung sendmail program blocked the worker forever. | It is stopped after a timeout, 60 seconds by default. | `stopsProgramThatRunsLongerThanTheTimeout` |
+| 5 | Low | Scrubbing invalid UTF-8 cost about 0.7 s per hostile MiB. | Scrubbed by run in slices, falling back by character at PCRE's limits; 1 MiB now takes milliseconds. | `Utf8ScrubTest` |
+| – | Regression | A `Message` could not be serialized for queues. | Headers and parts serialize; original header text is kept only when it is one well-formed line for its header. | `HeadersSerializationTest`, `MessageSerializationTest` |
 
-One functional issue was found alongside these: a `Message` cannot be
-serialized, because `Headers` keeps original wire text in a `WeakMap`. laminas-mail
-messages could be, and queue workers rely on it. `Headers` should serialize its
-headers and their wire text explicitly.
+There are no known open findings.
 
 ## What was not tested
 

@@ -2,7 +2,7 @@
 
 This page lists the standards contenir-mail implements and how closely it
 follows each one. Verdicts were checked against the code reviewed on 8 October
-2026 (commit `1ad388a3`). Behaviour was checked with tests where they exist and with
+2026 (commit `1ad388a3`, with the fixes made after it). Behaviour was checked with tests where they exist and with
 probe scripts where they do not; rows without a test say so.
 
 **Verdicts:**
@@ -12,7 +12,7 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 74 requirements below, 53 conform, 11 are
+Summary: of the 74 requirements below, 58 conform, 6 are
 partial, 2 deviate by design, and 8 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
@@ -26,10 +26,10 @@ implemented. The gaps to close are listed at the end.
 | §3.2 Quoted strings, quoted pairs and comments | Conforms | Display names quoted and escaped; comments read after addresses. `quotesAndEscapesDisplayNameContainingSpecials`, `AddressListDisplayNameTest` |
 | §3.3 Date and time, including obsolete forms on reading | Conforms | Written as `Wed, 07 Oct 2026 22:42:23 +0000` from a PSR-20 clock; two-digit years, named zones and trailing comments are read. `takesDefaultDateFromClock` |
 | §3.4 Addresses and groups | Partial | Groups are read, but the group name is not kept: `Team: a@x, b@x;` reads as two addresses. No group can be written. |
-| §3.6 Field counts: one Date, one From, at most one Subject, Sender, Reply-To, To, Cc, Bcc, Message-ID (MUST) | Partial | The `set*()` methods replace, but `addHeader()` and `Headers::withAdded()` accept a second Subject or Date. Reading keeps duplicates, which §4 permits. |
+| §3.6 Field counts: one Date, one From, at most one Subject, Sender, Reply-To, To, Cc, Bcc, Message-ID (MUST) | Conforms | `addHeader()` refuses a second unique header; `set*()` replace. Reading keeps duplicates, which §4 permits. `refusesSecondUniqueHeader` |
 | §3.6.1 Date and From required | Partial | `Date` is added by default; `isValid()` requires From. Nothing stops a message without From being sent. |
-| §3.6.2 Sender required when there are several From addresses (MUST) | Partial | A Sender can be set, but it is not required: `isValid()` accepts two From addresses without one. |
-| §3.6.4 Message-ID (SHOULD) | Partial | `MessageId::generate()` produces a valid ID on a reserved domain, but `Message` does not add one by default. |
+| §3.6.2 Sender required when there are several From addresses (MUST) | Conforms | The first From address is written as Sender when none is set. `namesFirstAuthorAsSenderWhenThereAreSeveral` |
+| §3.6.4 Message-ID (SHOULD) | Conforms | A new message gets one on its sender's domain; parsed messages keep what they had. `generatesMessageIdOnTheSendersDomain` |
 | §4 Obsolete syntax accepted on reading | Partial | Folding, dates, zones and quoted pairs are read. An obsolete source route (`<@relay:user@host>`) is kept as a generic header instead of an address. |
 | RFC 6854 Groups in From and Sender | Partial | Read as their addresses; group names are not kept. |
 
@@ -43,7 +43,7 @@ implemented. The gaps to close are listed at the end.
 | RFC 2045 §6.7 Quoted-printable: lines at most 76, hard line breaks for text, trailing white space encoded | Conforms | Probed: longest line 75. `encodesTextLineBreaksAsHardLineBreaks`, `keepsTrailingSpaceAtEndOfQuotedPrintable`, `doesNotBreakAQuotedPrintableOctetAcrossLines` |
 | RFC 2045 §6.8 Base64 lines at most 76 | Conforms | 72-character lines. `PartTest` stream and string cases |
 | RFC 2046 §5.1.1 Boundary grammar, 1 to 70 characters | Conforms | `MultipartTest`, `acceptsBoundaryOfTheLengthLimit`, `refusesEmptyBoundary` |
-| RFC 2046 §5.1.1 Boundary must not occur in any part (MUST) | Partial | A generated boundary starts `=_`, which base64 and quoted-printable never produce. An explicit boundary, or a 7bit, 8bit or binary part, is not checked for collisions. |
+| RFC 2046 §5.1.1 Boundary must not occur in any part (MUST) | Conforms | A part with a line starting with the boundary is refused. `refusesPartContainingItsBoundary` |
 | RFC 2046 §5.1.1 Preamble and epilogue | Conforms | A preamble for non-MIME readers is written; epilogues are read and ignored. |
 | RFC 2046 §5.1 Nesting | Conforms | Mixed, alternative and related nest to any depth when writing; reading limits depth to 32. `refusesPartsNestedTooDeeply` |
 | RFC 2047 §2 Encoded words at most 75 characters | Conforms | Probed: longest 72. `keepsQuotedPrintableHeaderLinesWithinTheLength` |
@@ -83,7 +83,7 @@ implemented. The gaps to close are listed at the end.
 | RFC 8314 Implicit TLS on port 465 | Conforms | `Security::Tls`. |
 | RFC 8314 §3 Prefer implicit TLS for submission (SHOULD) | Deviates | STARTTLS on 587 is the default because it is the most widely deployed; it is required, never opportunistic, and implicit TLS is one setting away. |
 | RFC 1870 SIZE | Conforms | Declared, and an oversized message refused before sending. `declaresMessageSize`, `refusesMessageLargerThanServerAccepts` |
-| RFC 6152 8BITMIME | Partial | `BODY=8BITMIME` is declared when the server offers it. An 8-bit body is still sent to a server that does not; it should be refused or re-encoded. Text and HTML are quoted-printable by default, so only raw and 8bit bodies are affected. `declaresEightBitBody` |
+| RFC 6152 8BITMIME | Conforms | `BODY=8BITMIME` is declared when the server offers it, and 8-bit content is refused when it does not. `declaresEightBitBody`, `refusesEightBitBodyWithoutEightBitMime` |
 | RFC 2920 PIPELINING | Not implemented | Commands are sent one at a time. |
 | RFC 3030 CHUNKING and BINARYMIME | Not implemented | |
 | RFC 3461 Delivery status notifications | Not implemented | |
@@ -147,11 +147,7 @@ These need real servers or mail clients and were not tested:
 
 | Priority | Gap | Size |
 | --- | --- | --- |
-| 1 | Require a Sender when there are several From addresses, and refuse a second Date, From, Sender, Subject, To, Cc, Bcc, Reply-To or Message-ID when composing (RFC 5322 §3.6) | Small |
-| 2 | Refuse or re-encode an 8-bit body when the server does not offer 8BITMIME (RFC 6152) | Small |
-| 3 | Add a Message-ID by default, on the sender's domain (RFC 5322 §3.6.4) | Small |
-| 4 | Check explicit boundaries, and 7bit, 8bit and binary parts, for boundary collisions (RFC 2046) | Small |
-| 5 | Keep group names when reading, and allow groups when writing (RFC 5322 §3.4, RFC 6854) | Medium |
-| 6 | Read obsolete source routes as their address (RFC 5322 §4.4) | Small |
-| 7 | Honour `LOGINDISABLED` (RFC 3501) | Small |
-| 8 | PIPELINING, and IMAP4rev2 when servers need it | Large |
+| 1 | Keep group names when reading, and allow groups when writing (RFC 5322 §3.4, RFC 6854) | Medium |
+| 2 | Read obsolete source routes as their address (RFC 5322 §4.4) | Small |
+| 3 | Honour `LOGINDISABLED` (RFC 3501) | Small |
+| 4 | PIPELINING, and IMAP4rev2 when servers need it | Large |
