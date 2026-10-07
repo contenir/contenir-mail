@@ -12,6 +12,7 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Tests\Unit\TestAsset\OtherSecurity;
 use Contenir\Mail\Tests\Unit\TestAsset\Priority;
+use Contenir\Mail\Tests\Unit\TestAsset\UpperCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -562,9 +563,9 @@ final class ConfigReaderTest extends TestCase
     }
 
     #[Test]
-    public function readsCallableAsClosure(): void
+    public function readsInvokableObjectAsClosure(): void
     {
-        $callable = self::reader(['connection' => 'strtoupper'])->callable('connection');
+        $callable = self::reader(['connection' => new UpperCase()])->callable('connection');
 
         static::assertSame('ABC', null === $callable ? null : $callable('abc'));
     }
@@ -583,13 +584,33 @@ final class ConfigReaderTest extends TestCase
         static::assertNull(self::reader([])->callable('connection'));
     }
 
+    /**
+     * Settings stored as data must never name a function for the library to call (CVE-2021-3603 in PHPMailer).
+     */
     #[Test]
-    public function rejectsValueThatIsNotCallable(): void
+    #[DataProvider('namedCallableProvider')]
+    public function refusesCallableGivenByNameAgainstFunctionInjection(mixed $value, string $type): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Example: option "connection" must be a callable, got string');
+        $this->expectExceptionMessage(
+            "Example: option \"connection\" must be a Closure or an invokable object, got {$type}",
+        );
 
-        self::reader(['connection' => 'not a function'])->callable('connection');
+        self::reader(['connection' => $value])->callable('connection');
+    }
+
+    /**
+     * @return array<string, array{mixed, string}>
+     */
+    public static function namedCallableProvider(): array
+    {
+        return [
+            'function name'        => ['system', 'string'],
+            'static method name'   => [self::class . '::missingProvider', 'string'],
+            'class and method'     => [[self::class, 'missingProvider'], 'array'],
+            'not a function'       => ['not a function', 'string'],
+            'object not invokable' => [new stdClass(), 'stdClass'],
+        ];
     }
 
     /**
@@ -648,13 +669,19 @@ final class ConfigReaderTest extends TestCase
     }
 
     #[Test]
-    public function readsStringOrCallableCallableAsClosure(): void
+    public function readsStringOrCallableInvokableAsClosure(): void
     {
-        $callable = self::reader(['connection' => [self::class, 'missingProvider']])->stringOrCallable(
-            'connection',
-        );
+        $callable = self::reader(['connection' => new UpperCase()])->stringOrCallable('connection');
 
-        static::assertSame(self::missingProvider(), $callable instanceof Closure ? $callable() : null);
+        static::assertSame('TOKEN', $callable instanceof Closure ? $callable() : null);
+    }
+
+    #[Test]
+    public function keepsStringOrCallableClosure(): void
+    {
+        $closure = static fn(): string => 'token';
+
+        static::assertSame($closure, self::reader(['connection' => $closure])->stringOrCallable('connection'));
     }
 
     #[Test]
@@ -667,8 +694,10 @@ final class ConfigReaderTest extends TestCase
     public function rejectsValueThatIsNeitherStringNorCallable(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Example: option "connection" must be a string or a callable, got array');
+        $this->expectExceptionMessage(
+            'Example: option "connection" must be a string, a Closure or an invokable object, got array',
+        );
 
-        self::reader(['connection' => ['not', 'callable']])->stringOrCallable('connection');
+        self::reader(['connection' => [self::class, 'missingProvider']])->stringOrCallable('connection');
     }
 }
