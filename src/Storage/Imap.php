@@ -1,595 +1,439 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage;
 
-use Contenir\Mail;
+use Contenir\Mail\Message as ComposedMessage;
+use Contenir\Mail\Mime\Exception\RuntimeException as MimeException;
 use Contenir\Mail\Protocol;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
 use Override;
 use SensitiveParameter;
 
-use function array_key_exists;
-use function array_pop;
-use function array_push;
 use function count;
-use function in_array;
+use function is_array;
+use function is_iterable;
+use function is_scalar;
 use function is_string;
-use function ksort;
-use function str_starts_with;
-use function strrpos;
-use function substr;
 
 use const INF;
-use const SORT_STRING;
 
-class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\WritableInterface
+/**
+ * An IMAP mailbox: messages, flags and folders on the server.
+ *
+ * Headers and flags are fetched with the message; the body is fetched the
+ * first time content or parts are asked for. Message numbers are integers,
+ * and flags and folder names are checked before they reach the protocol, so
+ * no value can add to an IMAP command.
+ *
+ * @mago-expect lint:too-many-methods The AbstractStorage, FolderInterface and WritableInterface operations.
+ * @mago-expect lint:cyclomatic-complexity Each of the many interface operations checks the server's answer.
+ * @mago-expect lint:kan-defect Each of the many interface operations checks the server's answer.
+ * @mago-expect analysis:mixed-assignment The protocol returns server data untyped; it is typed here.
+ *
+ * @api
+ */
+final class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\WritableInterface
 {
-    // TODO: with an internal cache we could optimize this class, or create an extra class with
-    // such optimizations. Especially the various fetch calls could be combined to one cache call
+    private Protocol\Imap $protocol;
+
+    private string $currentFolder = '';
+
+    private string $delimiter = '';
 
     /**
-     * protocol handler
-     *
-     * @var null|Protocol\Imap
+     * @param ImapConfig|Protocol\Imap|iterable<mixed, mixed> $config Settings to connect and log in with, or a
+     *     protocol already connected and logged in.
+     * @param Protocol\Imap|null $protocol A protocol to connect with the settings, such as a subclass; a new one when null.
+     * @throws Exception\ExceptionInterface When logging in fails or the folder cannot be selected.
+     * @throws Protocol\Exception\ExceptionInterface When the connection fails.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    protected $protocol;
-
-    /**
-     * name of current folder
-     *
-     * @var string
-     */
-    protected $currentFolder = '';
-
-    /**
-     * IMAP folder delimiter character
-     *
-     * @var null|string
-     */
-    protected $delimiter;
-
-    /**
-     * IMAP flags to constants translation
-     *
-     * @var array
-     */
-    protected static $knownFlags = [
-        '\Passed'   => Mail\Storage::FLAG_PASSED,
-        '\Answered' => Mail\Storage::FLAG_ANSWERED,
-        '\Seen'     => Mail\Storage::FLAG_SEEN,
-        '\Unseen'   => Mail\Storage::FLAG_UNSEEN,
-        '\Deleted'  => Mail\Storage::FLAG_DELETED,
-        '\Draft'    => Mail\Storage::FLAG_DRAFT,
-        '\Flagged'  => Mail\Storage::FLAG_FLAGGED,
-    ];
-
-    /**
-     * IMAP flags to search criteria
-     *
-     * @var array
-     */
-    protected static $searchFlags = [
-        '\Recent'   => 'RECENT',
-        '\Answered' => 'ANSWERED',
-        '\Seen'     => 'SEEN',
-        '\Unseen'   => 'UNSEEN',
-        '\Deleted'  => 'DELETED',
-        '\Draft'    => 'DRAFT',
-        '\Flagged'  => 'FLAGGED',
-    ];
-
-    /**
-     * Count messages all messages in current box
-     *
-     * @param null $flags
-     * @throws Exception\RuntimeException
-     * @throws Protocol\Exception\RuntimeException
-     * @return int number of messages
-     */
-    #[Override]
-    public function countMessages($flags = null)
-    {
-        if (! $this->currentFolder) {
-            throw new Exception\RuntimeException('No selected folder to count');
-        }
-
-        if (null === $flags) {
-            return count($this->protocol->search(['ALL']));
-        }
-
-        $params = [];
-        foreach ((array) $flags as $flag) {
-            if (isset(static::$searchFlags[$flag])) {
-                $params[] = static::$searchFlags[$flag];
-            } else {
-                $params[] = 'KEYWORD';
-                $params[] = $this->protocol->escapeString($flag);
-            }
-        }
-        return count($this->protocol->search($params));
-    }
-
-    /**
-     * get a list of messages with number and size
-     *
-     * @param int $id number of message
-     * @return int|array size of given message of list with all messages as [num => size]
-     * @throws Protocol\Exception\RuntimeException
-     */
-    #[Override]
-    public function getSize($id = 0)
-    {
-        if ($id) {
-            return $this->protocol->fetch('RFC822.SIZE', $id);
-        }
-        return $this->protocol->fetch('RFC822.SIZE', 1, INF);
-    }
-
-    /**
-     * Fetch a message
-     *
-     * @param int $id number of message
-     * @return Message
-     * @throws Protocol\Exception\RuntimeException
-     */
-    #[Override]
-    public function getMessage($id)
-    {
-        $data   = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], $id);
-        $header = $data['RFC822.HEADER'];
-
-        $flags = [];
-        foreach ($data['FLAGS'] as $flag) {
-            $flags[] = static::$knownFlags[$flag] ?? $flag;
-        }
-
-        return new $this->messageClass(['handler' => $this, 'id' => $id, 'headers' => $header, 'flags' => $flags]);
-    }
-
-    /**
-     * Get raw header of message or part
-     *
-     * @param  int               $id       number of message
-     * @param  null|array|string $part     path to part or null for message header
-     * @param  int               $topLines include this many lines with header (after an empty line)
-     * @return string raw header
-     * @throws Exception\RuntimeException
-     * @throws Protocol\Exception\RuntimeException
-     */
-    #[Override]
-    public function getRawHeader($id, $part = null, $topLines = 0)
-    {
-        if (null !== $part) {
-            // TODO: implement
-            throw new Exception\RuntimeException('not implemented');
-        }
-
-        // TODO: toplines
-        return $this->protocol->fetch('RFC822.HEADER', $id);
-    }
-
-    /**
-     * Get raw content of message or part
-     *
-     * @param  int               $id   number of message
-     * @param  null|array|string $part path to part or null for message content
-     * @return string raw content
-     * @throws Protocol\Exception\RuntimeException
-     * @throws Exception\RuntimeException
-     */
-    #[Override]
-    public function getRawContent($id, $part = null)
-    {
-        if (null !== $part) {
-            // TODO: implement
-            throw new Exception\RuntimeException('not implemented');
-        }
-
-        return $this->protocol->fetch('RFC822.TEXT', $id);
-    }
-
-    /**
-     * create instance with parameters
-     *
-     * Supported parameters are
-     *
-     * - user username
-     * - host hostname or ip address of IMAP server [optional, default = 'localhost']
-     * - password password for user 'username' [optional, default = '']
-     * - port port for IMAP server [optional, default = 110]
-     * - ssl 'SSL' or 'TLS' for secure sockets
-     * - folder select this folder [optional, default = 'INBOX']
-     *
-     * @param  array|object|Protocol\Imap $params mail reader specific
-     *     parameters or configured Imap protocol object
-     * @throws Exception\RuntimeException
-     * @throws Exception\InvalidArgumentException
-     * @throws Protocol\Exception\RuntimeException
-     */
-    public function __construct(#[SensitiveParameter] $params)
-    {
-        $this->has['flags'] = true;
-
-        if ($params instanceof Protocol\Imap) {
-            $this->protocol = $params;
+    public function __construct(
+        #[SensitiveParameter]
+        ImapConfig|Protocol\Imap|iterable $config,
+        ?Protocol\Imap $protocol = null,
+    ) {
+        $this->has['flags']  = true;
+        $this->has['create'] = true;
+        $this->has['delete'] = true;
+        if ($config instanceof Protocol\Imap) {
+            $this->protocol = $config;
+            $this->open     = true;
             try {
                 $this->selectFolder('INBOX');
             } catch (Exception\ExceptionInterface $e) {
-                throw new Exception\RuntimeException('cannot select INBOX, is this a valid transport?', 0, $e);
+                throw new Exception\RuntimeException('Cannot select INBOX; is the protocol logged in?', 0, $e);
             }
+
             return;
         }
 
-        $params = ParamsNormalizer::normalizeParams($params);
-
-        if (! isset($params['user'])) {
-            throw new Exception\InvalidArgumentException('need at least user in params');
+        $config         = is_iterable($config) ? ImapConfig::fromIterable($config) : $config;
+        $this->protocol = $protocol ?? new Protocol\Imap();
+        $this->protocol->setNoValidateCert(! $config->connection->verifyPeer);
+        $this->protocol->connect(
+            $config->connection->host,
+            $config->connection->port,
+            RemoteConnection::legacySsl($config->connection->security),
+        );
+        $this->open = true;
+        if (! $this->protocol->login($config->user, $config->password)) {
+            throw new Exception\RuntimeException('Cannot log in: the user or password is wrong');
         }
 
-        $host     = $params['host'] ?? 'localhost';
-        $password = $params['password'] ?? '';
-        $port     = $params['port'] ?? null;
-        $ssl      = $params['ssl'] ?? false;
-        $folder   = $params['folder'] ?? 'INBOX';
-
-        if (null !== $port) {
-            $port = (int) $port;
-        }
-
-        if (! is_string($ssl)) {
-            $ssl = (bool) $ssl;
-        }
-
-        $this->protocol = new Protocol\Imap();
-
-        if (array_key_exists('novalidatecert', $params)) {
-            $this->protocol->setNoValidateCert((bool) $params['novalidatecert']);
-        }
-
-        $this->protocol->connect((string) $host, $port, $ssl);
-        if (! $this->protocol->login((string) $params['user'], (string) $password)) {
-            throw new Exception\RuntimeException('cannot login, user or password wrong');
-        }
-        $this->selectFolder((string) $folder);
+        $this->selectFolder($config->folder);
     }
 
     /**
-     * Close resource for mail lib.
-     *
-     * If you need to control, when the resource is closed. Otherwise the
-     * destructor would call this.
+     * @throws Exception\ExceptionInterface When no folder is selected or a flag is not valid.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function close()
+    public function countMessages(Flag|string ...$flags): int
     {
+        if ('' === $this->currentFolder) {
+            throw new Exception\RuntimeException('No folder is selected');
+        }
+
+        return count($this->protocol->search(ImapFlags::toSearch($flags, $this->escape(...))));
+    }
+
+    /**
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getSize(int $id): int
+    {
+        return (int) $this->fetchText('RFC822.SIZE', $id);
+    }
+
+    /**
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getSizes(): array
+    {
+        $sizes = [];
+        foreach ($this->fetchAll('RFC822.SIZE') as $id => $size) {
+            $sizes[$id] = (int) $size;
+        }
+
+        return $sizes;
+    }
+
+    /**
+     * The body is fetched when first read, and a failed fetch is thrown to that reader.
+     *
+     * @throws Exception\ExceptionInterface When the number is below 1 or the headers cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     *
+     * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
+     */
+    #[Override]
+    public function getMessage(int $id): Message
+    {
+        $data  = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], self::checkNumber($id));
+        $data  = is_array($data) ? $data : [];
+        $flags = [];
+        foreach (is_array($data['FLAGS'] ?? null) ? $data['FLAGS'] : [] as $flag) {
+            $flags[] = Flag::fromImap(is_scalar($flag) ? (string) $flag : '');
+        }
+
+        $header = $data['RFC822.HEADER'] ?? '';
+        [$headers] = MimeParser::split(Content::fromString(is_string($header) ? $header : ''));
+        $body = Content::lazy(fn(): string => $this->fetchText('RFC822.TEXT', $id));
+
+        return new Message(new Part($headers, $body), $flags);
+    }
+
+    /**
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getRawHeader(int $id): string
+    {
+        return $this->fetchText('RFC822.HEADER', $id);
+    }
+
+    /**
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getRawContent(int $id): string
+    {
+        return $this->fetchText('RFC822.TEXT', $id);
+    }
+
+    #[Override]
+    public function close(): void
+    {
+        if (! $this->open) {
+            return;
+        }
+
+        $this->open          = false;
         $this->currentFolder = '';
         $this->protocol->logout();
     }
 
     /**
-     * Keep the server busy.
-     *
-     * @throws Exception\RuntimeException
+     * @throws Exception\RuntimeException When the server does not answer.
      */
     #[Override]
-    public function noop()
+    public function noop(): void
     {
         if (! $this->protocol->noop()) {
-            throw new Exception\RuntimeException('could not do nothing');
+            throw new Exception\RuntimeException('The server did not answer NOOP');
         }
     }
 
     /**
-     * Remove a message from server.
+     * Flag a message deleted and expunge it.
      *
-     * If you're doing that from a web environment you should be careful and
-     * use a uniqueid as parameter if possible to identify the message.
-     *
-     * @param  int $id number of message
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the number is below 1 or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function removeMessage($id)
+    public function removeMessage(int $id): void
     {
-        if (! $this->protocol->store([Mail\Storage::FLAG_DELETED], $id, null, '+')) {
-            throw new Exception\RuntimeException('cannot set deleted flag');
+        if (! $this->protocol->store([Flag::Deleted->value], self::checkNumber($id), null, '+')) {
+            throw new Exception\RuntimeException('Cannot set the Deleted flag');
         }
-        // TODO: expunge here or at close? we can handle an error here better and are more fail safe
+
         if (! $this->protocol->expunge()) {
-            throw new Exception\RuntimeException('message marked as deleted, but could not expunge');
+            throw new Exception\RuntimeException('The message is flagged deleted, but could not be expunged');
         }
     }
 
     /**
-     * get unique id for one or all messages
-     *
-     * if storage does not support unique ids it's the same as the message
-     * number.
-     *
-     * @param int|null $id message number
-     * @return array|string message number for given message or all messages as array
-     * @throws Protocol\Exception\RuntimeException
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getUniqueId($id = null)
+    public function getUniqueId(int $id): string
     {
-        if ($id) {
-            return $this->protocol->fetch('UID', $id);
-        }
-
-        return $this->protocol->fetch('UID', 1, INF);
+        return $this->fetchText('UID', $id);
     }
 
     /**
-     * get a message number from a unique id
-     *
-     * I.e. if you have a webmailer that supports deleting messages you should
-     * use unique ids as parameter and use this method to translate it to
-     * message number right before calling removeMessage()
-     *
-     * @param string $id unique id
-     * @throws Exception\InvalidArgumentException
-     * @return int message number
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getNumberByUniqueId($id)
+    public function getUniqueIds(): array
     {
-        // TODO: use search to find number directly
-        $ids = $this->getUniqueId();
-        foreach ($ids as $k => $v) {
-            if ($v == $id) {
-                return $k;
+        return $this->fetchAll('UID');
+    }
+
+    /**
+     * @throws Exception\OutOfBoundsException When no message has that unique ID.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getNumberByUniqueId(string $id): int
+    {
+        foreach ($this->getUniqueIds() as $number => $uid) {
+            if ($uid === $id) {
+                return $number;
             }
         }
 
-        throw new Exception\InvalidArgumentException('unique id not found');
+        throw new Exception\OutOfBoundsException('Unique ID not found');
     }
 
     /**
-     * get root folder or given folder
-     *
-     * @param  string $rootFolder get folder structure for given folder, else root
-     * @throws Exception\RuntimeException
-     * @throws Exception\InvalidArgumentException
-     * @throws Protocol\Exception\RuntimeException
-     * @return Folder root or wanted folder
+     * @throws Exception\ExceptionInterface When the name is not valid or there is no such folder.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getFolders($rootFolder = null)
+    public function getFolders(?string $rootFolder = null): Folder
     {
-        $folders = $this->protocol->listMailbox((string) $rootFolder);
-        if (! $folders) {
-            throw new Exception\InvalidArgumentException('folder not found');
+        $folders = $this->protocol->listMailbox(RemoteFolder::checkOptional((string) $rootFolder));
+        if ([] === $folders) {
+            throw new Exception\InvalidArgumentException('Folder not found');
         }
 
-        ksort($folders, SORT_STRING);
-        $root         = new Folder('/', '/', false);
-        $stack        = [null];
-        $folderStack  = [null];
-        $parentFolder = $root;
-        $parent       = '';
-
-        foreach ($folders as $globalName => $data) {
-            do {
-                if (! $parent || str_starts_with($globalName, ! is_string($parent) ? (string) $parent : $parent)) {
-                    $pos = strrpos($globalName, (string) $data['delim']);
-                    if (false === $pos) {
-                        $localName = $globalName;
-                    } else {
-                        $localName = substr($globalName, $pos + 1);
-                    }
-                    $selectable = ! $data['flags'] || ! in_array('\\Noselect', $data['flags']);
-
-                    array_push($stack, $parent);
-                    $parent                   = $globalName . $data['delim'];
-                    $folder                   = new Folder($localName, $globalName, $selectable);
-                    $parentFolder->$localName = $folder;
-                    array_push($folderStack, $parentFolder);
-                    $parentFolder    = $folder;
-                    $this->delimiter = $data['delim'];
-                    break;
-                }
-
-                if ($stack) {
-                    $parent       = array_pop($stack);
-                    $parentFolder = array_pop($folderStack);
-                }
-            } while ($stack);
-            if (! $stack) {
-                throw new Exception\RuntimeException('error while constructing folder tree');
-            }
-        }
+        [$root, $delimiter] = ImapFolderTree::build($folders);
+        $this->delimiter = $delimiter ?? $this->delimiter;
 
         return $root;
     }
 
     /**
-     * select given folder
-     *
-     * folder must be selectable!
-     *
-     * @param  Folder|string $globalName global name of folder or instance for subfolder
-     * @throws Exception\RuntimeException
-     * @throws Protocol\Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the name is not valid or the server cannot select it.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function selectFolder($globalName)
+    public function selectFolder(Folder|string $globalName): void
     {
-        $this->currentFolder = (string) $globalName;
-        if (! $this->protocol->select($this->currentFolder)) {
-            $this->currentFolder = '';
-            throw new Exception\RuntimeException('cannot change folder, maybe it does not exist');
+        $name                = RemoteFolder::check((string) $globalName);
+        $this->currentFolder = '';
+        if (! $this->protocol->select($name)) {
+            throw new Exception\RuntimeException('Cannot select the folder; it may not exist');
         }
+
+        $this->currentFolder = $name;
     }
 
-    /**
-     * get Folder instance for current folder
-     *
-     * @return string instance of current folder
-     */
     #[Override]
-    public function getCurrentFolder()
+    public function getCurrentFolder(): string
     {
         return $this->currentFolder;
     }
 
     /**
-     * create a new folder
-     *
-     * This method also creates parent folders if necessary. Some mail storages
-     * may restrict, which folder may be used as parent or which chars may be
-     * used in the folder name
-     *
-     * @param string $name global name of folder, local name if $parentFolder
-     *     is set
-     * @param string|Folder $parentFolder parent folder for new folder, else
-     *     root folder is parent
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function createFolder($name, $parentFolder = null)
+    public function createFolder(string $name, Folder|string|null $parentFolder = null): void
     {
-        // TODO: we assume / as the hierarchy delim - need to get that from the folder class!
-        if ($parentFolder instanceof Folder) {
-            $folder = "{$parentFolder->getGlobalName()}/{$name}";
-        } elseif (null !== $parentFolder) {
-            $folder = "{$parentFolder}/{$name}";
-        } else {
-            $folder = $name;
-        }
-
-        if (! $this->protocol->create($folder)) {
-            throw new Exception\RuntimeException('cannot create folder');
+        $folder = null === $parentFolder ? $name : "{$parentFolder}{$this->delimiter()}{$name}";
+        if (! $this->protocol->create(RemoteFolder::check($folder))) {
+            throw new Exception\RuntimeException('Cannot create the folder');
         }
     }
 
     /**
-     * remove a folder
-     *
-     * @param  string|Folder $name name or instance of folder
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function removeFolder($name)
+    public function removeFolder(Folder|string $name): void
     {
-        if ($name instanceof Folder) {
-            $name = $name->getGlobalName();
-        }
-
-        if (! $this->protocol->delete($name)) {
-            throw new Exception\RuntimeException('cannot delete folder');
+        if (! $this->protocol->delete(RemoteFolder::check((string) $name))) {
+            throw new Exception\RuntimeException('Cannot delete the folder');
         }
     }
 
     /**
-     * rename and/or move folder
-     *
-     * The new name has the same restrictions as in createFolder()
-     *
-     * @param  string|Folder $oldName name or instance of folder
-     * @param  string $newName new global name of folder
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When a name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function renameFolder($oldName, $newName)
+    public function renameFolder(Folder|string $oldName, string $newName): void
     {
-        if ($oldName instanceof Folder) {
-            $oldName = $oldName->getGlobalName();
-        }
-
-        if (! $this->protocol->rename($oldName, $newName)) {
-            throw new Exception\RuntimeException('cannot rename folder');
+        if (! $this->protocol->rename(RemoteFolder::check((string) $oldName), RemoteFolder::check($newName))) {
+            throw new Exception\RuntimeException('Cannot rename the folder');
         }
     }
 
     /**
-     * append a new message to mail storage
-     *
-     * @param string $message message as string or instance of message class
-     * @param null|string|Folder $folder  folder for new message, else current
-     *     folder is taken
-     * @param null|array $flags set flags for new message, else a default set
-     *     is used
-     * @throws Exception\RuntimeException
+     * @param string|resource|Message|ComposedMessage $message
+     * @param iterable<Flag|string>|null $flags Seen when null.
+     * @throws Exception\ExceptionInterface When a flag or the folder is not valid, or the server refuses.
+     * @throws MimeException When a composed message cannot be written.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function appendMessage($message, $folder = null, $flags = null)
+    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): void
     {
-        if (null === $folder) {
-            $folder = $this->currentFolder;
-        }
-
-        if (null === $flags) {
-            $flags = [Mail\Storage::FLAG_SEEN];
-        }
-
-        // TODO: handle class instances for $message
-        if (! $this->protocol->append($folder, $message, $flags)) {
+        $folder = RemoteFolder::check((string) ($folder ?? $this->currentFolder));
+        $flags  = ImapFlags::toStore($flags ?? [Flag::Seen]);
+        if (! $this->protocol->append($folder, RawMessage::toString($message), $flags)) {
             throw new Exception\RuntimeException(
-                'cannot create message, please check if the folder exists and your flags',
+                'Cannot store the message; check that the folder exists and the flags',
             );
         }
     }
 
     /**
-     * copy an existing message
-     *
-     * @param int $id number of message
-     * @param string|Folder $folder name or instance of target folder
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function copyMessage($id, $folder)
+    public function copyMessage(int $id, Folder|string $folder): void
     {
-        if (! $this->protocol->copy($folder, $id)) {
-            throw new Exception\RuntimeException('cannot copy message, does the folder exist?');
+        if (! $this->protocol->copy(RemoteFolder::check((string) $folder), self::checkNumber($id))) {
+            throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?');
         }
     }
 
     /**
-     * move an existing message
+     * Copy, then remove: IMAP4rev1 has no MOVE.
      *
-     * NOTE: IMAP has no native move command, thus it's emulated with copy and delete
-     *
-     * @param int $id number of message
-     * @param string|Folder $folder name or instance of target folder
-     * @throws Exception\RuntimeException
+     * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function moveMessage($id, $folder)
+    public function moveMessage(int $id, Folder|string $folder): void
     {
         $this->copyMessage($id, $folder);
         $this->removeMessage($id);
     }
 
     /**
-     * set flags for message
-     *
-     * NOTE: this method can't set the recent flag.
-     *
-     * @param int $id number of message
-     * @param array $flags new flags for message
-     * @throws Exception\RuntimeException
+     * @param iterable<Flag|string> $flags
+     * @throws Exception\ExceptionInterface When the number or a flag is not valid, or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function setFlags($id, $flags)
+    public function setFlags(int $id, iterable $flags): void
     {
-        if (! $this->protocol->store($flags, $id)) {
-            throw new Exception\RuntimeException(
-                'cannot set flags, have you tried to set the recent flag or special chars?',
-            );
+        if (! $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id))) {
+            throw new Exception\RuntimeException('Cannot set the flags');
         }
     }
 
     /**
-     * get IMAP delimiter
+     * The server's folder delimiter, asked for once; empty when the server has none.
      *
-     * @return string|null
+     * @throws Exception\ExceptionInterface When the folders cannot be listed.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function delimiter()
+    public function delimiter(): string
     {
-        if (! isset($this->delimiter)) {
+        if ('' === $this->delimiter) {
             $this->getFolders();
         }
+
         return $this->delimiter;
+    }
+
+    /**
+     * One item of one message, as text.
+     *
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    private function fetchText(string $item, int $id): string
+    {
+        $value = $this->protocol->fetch($item, self::checkNumber($id));
+
+        return is_string($value) ? $value : '';
+    }
+
+    /**
+     * One item of every message, by message number.
+     *
+     * @return array<int, string>
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     *
+     * @mago-expect analysis:possibly-invalid-argument Protocol\Imap::fetch() takes INF for "up to the last message".
+     */
+    private function fetchAll(string $item): array
+    {
+        $values = $this->protocol->fetch($item, 1, INF);
+        $result = [];
+        foreach (is_array($values) ? $values : [] as $id => $value) {
+            $result[(int) $id] = is_scalar($value) ? (string) $value : '';
+        }
+
+        return $result;
+    }
+
+    /**
+     * A keyword as an IMAP string, quoted or as a literal.
+     */
+    private function escape(string $text): string
+    {
+        $escaped = $this->protocol->escapeString($text);
+
+        return is_string($escaped) ? $escaped : '';
     }
 }
