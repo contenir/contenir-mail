@@ -1,128 +1,116 @@
 # SMTP Transport Options
 
-This document details the various options available to the
-`Contenir\Mail\Transport\Smtp` mail transport.
-
-## Quick Start
-
-### Basic SMTP Transport Usage
+`Contenir\Mail\Transport\Smtp` keeps its settings in a
+`Contenir\Mail\Transport\SmtpConfig`. Build one with named arguments, or give the
+transport an array with the same settings in snake_case.
 
 ```php
-use Contenir\Mail\Transport\Smtp as SmtpTransport;
-use Contenir\Mail\Transport\SmtpOptions;
+use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Transport\Smtp;
+use Contenir\Mail\Transport\SmtpConfig;
 
-// Setup SMTP transport
-$transport = new SmtpTransport();
-$options   = new SmtpOptions([
-    'name' => 'localhost.localdomain',
-    'host' => '127.0.0.1',
-    'port' => 25,
-]);
-$transport->setOptions($options);
+$transport = new Smtp(new SmtpConfig(
+    host: 'smtp.example.com',
+    port: 587,
+    security: Security::StartTls,
+    name: 'app.example.com',
+));
+
+$transport = new Smtp(SmtpConfig::fromIterable([
+    'host'     => 'smtp.example.com',
+    'port'     => '587',
+    'security' => 'starttls',
+    'name'     => 'app.example.com',
+]));
 ```
 
-If you require authentication, see the section on [SMTP authentication](smtp-authentication.md#examples)
-for examples of configuring authentication credentials.
+## Settings
 
-## Configuration Options
+Key                     | Argument              | Default        | Meaning
+----------------------- | --------------------- | -------------- | -------
+`host`                  | `host`                | `127.0.0.1`    | The server's host name or address.
+`port`                  | `port`                | 25, or 465 for `tls` | The server's port.
+`security`              | `security`            | `starttls`     | `starttls`: upgrade a plain connection, and refuse a server that cannot. `tls`: TLS from the start. `none`: no encryption.
+`verify_peer`           | `verifyPeer`          | `true`         | Verify the server's certificate and name. Turn it off only for a test server.
+`timeout`               | `timeout`             | `30`           | Seconds to wait for the connection.
+`name`                  | `name`                | `localhost`    | The client's own host name, sent with EHLO.
+`auth`                  | `auth`                | none           | An authenticator, or settings such as `['type' => 'login', 'username' => ..., 'password' => ...]`. See [SMTP authentication](smtp-authentication.md).
+`allow_insecure_auth`   | `allowInsecureAuth`   | `false`        | Allow `auth` with `security` set to `none`.
+`connection_time_limit` | `connectionTimeLimit` | none           | Seconds after which the transport opens a new connection rather than reusing it; QUIT is then not sent.
+`use_complete_quit`     | `useCompleteQuit`     | `true`         | Send QUIT before closing the connection.
 
-Option name         | Description
-------------------- | -----------
-`name`              | Name of the SMTP host; defaults to "localhost".
-`host`              | Remote hostname or IP address; defaults to "127.0.0.1".
-`port`              | Port on which the remote host is listening; defaults to "25".
-`connection_class`  | Short name (`smtp`, `plain`, `login`, `crammd5`, `xoauth2`) or class name of the connection; other classes need a custom `Contenir\Mail\Protocol\SmtpPluginManager`. See the [SMTP authentication](smtp-authentication.md#connection_class) documentation for details.
-`connection_config` | Optional associative array of parameters to pass to the connection class in order to configure it. By default, this is empty. See the [SMTP authentication](smtp-authentication.md#connection_config) documentation for details.
+The connection settings are also available on their own as
+`SmtpConfig::$connection`, a `Contenir\Mail\Protocol\ConnectionConfig`.
+`SmtpConfig::DEFAULT_SECURITY` holds the default security.
 
-## Available Methods
+## What the session checks
 
-### getName
+- **TLS.** With `starttls` the transport asks for STARTTLS after EHLO and fails if
+  the server does not list it, refuses it, or sends anything after agreeing to it
+  (text sent then could have been injected by an attacker). TLS 1.2 or later is
+  required, the certificate is verified, and EHLO is sent again over TLS so that
+  nothing learned before encryption is trusted.
+- **Credentials** are only sent over TLS, unless `allow_insecure_auth` is set, and
+  only with a mechanism the server lists. Lines carrying credentials appear in
+  `getLog()` and `getRequest()` as `[credentials hidden]`.
+- **Commands.** Every command argument (envelope addresses, the EHLO name, VRFY)
+  is refused if it contains CR, LF or NUL; envelope addresses also may not contain
+  `<`, `>` or spaces outside a quoted local part.
+- **Message text.** Bare CR and LF become CRLF and a line starting with `.` is
+  doubled, so the text can never end the DATA section early (SMTP smuggling). The
+  message is not otherwise changed: a line longer than 998 bytes throws, since
+  folding it would alter the content and break DKIM signatures. Text and HTML
+  parts are quoted-printable, which keeps their lines short.
+- **Extensions.** The EHLO reply is read into capabilities. The message size is
+  declared with `SIZE`, and a message larger than the server's limit is refused
+  before it is sent. `BODY=8BITMIME` is declared for 8-bit content when the
+  server supports it, and `SMTPUTF8` for addresses that are not ASCII, which
+  throw if the server does not support it.
+- **Replies** are limited to 100 lines, and a malformed reply line throws.
+
+## Methods
 
 ```php
-getName() : string
+__construct(SmtpConfig|iterable|null $config = null, ClockInterface $clock = new SystemClock())
+getConfig(): SmtpConfig
+send(Message $message): void
+setEnvelope(?Envelope $envelope): void
+getEnvelope(): ?Envelope
+setConnection(Protocol\Smtp $connection): void
+getConnection(): ?Protocol\Smtp
+disconnect(): void
+setAutoDisconnect(bool $flag): void
+getAutoDisconnect(): bool
 ```
 
-Returns the string name of the local client hostname.
+### Envelope
 
-### setName
+The envelope sender and recipients come from the message: its Sender, or else its
+first From address, and its To, Cc and Bcc addresses. An `Envelope` replaces
+either:
 
 ```php
-setName(string $name) : void
+use Contenir\Mail\Transport\Envelope;
+
+$transport->setEnvelope(new Envelope(from: 'bounces@example.com', to: ['archive@example.com']));
 ```
 
-Set the string name of the local client hostname.
+Envelope addresses are validated when the envelope is made.
 
-### getConnectionClass
+## The protocol
+
+`Contenir\Mail\Protocol\Smtp` is the session underneath. It takes a
+`ConnectionConfig`, or the laminas-mail arguments:
 
 ```php
-getConnectionClass() : string
+use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Smtp;
+
+$smtp = new Smtp(new ConnectionConfig('smtp.example.com'), authenticator: $login);
+$smtp = new Smtp('smtp.example.com', 587, ['ssl' => 'tls']);   // laminas-mail form
 ```
 
-Returns a string indicating the connection class name to use.
-
-### setConnectionClass
-
-```php
-setConnectionClass(string $connectionClass) : void
-```
-
-Set the connection class to use.
-
-### getConnectionConfig
-
-```php
-getConnectionConfig() : array
-```
-
-Get configuration for the connection class.
-
-### setConnectionConfig
-
-```php
-setConnectionConfig(array $config) : void
-```
-
-Set configuration for the connection class. Typically, if using anything other
-than the default connection class, this will be an associative array with the
-keys "username" and "password".
-
-### getHost
-
-```php
-getHost() : string
-```
-
-Returns a string indicating the IP address or host name of the SMTP server via
-which to send messages.
-
-### setHost
-
-```php
-setHost(string $host) : void
-```
-
-Set the SMTP host name or IP address.
-
-### getPort
-
-```php
-getPort() : int
-```
-
-Retrieve the integer port on which the SMTP host is listening.
-
-### setPort
-
-```php
-setPort(int $port) : void
-```
-
-Set the port on which the SMTP host is listening.
-
-### \_\_construct
-
-```php
-__construct(null|array|Traversable $config) : void
-```
-
-Instantiate the class, and optionally configure it with values provided.
+In the laminas-mail form, `ssl` keeps its old meaning: `'ssl'` is TLS from the
+start, `'tls'` is STARTTLS, and `'none'`, `''` or `false` is a plain connection.
+Leaving `ssl` out now means STARTTLS. `novalidatecert` turns certificate
+verification off.
