@@ -115,6 +115,7 @@ final class MimeVersionTest extends TestCase
             'empty falls back'        => ['MIME-Version: ', '1.0'],
             'comment falls back'      => ['MIME-Version: 2.0 (produced by MetaSend)', '1.0'],
             'leading zero falls back' => ['MIME-Version: 01.0', '1.0'],
+            'trailing whitespace'     => ["MIME-Version: 2.0 \t", '2.0'],
         ];
     }
 

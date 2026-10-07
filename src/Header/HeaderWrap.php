@@ -7,7 +7,6 @@ namespace Contenir\Mail\Header;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
 
-use function iconv_mime_encode;
 use function mb_check_encoding;
 use function preg_match;
 use function preg_replace;
@@ -106,33 +105,13 @@ final class HeaderWrap
     }
 
     /**
-     * Test if is possible apply MIME-encoding
+     * Whether the value can be RFC 2047 encoded: whether it is valid UTF-8.
      *
-     * @param string $value
-     * @return bool
+     * iconv_mime_encode() was used to find out; it fails for invalid UTF-8
+     * and for nothing else, which mb_check_encoding() says directly.
      */
     public static function canBeEncoded(string $value): bool
     {
-        if (! mb_check_encoding($value, encoding: 'UTF-8')) {
-            return false;
-        }
-
-        // avoid any wrapping by specifying line length long enough
-        // "test" -> 4
-        // "x-test: =?ISO-8859-1?B?dGVzdA==?=" -> 33
-        //  8       +2          +3         +3  -> 16
-        $charset    = 'UTF-8';
-        $lineLength = (strlen($value) * 4) + strlen($charset) + 16;
-
-        $preferences = [
-            'scheme'         => 'Q',
-            'input-charset'  => $charset,
-            'output-charset' => $charset,
-            'line-length'    => $lineLength,
-        ];
-
-        $encoded = iconv_mime_encode('x-test', $value, $preferences);
-
-        return false !== $encoded;
+        return mb_check_encoding($value, encoding: 'UTF-8');
     }
 }

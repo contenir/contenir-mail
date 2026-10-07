@@ -30,6 +30,8 @@ class HeaderNameTest extends TestCase
             ['Subject' . chr(33), 'Subject' . chr(33)],
             ['Subject' . chr(126), 'Subject' . chr(126)],
             ['Subject' . chr(127), 'Subject'],
+            ["Sub\x00ject\n", 'Subject'],
+            ['Sübject', 'Sbject'],
         ];
     }
 
@@ -53,6 +55,10 @@ class HeaderNameTest extends TestCase
             ['Subject' . chr(126), 'assertTrue'],
             ['Subject' . chr(127), 'assertFalse'],
             ['', 'assertFalse'],
+            ["Subject\n", 'assertFalse'],
+            [chr(33), 'assertTrue'],
+            [chr(126) . 'Subject', 'assertTrue'],
+            [chr(127) . 'Subject', 'assertFalse'],
         ];
     }
 
