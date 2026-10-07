@@ -200,7 +200,7 @@ class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        static::assertTrue($mail->hasTop);
+        static::assertTrue($mail->getCapabilities()['top']);
     }
 
     #[Test]
@@ -208,7 +208,7 @@ class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        static::assertFalse($mail->hasCreate);
+        static::assertFalse($mail->getCapabilities()['create']);
     }
 
     #[Test]
@@ -234,7 +234,7 @@ class Pop3Test extends TestCase
         $mail        = new Storage\Pop3($this->params);
         $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
 
-        $sizes = $mail->getSize();
+        $sizes = $mail->getSizes();
         static::assertEquals($shouldSizes, $sizes);
     }
 
@@ -252,7 +252,7 @@ class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        $subject = $mail->getMessage(1)->subject;
+        $subject = $mail->getMessage(1)->getSubject();
         static::assertEquals('Simple Message', $subject);
     }
 
@@ -261,7 +261,7 @@ class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        $subject = $mail->getMessage(1)->subject;
+        $subject = $mail->getMessage(1)->getSubject();
         static::assertEquals('Simple Message', $subject);
     }
 
@@ -331,7 +331,7 @@ class Pop3Test extends TestCase
         static::assertTrue($mail->hasUniqueId);
         static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
-        $ids = $mail->getUniqueId();
+        $ids = $mail->getUniqueIds();
         foreach ($ids as $num => $id) {
             foreach ($ids as $innerNum => $innerId) {
                 if ($num == $innerNum) {
@@ -376,7 +376,7 @@ class Pop3Test extends TestCase
         $mail->removeMessage(1);
         static::assertEquals($mail->countMessages(), --$count);
 
-        unset($mail[2]);
+        $mail->removeMessage(2);
         static::assertEquals($mail->countMessages(), --$count);
     }
 

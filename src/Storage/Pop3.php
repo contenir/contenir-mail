@@ -1,312 +1,283 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Storage;
 
-use Contenir\Mail\Exception as MailException;
-use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
-use Contenir\Mail\Protocol\Exception\RuntimeException;
-use Contenir\Mail\Storage\Exception\ExceptionInterface;
-use Contenir\Mail\Storage\Exception\InvalidArgumentException;
+use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\MimeParser;
 use Override;
 use SensitiveParameter;
 
-use function array_combine;
-use function array_key_exists;
+use function is_array;
+use function is_iterable;
+use function is_scalar;
 use function is_string;
-use function range;
-use function strtolower;
 
-class Pop3 extends AbstractStorage
+/**
+ * A POP3 mailbox: one folder of messages on the server.
+ *
+ * Headers are fetched with TOP, and the body with RETR the first time
+ * content or parts are asked for; a server without TOP sends the whole
+ * message at once. Unique IDs come from UIDL when the server has it, and
+ * are the message numbers otherwise. POP3 keeps no flags.
+ *
+ * @mago-expect lint:too-many-methods The AbstractStorage operations.
+ * @mago-expect lint:cyclomatic-complexity Each AbstractStorage operation checks the server's untyped answer.
+ * @mago-expect analysis:mixed-assignment The protocol returns server data untyped; it is typed here.
+ *
+ * @api
+ */
+final class Pop3 extends AbstractStorage
 {
-    /**
-     * protocol handler
-     *
-     * @var null|\Contenir\Mail\Protocol\Pop3
-     */
-    protected $protocol;
+    private Protocol\Pop3 $protocol;
+
+    /** Whether the server has UIDL; null until asked */
+    private ?bool $uniqueIds = null;
 
     /**
-     * Count messages all messages in current box
-     *
-     * @return int number of messages
-     * @throws ExceptionInterface
-     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
+     * @param Pop3Config|Protocol\Pop3|iterable<mixed, mixed> $config Settings to connect and log in with, or a
+     *     protocol already connected and logged in.
+     * @param Protocol\Pop3|null $protocol A protocol to connect with the settings, such as a subclass; a new one when null.
+     * @throws Protocol\Exception\ExceptionInterface When the connection or login fails.
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
+     */
+    public function __construct(
+        #[SensitiveParameter]
+        Pop3Config|Protocol\Pop3|iterable $config,
+        ?Protocol\Pop3 $protocol = null,
+    ) {
+        $this->has['fetchPart'] = false;
+        $this->has['top']       = null;
+        $this->has['uniqueid']  = null;
+        $this->has['delete']    = true;
+        if ($config instanceof Protocol\Pop3) {
+            $this->protocol = $config;
+            $this->open     = true;
+
+            return;
+        }
+
+        $config         = is_iterable($config) ? Pop3Config::fromIterable($config) : $config;
+        $this->protocol = $protocol ?? new Protocol\Pop3();
+        $this->protocol->setNoValidateCert(! $config->connection->verifyPeer);
+        $this->protocol->connect(
+            $config->connection->host,
+            $config->connection->port,
+            RemoteConnection::legacySsl($config->connection->security),
+        );
+        $this->open = true;
+        $this->protocol->login($config->user, $config->password);
+    }
+
+    /**
+     * @throws Exception\RuntimeException When flags are given: POP3 keeps none.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function countMessages()
+    public function countMessages(Flag|string ...$flags): int
     {
-        $count = 0; // "Declare" variable before first usage.
-        $octets = 0; // "Declare" variable since it's passed by reference
+        if ([] !== $flags) {
+            throw new Exception\RuntimeException('POP3 keeps no flags to count by');
+        }
+
+        $count  = 0;
+        $octets = $count;
         $this->protocol->status($count, $octets);
+
         return (int) $count;
     }
 
     /**
-     * get a list of messages with number and size
-     *
-     * @param int $id number of message
-     * @return int|array size of given message of list with all messages as array(num => size)
-     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getSize($id = 0)
+    public function getSize(int $id): int
     {
-        $id = $id ?: null;
-        return $this->protocol->getList($id);
+        $size = $this->protocol->getList(self::checkNumber($id));
+
+        return is_scalar($size) ? (int) $size : 0;
     }
 
     /**
-     * Fetch a message
-     *
-     * @param int $id number of message
-     * @return Message
-     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getMessage($id)
+    public function getSizes(): array
     {
-        $bodyLines = 0;
-        $message   = $this->protocol->top($id, $bodyLines, true);
-
-        return new $this->messageClass([
-            'handler'    => $this,
-            'id'         => $id,
-            'headers'    => $message,
-            'noToplines' => $bodyLines < 1,
-        ]);
-    }
-
-    /**
-     * Get raw header of message or part
-     *
-     * @param  int               $id       number of message
-     * @param  null|array|string $part     path to part or null for message header
-     * @param  int               $topLines include this many lines with header (after an empty line)
-     * @return string raw header
-     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
-     * @throws ExceptionInterface
-     */
-    #[Override]
-    public function getRawHeader($id, $part = null, $topLines = 0)
-    {
-        if (null !== $part) {
-            // TODO: implement
-            throw new Exception\RuntimeException('not implemented');
+        $sizes = [];
+        $list  = $this->protocol->getList();
+        foreach (is_array($list) ? $list : [] as $id => $size) {
+            $sizes[(int) $id] = is_scalar($size) ? (int) $size : 0;
         }
 
-        return $this->protocol->top($id, 0, true);
+        return $sizes;
     }
 
     /**
-     * Get raw content of message or part
+     * The body is fetched when first read, and a failed fetch is thrown to that reader.
      *
-     * @param  int               $id   number of message
-     * @param  null|array|string $part path to part or null for message content
-     * @return string raw content
-     * @throws \Contenir\Mail\Protocol\Exception\ExceptionInterface
-     * @throws ExceptionInterface
+     * @throws Exception\ExceptionInterface When the number is below 1 or the headers cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     *
+     * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
      */
     #[Override]
-    public function getRawContent($id, $part = null)
+    public function getMessage(int $id): Message
     {
-        if (null !== $part) {
-            // TODO: implement
-            throw new Exception\RuntimeException('not implemented');
+        $id = self::checkNumber($id);
+        [$headers, $body] = MimeParser::split(Content::fromString($this->protocol->top($id, 0, true)));
+        if (0 === $body->length()) {
+            $body = Content::lazy(fn(): string => $this->retrieveBody($id));
         }
 
-        $content = $this->protocol->retrieve($id);
-        // TODO: find a way to avoid decoding the headers
-        $headers = null; // "Declare" variable since it's passed by reference
-        $body = null; // "Declare" variable before first usage.
-        Mime\Decode::splitMessage($content, $headers, $body);
-        return $body;
+        return new Message(new Part($headers, $body));
     }
 
     /**
-     * create instance with parameters
-     * Supported parameters are
-     *   - host hostname or ip address of POP3 server
-     *   - user username
-     *   - password password for user 'username' [optional, default = '']
-     *   - port port for POP3 server [optional, default = 110]
-     *   - ssl 'SSL' or 'TLS' for secure sockets
-     *
-     * @param  array|object|Protocol\Pop3 $params mail reader specific
-     *     parameters or configured Pop3 protocol object
-     * @throws InvalidArgumentException
-     * @throws RuntimeException
+     * @throws Exception\ExceptionInterface When the number is below 1 or the headers cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function __construct(#[SensitiveParameter] $params)
+    #[Override]
+    public function getRawHeader(int $id): string
     {
-        $this->has['fetchPart'] = false;
-        $this->has['top']       = null;
-        $this->has['uniqueid']  = null;
+        $raw = Content::fromString($this->protocol->top(self::checkNumber($id), 0, true));
+        [, $body] = MimeParser::split($raw);
 
-        if ($params instanceof Protocol\Pop3) {
-            $this->protocol = $params;
+        return $raw->slice(0, $raw->length() - $body->length())->read();
+    }
+
+    /**
+     * @throws Exception\ExceptionInterface When the number is below 1 or the message cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getRawContent(int $id): string
+    {
+        return $this->retrieveBody(self::checkNumber($id));
+    }
+
+    #[Override]
+    public function close(): void
+    {
+        if (! $this->open) {
             return;
         }
 
-        $params = ParamsNormalizer::normalizeParams($params);
-
-        if (! isset($params['user'])) {
-            throw new InvalidArgumentException('need at least user in params');
-        }
-
-        $host     = $params['host'] ?? 'localhost';
-        $password = $params['password'] ?? '';
-        $port     = $params['port'] ?? null;
-        $ssl      = $params['ssl'] ?? false;
-
-        if (null !== $port) {
-            $port = (int) $port;
-        }
-
-        if (! is_string($ssl)) {
-            $ssl = (bool) $ssl;
-        }
-
-        $this->protocol = new Protocol\Pop3();
-
-        if (array_key_exists('novalidatecert', $params)) {
-            $this->protocol->setNoValidateCert((bool) $params['novalidatecert']);
-        }
-
-        $this->protocol->connect((string) $host, $port, $ssl);
-        $this->protocol->login((string) $params['user'], (string) $password);
-    }
-
-    /**
-     * Close resource for mail lib. If you need to control, when the resource
-     * is closed. Otherwise the destructor would call this.
-     */
-    #[Override]
-    public function close()
-    {
+        $this->open = false;
         $this->protocol->logout();
     }
 
     /**
-     * Keep the server busy.
-     *
-     * @throws RuntimeException
+     * @throws Protocol\Exception\ExceptionInterface When the server does not answer.
      */
     #[Override]
-    public function noop()
+    public function noop(): void
     {
         $this->protocol->noop();
     }
 
     /**
-     * Remove a message from server. If you're doing that from a web environment
-     * you should be careful and use a uniqueid as parameter if possible to
-     * identify the message.
+     * Mark a message for deletion when the session ends.
      *
-     * @param  int $id number of message
-     * @throws RuntimeException
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server refuses.
      */
     #[Override]
-    public function removeMessage($id)
+    public function removeMessage(int $id): void
     {
-        $this->protocol->delete($id);
+        $this->protocol->delete(self::checkNumber($id));
     }
 
     /**
-     * get unique id for one or all messages
-     *
-     * if storage does not support unique ids it's the same as the message number
-     *
-     * @param int|null $id message number
-     * @return array|string message number for given message or all messages as array
-     * @throws ExceptionInterface
+     * @throws Exception\OutOfBoundsException When the number is below 1.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getUniqueId($id = null)
+    public function getUniqueId(int $id): string
     {
-        if (! $this->hasUniqueid) {
-            if ($id) {
-                return $id;
-            }
-            $count = $this->countMessages();
-            if ($count < 1) {
-                return [];
-            }
-            $range = range(1, $count);
-            return array_combine($range, $range);
+        $id = self::checkNumber($id);
+        if (! $this->supportsUniqueIds()) {
+            return (string) $id;
         }
 
-        return $this->protocol->uniqueid($id);
+        $uid = $this->protocol->uniqueid($id);
+
+        return is_string($uid) ? $uid : '';
     }
 
     /**
-     * get a message number from a unique id
-     *
-     * I.e. if you have a webmailer that supports deleting messages you should use unique ids
-     * as parameter and use this method to translate it to message number right before calling removeMessage()
-     *
-     * @param string $id unique id
-     * @throws InvalidArgumentException
-     * @return int message number
+     * @throws Exception\ExceptionInterface When the messages cannot be counted.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getNumberByUniqueId($id)
+    public function getUniqueIds(): array
     {
-        if (! $this->hasUniqueid) {
-            return $id;
-        }
-
-        $ids = $this->getUniqueId();
-        foreach ($ids as $k => $v) {
-            if ($v == $id) {
-                return $k;
+        $ids = [];
+        if (! $this->supportsUniqueIds()) {
+            for ($id = 1, $count = $this->countMessages(); $id <= $count; ++$id) {
+                $ids[$id] = (string) $id;
             }
+
+            return $ids;
         }
 
-        throw new InvalidArgumentException('unique id not found');
+        $uids = $this->protocol->uniqueid();
+        foreach (is_array($uids) ? $uids : [] as $id => $uid) {
+            $ids[(int) $id] = is_scalar($uid) ? (string) $uid : '';
+        }
+
+        return $ids;
     }
 
     /**
-     * Special handling for hasTop and hasUniqueid. The headers of the first message is
-     * retrieved if Top wasn't needed/tried yet.
-     *
-     * @see AbstractStorage::__get()
-     *
-     * @param  string $var
-     * @return null|string
+     * @throws Exception\ExceptionInterface When no message has that unique ID.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function __get($var)
+    public function getNumberByUniqueId(string $id): int
     {
-        $result = parent::__get($var);
-        if (null !== $result) {
-            return $result;
-        }
-
-        if (strtolower($var) == 'hastop') {
-            if (null === $this->protocol->hasTop) {
-                // need to make a real call, because not all server are honest in their capas
-                try {
-                    $this->protocol->top(1, 0, false);
-                } catch (MailException\ExceptionInterface) {
-                    // ignoring error
-                }
+        foreach ($this->getUniqueIds() as $number => $uid) {
+            if ($uid === $id) {
+                return $number;
             }
-            $this->has['top'] = $this->protocol->hasTop;
-            return $this->protocol->hasTop;
         }
 
-        if (strtolower($var) == 'hasuniqueid') {
-            $id = null;
-            try {
-                $id = $this->protocol->uniqueid(1);
-            } catch (MailException\ExceptionInterface) {
-                // ignoring error
-            }
-            $this->has['uniqueid'] = (bool) $id;
-            return $this->has['uniqueid'];
+        throw new Exception\OutOfBoundsException('Unique ID not found');
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the message cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    private function retrieveBody(int $id): string
+    {
+        return MimeParser::split(Content::fromString($this->protocol->retrieve($id)))[1]->read();
+    }
+
+    /**
+     * Whether the server has UIDL, asked for once.
+     */
+    private function supportsUniqueIds(): bool
+    {
+        if (null === $this->uniqueIds) {
+            $this->uniqueIds       = $this->probeUniqueIds();
+            $this->has['uniqueid'] = $this->uniqueIds;
         }
 
-        return $result;
+        return $this->uniqueIds;
+    }
+
+    private function probeUniqueIds(): bool
+    {
+        try {
+            $this->protocol->uniqueid();
+
+            return true;
+        } catch (Protocol\Exception\ExceptionInterface) {
+            return false;
+        }
     }
 }
