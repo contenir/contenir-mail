@@ -92,6 +92,20 @@ final class EmailAddressValidatorTest extends TestCase
                     HostnameValidator::IP_ADDRESS_NOT_ALLOWED,
                 ],
             ],
+            'zero-width joiner in host'            => [
+                "user@a\u{200D}b.com",
+                [
+                    "'a\u{200D}b.com' is not a valid hostname for the email address",
+                    HostnameValidator::INVALID_HOSTNAME,
+                ],
+            ],
+            'mixed-direction host label'           => [
+                "user@ab\u{0627}.com",
+                [
+                    "'ab\u{0627}.com' is not a valid hostname for the email address",
+                    HostnameValidator::INVALID_HOSTNAME,
+                ],
+            ],
             'invalid host'                         => [
                 'user@my host',
                 [

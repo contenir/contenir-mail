@@ -10,7 +10,6 @@ use function sprintf;
 use function str_contains;
 use function strlen;
 
-use const IDNA_DEFAULT;
 use const INTL_IDNA_VARIANT_UTS46;
 
 /**
@@ -44,7 +43,7 @@ final class EmailAddressValidator
 
         $localPart = $matches[1] ?? '';
         $hostname  = $matches[2] ?? '';
-        $ascii     = idn_to_ascii($hostname, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        $ascii     = idn_to_ascii($hostname, DomainName::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46);
         if (false !== $ascii) {
             $hostname = $ascii;
         }
