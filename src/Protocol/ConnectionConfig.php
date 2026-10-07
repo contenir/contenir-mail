@@ -21,13 +21,15 @@ final readonly class ConnectionConfig
 
     /**
      * @param int|null $port Null for the protocol's standard port for this security.
+     * @param Security $security STARTTLS is required by default, so a server that cannot offer TLS
+     *     is refused; set Security::None explicitly for a local relay without TLS.
      * @param int $timeout Seconds to wait for the connection and for each response.
      * @throws InvalidArgumentException When the port or timeout is out of range.
      */
     public function __construct(
         public string $host = '127.0.0.1',
         public ?int $port = null,
-        public Security $security = Security::None,
+        public Security $security = Security::StartTls,
         public bool $verifyPeer = true,
         public int $timeout = 30,
     ) {
@@ -60,7 +62,7 @@ final readonly class ConnectionConfig
         return new self(
             host: $reader->string('host', default: '127.0.0.1'),
             port: $reader->nullableInt('port'),
-            security: $reader->enum('security', default: Security::None),
+            security: $reader->enum('security', default: Security::StartTls),
             verifyPeer: $reader->bool('verify_peer', default: true),
             timeout: $reader->int('timeout', default: 30),
         );
