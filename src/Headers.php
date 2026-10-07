@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail;
 
 use ArrayIterator;
+use Contenir\Mail\Header\HeaderBlock;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderLocator;
 use Contenir\Mail\Header\HeaderLocatorInterface;
@@ -15,10 +16,15 @@ use Override;
 use WeakMap;
 
 use function array_filter;
+use function array_is_list;
 use function array_map;
 use function array_values;
 use function count;
+use function is_array;
+use function is_string;
 use function str_replace;
+use function strcasecmp;
+use function strstr;
 use function strtolower;
 
 /**
@@ -35,6 +41,9 @@ use function strtolower;
  *
  * @mago-expect lint:too-many-methods A collection: construction, with/without, lookup, output and iteration.
  * @implements IteratorAggregate<int, HeaderInterface>
+ *
+ * @mago-expect lint:cyclomatic-complexity A collection: lookup, derivation, writing and checked serialization.
+ * @mago-expect lint:kan-defect A collection: lookup, derivation, writing and checked serialization.
  */
 final readonly class Headers implements Countable, IteratorAggregate
 {
@@ -235,6 +244,74 @@ final readonly class Headers implements Countable, IteratorAggregate
     public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->headers);
+    }
+
+    /**
+     * The headers, with the text each was read with, so a parsed message can be queued and still be written back as it was read.
+     *
+     * @return array{headers: list<HeaderInterface>, wireText: list<string|null>}
+     */
+    public function __serialize(): array
+    {
+        return [
+            'headers'  => $this->headers,
+            'wireText' => array_map(
+                fn(HeaderInterface $header): ?string => $this->wireText[$header] ?? null,
+                $this->headers,
+            ),
+        ];
+    }
+
+    /**
+     * Restore serialized headers. Written text is kept only when it is one
+     * well-formed header line for the same header, so serialized data cannot
+     * put text into a message that parsing would not have kept.
+     *
+     * @param array<array-key, mixed> $data
+     * @throws Exception\InvalidArgumentException When the data does not hold a list of headers.
+     *
+     * @mago-expect analysis:invalid-property-write PHP lets __unserialize() initialise readonly properties once.
+     * @mago-expect analysis:mixed-assignment Serialized data is untyped until it is checked here.
+     */
+    public function __unserialize(array $data): void
+    {
+        $headers = $data['headers'] ?? null;
+        $texts   = $data['wireText'] ?? null;
+        if (! is_array($headers) || ! array_is_list($headers) || ! is_array($texts)) {
+            throw new Exception\InvalidArgumentException('Serialized headers must hold a list of headers');
+        }
+
+        /** @var WeakMap<HeaderInterface, string|null> $wireText */
+        $wireText = new WeakMap();
+        foreach ($headers as $index => $header) {
+            if (! $header instanceof HeaderInterface) {
+                throw new Exception\InvalidArgumentException('Serialized headers must hold a list of headers');
+            }
+
+            $text              = $texts[$index] ?? null;
+            $wireText[$header] = is_string($text) && self::isWireTextOf($header, $text) ? $text : null;
+        }
+
+        $this->headers  = $headers;
+        $this->wireText = $wireText;
+    }
+
+    /**
+     * Whether the text is a single well-formed header line, folded with CRLF, for the header.
+     */
+    private static function isWireTextOf(HeaderInterface $header, string $text): bool
+    {
+        try {
+            $fields = HeaderBlock::fields($text, self::EOL);
+        } catch (Exception\RuntimeException) {
+            return false;
+        }
+
+        return (
+            1 === count($fields)
+                && $text === ($fields[0][1] ?? null)
+                && 0 === strcasecmp((string) strstr($text, needle: ':', before_needle: true), $header->getFieldName())
+        );
     }
 
     /**
