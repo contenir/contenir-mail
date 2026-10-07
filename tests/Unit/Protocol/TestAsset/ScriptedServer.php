@@ -6,9 +6,9 @@ namespace Contenir\Mail\Tests\Unit\Protocol\TestAsset;
 
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Imap;
-use Contenir\Mail\Protocol\InMemoryConnection;
 use Contenir\Mail\Protocol\Pop3;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Testing\InMemoryConnection;
 
 /**
  * Builds IMAP and POP3 clients connected to a scripted in-memory server.

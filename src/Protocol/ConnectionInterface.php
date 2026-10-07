@@ -8,7 +8,7 @@ namespace Contenir\Mail\Protocol;
  * A byte stream to a mail server, as IMAP, POP3 and SMTP use it.
  *
  * The protocols build commands and parse responses; a Connection only moves
- * bytes. StreamConnection talks to a real server, and InMemoryConnection
+ * bytes. StreamConnection talks to a real server, and Testing\InMemoryConnection
  * plays a scripted server for tests.
  *
  * Reads never return more than the caller allows, so a protocol can bound

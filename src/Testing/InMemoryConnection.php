@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Protocol;
+namespace Contenir\Mail\Testing;
 
+use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionInterface;
+use Contenir\Mail\Protocol\Exception;
+use Contenir\Mail\Protocol\Security;
 use LogicException;
 use Override;
 
@@ -17,8 +21,10 @@ use function substr;
 use function var_export;
 
 /**
- * A Connection to a scripted server, for testing code that speaks IMAP, POP3 or SMTP.
+ * A scripted mail server, for testing code that sends or reads mail.
  *
+ * It is a Protocol\ConnectionInterface, so it stands in for the network
+ * connection of Protocol\Imap, Protocol\Pop3 and Protocol\Smtp.
  * The script is a list of steps run in order: what the server replies, what
  * the client must send, and where the server stalls, hangs up or negotiates TLS.
  *

@@ -6,7 +6,6 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\InMemoryConnection;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
@@ -25,6 +24,7 @@ use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Storage\RawMessage;
 use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
+use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -138,7 +138,7 @@ final class ImapStorageTest extends TestCase
     #[Test]
     public function turnsOffPeerVerificationWhenAsked(): void
     {
-        $config   = new ConnectionConfig(
+        $config = new ConnectionConfig(
             security: Security::Tls,
             verifyPeer: false,
         );
