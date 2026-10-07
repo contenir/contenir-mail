@@ -1,0 +1,28 @@
+extends = "vendor/contenir/contenir-qa-tools/mago.toml"
+php-version = "8.3.0"
+
+[source]
+paths = ["src", "tests"]
+includes = ["vendor"]
+
+[formatter]
+# Keep `(new Foo())->bar()`: CI formats under each job's PHP version, and the
+# unparenthesised form PHP 8.4+ allows does not parse on 8.3, the minimum.
+parentheses-around-new-in-member-access = true
+# Keep the inherited method order so the history from laminas-mail stays easy
+# to follow with git blame and diffs against upstream.
+sort-class-methods = false
+
+[linter]
+# Findings inherited from laminas-mail/laminas-mime. Many can only be fixed by
+# breaking the public API (final classes, native types on public signatures),
+# so they are recorded here instead and new code is held to the full standard.
+baseline = "mago-lint-baseline.toml"
+
+[linter.rules]
+# The shared base excludes "test/"; this repository keeps its suites under "tests/".
+too-many-methods = { exclude = ["tests/"] }
+
+[analyzer]
+excludes = ["tests"]
+baseline = "mago-analyze-baseline.toml"
