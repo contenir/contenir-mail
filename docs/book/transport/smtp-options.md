@@ -31,7 +31,7 @@ Option name         | Description
 `name`              | Name of the SMTP host; defaults to "localhost".
 `host`              | Remote hostname or IP address; defaults to "127.0.0.1".
 `port`              | Port on which the remote host is listening; defaults to "25".
-`connection_class`  | Fully-qualified classname or short name resolvable via `Contenir\Mail\Protocol\SmtpPluginManager`. See the [SMTP authentication](smtp-authentication.md#connection_class) documentation for details.
+`connection_class`  | Short name (`smtp`, `plain`, `login`, `crammd5`, `xoauth2`) or class name of the connection; other classes need a custom `Contenir\Mail\Protocol\SmtpPluginManager`. See the [SMTP authentication](smtp-authentication.md#connection_class) documentation for details.
 `connection_config` | Optional associative array of parameters to pass to the connection class in order to configure it. By default, this is empty. See the [SMTP authentication](smtp-authentication.md#connection_config) documentation for details.
 
 ## Available Methods

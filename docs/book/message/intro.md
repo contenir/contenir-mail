@@ -1,17 +1,22 @@
 # Messages
 
-`Contenir\Mail\Message` encapsulates a single email message as described in RFCs
-[822](http://www.w3.org/Protocols/rfc822/) and
-[2822](http://www.ietf.org/rfc/rfc2822.txt). It acts as a value object for
-setting mail headers and content.
+`Contenir\Mail\Message` encapsulates a single email message as described in
+[RFC 5322](https://www.rfc-editor.org/rfc/rfc5322). You build it step by step,
+setting addresses, a subject, other headers and content.
 
 If desired, multi-part email messages may also be created. This can be done
 using the bundled `Contenir\Mail\Mime` component,
 and assigning the generated MIME part to the mail message body.
 
-The `Message` class is a value object. It is not capable of sending or storing itself; for
-those purposes, you will need to use, respectively, a [Transport adapter](../transport/intro.md) or
-a [Storage adapter](../read.md).
+The `Message` class is mutable, but everything it holds is an immutable value:
+its headers are a `Contenir\Mail\Headers` collection, each header is a value
+object from `Contenir\Mail\Header`, and addresses are `Contenir\Mail\Address`
+and `Contenir\Mail\AddressList` instances. A cloned message can therefore be
+changed without affecting the original.
+
+A `Message` is not capable of sending or storing itself; for those purposes,
+you will need to use, respectively, a [Transport adapter](../transport/intro.md)
+or a [Storage adapter](../read.md).
 
 ## Quick Start
 
@@ -49,37 +54,74 @@ can be done, too.
 $message->addReplyTo('matthew@example.com', 'Matthew');
 ```
 
-Interestingly, RFC-822 allows for multiple "From:" addresses. When you do this,
-the first one will be used as the sender, **unless** you specify a "Sender:"
-header. The `Message` class allows for this.
+Every address method accepts several forms. A single e-mail address can be
+given with an optional display name as the second argument, or as one string
+such as `'Ralph <ralph@example.org>'`. You can also pass an `Address`, an
+`AddressList`, or an array (or any iterable) whose entries are `Address`
+instances, address strings, or `email => name` pairs. The display name argument
+is only accepted with a single e-mail address string; combining it with any
+other form throws a `Contenir\Mail\Exception\InvalidArgumentException`.
+
+```php
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+
+$message->addTo([
+    'alice@example.com' => 'Alice',
+    'Bob <bob@example.com>',
+    new Address('carol@example.com', 'Carol'),
+]);
+
+$message->addCc(new AddressList(
+    new Address('dave@example.com'),
+    new Address('erin@example.com', 'Erin'),
+));
+```
+
+The `set*()` methods replace the addresses in that header, while the `add*()`
+methods append to them. An address that is already present (compared without
+regard to case) is not added twice.
+
+Interestingly, RFC 5322 allows for multiple "From:" addresses. When you do this,
+a "Sender:" header naming the single mailbox responsible for sending the
+message is required. The `Message` class allows for this.
 
 ```php
 /*
  * Mail headers created:
- * From: Ralph Nader <ralph@example.org>, Enrico Volante <enrico@example.org>
+ * From: Ralph Nader <ralph@example.org>,
+ *  Enrico Volante <enrico@example.org>
  * Sender: Matthew Sommeli <matthew@example.org>
  */
-$message->addFrom('ralph@example.org', 'Ralph Nader');
+$message->setFrom('ralph@example.org', 'Ralph Nader');
 $message->addFrom('enrico@example.org', 'Enrico Volante');
 $message->setSender('matthew@example.org', 'Matthew Sommeli');
 ```
 
-By default, the `Message` class assumes ASCII encoding for your email. If you
-wish to use another encoding, you can do so; setting this will ensure all
-headers and body content are properly encoded using quoted-printable encoding.
+Headers take care of their own encoding. Plain ASCII values are written as
+they are, and anything else (an accented name, a subject in Japanese) is
+encoded as RFC 2047 UTF-8 automatically. If your body is not ASCII, record its
+character set with `setEncoding()` and declare it on the body itself; see
+[Character Sets](character-sets.md) for details.
 
 ```php
 $message->setEncoding('UTF-8');
 ```
 
-If you wish to set other headers, you can do that as well.
+If you wish to set other headers, you can do that as well. `addHeader()` adds a
+header alongside any others of the same name, while `setHeader()` replaces them.
+`removeHeader()` removes every header with the given name.
 
 ```php
+use Contenir\Mail\Header\GenericHeader;
+
 /*
  * Mail headers created:
  * X-API-Key: FOO-BAR-BAZ-BAT
+ * X-Mailer: contenir-mail
  */
-$message->getHeaders()->addHeaderLine('X-API-Key', 'FOO-BAR-BAZ-BAT');
+$message->addHeader(new GenericHeader('X-API-Key', 'FOO-BAR-BAZ-BAT'));
+$message->setHeader(new GenericHeader('X-Mailer', 'contenir-mail'));
 ```
 
 Sometimes you may want to provide HTML content, or multi-part content. To do
@@ -100,23 +142,27 @@ Finally, you can fully introspect the message, including getting all addresses
 of recipients and senders, all headers, and the message body.
 
 ```php
-// Headers
-// Note: this will also grab all headers for which accessors/mutators exist in
-// the Message object itself.
+// Headers, including those set through the address and subject methods
 foreach ($message->getHeaders() as $header) {
-    echo $header->toString();
+    echo $header->toString(), "\n";
     // or grab values: $header->getFieldName(), $header->getFieldValue()
 }
 
-// The logic below also works for the methods cc(), bcc(), to(), and replyTo()
+// A single header, or null when the message has none
+$mailer = $message->getHeaders()->get('X-Mailer')?->getFieldValue();
+
+// Every header with a given name, as a list
+$keys = $message->getHeaders()->all('X-API-Key');
+
+// The same works for getTo(), getCc(), getBcc() and getReplyTo()
 foreach ($message->getFrom() as $address) {
     printf("%s: %s\n", $address->getEmail(), $address->getName());
 }
 
 // Sender
 $address = $message->getSender();
-if (! is_null($address)) {
-   printf("%s: %s\n", $address->getEmail(), $address->getName());
+if (null !== $address) {
+    printf("%s: %s\n", $address->getEmail(), $address->getName());
 }
 
 // Subject
@@ -126,8 +172,24 @@ echo "Subject: ", $message->getSubject(), "\n";
 echo "Encoding: ", $message->getEncoding(), "\n";
 
 // Message body:
-echo $message->getBody();     // raw body, or MIME object
+$body = $message->getBody();  // body as set: a string, a MIME message or a Stringable object
 echo $message->getBodyText(); // body as it will be sent
+```
+
+The address getters return an immutable `AddressList`. Changing a list gives
+you a new one, which you then pass back to the message:
+
+```php
+$to = $message->getTo();
+
+$to->has('alice@example.com');       // true; the comparison ignores case
+$to->get('alice@example.com');       // the Address, or null
+$to->first();                        // the first Address, or null
+$to->isEmpty();                      // false
+count($to);                          // 4
+
+$message->setTo($to->without('alice@example.com'));
+$message->setTo($to->with('frank@example.com', 'Frank'));
 ```
 
 Once your message is shaped to your liking, pass it to a
@@ -139,9 +201,24 @@ $transport->send($message);
 
 ## Configuration Options
 
-The `Message` class has no configuration options, and is instead a value object.
+The `Message` class has no configuration options.
 
 ## Available Methods
+
+Every method that changes the message returns the message itself, so calls can
+be chained.
+
+In the signatures below, `$addresses` accepts
+`Address|AddressList|string|iterable<int|string, Address|string|null>`:
+
+- a single e-mail address string (`'ralph@example.org'`), optionally with a
+  display name as the `$name` argument;
+- an address string with a display name (`'Ralph <ralph@example.org>'`);
+- an `Address` or an `AddressList`;
+- an iterable whose entries are `Address` instances, address strings, or
+  `email => name` pairs.
+
+`$name` may only be given when `$addresses` is a single e-mail address string.
 
 ### isValid
 
@@ -149,15 +226,17 @@ The `Message` class has no configuration options, and is instead a value object.
 isValid() : bool
 ```
 
-Messages without a `From` address are invalid, per RFC-2822.
+Messages without a `From` address are invalid, per RFC 5322.
 
 ### setEncoding
 
 ```php
-setEncoding(string $encoding) : void
+setEncoding(string $encoding) : self
 ```
 
-Set the message encoding.
+Record the character set of the body, such as `UTF-8`. Headers choose their own
+encoding, so this setting does not affect them. It does not add a
+`Content-Type` header either; see [Character Sets](character-sets.md).
 
 ### getEncoding
 
@@ -165,15 +244,15 @@ Set the message encoding.
 getEncoding() : string
 ```
 
-Get the message encoding.
+Get the character set recorded with `setEncoding()`; defaults to `ASCII`.
 
 ### setHeaders
 
 ```php
-setHeaders(Contenir\Mail\Headers $headers) : void
+setHeaders(Contenir\Mail\Headers $headers) : self
 ```
 
-Compose headers.
+Replace the whole header collection.
 
 ### getHeaders
 
@@ -181,198 +260,168 @@ Compose headers.
 getHeaders() : Contenir\Mail\Headers
 ```
 
-Access headers collection, lazy-loading a `Headers` instance if none was
-previously attached.
+Return the header collection. `Headers` is immutable: changing a header through
+the message replaces the collection, so a `Headers` instance you fetched earlier
+keeps its old contents.
+
+### setHeader
+
+```php
+setHeader(Contenir\Mail\Header\HeaderInterface $header) : self
+```
+
+Set a header, replacing any headers with the same name.
+
+### addHeader
+
+```php
+addHeader(Contenir\Mail\Header\HeaderInterface $header) : self
+```
+
+Add a header, keeping any headers with the same name.
+
+### removeHeader
+
+```php
+removeHeader(string $name) : self
+```
+
+Remove every header with the given name. Header names are compared without
+regard to case.
 
 ### setFrom
 
 ```php
-setFrom(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+setFrom($addresses, ?string $name = null) : self
 ```
 
-Set (overwrite) `From` addresses. If an associative array is provided, it must
-be a set of key/value pairs where the key is the human readable name, and the
-value is the email address.
+Set (overwrite) `From` addresses.
 
 ### addFrom
 
 ```php
-addFrom(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressOrList,
-    string|null $name
-) : void
+addFrom($addresses, ?string $name = null) : self
 ```
 
-Add a `From` address. If an associative array is provided, it must be a set of
-key/value pairs where the key is the human readable name, and the value is the
-email address.
+Add one or more `From` addresses.
 
 ### getFrom
 
 ```php
-getFrom() : AddressList
+getFrom() : Contenir\Mail\AddressList
 ```
 
-Retrieve list of `From` senders.
+Retrieve the list of `From` senders. The list is empty when no `From` header
+has been set.
 
 ### setTo
 
 ```php
-setTo(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    null|string $name
-) : void
+setTo($addresses, ?string $name = null) : self
 ```
 
-Overwrite the address list in the `To` recipients. If an associative array is
-provided, it must be a set of key/value pairs where the key is the human
-readable name, and the value is the email address.
+Set (overwrite) the `To` recipients.
 
 ### addTo
 
 ```php
-addTo(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressOrList,
-    null|string $name
-) : void
+addTo($addresses, ?string $name = null) : self
 ```
 
-Add one or more addresses to the `To` recipients; appends to the list. If an
-associative array is provided, it must be a set of key/value pairs where the key
-is the human readable name, and the value is the email address.
+Add one or more addresses to the `To` recipients.
 
 ### getTo
 
 ```php
-getTo() : AddressList
+getTo() : Contenir\Mail\AddressList
 ```
 
-Access the address list of the `To` header.  Lazy-loads an `AddressList` and
-populates the `To` header if not previously done.
+Retrieve the list of `To` recipients.
 
 ### setCc
 
 ```php
-setCc(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+setCc($addresses, ?string $name = null) : self
 ```
 
-Set (overwrite) `Cc` addresses. If an associative array is provided, it must be
-a set of key/value pairs where the key is the human readable name, and the value
-is the email address.
+Set (overwrite) the `Cc` recipients.
 
 ### addCc
 
 ```php
-addCc(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+addCc($addresses, ?string $name = null) : self
 ```
 
-Add a `Cc` address. If an associative array is provided, it must be a set of
-key/value pairs where the key is the human readable name, and the value is the
-email address.
+Add one or more addresses to the `Cc` recipients.
 
 ### getCc
 
 ```php
-getCc() : AddressList
+getCc() : Contenir\Mail\AddressList
 ```
 
-Retrieve list of `Cc` recipients.  Lazy-loads an `AddressList` and populates the
-`Cc` header if not previously done.
+Retrieve the list of `Cc` recipients.
 
 ### setBcc
 
 ```php
-setBcc(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+setBcc($addresses, ?string $name = null) : self
 ```
 
-Set (overwrite) `Bcc` addresses. If an associative array is provided, it must be
-a set of key/value pairs where the key is the human readable name, and the value
-is the email address.
+Set (overwrite) the `Bcc` recipients.
 
 ### addBcc
 
 ```php
-addBcc(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+addBcc($addresses, ?string $name = null) : self
 ```
 
-Add a `Bcc` address. If an associative array is provided, it must be a set of
-key/value pairs where the key is the human readable name, and the value is the
-email address.
+Add one or more addresses to the `Bcc` recipients.
 
 ### getBcc
 
 ```php
-getBcc() : AddressList
+getBcc() : Contenir\Mail\AddressList
 ```
 
-Retrieve list of `Bcc` recipients.  Lazy-loads an `AddressList` and populates
-the `Bcc` header if not previously done.
+Retrieve the list of `Bcc` recipients.
 
 ### setReplyTo
 
 ```php
-setReplyTo(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+setReplyTo($addresses, ?string $name = null) : self
 ```
 
-Overwrite the address list in the `Reply-To` recipients. If an associative array
-is provided, it must be a set of key/value pairs where the key is the human
-readable name, and the value is the email address.
+Set (overwrite) the `Reply-To` addresses.
 
 ### addReplyTo
 
 ```php
-addReplyTo(
-    string|AddressInterface|array|AddressList|Traversable $emailOrAddressList,
-    string|null $name
-) : void
+addReplyTo($addresses, ?string $name = null) : self
 ```
 
-Add one or more addresses to the `Reply-To` recipients. If an associative array
-is provided, it must be a set of key/value pairs where the key is the human
-readable name, and the value is the email address.
+Add one or more addresses to the `Reply-To` addresses.
 
 ### getReplyTo
 
 ```php
-getReplyTo() : AddressList
+getReplyTo() : Contenir\Mail\AddressList
 ```
 
-Access the address list of the `Reply-To` header.  Lazy-loads an `AddressList`
-and populates the `Reply-To` header if not previously done.
+Retrieve the list of `Reply-To` addresses.
 
 ### setSender
 
 ```php
-setSender(
-    string|AddressInterface $emailOrAddress,
-    null|string $name
-) : void
+setSender(Contenir\Mail\Address|string $emailOrAddress, ?string $name = null) : self
 ```
 
-Set the message envelope `Sender` header.
+Set the `Sender` header.
 
 ### getSender
 
 ```php
-getSender() : null|AddressInterface
+getSender() : ?Contenir\Mail\Address
 ```
 
 Retrieve the sender address, if any.
@@ -380,41 +429,42 @@ Retrieve the sender address, if any.
 ### setSubject
 
 ```php
-setSubject(string $subject) :void
+setSubject(string $subject) : self
 ```
 
-Set the message subject header value.
+Set the message subject header value. The subject must be US-ASCII or UTF-8
+text.
 
 ### getSubject
 
 ```php
-getSubject() : null|string
+getSubject() : ?string
 ```
 
-Get the message subject header value.
+Get the decoded message subject, or `null` when none is set.
 
 ### setBody
 
 ```php
-setBody(null|string|Contenir\Mail\Mime\Message|object $body) : void
+setBody(string|Stringable|Contenir\Mail\Mime\Message|null $body) : self
 ```
 
-Set the message body. If a generic object is provided, it must implement
-`__toString()`.
+Set the message body. A `Contenir\Mail\Mime\Message` also sets the
+`MIME-Version` header, and either a `multipart/mixed` `Content-Type` (for a
+multipart body) or the content headers of its single part.
 
 ### getBody
 
 ```php
-getBody() : null|string|object
+getBody() : string|Stringable|Contenir\Mail\Mime\Message|null
 ```
 
-Return the currently set message body. Object return values include
-`Contenir\Mail\Mime\Message` instances or objects implementing `__toString()`.
+Return the currently set message body.
 
 ### getBodyText
 
 ```php
-getBodyText() : null|string
+getBodyText() : string
 ```
 
 Get the string-serialized message body text.
@@ -425,4 +475,116 @@ Get the string-serialized message body text.
 toString() : string
 ```
 
-Serialize to string.
+Serialize the headers and body to a string.
+
+### fromString
+
+```php
+static fromString(string $rawMessage) : Contenir\Mail\Message
+```
+
+Parse a raw message into a `Message` with its headers and body text.
+
+## Addresses
+
+`Contenir\Mail\Address` is an immutable value holding an e-mail address, an
+optional display name and an optional comment. The address is validated when
+the object is created; an invalid address, or one containing a line break,
+throws a `Contenir\Mail\Exception\InvalidArgumentException`.
+
+```php
+use Contenir\Mail\Address;
+
+$address = new Address('ralph@example.org', 'Ralph Nader');
+$address = Address::fromString('Ralph Nader <ralph@example.org>');
+
+$address->getEmail();   // 'ralph@example.org'
+$address->getName();    // 'Ralph Nader'
+$address->getComment(); // null
+$address->toString();   // 'Ralph Nader <ralph@example.org>'
+```
+
+`Contenir\Mail\AddressList` is an immutable, countable and iterable list of
+`Address` instances, keyed by e-mail address without regard to case.
+
+Method | Description
+------ | -----------
+`new AddressList(Address ...$addresses)` | Create a list.
+`AddressList::fromIterable(iterable $addresses)` | Create a list from `Address` instances, address strings, or `email => name` pairs.
+`with(Address\|string $emailOrAddress, ?string $name = null)` | Return a new list with the address added.
+`withList(AddressList $addressList)` | Return a new list with all addresses of another list added.
+`without(string $email)` | Return a new list without the address.
+`has(string $email)` | Whether the list contains the address.
+`get(string $email)` | Return the `Address`, or `null`.
+`first()` | Return the first `Address`, or `null`.
+`isEmpty()` | Whether the list is empty.
+`toArray()` | Return the addresses as a list.
+
+## Headers
+
+`Contenir\Mail\Headers` is an immutable, countable and iterable collection of
+header objects. Methods that change it return a new collection. Header names
+are compared without regard to case.
+
+Method | Description
+------ | -----------
+`new Headers(HeaderInterface ...$headers)` | Create a collection.
+`Headers::fromString(string $string)` | Parse a block of header lines.
+`Headers::fromIterable(iterable $headers)` | Create a collection from `HeaderInterface` instances, header lines, `name => value` pairs, or `[name, value]` pairs.
+`with(HeaderInterface $header)` | Return a new collection with the header replacing any of the same name.
+`withAdded(HeaderInterface $header)` | Return a new collection with the header added.
+`without(string $name)` | Return a new collection without any header of that name.
+`get(string $name)` | Return the first header with that name, or `null`.
+`all(string $name)` | Return every header with that name, as a list.
+`has(string $name)` | Whether a header with that name exists.
+`toString()` | Serialize the headers, one line per header.
+`toArray()` | Return the decoded values, keyed by header name.
+`toList()` | Return the header objects as a list.
+
+Each header class in `Contenir\Mail\Header` is created through its constructor
+and has no setters:
+
+```php
+use Contenir\Mail\Address;
+use Contenir\Mail\AddressList;
+use Contenir\Mail\Header\ContentDisposition;
+use Contenir\Mail\Header\ContentTransferEncoding;
+use Contenir\Mail\Header\ContentType;
+use Contenir\Mail\Header\Date;
+use Contenir\Mail\Header\GenericHeader;
+use Contenir\Mail\Header\MessageId;
+use Contenir\Mail\Header\Subject;
+use Contenir\Mail\Header\To;
+use Contenir\Mail\Mime\TransferEncoding;
+
+new Subject('Quarterly report');
+new ContentType('text/plain', ['charset' => 'UTF-8']);
+new ContentDisposition('attachment', ['filename' => 'report.pdf']);
+new ContentTransferEncoding(TransferEncoding::Base64);
+new MessageId('report-2026-q3@example.com');
+MessageId::generate();
+new Date(new DateTimeImmutable());
+new To(new AddressList(new Address('matthew@example.org')));
+new GenericHeader('X-Mailer', 'contenir-mail');
+```
+
+Every header provides the same methods to read it:
+
+Method | Description
+------ | -----------
+`getFieldName()` | The header name, such as `Subject`.
+`getFieldValue()` | The decoded value, as you would display it.
+`getEncodedFieldValue()` | The value as it is written to the message, encoded where needed.
+`toString()` | The full header line in its encoded form.
+
+```php
+$subject = new Subject('Café menu');
+
+$subject->getFieldValue();        // 'Café menu'
+$subject->getEncodedFieldValue(); // '=?UTF-8?Q?Caf=C3=A9=20menu?='
+$subject->toString();             // 'Subject: =?UTF-8?Q?Caf=C3=A9=20menu?='
+```
+
+Some headers offer `with*()` methods that return a changed copy, for example
+`ContentType::withType()` and `ContentType::withParameter()`. To change a header
+on a message, create the new header and pass it to `setHeader()`.

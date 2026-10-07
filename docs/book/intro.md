@@ -27,9 +27,9 @@ $transport->send($mail);
 
 > ### Minimum definitions
 >
-> In order to send an email using contenir-mail you have to specify at least one
-> recipient as well as a message body. Please note that each transport may
-> require additional parameters to be set.
+> In order to send an email using contenir-mail you have to specify a From
+> address, at least one recipient and a message body. Please note that each
+> transport may require additional parameters to be set.
 
 For most mail attributes there are "get" methods to read the information stored
 in the message object. for further details, please refer to the API
