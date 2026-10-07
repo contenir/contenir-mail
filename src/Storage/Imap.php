@@ -4,6 +4,7 @@ namespace Contenir\Mail\Storage;
 
 use Contenir\Mail;
 use Contenir\Mail\Protocol;
+use SensitiveParameter;
 
 use function array_key_exists;
 use function array_pop;
@@ -198,7 +199,7 @@ class Imap extends AbstractStorage implements Folder\FolderInterface, Writable\W
      * @throws Exception\InvalidArgumentException
      * @throws Protocol\Exception\RuntimeException
      */
-    public function __construct($params)
+    public function __construct(#[SensitiveParameter] $params)
     {
         $this->has['flags'] = true;
 

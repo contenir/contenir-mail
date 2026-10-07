@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Protocol\Smtp;
+use SensitiveParameter;
 
 use function array_replace_recursive;
 use function base64_encode;
@@ -32,7 +33,7 @@ class Login extends Smtp
      * @param  int    $port   (Default: null)
      * @param  array  $config Auth-specific parameters
      */
-    public function __construct($host = '127.0.0.1', $port = null, $config = null)
+    public function __construct($host = '127.0.0.1', $port = null, #[SensitiveParameter] $config = null)
     {
         // Did we receive a configuration array?
         $origConfig = $config;
@@ -103,7 +104,7 @@ class Login extends Smtp
      * @param  string $password
      * @return Login
      */
-    public function setPassword($password)
+    public function setPassword(#[SensitiveParameter] $password)
     {
         $this->password = $password;
         return $this;

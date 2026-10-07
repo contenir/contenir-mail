@@ -4,6 +4,7 @@ namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Xoauth2AuthEncoder;
+use SensitiveParameter;
 
 use function array_replace_recursive;
 use function is_array;
@@ -34,7 +35,7 @@ final class Xoauth2 extends Smtp
      * @param int|null $port (Default: null)
      * @param array|null $config Auth-specific parameters
      */
-    public function __construct($host = '127.0.0.1', $port = null, ?array $config = null)
+    public function __construct($host = '127.0.0.1', $port = null, #[SensitiveParameter] ?array $config = null)
     {
         // Did we receive a configuration array?
         $origConfig = $config;
@@ -105,7 +106,7 @@ final class Xoauth2 extends Smtp
      * @param string $token
      * @return Xoauth2
      */
-    public function setAccessToken($token)
+    public function setAccessToken(#[SensitiveParameter] $token)
     {
         $this->accessToken = $token;
         return $this;
