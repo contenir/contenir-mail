@@ -616,12 +616,12 @@ final class SmtpTest extends TestCase
     #[Test]
     public function closesConnectionOnDestruction(): void
     {
-        [$transport, , $server] = self::transport();
+        [$transport, $connection, $server] = self::transport();
         $transport->send(self::message());
 
         unset($transport);
 
-        static::assertFalse($server->isConnected());
+        static::assertSame([false, false], [$connection->hasSession(), $server->isConnected()]);
     }
 
     #[Test]

@@ -185,6 +185,7 @@ final class AddressTest extends TestCase
             'name injects a body'           => [['foo@bar', "foo\r\nevilBody", null]],
             'name starts with CRLF'         => [['foo@bar', "\r\nevilBody", null]],
             'comment injects a header line' => [['foo@bar', null, "work\r\nBcc: attacker@example.net"]],
+            'comment beside a name'         => [['foo@bar', 'Name', "work\r\nBcc: attacker@example.net"]],
         ];
     }
 
@@ -297,6 +298,8 @@ final class AddressTest extends TestCase
             'first C1 in name'     => ['user@example.com', "Jo\u{80}Bloggs", null],
             'last C1 in comment'   => ['user@example.com', null, "note\u{9F}"],
             'vertical tab in name' => ['user@example.com', "Jo\x0BBloggs", null],
+            'comment beside name'  => ['user@example.com', 'Jo', "note\x7F"],
+            'e-mail beside name'   => ["us\x00er@example.com", 'Jo', null],
         ];
     }
 
@@ -325,6 +328,7 @@ final class AddressTest extends TestCase
             'right-to-left override in name'     => ['user@example.com', "\u{202E}knaB", null],
             'first strong isolate in comment'    => ['user@example.com', null, "\u{2068}note"],
             'pop directional isolate in comment' => ['user@example.com', null, "note\u{2069}"],
+            'override in name beside a comment'  => ['user@example.com', "\u{202E}knaB", 'note'],
         ];
     }
 
@@ -364,9 +368,10 @@ final class AddressTest extends TestCase
     public static function notUtf8Provider(): array
     {
         return [
-            'name'    => ['user@example.com', "Caf\xe9", null],
-            'comment' => ['user@example.com', null, "Caf\xe9"],
-            'email'   => ["caf\xe9@example.com", null, null],
+            'name'                  => ['user@example.com', "Caf\xe9", null],
+            'comment'               => ['user@example.com', null, "Caf\xe9"],
+            'email'                 => ["caf\xe9@example.com", null, null],
+            'comment beside a name' => ['user@example.com', 'Name', "Caf\xe9"],
         ];
     }
 }
