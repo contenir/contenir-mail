@@ -9,11 +9,9 @@ use Override;
 
 use function array_map;
 use function implode;
-use function preg_match;
 use function preg_split;
 use function sprintf;
 use function strtolower;
-use function trim;
 
 use const PREG_SPLIT_NO_EMPTY;
 
@@ -31,21 +29,16 @@ abstract readonly class AbstractIdentificationField implements HeaderInterface
     private array $ids;
 
     /**
-     * @throws Exception\InvalidArgumentException When an ID contains invalid characters.
+     * @throws Exception\InvalidArgumentException When an ID is empty, too long or contains invalid characters.
      */
     final public function __construct(string ...$ids)
     {
-        $trimmed = [];
+        $checked = [];
         foreach ($ids as $id) {
-            $id = trim($id, characters: " \t<>");
-            if ('' === $id || ! HeaderValue::isValid($id) || 1 === preg_match("/[\r\n\\s<>]/", $id)) {
-                throw new Exception\InvalidArgumentException('Invalid ID detected');
-            }
-
-            $trimmed[] = $id;
+            $checked[] = MessageId::check($id);
         }
 
-        $this->ids = $trimmed;
+        $this->ids = $checked;
     }
 
     #[Override]

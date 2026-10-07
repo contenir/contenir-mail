@@ -9,6 +9,7 @@ use Contenir\Mail\Mime\Mime;
 
 use function iconv_mime_encode;
 use function mb_check_encoding;
+use function preg_match;
 use function preg_replace;
 use function str_pad;
 use function strlen;
@@ -38,12 +39,17 @@ final class HeaderWrap
         ']'  => '=5D',
     ];
 
+    /** A line longer than RFC 5322 allows (section 2.1.1) */
+    private const string OVERLONG_LINE = '/[^\r\n]{999}/';
+
     /**
      * Fold a free-text header value to 78 characters, or RFC 2047 encode it as
      * UTF-8 when it is not printable US-ASCII.
      *
-     * A printable word too long for one line is left whole; a transport
-     * splits lines over its limit.
+     * A printable word too long for one line is left whole, unless it would
+     * make a line longer than the 998 characters RFC 5322 allows, such as a
+     * long URL without spaces; the value is then written as encoded words,
+     * which may be split anywhere.
      */
     public static function fold(string $fieldName, string $value): string
     {
@@ -56,6 +62,10 @@ final class HeaderWrap
         // Pad the value by the length of "Name: " so the first line folds at the right column.
         $headerLine       = str_pad('0', $headerNameColonSize, pad_string: '0') . $value;
         $foldedHeaderLine = wordwrap($headerLine, width: 78, break: Headers::FOLDING);
+        if (1 === preg_match(self::OVERLONG_LINE, $foldedHeaderLine)) {
+            return self::mimeEncodeValue($value, firstLineGapSize: $headerNameColonSize);
+        }
+
         return substr($foldedHeaderLine, $headerNameColonSize);
     }
 

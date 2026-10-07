@@ -6,6 +6,7 @@ namespace Contenir\Mail\Header;
 
 use Override;
 
+use function preg_match;
 use function strtolower;
 
 /**
@@ -15,15 +16,24 @@ use function strtolower;
  */
 final readonly class Received implements HeaderInterface
 {
+    /** A line longer than 998 less "Received: "; the value is written as it is, so it cannot be refolded */
+    private const string OVERLONG_LINE = '/[^\r\n]{989}/';
+
     private string $value;
 
     /**
-     * @throws Exception\InvalidArgumentException When the value contains invalid characters.
+     * @throws Exception\InvalidArgumentException When the value contains invalid characters or a line too long.
      */
     public function __construct(string $value)
     {
         if (! HeaderValue::isValid($value)) {
             throw new Exception\InvalidArgumentException('Invalid Received value provided');
+        }
+
+        if (1 === preg_match(self::OVERLONG_LINE, $value)) {
+            throw new Exception\InvalidArgumentException(
+                'A Received line may be at most 988 characters, so that it fits in 998 with its name',
+            );
         }
 
         $this->value = $value;

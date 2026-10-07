@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chr;
+use function str_repeat;
 
 #[CoversClass(ContentType::class)]
 #[CoversClass(MimeParameters::class)]
@@ -570,6 +571,47 @@ final class ContentTypeTest extends TestCase
             'contenttype'  => ['ContentType: text/plain'],
             'content_type' => ['Content_Type: text/plain'],
             'lower case'   => ['content-type: text/plain'],
+        ];
+    }
+
+    #[Test]
+    public function acceptsMediaTypeNamesOfMaximumLength(): void
+    {
+        $type = str_repeat('a', times: 127) . '/' . str_repeat('b', times: 127);
+
+        static::assertSame($type, (new ContentType($type))->getType());
+    }
+
+    /**
+     * RFC 6838 limits type and subtype names to 127 characters, which keeps the line within 998.
+     */
+    #[DataProvider('overlongTypeProvider')]
+    #[Test]
+    public function rejectsMediaTypeNameTooLong(string $type): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Content-Type expects a value in the format "type/subtype"');
+
+        new ContentType($type);
+    }
+
+    #[Test]
+    public function rejectsParameterNameTooLong(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid content-type parameter name detected');
+
+        new ContentType('text/plain', [str_repeat('a', times: 128) => 'x']);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function overlongTypeProvider(): array
+    {
+        return [
+            'type'    => [str_repeat('a', times: 128) . '/plain'],
+            'subtype' => ['text/' . str_repeat('b', times: 128)],
         ];
     }
 }

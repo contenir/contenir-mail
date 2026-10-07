@@ -34,8 +34,11 @@ final class MimeParameters
     /** Longest parameter, or continuation section, written on one line */
     public const int MAX_SEGMENT_LENGTH = 76;
 
-    /** RFC 2045 token: printable US-ASCII except space and tspecials */
-    private const string TOKEN_CHARACTERS = '/^[!#$%&\'*+\-.0-9A-Z^_`a-z{|}~]+$/D';
+    /**
+     * RFC 2045 token: printable US-ASCII except space and tspecials, at most 127 characters as
+     * RFC 6838 limits media type names, so a header line holding one stays within 998.
+     */
+    private const string TOKEN_CHARACTERS = '/^[!#$%&\'*+\-.0-9A-Z^_`a-z{|}~]{1,127}$/D';
 
     /** RFC 2231 attribute-char: token characters except "*", "'" and "%" */
     private const string ATTRIBUTE_CHARACTER = '/^[!#$&+\-.0-9A-Z^_`a-z{|}~]$/D';
