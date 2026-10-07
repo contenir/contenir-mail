@@ -4,178 +4,210 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
-use Contenir\Mail\Mime;
+use Contenir\Mail\Mime\Decode;
+use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Mime\TransferEncoding;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function base64_decode;
-use function count;
-use function date_default_timezone_get;
-use function date_default_timezone_set;
 use function explode;
+use function max;
 use function microtime;
 use function quoted_printable_decode;
 use function str_repeat;
 use function strlen;
 
-class MimeTest extends TestCase
+#[CoversClass(Mime::class)]
+#[Group('unit')]
+final class MimeTest extends TestCase
 {
+    #[Test]
+    public function findsUnprintableCharacters(): void
+    {
+        static::assertFalse(Mime::isPrintable("Test with special chars: \xE4\xF6\xFC"));
+    }
+
+    #[Test]
+    public function acceptsPrintableCharacters(): void
+    {
+        static::assertTrue(Mime::isPrintable('Test without special chars'));
+    }
+
+    #[DataProvider('encodeProvider')]
+    #[Test]
+    public function appliesATransferEncoding(TransferEncoding $encoding, string $content, string $expected): void
+    {
+        static::assertSame($expected, Mime::encode($content, $encoding));
+    }
+
     /**
-     * Stores the original set timezone
-     *
-     * @var string
+     * @return array<string, array{TransferEncoding, string, string}>
      */
-    private $originalTimezone;
+    public static function encodeProvider(): array
+    {
+        return [
+            'base64'                 => [TransferEncoding::Base64, 'Hello', 'SGVsbG8='],
+            'base64 wrapped with lf' => [
+                TransferEncoding::Base64,
+                str_repeat('a', times: 60),
+                str_repeat('YWFh', times: 18) . "\n" . str_repeat('YWFh', times: 2),
+            ],
+            'quoted-printable'       => [TransferEncoding::QuotedPrintable, "a=b\xE4", 'a=3Db=E4'],
+            'quoted-printable lf'    => [
+                TransferEncoding::QuotedPrintable,
+                str_repeat('a', times: 80),
+                str_repeat('a', times: 72) . "=\n" . str_repeat('a', times: 8),
+            ],
+            '7bit'                   => [TransferEncoding::SevenBit, "a=b\n", "a=b\n"],
+            '8bit'                   => [TransferEncoding::EightBit, "a=b\xE4", "a=b\xE4"],
+            'binary'                 => [TransferEncoding::Binary, "\x00\xFF", "\x00\xFF"],
+        ];
+    }
+
+    #[DataProvider('encodeWithLineEndProvider')]
+    #[Test]
+    public function appliesATransferEncodingWithAnotherLineEnd(
+        TransferEncoding $encoding,
+        string $content,
+        string $expected,
+    ): void {
+        static::assertSame($expected, Mime::encode($content, $encoding, eol: "\r\n"));
+    }
 
     /**
-     * Setup environment
+     * @return array<string, array{TransferEncoding, string, string}>
      */
-    protected function setUp(): void
+    public static function encodeWithLineEndProvider(): array
     {
-        $this->originalTimezone = date_default_timezone_get();
-    }
-
-    /**
-     * Tear down environment
-     */
-    protected function tearDown(): void
-    {
-        date_default_timezone_set($this->originalTimezone);
-    }
-
-    #[Test]
-    public function boundary()
-    {
-        // check boundary for uniqueness
-        $m1 = new Mime\Mime();
-        $m2 = new Mime\Mime();
-        static::assertNotEquals($m1->boundary(), $m2->boundary());
-
-        // check instantiating with arbitrary boundary string
-        $myBoundary = 'mySpecificBoundary';
-        $m3         = new Mime\Mime($myBoundary);
-        static::assertSame($m3->boundary(), $myBoundary);
+        return [
+            'base64'           => [
+                TransferEncoding::Base64,
+                str_repeat('a', times: 60),
+                str_repeat('YWFh', times: 18) . "\r\n" . str_repeat('YWFh', times: 2),
+            ],
+            'quoted-printable' => [
+                TransferEncoding::QuotedPrintable,
+                str_repeat('a', times: 80),
+                str_repeat('a', times: 72) . "=\r\n" . str_repeat('a', times: 8),
+            ],
+        ];
     }
 
     #[Test]
-    public function isNotPrintable()
+    public function encodesNothingAsNothing(): void
     {
-        static::assertFalse(Mime\Mime::isPrintable('Test with special chars: �����'));
+        static::assertSame('', Mime::encode('', TransferEncoding::Base64));
     }
 
     #[Test]
-    public function isPrintable()
-    {
-        static::assertTrue(Mime\Mime::isPrintable('Test without special chars'));
-    }
-
-    #[Test]
-    public function qP()
+    public function encodesQuotedPrintableThatDecodesToTheOriginal(): void
     {
         $text =
-            "This is a cool Test Text with special chars: ����\n"
-            . 'and with multiple lines���� some of the Lines are long, long'
+            "This is a cool Test Text with special chars: \xE4\xF6\xFC\xDF\n"
+            . "and with multiple lines\xE4\xF6\xFC\xDF some of the Lines are long, long"
             . ', long, long, long, long, long, long, long, long, long, long'
             . ', long, long, long, long, long, long, long, long, long, long'
             . ', long, long, long, long, long, long, long, long, long, long'
-            . ', long, long, long, long and with ����';
+            . ", long, long, long, long and with \xE4\xF6\xFC\xDF";
 
-        $qp = Mime\Mime::encodeQuotedPrintable($text);
-        static::assertSame(quoted_printable_decode($qp), $text);
+        static::assertSame($text, quoted_printable_decode(Mime::encodeQuotedPrintable($text)));
     }
 
     #[Test]
-    public function quotedPrintableNoDotAtBeginningOfLine()
+    public function encodesADotAtTheStartOfAQuotedPrintableLine(): void
     {
-        $text = str_repeat('a', Mime\Mime::LINELENGTH) . '.bbb';
-        $qp   = Mime\Mime::encodeQuotedPrintable($text);
+        $text = str_repeat('a', Mime::LINELENGTH) . '.bbb';
 
-        $expected = str_repeat('a', Mime\Mime::LINELENGTH) . "=\n=2Ebbb";
-
-        static::assertSame($expected, $qp);
+        static::assertSame(str_repeat('a', Mime::LINELENGTH) . "=\n=2Ebbb", Mime::encodeQuotedPrintable($text));
     }
 
     #[Test]
-    public function quotedPrintableSpacesAndDots()
+    public function encodesSpacesAndDotsAtQuotedPrintableLineEdges(): void
     {
-        $text = str_repeat(' ', Mime\Mime::LINELENGTH) . str_repeat('.', Mime\Mime::LINELENGTH);
-        $qp   = Mime\Mime::encodeQuotedPrintable($text);
+        $text = str_repeat(' ', Mime::LINELENGTH) . str_repeat('.', Mime::LINELENGTH);
 
-        $expected =
-            str_repeat(' ', Mime\Mime::LINELENGTH - 1)
-            . "=20=\n=2E"
-            . str_repeat('.', Mime\Mime::LINELENGTH - 1);
-
-        static::assertSame($expected, $qp);
+        static::assertSame(
+            str_repeat(' ', Mime::LINELENGTH - 1) . "=20=\n=2E" . str_repeat('.', Mime::LINELENGTH - 1),
+            Mime::encodeQuotedPrintable($text),
+        );
     }
 
     #[Test]
-    public function quotedPrintableDoesNotBreakOctets()
+    public function doesNotBreakAQuotedPrintableOctetAcrossLines(): void
     {
-        $text = str_repeat('a', Mime\Mime::LINELENGTH - 2) . '=.bbb';
-        $qp   = Mime\Mime::encodeQuotedPrintable($text);
+        $text = str_repeat('a', Mime::LINELENGTH - 2) . '=.bbb';
 
-        $expected = str_repeat('a', Mime\Mime::LINELENGTH - 2) . "=\n=3D.bbb";
-
-        static::assertSame($expected, $qp);
+        static::assertSame(
+            str_repeat('a', Mime::LINELENGTH - 2) . "=\n=3D.bbb",
+            Mime::encodeQuotedPrintable($text),
+        );
     }
 
     #[Test]
-    public function base64()
+    public function encodesBase64ThatDecodesToTheOriginal(): void
     {
-        $content = str_repeat("\x88\xAA\xAF\xBF\x29\x88\xAA\xAF\xBF\x29\x88\xAA\xAF", 4);
-        $encoded = Mime\Mime::encodeBase64($content);
-        static::assertSame($content, base64_decode($encoded));
+        $content = str_repeat("\x88\xAA\xAF\xBF\x29\x88\xAA\xAF\xBF\x29\x88\xAA\xAF", times: 4);
+
+        static::assertSame($content, base64_decode(Mime::encodeBase64($content), strict: true));
     }
 
     #[Test]
-    public function laminas1058WhitespaceAtEndOfBodyCausesInfiniteLoop()
+    #[Group('Laminas-1058')]
+    public function encodesTrailingWhitespaceWithoutLoopingForever(): void
     {
-        $text   = "my body\r\n\r\n...after two newlines\r\n ";
-        $result = quoted_printable_decode(Mime\Mime::encodeQuotedPrintable($text));
-        static::assertStringContainsString("my body\r\n\r\n...after two newlines", $result, $result);
+        $text = "my body\r\n\r\n...after two newlines\r\n ";
+
+        static::assertStringContainsString(
+            "my body\r\n\r\n...after two newlines",
+            quoted_printable_decode(Mime::encodeQuotedPrintable($text)),
+        );
     }
 
-    #[Test]
+    #[DataProvider('quotedPrintableHeaderProvider')]
     #[Group('Laminas-1688')]
-    #[DataProvider('dataTestEncodeMailHeaderQuotedPrintable')]
-    public function encodeMailHeaderQuotedPrintable(string $str, string $charset, string $result): void
+    #[Test]
+    public function encodesAQuotedPrintableHeader(string $str, string $charset, string $result): void
     {
-        static::assertSame($result, Mime\Mime::encodeQuotedPrintableHeader($str, $charset));
+        static::assertSame($result, Mime::encodeQuotedPrintableHeader($str, $charset));
     }
 
-    /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
-    public static function dataTestEncodeMailHeaderQuotedPrintable(): array
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function quotedPrintableHeaderProvider(): array
     {
         // phpcs:disable Generic.Files.LineLength.TooLong
         return [
-            ['äöü', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
-            ['äöü ', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
-            ['Gimme more €', 'UTF-8', '=?UTF-8?Q?Gimme=20more=20=E2=82=AC?='],
-            [
+            'umlauts'                   => ['äöü', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
+            'trailing space'            => ['äöü ', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
+            'euro sign'                 => ['Gimme more €', 'UTF-8', '=?UTF-8?Q?Gimme=20more=20=E2=82=AC?='],
+            'long sentence'             => [
                 'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!',
                 'UTF-8',
                 "=?UTF-8?Q?Alle=20meine=20Entchen=20schwimmen=20in=20dem=20See=2C=20?=\n =?UTF-8?Q?schwimmen=20in=20dem=20See=2C=20K=C3=B6pfchen=20in=20das=20?=\n =?UTF-8?Q?Wasser=2C=20Schw=C3=A4nzchen=20in=20die=20H=C3=B6h!?=",
             ],
-            [
+            'long word'                 => [
                 'ääääääääääääääääääääääääääääääääää',
                 'UTF-8',
                 '=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=',
             ],
-            ['A0', 'UTF-8', '=?UTF-8?Q?A0?='],
-            [
+            'letter and digit'          => ['A0', 'UTF-8', '=?UTF-8?Q?A0?='],
+            'long word then short word' => [
                 'äääääääääääääää ä',
                 'UTF-8',
                 "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4?=",
             ],
-            [
+            'two long words'            => [
                 'äääääääääääääää äääääääääääääää',
                 'UTF-8',
                 "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=",
             ],
-            [
+            'short word then long word' => [
                 'ä äääääääääääääää',
                 'UTF-8',
                 '=?UTF-8?Q?=C3=A4=20=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=',
@@ -185,27 +217,31 @@ class MimeTest extends TestCase
         // phpcs:enable
     }
 
+    #[DataProvider('quotedPrintableHeaderWithNameProvider')]
     #[Test]
-    #[DataProvider('dataTestEncodeMailHeaderQuotedPrintableWithHeaderName')]
-    public function encodeMailHeaderQuotedPrintableWithHeaderName(
+    public function foldsAQuotedPrintableHeaderAllowingForTheHeaderName(
         string $str,
         string $charset,
         string $expectedResult,
         int $headerLength,
     ): void {
-        $actualResult = Mime\Mime::encodeQuotedPrintableHeader($str, $charset, 78, Mime\Mime::LINEEND, $headerLength);
-        static::assertSame($expectedResult, $actualResult);
+        static::assertSame(
+            $expectedResult,
+            Mime::encodeQuotedPrintableHeader($str, $charset, 78, Mime::LINEEND, $headerLength),
+        );
     }
 
-    /** @psalm-return array<array-key, array{0: string, 1: string, 2: string, 3: int}> */
-    public static function dataTestEncodeMailHeaderQuotedPrintableWithHeaderName(): array
+    /**
+     * @return array<string, array{string, string, string, int}>
+     */
+    public static function quotedPrintableHeaderWithNameProvider(): array
     {
         return [
             'long string with header name size'     => [
                 'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
                 'UTF-8',
                 '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
-                    . Mime\Mime::LINEEND
+                    . Mime::LINEEND
                     . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=',
                 9,
             ],
@@ -213,7 +249,7 @@ class MimeTest extends TestCase
                 'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
                 'UTF-8',
                 '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
-                    . Mime\Mime::LINEEND
+                    . Mime::LINEEND
                     . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx?=',
                 0,
             ],
@@ -221,7 +257,7 @@ class MimeTest extends TestCase
                 'xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx',
                 'UTF-8',
                 '=?UTF-8?Q?xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20xxxxx=20?='
-                    . Mime\Mime::LINEEND
+                    . Mime::LINEEND
                     . ' =?UTF-8?Q?xxxxx=20xxxxx=20xxxxx?=',
                 11,
             ],
@@ -234,21 +270,23 @@ class MimeTest extends TestCase
         ];
     }
 
-    #[Test]
+    #[DataProvider('base64HeaderProvider')]
     #[Group('Laminas-1688')]
-    #[DataProvider('dataTestEncodeMailHeaderBase64')]
-    public function encodeMailHeaderBase64(string $str, string $charset, string $result): void
+    #[Test]
+    public function encodesABase64Header(string $str, string $charset, string $result): void
     {
-        static::assertSame($result, Mime\Mime::encodeBase64Header($str, $charset));
+        static::assertSame($result, Mime::encodeBase64Header($str, $charset));
     }
 
-    /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
-    public static function dataTestEncodeMailHeaderBase64(): array
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function base64HeaderProvider(): array
     {
         // phpcs:disable Generic.Files.LineLength.TooLong
         return [
-            ['äöü', 'UTF-8', '=?UTF-8?B?w6TDtsO8?='],
-            [
+            'umlauts'       => ['äöü', 'UTF-8', '=?UTF-8?B?w6TDtsO8?='],
+            'long sentence' => [
                 'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!',
                 'UTF-8',
                 "=?UTF-8?B?QWxsZSBtZWluZSBFbnRjaGVuIHNjaHdpbW1lbiBpbiBkZW0gU2VlLCBzY2h3?=\n =?UTF-8?B?aW1tZW4gaW4gZGVtIFNlZSwgS8O2cGZjaGVuIGluIGRhcyBXYXNzZXIsIFNj?=\n =?UTF-8?B?aHfDpG56Y2hlbiBpbiBkaWUgSMO2aCE=?=",
@@ -259,168 +297,182 @@ class MimeTest extends TestCase
     }
 
     /**
-     * base64 chunk are 4 chars long
-     * try to encode/decode with 4 line length
+     * Base64 groups are four characters long, so every line length rounds down to whole groups.
      */
+    #[DataProvider('base64HeaderWrapProvider')]
     #[Test]
-    #[DataProvider('dataTestEncodeMailHeaderBase64wrap')]
-    public function encodeMailHeaderBase64Wrap(string $str): void
+    public function wrapsABase64HeaderThatDecodesToTheOriginal(string $str, int $lineLength): void
     {
         static::assertSame(
             $str,
-            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 20)),
-        );
-        static::assertSame(
-            $str,
-            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 21)),
-        );
-        static::assertSame(
-            $str,
-            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 22)),
-        );
-        static::assertSame(
-            $str,
-            Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, 'UTF-8', 23)),
+            Decode::decodeQuotedPrintable(Mime::encodeBase64Header($str, 'UTF-8', $lineLength)),
         );
     }
 
-    /** @psalm-return array<array-key, array{0: string}> */
-    public static function dataTestEncodeMailHeaderBase64wrap(): array
+    /**
+     * @return array<string, array{string, int}>
+     */
+    public static function base64HeaderWrapProvider(): array
     {
-        return [
-            ['äöüäöüäöüäöüäöüäöüäöü'],
-            [
-                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
-                    . 'Köpfchen in das Wasser, Schwänzchen in die Höh!',
-            ],
+        $cases = [];
+        $texts = [
+            'umlauts'  => 'äöüäöüäöüäöüäöüäöüäöü',
+            'sentence' => 'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
+                . 'Köpfchen in das Wasser, Schwänzchen in die Höh!',
         ];
+        foreach ($texts as $name => $text) {
+            foreach ([20, 21, 22, 23] as $lineLength) {
+                $cases["{$name} in {$lineLength} characters"] = [$text, $lineLength];
+            }
+        }
+
+        return $cases;
     }
 
     #[Test]
-    public function fromMessageMultiPart()
+    public function fillsTheFirstQuotedPrintableHeaderLineToExactlyTheLineLength(): void
     {
-        $message = Mime\Message::createFromMessage(
-            '--089e0141a1902f83ee04e0a07b7a'
-                . "\r\n"
-                . 'Content-Type: multipart/alternative; boundary=089e0141a1902f83e904e0a07b78'
-                . "\r\n"
-                . "\r\n"
-                . '--089e0141a1902f83e904e0a07b78'
-                . "\r\n"
-                . 'Content-Type: text/plain; charset=UTF-8'
-                . "\r\n"
-                . "\r\n"
-                . 'Foo'
-                . "\r\n"
-                . "\r\n"
-                . '--089e0141a1902f83e904e0a07b78'
-                . "\r\n"
-                . 'Content-Type: text/html; charset=UTF-8'
-                . "\r\n"
-                . "\r\n"
-                . '<p>Foo</p>'
-                . "\r\n"
-                . "\r\n"
-                . '--089e0141a1902f83e904e0a07b78--'
-                . "\r\n"
-                . '--089e0141a1902f83ee04e0a07b7a'
-                . "\r\n"
-                . 'Content-Type: image/png; name="1.png"'
-                . "\r\n"
-                . 'Content-Disposition: attachment; filename="1.png"'
-                . "\r\n"
-                . 'Content-Transfer-Encoding: base64'
-                . "\r\n"
-                . 'X-Attachment-Id: barquux'
-                . "\r\n"
-                . "\r\n"
-                . 'Zm9vCg=='
-                . "\r\n"
-                . '--089e0141a1902f83ee04e0a07b7a--',
-            '089e0141a1902f83ee04e0a07b7a',
+        static::assertSame(
+            '=?UTF-8?Q?' . str_repeat('x', times: 56) . '=20y?=',
+            Mime::encodeQuotedPrintableHeader(str_repeat('x', times: 56) . ' y', 'UTF-8'),
         );
-        static::assertSame(2, count($message->getParts()));
-    }
-
-    /** @psalm-return array<array-key, array{0: string, 1: string, 2: string}> */
-    public static function dataTestFromMessageDecode(): array
-    {
-        // phpcs:disable Generic.Files.LineLength.TooLong
-        return [
-            ['äöü', 'quoted-printable', '=C3=A4=C3=B6=C3=BC'],
-            [
-                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!',
-                'quoted-printable',
-                'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, K=C3=B6pfche=
-n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
-            ],
-            ['foobar', 'base64', 'Zm9vYmFyCg=='],
-        ];
-
-        // phpcs:enable
     }
 
     #[Test]
-    #[DataProvider('dataTestFromMessageDecode')]
-    public function fromMessageDecode(string $input, string $encoding, string $result): void
+    public function foldsAQuotedPrintableHeaderWordThatWouldPassTheLineLength(): void
     {
-        $parts = Mime\Message::createFromMessage(
-            "--089e0141a1902f83ee04e0a07b7a\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: {$encoding}\r\n\r\n{$result}\r\n--089e0141a1902f83ee04e0a07b7a--",
-            '089e0141a1902f83ee04e0a07b7a',
-        )->getParts();
-        static::assertSame("{$input}\n", $parts[0]->getRawContent());
+        static::assertSame(
+            '=?UTF-8?Q?' . str_repeat('x', times: 57) . '=20?=' . Mime::LINEEND . ' =?UTF-8?Q?y?=',
+            Mime::encodeQuotedPrintableHeader(str_repeat('x', times: 57) . ' y', 'UTF-8'),
+        );
     }
 
-    #[Test]
+    #[DataProvider('headerLineLengthProvider')]
     #[Group('Laminas-1688')]
-    public function lineLengthInQuotedPrintableHeaderEncoding()
+    #[Test]
+    public function keepsQuotedPrintableHeaderLinesWithinTheLength(int $lineLength): void
     {
         $subject =
             'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, '
             . 'Köpfchen in das Wasser, Schwänzchen in die Höh!';
-        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 100);
-        foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            static::assertLessThanOrEqual(
-                100,
-                strlen($line),
-                "Line '" . $line . "' is " . strlen($line) . ' chars long, only 100 allowed.',
-            );
-        }
-        $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', 40);
-        foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            static::assertLessThanOrEqual(
-                40,
-                strlen($line),
-                "Line '" . $line . "' is " . strlen($line) . ' chars long, only 40 allowed.',
-            );
-        }
+        $lines = explode(Mime::LINEEND, Mime::encodeQuotedPrintableHeader($subject, 'UTF-8', $lineLength));
+
+        static::assertLessThanOrEqual($lineLength, max(array_map(strlen(...), $lines)));
     }
 
-    /** @psalm-return array<array-key, array{0: string, 1: string}> */
-    public static function dataTestCharsetDetection(): array
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function headerLineLengthProvider(): array
     {
         return [
-            ['ASCII',      'test'],
-            ['ASCII',      '=?ASCII?Q?test?='],
-            ['UTF-8',      '=?UTF-8?Q?test?='],
-            ['ISO-8859-1', '=?ISO-8859-1?Q?Pr=FCfung_f=FCr?= Entwerfen von einer MIME kopfzeile'],
-            ['UTF-8',      '=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?='],
+            '100 characters' => [100],
+            '40 characters'  => [40],
+        ];
+    }
+
+    #[DataProvider('charsetProvider')]
+    #[Test]
+    public function detectsTheCharsetOfAnEncodedWord(string $expected, string $string): void
+    {
+        static::assertSame($expected, Mime::mimeDetectCharset($string));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function charsetProvider(): array
+    {
+        return [
+            'plain text'                 => ['ASCII', 'test'],
+            'ascii encoded word'         => ['ASCII', '=?ASCII?Q?test?='],
+            'utf-8 encoded word'         => ['UTF-8', '=?UTF-8?Q?test?='],
+            'iso-8859-1 with text after' => [
+                'ISO-8859-1',
+                '=?ISO-8859-1?Q?Pr=FCfung_f=FCr?= Entwerfen von einer MIME kopfzeile',
+            ],
+            'utf-8 with umlauts'         => ['UTF-8', '=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?='],
+            'lower case charset'         => ['UTF-8', '=?utf-8?Q?test?='],
+        ];
+    }
+
+    #[Group('slow')]
+    #[Test]
+    public function encodesLongQuotedPrintableInputQuickly(): void
+    {
+        $str  = str_repeat('this could be anything, ', times: 200_000);
+        $time = microtime(true);
+        Mime::encodeQuotedPrintable($str);
+
+        static::assertLessThan(5, microtime(true) - $time);
+    }
+
+    #[Test]
+    #[DataProvider('quotedPrintableTextProvider')]
+    public function encodesTextLineBreaksAsHardLineBreaks(string $text, string $expected): void
+    {
+        static::assertSame($expected, Mime::encodeQuotedPrintableText($text, lineLength: 72, lineEnd: "\r\n"));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function quotedPrintableTextProvider(): array
+    {
+        return [
+            'CRLF'                          => ["a\r\nb", "a\r\nb"],
+            'bare CR'                       => ["a\rb", "a\r\nb"],
+            'bare LF'                       => ["a\nb", "a\r\nb"],
+            'trailing space before a break' => ["line \nnext", "line=20\r\nnext"],
+            'trailing line break kept'      => ["end\n", "end\r\n"],
+            'empty'                         => ['', ''],
+            'leading dot on every line'     => [".dot\n.dot", "=2Edot\r\n=2Edot"],
+            'equals sign'                   => ["x=y\nz", "x=3Dy\r\nz"],
+            'long line soft-wrapped alone'  => [
+                str_repeat('a', times: 80) . "\nb",
+                str_repeat('a', times: 72) . "=\r\n" . str_repeat('a', times: 8) . "\r\nb",
+            ],
         ];
     }
 
     #[Test]
-    #[DataProvider('dataTestCharsetDetection')]
-    public function charsetDetection(string $expected, string $string): void
+    public function keepsTrailingSpaceAtEndOfQuotedPrintable(): void
     {
-        static::assertSame($expected, Mime\Mime::mimeDetectCharset($string));
+        static::assertSame('trail=20', Mime::encodeQuotedPrintable('trail ', lineLength: 72, lineEnd: "\r\n"));
     }
 
     #[Test]
-    public function encodeQuotedPrintableShouldBeFastEnoughForLongInputStrings()
+    public function dropsTrailingSpaceFromQuotedPrintableHeaderText(): void
     {
-        $str  = str_repeat('this could be anything, ', 200_000);
-        $time = microtime(true);
-        Mime\Mime::encodeQuotedPrintable($str);
-        static::assertLessThan(5, microtime(true) - $time);
+        static::assertSame('=?UTF-8?Q?Caf=C3=A9?=', Mime::encodeQuotedPrintableHeader('Café  ', 'UTF-8'));
+    }
+
+    #[Test]
+    public function encodesLineBreaksAsDataUnlessToldContentIsText(): void
+    {
+        static::assertSame('a=0Ab', Mime::encode("a\nb", TransferEncoding::QuotedPrintable));
+    }
+
+    #[Test]
+    #[DataProvider('textEncodingProvider')]
+    public function writesHardLineBreaksOnlyForQuotedPrintableText(
+        TransferEncoding $encoding,
+        bool $text,
+        string $expected,
+    ): void {
+        static::assertSame($expected, Mime::encode("a\nb", $encoding, eol: "\r\n", text: $text));
+    }
+
+    /**
+     * @return array<string, array{TransferEncoding, bool, string}>
+     */
+    public static function textEncodingProvider(): array
+    {
+        return [
+            'quoted-printable text'     => [TransferEncoding::QuotedPrintable, true, "a\r\nb"],
+            'quoted-printable not text' => [TransferEncoding::QuotedPrintable, false, 'a=0Ab'],
+            'base64 text'               => [TransferEncoding::Base64, true, 'YQpi'],
+            '8bit text'                 => [TransferEncoding::EightBit, true, "a\nb"],
+        ];
     }
 }

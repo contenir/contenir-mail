@@ -15,16 +15,36 @@
     "mutators": {
         "@default": true,
         "CastString": {
-            // Address has validated the domain through the same UTS #46 conversion, so
-            // idn_to_ascii() cannot return false here and the cast never applies.
-            "ignore": ["Contenir\\Mail\\Header\\AddressEncoder::asciiEmail"]
+            "ignore": [
+                // Address has validated the domain through the same UTS #46 conversion, so
+                // idn_to_ascii() cannot return false here and the cast never applies.
+                "Contenir\\Mail\\Header\\AddressEncoder::asciiEmail",
+                // fread() on an open, readable stream returns a string, so the cast never applies.
+                "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"
+            ]
         },
         "DecrementInteger": {
+            // Any read size gives the same output, as unencoded bytes carry over to the next read.
+            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"],
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a
                 // space or tab, so stepping onto it again only re-validates a valid character.
                 "\\$i \\+= 2;"
             ]
+        },
+        "IncrementInteger": {
+            // Any read size gives the same output, as unencoded bytes carry over to the next read.
+            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
+        },
+        "Modulus": {
+            // Encoding fewer whole groups per read only keeps more bytes buffered; the output is
+            // the same, as whatever is left over is encoded at the end.
+            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
+        },
+        "ReturnRemoval": {
+            // The chunked stream encoder only saves memory: falling through to Mime::encode()
+            // gives the same output, which PartTest asserts for many lengths and read sizes.
+            "ignore": ["Contenir\\Mail\\Mime\\Part::getEncodedContent"]
         }
     },
     "staticAnalysisTool": "mago"

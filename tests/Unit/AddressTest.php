@@ -273,6 +273,81 @@ final class AddressTest extends TestCase
         static::assertSame('user@example.com', Address::fromString("Name < 'user@example.com' >")->getEmail());
     }
 
+    #[DataProvider('controlCharacterProvider')]
+    #[Test]
+    public function rejectsControlCharacters(string $email, ?string $name, ?string $comment): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Address must not contain control characters');
+
+        new Address($email, $name, $comment);
+    }
+
+    /**
+     * @return array<string, array{string, ?string, ?string}>
+     */
+    public static function controlCharacterProvider(): array
+    {
+        return [
+            'NUL in e-mail'        => ["us\x00er@example.com", null, null],
+            'escape in name'       => ['user@example.com', "Jo\x1BBloggs", null],
+            'last C0 in name'      => ['user@example.com', "Jo\x1FBloggs", null],
+            'backspace in name'    => ['user@example.com', "Jo\x08Bloggs", null],
+            'DEL in comment'       => ['user@example.com', null, "note\x7F"],
+            'first C1 in name'     => ['user@example.com', "Jo\u{80}Bloggs", null],
+            'last C1 in comment'   => ['user@example.com', null, "note\u{9F}"],
+            'vertical tab in name' => ['user@example.com', "Jo\x0BBloggs", null],
+        ];
+    }
+
+    #[DataProvider('bidiProvider')]
+    #[Test]
+    public function rejectsBidirectionalOverrides(string $email, ?string $name, ?string $comment): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Address must not contain bidirectional overrides');
+
+        new Address($email, $name, $comment);
+    }
+
+    /**
+     * @return array<string, array{string, ?string, ?string}>
+     */
+    public static function bidiProvider(): array
+    {
+        return [
+            'left-to-right mark in e-mail'       => ["user\u{200E}@example.com", null, null],
+            'right-to-left mark in e-mail'       => ["user\u{200F}@example.com", null, null],
+            'right-to-left override in e-mail'   => ["user\u{202E}@example.com", null, null],
+            'left-to-right isolate in e-mail'    => ["user\u{2066}@example.com", null, null],
+            'pop isolate in e-mail'              => ["user\u{2069}@example.com", null, null],
+            'left-to-right embedding in name'    => ['user@example.com', "\u{202A}Bank", null],
+            'right-to-left override in name'     => ['user@example.com', "\u{202E}knaB", null],
+            'first strong isolate in comment'    => ['user@example.com', null, "\u{2068}note"],
+            'pop directional isolate in comment' => ['user@example.com', null, "note\u{2069}"],
+        ];
+    }
+
+    #[DataProvider('allowedNameCharacterProvider')]
+    #[Test]
+    public function keepsTabsAndDirectionMarksInNames(string $name): void
+    {
+        static::assertSame($name, (new Address('user@example.com', $name))->getName());
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function allowedNameCharacterProvider(): array
+    {
+        return [
+            'tab'                => ["Jo\tBloggs"],
+            'left-to-right mark' => ["\u{05D9}\u{05D5}\u{200E} 2"],
+            'right-to-left mark' => ["Jo\u{200F}Bloggs"],
+            'character after C1' => ["Jo\u{A0}Bloggs"],
+        ];
+    }
+
     #[DataProvider('notUtf8Provider')]
     #[Test]
     public function rejectsTextThatIsNotUtf8(string $email, ?string $name, ?string $comment): void

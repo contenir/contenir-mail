@@ -128,6 +128,7 @@ class Sendmail implements TransportInterface
      * Send a message
      *
      * @throws RuntimeException When the message has no recipients or its From header is unsafe.
+     * @throws Mail\Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
     public function send(Mail\Message $message)
@@ -154,6 +155,7 @@ class Sendmail implements TransportInterface
      * Prepare recipients list
      *
      * @throws RuntimeException
+     * @throws Mail\Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareRecipients(Mail\Message $message)
@@ -192,6 +194,7 @@ class Sendmail implements TransportInterface
     /**
      * Prepare the subject line string
      *
+     * @throws Mail\Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareSubject(Mail\Message $message)
@@ -202,6 +205,7 @@ class Sendmail implements TransportInterface
     /**
      * Prepare the body string
      *
+     * @throws Mail\Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareBody(Mail\Message $message)
@@ -219,6 +223,7 @@ class Sendmail implements TransportInterface
     /**
      * Prepare the textual representation of headers
      *
+     * @throws Mail\Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareHeaders(Mail\Message $message)

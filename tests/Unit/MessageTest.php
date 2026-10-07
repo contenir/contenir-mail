@@ -7,7 +7,6 @@ namespace Contenir\Mail\Tests\Unit;
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Exception;
-use Contenir\Mail\Header\ContentTransferEncoding;
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
@@ -15,10 +14,7 @@ use Contenir\Mail\Header\Sender;
 use Contenir\Mail\Header\To;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
-use Contenir\Mail\Mime\Message as MimeMessage;
-use Contenir\Mail\Mime\Mime;
-use Contenir\Mail\Mime\Part as MimePart;
-use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Mime\Part;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -66,7 +62,15 @@ final class MessageTest extends TestCase
     }
 
     #[Test]
-    public function setsDateHeaderByDefault(): void
+    public function takesDefaultDateFromClock(): void
+    {
+        $message = new Message(clock: new TestAsset\FixedClock(new DateTimeImmutable('2024-02-29T13:14:15+01:00')));
+
+        static::assertSame('Date: Thu, 29 Feb 2024 13:14:15 +0100', $message->getHeaders()->get('Date')?->toString());
+    }
+
+    #[Test]
+    public function setsDateHeaderWithSystemClockByDefault(): void
     {
         static::assertInstanceOf(Date::class, (new Message())->getHeaders()->get('Date'));
     }
@@ -376,27 +380,18 @@ final class MessageTest extends TestCase
     }
 
     /**
-     * Headers choose their own encoding: plain ASCII stays readable whatever the body encoding.
+     * Headers choose their own encoding: plain ASCII stays readable whatever the charset of the body.
      */
-    #[DataProvider('bodyEncodingTimingProvider')]
     #[Test]
-    public function leavesAsciiSubjectUnencodedWhateverBodyEncoding(string $encodingSet): void
+    public function leavesAsciiSubjectUnencodedWithNonAsciiTextBody(): void
     {
-        $message = $this->makeMessage();
-        if ('before subject' === $encodingSet) {
-            $message->setEncoding('UTF-8');
-        }
-
-        $message->setSubject('hello world');
-        if ('after subject' === $encodingSet) {
-            $message->setEncoding('UTF-8');
-        }
+        $message = $this->makeMessage()->setText('Grüße')->setSubject('hello world');
 
         static::assertSame('Subject: hello world', $message->getHeaders()->get('Subject')?->toString());
     }
 
     #[Test]
-    public function leavesAsciiHeadersUnencodedWhenBodyEncodingIsUtf8(): void
+    public function leavesAsciiHeadersUnencodedWithNonAsciiTextBody(): void
     {
         $message = $this->makeMessage()
             ->addTo('test@example.com', 'Laminas DevTeam')
@@ -404,7 +399,7 @@ final class MessageTest extends TestCase
             ->addCc('list@example.com', 'Laminas Contributors List')
             ->addBcc('devs@example.com', 'Laminas CR Team')
             ->setSubject('This is a subject')
-            ->setEncoding('UTF-8');
+            ->setText('Grüße');
 
         static::assertSame(
             self::FIXED_DATE
@@ -413,7 +408,10 @@ final class MessageTest extends TestCase
                 . "From: Matthew Weier O'Phinney <matthew@example.com>\r\n"
                 . "Cc: Laminas Contributors List <list@example.com>\r\n"
                 . "Bcc: Laminas CR Team <devs@example.com>\r\n"
-                . "Subject: This is a subject\r\n",
+                . "Subject: This is a subject\r\n"
+                . "MIME-Version: 1.0\r\n"
+                . "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Transfer-Encoding: quoted-printable\r\n",
             $message->getHeaders()->toString(),
         );
     }
@@ -434,23 +432,11 @@ final class MessageTest extends TestCase
      * @see https://zendframework.com/issues/browse/ZF2-507
      */
     #[Test]
-    public function dateHeaderStaysAsciiWhenBodyEncodingIsUtf8(): void
+    public function dateHeaderStaysAsciiWithNonAsciiTextBody(): void
     {
-        $message = $this->makeMessage()->setEncoding('utf-8');
+        $message = $this->makeMessage()->setText('Grüße');
 
         static::assertSame(self::FIXED_DATE, $message->getHeaders()->get('Date')?->toString());
-    }
-
-    #[Test]
-    public function encodingIsAsciiByDefault(): void
-    {
-        static::assertSame('ASCII', $this->makeMessage()->getEncoding());
-    }
-
-    #[Test]
-    public function encodingCanBeChanged(): void
-    {
-        static::assertSame('UTF-8', $this->makeMessage()->setEncoding('UTF-8')->getEncoding());
     }
 
     #[Test]
@@ -587,9 +573,9 @@ final class MessageTest extends TestCase
     }
 
     #[Test]
-    public function setsBodyFromMimeMessage(): void
+    public function setsBodyFromMimePart(): void
     {
-        $body = new MimeMessage();
+        $body = Part::html('<b>foo</b>');
 
         static::assertSame($body, $this->makeMessage()->setBody($body)->getBody());
     }
@@ -605,135 +591,10 @@ final class MessageTest extends TestCase
     public function rejectsBodyOfUnsupportedType(mixed $body): void
     {
         $this->expectException(TypeError::class);
-        $this->expectExceptionMessage('must be of type Stringable|Contenir\Mail\Mime\Message|string|null');
+        $this->expectExceptionMessage('must be of type Stringable|Contenir\Mail\Mime\PartInterface|string|null');
 
         /** @psalm-suppress MixedArgument */
         $this->makeMessage()->setBody($body);
-    }
-
-    #[Test]
-    public function singlePartMimeBodySetsMimeVersion(): void
-    {
-        $message = $this->makeMessage()->setBody($this->makeSinglePartBody());
-
-        static::assertSame('1.0', $message->getHeaders()->get('MIME-Version')?->getFieldValue());
-    }
-
-    #[Test]
-    public function singlePartMimeBodySetsContentTypeOfPart(): void
-    {
-        $message = $this->makeMessage()->setBody($this->makeSinglePartBody());
-
-        static::assertSame('text/html', $message->getHeaders()->get('Content-Type')?->getFieldValue());
-    }
-
-    #[Test]
-    public function singlePartUtf8MimeBodySetsContentHeadersOfPart(): void
-    {
-        $part           = new MimePart('UTF-8 TestString: AaÜüÄäÖöß');
-        $part->type     = Mime::TYPE_TEXT;
-        $part->encoding = Mime::ENCODING_QUOTEDPRINTABLE;
-        $part->charset  = 'utf-8';
-        $body           = new MimeMessage();
-        $body->setMime(new Mime('foo-bar'));
-        $body->addPart($part);
-
-        $message = $this->makeMessage()->setEncoding('UTF-8')->setBody($body);
-
-        static::assertStringContainsString(
-            "Content-Type: text/plain;\r\n charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
-            $message->getHeaders()->toString(),
-        );
-    }
-
-    #[Test]
-    public function multipartMimeBodySetsMimeVersion(): void
-    {
-        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
-
-        static::assertSame('1.0', $message->getHeaders()->get('MIME-Version')?->getFieldValue());
-    }
-
-    #[Test]
-    public function multipartMimeBodySetsContentTypeWithBoundary(): void
-    {
-        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
-
-        static::assertSame(
-            "Content-Type: multipart/mixed;\r\n boundary=\"foo-bar\"",
-            $message->getHeaders()->get('Content-Type')?->toString(),
-        );
-    }
-
-    #[Test]
-    public function bodyTextOfMultipartMimeBodyIsMimeSerialization(): void
-    {
-        $body = $this->makeMultipartBody();
-
-        static::assertSame(
-            $body->generateMessage(Headers::EOL),
-            $this->makeMessage()->setBody($body)->getBodyText(),
-        );
-    }
-
-    #[DataProvider('multipartFragmentProvider')]
-    #[Test]
-    public function bodyTextOfMultipartMimeBodyContainsPartsAndBoundaries(string $fragment): void
-    {
-        $message = $this->makeMessage()->setBody($this->makeMultipartBody());
-
-        static::assertStringContainsString($fragment, $message->getBodyText());
-    }
-
-    /**
-     * @see https://zendframework.com/issues/browse/ZF-5962
-     */
-    #[Test]
-    public function mimeBodyWithoutPartsHasEmptyBodyText(): void
-    {
-        $mimeMessage = new MimeMessage();
-        $mimeMessage->setParts([]);
-
-        static::assertSame('', $this->makeMessage()->setBody($mimeMessage)->getBodyText());
-    }
-
-    #[Test]
-    public function nestedMultipartBodySetsContentTypeOfPart(): void
-    {
-        $text              = new MimePart('Test content');
-        $text->type        = Mime::TYPE_TEXT;
-        $text->encoding    = Mime::ENCODING_QUOTEDPRINTABLE;
-        $text->disposition = Mime::DISPOSITION_INLINE;
-        $text->charset     = 'UTF-8';
-
-        $html              = new MimePart('<b>Test content</b>');
-        $html->type        = Mime::TYPE_HTML;
-        $html->encoding    = Mime::ENCODING_QUOTEDPRINTABLE;
-        $html->disposition = Mime::DISPOSITION_INLINE;
-        $html->charset     = 'UTF-8';
-
-        $multipartContent = new MimeMessage();
-        $multipartContent->addPart($text);
-        $multipartContent->addPart($html);
-
-        $multipartPart           = new MimePart($multipartContent->generateMessage());
-        $multipartPart->charset  = 'UTF-8';
-        $multipartPart->type     = 'multipart/alternative';
-        $multipartPart->boundary = $multipartContent->getMime()->boundary();
-
-        $body = new MimeMessage();
-        $body->addPart($multipartPart);
-
-        $message = $this->makeMessage()
-            ->addHeader(new ContentTransferEncoding(TransferEncoding::QuotedPrintable))
-            ->setBody($body);
-
-        $contentType = $message->getHeaders()->get('Content-Type');
-        static::assertInstanceOf(ContentType::class, $contentType);
-        static::assertSame(
-            ['multipart/alternative', $multipartContent->getMime()->boundary()],
-            [$contentType->getType(), $contentType->getParameter('boundary')],
-        );
     }
 
     #[Test]
@@ -959,17 +820,6 @@ final class MessageTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string}>
-     */
-    public static function bodyEncodingTimingProvider(): array
-    {
-        return [
-            'encoding set before subject' => ['before subject'],
-            'encoding set after subject'  => ['after subject'],
-        ];
-    }
-
-    /**
      * @return array<string, array{mixed}>
      */
     public static function invalidBodyProvider(): array
@@ -980,19 +830,6 @@ final class MessageTest extends TestCase
             'false'  => [false],
             'object' => [new stdClass()],
             'int'    => [42],
-        ];
-    }
-
-    /**
-     * @return array<string, array{string}>
-     */
-    public static function multipartFragmentProvider(): array
-    {
-        return [
-            'opening boundary' => ['--foo-bar'],
-            'closing boundary' => ['--foo-bar--'],
-            'plain text part'  => ['Content-Type: text/plain'],
-            'html part'        => ['Content-Type: text/html'],
         ];
     }
 
@@ -1083,32 +920,7 @@ final class MessageTest extends TestCase
 
     private function makeMessage(): Message
     {
-        return new Message(new Headers(new Date(new DateTimeImmutable('2024-01-01T00:00:00Z'))));
-    }
-
-    private function makeSinglePartBody(): MimeMessage
-    {
-        $part       = new MimePart('<b>foo</b>');
-        $part->type = 'text/html';
-        $body       = new MimeMessage();
-        $body->setMime(new Mime('foo-bar'));
-        $body->addPart($part);
-
-        return $body;
-    }
-
-    private function makeMultipartBody(): MimeMessage
-    {
-        $text       = new MimePart('foo');
-        $text->type = 'text/plain';
-        $html       = new MimePart('<b>foo</b>');
-        $html->type = 'text/html';
-        $body       = new MimeMessage();
-        $body->setMime(new Mime('foo-bar'));
-        $body->addPart($text);
-        $body->addPart($html);
-
-        return $body;
+        return new Message(clock: new TestAsset\FixedClock(new DateTimeImmutable('2024-01-01T00:00:00Z')));
     }
 
     private function parseMultipartReport(): Message

@@ -5,6 +5,7 @@ namespace Contenir\Mail\Transport;
 use Contenir\Mail\Address;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\Exception as ProtocolException;
 use Laminas\ServiceManager\ServiceManager;
@@ -243,6 +244,7 @@ class Smtp implements TransportInterface
      * developer to add a custom adapter if required before mail is sent.
      *
      * @throws Exception\RuntimeException
+     * @throws Mime\Exception\RuntimeException When the message body cannot be written.
      */
     #[Override]
     public function send(Message $message)
@@ -342,6 +344,7 @@ class Smtp implements TransportInterface
     /**
      * Prepare header string from message
      *
+     * @throws Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareHeaders(Message $message)
@@ -352,6 +355,7 @@ class Smtp implements TransportInterface
     /**
      * Prepare body string from message
      *
+     * @throws Mime\Exception\RuntimeException
      * @return string
      */
     protected function prepareBody(Message $message)

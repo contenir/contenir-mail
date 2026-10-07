@@ -8,6 +8,10 @@ use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
+use Contenir\Mail\Mime\Attachment;
+use Contenir\Mail\Mime\Multipart;
+use Contenir\Mail\Mime\MultipartType;
+use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Protocol\SmtpPluginManager;
@@ -196,6 +200,23 @@ final class SmtpTest extends TestCase
     public function doesNotSendBccHeader(): void
     {
         $this->getTransport()->send($this->makeMessage());
+
+        static::assertStringNotContainsString('Bcc:', $this->connection->getLog());
+    }
+
+    #[DataProvider('mimeLogProvider')]
+    #[Test]
+    public function writesMimeMessageToConnection(string $expected): void
+    {
+        $this->getTransport()->send($this->makeMimeMessage());
+
+        static::assertStringContainsString($expected, $this->connection->getLog());
+    }
+
+    #[Test]
+    public function doesNotSendBccHeaderOfMimeMessage(): void
+    {
+        $this->getTransport()->send($this->makeMimeMessage());
 
         static::assertStringNotContainsString('Bcc:', $this->connection->getLog());
     }
@@ -447,6 +468,20 @@ final class SmtpTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
+    public static function mimeLogProvider(): array
+    {
+        return [
+            'MIME-Version'         => ["MIME-Version: 1.0\r\n"],
+            'Content-Type'         => ["Content-Type: multipart/mixed;\r\n boundary=\"mixed\"\r\n"],
+            'preamble after blank' => ["\r\n\r\nThis is a multi-part message in MIME format.\r\n\r\n--mixed\r\n"],
+            'alternative part'     => ["--mixed\r\nContent-Type: multipart/alternative;\r\n boundary=\"alt\"\r\n"],
+            'attachment part'      => ["Content-Disposition: attachment; filename=\"a.txt\"\r\n\r\nYWJj\r\n--mixed--"],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
     public static function encodedHeaderProvider(): array
     {
         return [
@@ -475,6 +510,21 @@ final class SmtpTest extends TestCase
             ->setSubject('Testing Contenir\Mail\Transport\Sendmail')
             ->setBody('This is only a test.')
             ->addHeader(new GenericHeader('X-Foo-Bar', 'Matthew'));
+    }
+
+    private function makeMimeMessage(): Message
+    {
+        $alternative = new Multipart(
+            MultipartType::Alternative,
+            [Part::text('Hello'), Part::html('<p>Hello</p>')],
+            'alt',
+        );
+
+        return $this->makeMessage()->setBody(new Multipart(
+            MultipartType::Mixed,
+            [$alternative, Attachment::fromString('abc', 'a.txt', 'text/plain')],
+            'mixed',
+        ));
     }
 
     private function makeDatedMessage(): Message

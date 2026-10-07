@@ -14,4 +14,4 @@ $ composer require contenir/contenir-mail
   [SMTP authentication](transport/smtp-authentication.md),
   [file transport options](transport/file-options.md)
 - [Reading and storing mail](read.md)
-- MIME: [introduction](mime/intro.md), [messages](mime/message.md), [parts](mime/part.md)
+- MIME: [introduction](mime/intro.md), [parts](mime/part.md), [multiparts](mime/multipart.md)

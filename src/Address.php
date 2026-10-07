@@ -27,6 +27,22 @@ final readonly class Address
      */
     private const string NAME_SPECIALS = '()<>[]:;@\\,"';
 
+    /** C0 control characters other than tab, DEL and C1 controls, which no part of an address may hold */
+    private const string CONTROLS = '/[\x00-\x08\x0A-\x1F\x7F\x{80}-\x{9F}]/u';
+
+    /**
+     * Bidirectional formatting characters, which can make an e-mail address
+     * display as a different one; none belong in an address.
+     */
+    private const string EMAIL_BIDI = '/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u';
+
+    /**
+     * Embeddings, overrides and isolates, which can reorder the text around a
+     * display name; the left-to-right and right-to-left marks stay allowed,
+     * since right-to-left names can need them.
+     */
+    private const string NAME_BIDI = '/[\x{202A}-\x{202E}\x{2066}-\x{2069}]/u';
+
     private string $email;
 
     private ?string $name;
@@ -50,6 +66,17 @@ final readonly class Address
 
         if (! mb_check_encoding($email . ($name ?? '') . ($comment ?? ''), encoding: 'UTF-8')) {
             throw new Exception\InvalidArgumentException('Address must be UTF-8 text');
+        }
+
+        if (1 === preg_match(self::CONTROLS, $email . ($name ?? '') . ($comment ?? ''))) {
+            throw new Exception\InvalidArgumentException('Address must not contain control characters');
+        }
+
+        if (
+            1 === preg_match(self::EMAIL_BIDI, $email)
+            || 1 === preg_match(self::NAME_BIDI, ($name ?? '') . ($comment ?? ''))
+        ) {
+            throw new Exception\InvalidArgumentException('Address must not contain bidirectional overrides');
         }
 
         $validator = new EmailAddressValidator();
