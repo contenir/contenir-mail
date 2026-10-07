@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\TestAsset;
 
+use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionInterface;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
-use Contenir\Mail\Protocol\Smtp;
 use Override;
 
 use function array_key_exists;
@@ -13,24 +14,25 @@ use function array_key_last;
 use function array_shift;
 use function base64_encode;
 use function count;
+use function explode;
+use function str_ends_with;
 use function str_starts_with;
 use function strtoupper;
 use function substr;
 
 /**
- * Protocol\Smtp talking to an in-memory SMTP server instead of a socket.
+ * An in-memory SMTP server that answers whatever Protocol\Smtp sends.
  *
- * The server answers each command with a plausible reply: a greeting, an EHLO list of the
- * capabilities set with setCapabilities(), 334 and 235 for AUTH, 354 for DATA, 221 for
- * QUIT and 250 otherwise. reply() scripts a different answer for the next command that
- * starts with a prefix.
+ * Unlike Testing\InMemoryConnection it needs no script: it answers each command with a
+ * plausible reply: a greeting, an EHLO list of the capabilities set with setCapabilities(),
+ * 334 and 235 for AUTH, 354 for DATA, 221 for QUIT and 250 otherwise. reply() scripts a
+ * different answer for the next command that starts with a prefix.
  *
- * @mago-expect lint:method-name The underscored methods override AbstractProtocol's.
  * @mago-expect lint:too-many-properties A fake server keeps its script and what it was sent.
  * @mago-expect lint:kan-defect A fake server answers every SMTP command.
  * @mago-expect lint:cyclomatic-complexity A fake server answers every SMTP command.
  */
-final class ScriptedSmtp extends Smtp
+final class SmtpServer implements ConnectionInterface
 {
     public const string CRAM_MD5_CHALLENGE = '<1896.697170952@postoffice.example.net>';
 
@@ -66,7 +68,9 @@ final class ScriptedSmtp extends Smtp
 
     private ?string $tlsFailure = null;
 
-    private ?string $transport = null;
+    private ?ConnectionConfig $config = null;
+
+    private ?int $port = null;
 
     private string $lastRequest = '';
 
@@ -108,24 +112,27 @@ final class ScriptedSmtp extends Smtp
     }
 
     /**
-     * The port the session would connect to.
+     * The settings the client connected with, if it did.
      */
-    public function port(): int
+    public function openedWith(): ?ConnectionConfig
     {
-        return (int) $this->port;
+        return $this->config;
     }
 
     /**
-     * The read timeout used for the reply to a request; "" for the greeting.
+     * The port the client connected to, if it did.
+     */
+    public function openedPort(): ?int
+    {
+        return $this->port;
+    }
+
+    /**
+     * The read timeout set for the reply to a request; "" for the greeting.
      */
     public function timeoutFor(string $request): ?int
     {
         return $this->timeouts[$request] ?? null;
-    }
-
-    public function isConnected(): bool
-    {
-        return $this->connected;
     }
 
     public function tlsStarted(): bool
@@ -133,43 +140,42 @@ final class ScriptedSmtp extends Smtp
         return $this->tls;
     }
 
-    /**
-     * The stream transport connect() asked for: "tcp" or "ssl".
-     */
-    public function transport(): ?string
-    {
-        return $this->transport;
-    }
-
     #[Override]
-    protected function openSocket(string $transport): void
+    public function open(ConnectionConfig $config, int $port): void
     {
-        $this->transport   = $transport;
+        $this->config      = $config;
+        $this->port        = $port;
         $this->lastRequest = '';
         $this->connected   = true;
         $this->pending     = $this->greeting;
     }
 
-    /**
-     * @param string $request
-     */
     #[Override]
-    protected function _send($request): int
+    public function isConnected(): bool
     {
-        $this->request     = $request;
-        $this->lastRequest = $request;
-        $this->sent[]      = $request;
-        $this->_addLog($request . self::EOL);
-        $this->queueReply($request);
-
-        return 0;
+        return $this->connected;
     }
 
-    /**
-     * @param int|null $timeout
-     */
     #[Override]
-    protected function _receive($timeout = null): string
+    public function write(string $data): void
+    {
+        if (! $this->connected) {
+            throw new RuntimeException('Cannot write: the connection is closed');
+        }
+
+        if (! str_ends_with($data, "\r\n")) {
+            throw new RuntimeException('Protocol\Smtp writes whole lines');
+        }
+
+        foreach (explode("\r\n", substr($data, offset: 0, length: -2)) as $line) {
+            $this->lastRequest = $line;
+            $this->sent[]      = $line;
+            $this->queueReply($line);
+        }
+    }
+
+    #[Override]
+    public function readLine(int $maxLength): string
     {
         $line = array_shift($this->pending);
         if (null === $line) {
@@ -177,17 +183,20 @@ final class ScriptedSmtp extends Smtp
         }
 
         if (! array_key_exists($this->lastRequest, $this->timeouts)) {
-            $this->timeouts[$this->lastRequest] = $timeout;
+            $this->timeouts[$this->lastRequest] = null;
         }
 
-        $line .= self::EOL;
-        $this->_addLog($line);
-
-        return $line;
+        return "{$line}\r\n";
     }
 
     #[Override]
-    protected function enableCrypto(): void
+    public function read(int $length): string
+    {
+        throw new RuntimeException('SMTP reads only lines');
+    }
+
+    #[Override]
+    public function enableTls(): void
     {
         if (null !== $this->tlsFailure) {
             throw new RuntimeException($this->tlsFailure);
@@ -197,9 +206,16 @@ final class ScriptedSmtp extends Smtp
     }
 
     #[Override]
-    protected function _disconnect(): void
+    public function setTimeout(int $seconds): void
     {
-        parent::_disconnect();
+        if (! array_key_exists($this->lastRequest, $this->timeouts)) {
+            $this->timeouts[$this->lastRequest] = $seconds;
+        }
+    }
+
+    #[Override]
+    public function close(): void
+    {
         $this->connected = false;
     }
 

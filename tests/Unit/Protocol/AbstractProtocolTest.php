@@ -19,22 +19,15 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function fclose;
-use function fgets;
-use function is_resource;
 use function serialize;
 use function sprintf;
 use function str_repeat;
 use function stream_socket_get_name;
-use function stream_socket_pair;
 use function stream_socket_server;
 use function strlen;
 use function strrpos;
 use function substr;
 use function unserialize;
-
-use const STREAM_IPPROTO_IP;
-use const STREAM_PF_UNIX;
-use const STREAM_SOCK_STREAM;
 
 #[CoversClass(AbstractProtocol::class)]
 #[Group('unit')]
@@ -425,52 +418,6 @@ final class AbstractProtocolTest extends TestCase
     }
 
     #[Test]
-    public function talksOverASocketASubclassOpened(): void
-    {
-        [$client, $peer] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        $protocol = new ExposedProtocol('smtp.example.com');
-        $protocol->useSocket($client);
-        $protocol->send('NOOP');
-
-        static::assertSame("NOOP\r\n", fgets($peer));
-    }
-
-    #[Test]
-    public function followsTheSocketWhenASubclassReplacesIt(): void
-    {
-        [$first, $firstPeer] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        [$client, $peer] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        $protocol = new ExposedProtocol('smtp.example.com');
-        $protocol->useSocket($first);
-        $protocol->send('NOOP');
-        $protocol->useSocket($client);
-        $protocol->send('RSET');
-
-        static::assertSame(["NOOP\r\n", "RSET\r\n"], [fgets($firstPeer), fgets($peer)]);
-    }
-
-    #[Test]
-    public function wrapsTheSameSocketOnlyOnce(): void
-    {
-        [$client] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        $protocol = new ExposedProtocol('smtp.example.com');
-        $protocol->useSocket($client);
-
-        static::assertSame($protocol->currentConnection(), $protocol->currentConnection());
-    }
-
-    #[Test]
-    public function disconnectClosesTheSocket(): void
-    {
-        [$client] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        $protocol = new ExposedProtocol('smtp.example.com');
-        $protocol->useSocket($client);
-        $protocol->disconnect();
-
-        static::assertFalse(is_resource($client));
-    }
-
-    #[Test]
     public function disconnectClosesTheConnection(): void
     {
         $server = new InMemoryConnection();
@@ -491,44 +438,44 @@ final class AbstractProtocolTest extends TestCase
     }
 
     #[Test]
-    public function opensASocketToARemote(): void
+    public function opensTheConnectionItWasGiven(): void
+    {
+        $server = new InMemoryConnection();
+        (new ExposedProtocol('smtp.example.com', 25, $server))->open(new ConnectionConfig('smtp.example.com'), 587);
+
+        static::assertSame(587, $server->openedPort());
+    }
+
+    #[Test]
+    public function opensAStreamConnectionByDefault(): void
     {
         $server   = stream_socket_server('tcp://127.0.0.1:0');
         $name     = (string) stream_socket_get_name($server, remote: false);
         $protocol = new ExposedProtocol('127.0.0.1');
-        $protocol->connectTo("tcp://{$name}");
+        $protocol->open(
+            new ConnectionConfig('127.0.0.1', security: Security::None, timeout: 1),
+            (int) substr($name, (int) strrpos($name, needle: ':') + 1),
+        );
         fclose($server);
 
         static::assertInstanceOf(StreamConnection::class, $protocol->currentConnection());
     }
 
     #[Test]
-    public function reportsThatTheSocketIsOpen(): void
-    {
-        $server   = stream_socket_server('tcp://127.0.0.1:0');
-        $name     = (string) stream_socket_get_name($server, remote: false);
-        $protocol = new ExposedProtocol('127.0.0.1');
-        $result   = $protocol->connectTo("tcp://{$name}");
-        fclose($server);
-
-        static::assertTrue($result);
-    }
-
-    #[Test]
-    public function reportsWhyASocketCannotBeOpened(): void
+    public function reportsWhyAConnectionCannotBeOpened(): void
     {
         $server = stream_socket_server('tcp://127.0.0.1:0');
         $name   = (string) stream_socket_get_name($server, remote: false);
         fclose($server);
-        $port = substr($name, (int) strrpos($name, needle: ':') + 1);
+        $port = (int) substr($name, (int) strrpos($name, needle: ':') + 1);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(sprintf(
-            'Could not open socket: stream_socket_client(): Unable to connect to tcp://127.0.0.1:%s',
-            $port,
-        ));
+        $this->expectExceptionMessage(sprintf('Cannot connect to 127.0.0.1:%d', $port));
 
-        (new ExposedProtocol('127.0.0.1'))->connectTo("tcp://{$name}");
+        (new ExposedProtocol('127.0.0.1'))->open(
+            new ConnectionConfig('127.0.0.1', security: Security::None, timeout: 1),
+            $port,
+        );
     }
 
     #[Test]

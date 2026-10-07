@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
-use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
-
 /**
- * Certificate verification settings shared by the protocols, and the socket
- * setup SMTP still uses until it opens a Connection of its own.
+ * Certificate verification settings shared by the protocols.
  *
  * @api
  */
@@ -46,31 +43,5 @@ trait ProtocolTrait
     public function validateCert(): bool
     {
         return ! $this->novalidatecert;
-    }
-
-    /**
-     * Open a socket to the server, verifying its certificate unless told not to.
-     *
-     * @param string $transport "ssl" for TLS from the start, anything else for a plain connection
-     * @param int|null $port null fails, as no port can be guessed here
-     * @param int $timeout timeout in seconds for initiating the session and for each read
-     * @return resource The socket created.
-     * @throws Exception\RuntimeException If unable to connect to host.
-     * @throws MailInvalidArgumentException When the timeout is below one second.
-     */
-    protected function setupSocket(string $transport, string $host, ?int $port, int $timeout): mixed
-    {
-        $connection = new StreamConnection();
-        $connection->open(
-            new ConnectionConfig(
-                host: $host,
-                security: 'ssl' === $transport ? Security::Tls : Security::None,
-                verifyPeer: ! $this->novalidatecert,
-                timeout: $timeout,
-            ),
-            $port ?? 0,
-        );
-
-        return $connection->detach();
     }
 }

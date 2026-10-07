@@ -10,7 +10,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
-use Contenir\Mail\Tests\Unit\TestAsset\ScriptedSmtp;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -34,7 +34,8 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsEnvelopeAndMessage(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('sender@example.com');
         $smtp->rcpt('recipient@example.com');
         $smtp->data("Subject: Hi\r\n\r\nHello");
@@ -49,26 +50,28 @@ final class SmtpTransactionTest extends TestCase
                 'Hello',
                 '.',
             ],
-            self::transaction($smtp),
+            self::transaction($server),
         );
     }
 
     #[Test]
     public function sendsNullReversePathForEmptySender(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('');
 
-        static::assertSame(['MAIL FROM:<>'], self::transaction($smtp));
+        static::assertSame(['MAIL FROM:<>'], self::transaction($server));
     }
 
     #[Test]
     public function acceptsQuotedLocalPartWithSpaces(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('"john doe"@example.com');
 
-        static::assertSame(['MAIL FROM:<"john doe"@example.com>'], self::transaction($smtp));
+        static::assertSame(['MAIL FROM:<"john doe"@example.com>'], self::transaction($server));
     }
 
     #[Test]
@@ -115,13 +118,14 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsNothingForUnsafeRecipient(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('sender@example.com');
 
         try {
             $smtp->rcpt("x@example.com>\r\nRCPT TO:<victim@example.com");
         } catch (InvalidArgumentException) {
-            static::assertSame(['MAIL FROM:<sender@example.com>'], self::transaction($smtp));
+            static::assertSame(['MAIL FROM:<sender@example.com>'], self::transaction($server));
             return;
         }
 
@@ -135,20 +139,22 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function declaresMailParametersServerSupports(array $parameters, string $expected): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('sender@example.com', ...$parameters);
 
-        static::assertSame([$expected], self::transaction($smtp));
+        static::assertSame([$expected], self::transaction($server));
     }
 
     #[DataProvider('unsupportedParameterProvider')]
     #[Test]
     public function leavesOutParametersServerDoesNotSupport(string $capabilities): void
     {
-        $smtp = self::session($capabilities);
+        $server = new SmtpServer();
+        $smtp   = self::session($server, $capabilities);
         $smtp->mail('sender@example.com', 10, eightBit: true);
 
-        static::assertSame(['MAIL FROM:<sender@example.com>'], self::transaction($smtp));
+        static::assertSame(['MAIL FROM:<sender@example.com>'], self::transaction($server));
     }
 
     #[Test]
@@ -166,19 +172,21 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function acceptsMessageOfAnySizeWithoutLimit(string $capability, int $size): void
     {
-        $smtp = self::session($capability);
+        $server = new SmtpServer();
+        $smtp   = self::session($server, $capability);
         $smtp->mail('sender@example.com', $size);
 
-        static::assertSame(["MAIL FROM:<sender@example.com> SIZE={$size}"], self::transaction($smtp));
+        static::assertSame(["MAIL FROM:<sender@example.com> SIZE={$size}"], self::transaction($server));
     }
 
     #[Test]
     public function declaresSmtpUtf8ForInternationalSender(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('jösé@example.com');
 
-        static::assertSame(['MAIL FROM:<jösé@example.com> SMTPUTF8'], self::transaction($smtp));
+        static::assertSame(['MAIL FROM:<jösé@example.com> SMTPUTF8'], self::transaction($server));
     }
 
     /**
@@ -187,7 +195,7 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function refusesInternationalSenderWithoutSmtpUtf8(): void
     {
-        $smtp = self::session('8BITMIME');
+        $smtp = self::session(null, '8BITMIME');
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('The server does not offer SMTPUTF8');
@@ -210,11 +218,12 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function acceptsInternationalRecipientInSmtpUtf8Transaction(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->mail('sender@example.com', smtpUtf8: true);
         $smtp->rcpt('jösé@example.com');
 
-        static::assertSame('RCPT TO:<jösé@example.com>', self::transaction($smtp)[1]);
+        static::assertSame('RCPT TO:<jösé@example.com>', self::transaction($server)[1]);
     }
 
     #[Test]
@@ -229,20 +238,22 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function acceptsForwardingReplyToRecipient(): void
     {
-        $smtp = self::session();
-        $smtp->reply('RCPT', '251 2.1.5 User not local; will forward');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('RCPT', '251 2.1.5 User not local; will forward');
         $smtp->mail('sender@example.com');
         $smtp->rcpt('recipient@example.com');
         $smtp->data('Hello');
 
-        static::assertSame('.', self::transaction($smtp)[4]);
+        static::assertSame('.', self::transaction($server)[4]);
     }
 
     #[Test]
     public function reportsRefusedRecipientWithCode(): void
     {
-        $smtp = self::session();
-        $smtp->reply('RCPT', '550 5.1.1 Mailbox "nosuchuser" does not exist');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('RCPT', '550 5.1.1 Mailbox "nosuchuser" does not exist');
         $smtp->mail('sender@example.com');
 
         $this->expectException(RuntimeException::class);
@@ -255,8 +266,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function joinsLinesOfMultilineError(): void
     {
-        $smtp = self::session();
-        $smtp->reply('MAIL', '550-5.7.1 Sender rejected;', '550 5.7.1 see policy');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('MAIL', '550-5.7.1 Sender rejected;', '550 5.7.1 see policy');
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('5.7.1 Sender rejected; 5.7.1 see policy');
@@ -295,10 +307,11 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function normalisesLineEndingsToCrlf(string $data, array $expected): void
     {
-        $smtp = self::open();
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
         $smtp->data($data);
 
-        static::assertSame([...$expected, '.'], self::message($smtp));
+        static::assertSame([...$expected, '.'], self::message($server));
     }
 
     /**
@@ -309,22 +322,24 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsNoEarlyEndOfDataAgainstSmtpSmuggling(string $data): void
     {
-        $smtp = self::open();
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
         $smtp->data($data);
 
         static::assertSame(
             ['.'],
-            array_values(array_filter(self::message($smtp), static fn(string $line): bool => '.' === $line)),
+            array_values(array_filter(self::message($server), static fn(string $line): bool => '.' === $line)),
         );
     }
 
     #[Test]
     public function doublesLeadingDot(): void
     {
-        $smtp = self::open();
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
         $smtp->data(".hidden\r\n..twice");
 
-        static::assertSame(['..hidden', '...twice', '.'], self::message($smtp));
+        static::assertSame(['..hidden', '...twice', '.'], self::message($server));
     }
 
     /**
@@ -347,12 +362,13 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsNothingForLineLongerThanLimit(): void
     {
-        $smtp = self::open();
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
 
         try {
             $smtp->data(str_repeat('a', Smtp::SMTP_LINE_LIMIT + 1));
         } catch (InvalidArgumentException) {
-            static::assertSame([], self::message($smtp));
+            static::assertSame([], self::message($server));
             return;
         }
 
@@ -362,10 +378,11 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsLineOfExactlyLimit(): void
     {
-        $smtp = self::open();
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
         $smtp->data(str_repeat('a', Smtp::SMTP_LINE_LIMIT));
 
-        static::assertSame([str_repeat('a', Smtp::SMTP_LINE_LIMIT), '.'], self::message($smtp));
+        static::assertSame([str_repeat('a', Smtp::SMTP_LINE_LIMIT), '.'], self::message($server));
     }
 
     #[Test]
@@ -407,14 +424,15 @@ final class SmtpTransactionTest extends TestCase
     }
 
     /**
-     * @param callable(ScriptedSmtp): void $command
+     * @param callable(Smtp): void $command
      */
     #[DataProvider('refusedCommandProvider')]
     #[Test]
     public function reportsRefusedCommand(string $prefix, callable $command): void
     {
-        $smtp = self::open();
-        $smtp->reply($prefix, '554 5.0.0 Refused');
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
+        $server->reply($prefix, '554 5.0.0 Refused');
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('5.0.0 Refused');
@@ -424,14 +442,15 @@ final class SmtpTransactionTest extends TestCase
     }
 
     /**
-     * @param callable(ScriptedSmtp): void $command
+     * @param callable(Smtp): void $command
      */
     #[DataProvider('acceptedReplyProvider')]
     #[Test]
     public function acceptsAlternativeSuccessReply(string $prefix, string $reply, callable $command): void
     {
-        $smtp = self::open();
-        $smtp->reply($prefix, $reply);
+        $server = new SmtpServer();
+        $smtp   = self::open($server);
+        $server->reply($prefix, $reply);
         $command($smtp);
 
         static::assertSame([$reply], $smtp->getResponse());
@@ -440,22 +459,24 @@ final class SmtpTransactionTest extends TestCase
     /**
      * RFC 5321 section 4.5.3.2 gives each reply its own time limit.
      *
-     * @param callable(ScriptedSmtp): void $command
+     * @param callable(Smtp): void $command
      */
     #[DataProvider('timeoutProvider')]
     #[Test]
     public function waitsForReplyAsLongAsRfc5321Allows(callable $command, string $request, ?int $expected): void
     {
-        $smtp = new ScriptedSmtp(
+        $server = new SmtpServer();
+        $smtp   = new Smtp(
             new ConnectionConfig('mail.example.com'),
             config: [],
             authenticator: new Plain('orders', 'secret'),
+            connection: $server,
         );
         $smtp->connect();
         $smtp->helo('localhost');
         $command($smtp);
 
-        static::assertSame($expected, $smtp->timeoutFor($request));
+        static::assertSame($expected, $server->timeoutFor($request));
     }
 
     /**
@@ -465,8 +486,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function refusesMalformedReply(string $line): void
     {
-        $smtp = self::session();
-        $smtp->reply('NOOP', $line);
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('NOOP', $line);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('The server sent a malformed reply line');
@@ -477,8 +499,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function acceptsReplyWithoutText(): void
     {
-        $smtp = self::session();
-        $smtp->reply('NOOP', '250');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('NOOP', '250');
         $smtp->noop();
 
         static::assertSame(['250'], $smtp->getResponse());
@@ -500,19 +523,21 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsNoop(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->noop();
 
-        static::assertSame(['NOOP'], self::transaction($smtp));
+        static::assertSame(['NOOP'], self::transaction($server));
     }
 
     #[Test]
     public function sendsVrfy(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->vrfy('postmaster');
 
-        static::assertSame(['VRFY postmaster'], self::transaction($smtp));
+        static::assertSame(['VRFY postmaster'], self::transaction($server));
     }
 
     #[Test]
@@ -530,12 +555,13 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsNothingForCommandWithBreak(string $user): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
 
         try {
             $smtp->vrfy($user);
         } catch (InvalidArgumentException) {
-            static::assertSame([], self::transaction($smtp));
+            static::assertSame([], self::transaction($server));
             return;
         }
 
@@ -545,8 +571,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function readsReplyOfMaximumLength(): void
     {
-        $smtp = self::session();
-        $smtp->reply('NOOP', ...[
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('NOOP', ...[
             ...array_fill(
                 start_index: 0,
                 count: Smtp::MAX_REPLY_LINES - 1,
@@ -565,8 +592,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function refusesReplyLongerThanLimit(): void
     {
-        $smtp = self::session();
-        $smtp->reply('NOOP', ...[
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('NOOP', ...[
             ...array_fill(
                 start_index: 0,
                 count: Smtp::MAX_REPLY_LINES,
@@ -584,8 +612,9 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function readsEveryLineOfMultilineReply(): void
     {
-        $smtp = self::session();
-        $smtp->reply('NOOP', '250-first', '250 last');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('NOOP', '250-first', '250 last');
         $smtp->noop();
 
         static::assertSame(['250-first', '250 last'], $smtp->getResponse());
@@ -594,30 +623,33 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function sendsQuitAndEndsSession(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->quit();
 
-        static::assertSame([false, ['QUIT']], [$smtp->hasSession(), self::transaction($smtp)]);
+        static::assertSame([false, ['QUIT']], [$smtp->hasSession(), self::transaction($server)]);
     }
 
     #[Test]
     public function sendsNoQuitWhenTurnedOff(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->setUseCompleteQuit(false);
         $smtp->quit();
 
-        static::assertSame([false, []], [$smtp->hasSession(), self::transaction($smtp)]);
+        static::assertSame([false, []], [$smtp->hasSession(), self::transaction($server)]);
     }
 
     #[Test]
     public function sendsNoQuitWithoutSession(): void
     {
-        $smtp = self::smtp();
+        $server = new SmtpServer();
+        $smtp   = self::smtp($server);
         $smtp->connect();
         $smtp->quit();
 
-        static::assertSame([], $smtp->sentLines());
+        static::assertSame([], $server->sentLines());
     }
 
     #[Test]
@@ -637,60 +669,62 @@ final class SmtpTransactionTest extends TestCase
     #[Test]
     public function disconnectsAfterQuit(): void
     {
-        $smtp = self::session();
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
         $smtp->disconnect();
 
-        static::assertSame([false, ['QUIT']], [$smtp->isConnected(), self::transaction($smtp)]);
+        static::assertSame([false, ['QUIT']], [$server->isConnected(), self::transaction($server)]);
     }
 
     #[Test]
     public function disconnectsFromServerThatHasGone(): void
     {
-        $smtp = self::session();
-        $smtp->reply('QUIT', '421 4.4.2 Connection dropped');
+        $server = new SmtpServer();
+        $smtp   = self::session($server);
+        $server->reply('QUIT', '421 4.4.2 Connection dropped');
         $smtp->disconnect();
 
-        static::assertFalse($smtp->isConnected());
+        static::assertFalse($server->isConnected());
     }
 
     /**
-     * @return array<string, array{string, callable(ScriptedSmtp): void}>
+     * @return array<string, array{string, callable(Smtp): void}>
      */
     public static function refusedCommandProvider(): array
     {
         return [
-            'end of data' => ['.', static fn(ScriptedSmtp $smtp) => $smtp->data('Hello')],
-            'DATA'        => ['DATA', static fn(ScriptedSmtp $smtp) => $smtp->data('Hello')],
-            'RSET'        => ['RSET', static fn(ScriptedSmtp $smtp) => $smtp->rset()],
-            'NOOP'        => ['NOOP', static fn(ScriptedSmtp $smtp) => $smtp->noop()],
-            'VRFY'        => ['VRFY', static fn(ScriptedSmtp $smtp) => $smtp->vrfy('postmaster')],
-            'QUIT'        => ['QUIT', static fn(ScriptedSmtp $smtp) => $smtp->quit()],
+            'end of data' => ['.', static fn(Smtp $smtp) => $smtp->data('Hello')],
+            'DATA'        => ['DATA', static fn(Smtp $smtp) => $smtp->data('Hello')],
+            'RSET'        => ['RSET', static fn(Smtp $smtp) => $smtp->rset()],
+            'NOOP'        => ['NOOP', static fn(Smtp $smtp) => $smtp->noop()],
+            'VRFY'        => ['VRFY', static fn(Smtp $smtp) => $smtp->vrfy('postmaster')],
+            'QUIT'        => ['QUIT', static fn(Smtp $smtp) => $smtp->quit()],
         ];
     }
 
     /**
-     * @return array<string, array{string, string, callable(ScriptedSmtp): void}>
+     * @return array<string, array{string, string, callable(Smtp): void}>
      */
     public static function acceptedReplyProvider(): array
     {
         return [
-            'RSET 220' => ['RSET', '220 2.0.0 Reset', static fn(ScriptedSmtp $smtp) => $smtp->rset()],
-            'VRFY 251' => ['VRFY', '251 2.1.5 Forwarded', static fn(ScriptedSmtp $smtp) => $smtp->vrfy('postmaster')],
+            'RSET 220' => ['RSET', '220 2.0.0 Reset', static fn(Smtp $smtp) => $smtp->rset()],
+            'VRFY 251' => ['VRFY', '251 2.1.5 Forwarded', static fn(Smtp $smtp) => $smtp->vrfy('postmaster')],
             'VRFY 252' => [
                 'VRFY',
                 '252 2.1.5 Cannot verify',
-                static fn(ScriptedSmtp $smtp) => $smtp->vrfy('postmaster'),
+                static fn(Smtp $smtp) => $smtp->vrfy('postmaster'),
             ],
         ];
     }
 
     /**
-     * @return array<string, array{callable(ScriptedSmtp): void, string, int|null}>
+     * @return array<string, array{callable(Smtp): void, string, int|null}>
      */
     public static function timeoutProvider(): array
     {
-        $none = static function (ScriptedSmtp $smtp): void {};
-        $send = static function (ScriptedSmtp $smtp): void {
+        $none = static function (Smtp $smtp): void {};
+        $send = static function (Smtp $smtp): void {
             $smtp->mail('sender@example.com');
             $smtp->rcpt('recipient@example.com');
             $smtp->data('Hello');
@@ -706,10 +740,10 @@ final class SmtpTransactionTest extends TestCase
             'RCPT'          => [$send, 'RCPT TO:<recipient@example.com>', 300],
             'DATA'          => [$send, 'DATA', 120],
             'end of data'   => [$send, '.', 600],
-            'RSET'          => [static fn(ScriptedSmtp $smtp) => $smtp->rset(), 'RSET', null],
-            'NOOP'          => [static fn(ScriptedSmtp $smtp) => $smtp->noop(), 'NOOP', 300],
-            'VRFY'          => [static fn(ScriptedSmtp $smtp) => $smtp->vrfy('postmaster'), 'VRFY postmaster', 300],
-            'QUIT'          => [static fn(ScriptedSmtp $smtp) => $smtp->quit(), 'QUIT', 300],
+            'RSET'          => [static fn(Smtp $smtp) => $smtp->rset(), 'RSET', null],
+            'NOOP'          => [static fn(Smtp $smtp) => $smtp->noop(), 'NOOP', 300],
+            'VRFY'          => [static fn(Smtp $smtp) => $smtp->vrfy('postmaster'), 'VRFY postmaster', 300],
+            'QUIT'          => [static fn(Smtp $smtp) => $smtp->quit(), 'QUIT', 300],
         ];
     }
 
@@ -829,18 +863,22 @@ final class SmtpTransactionTest extends TestCase
         ];
     }
 
-    private static function smtp(): ScriptedSmtp
+    private static function smtp(?SmtpServer $server = null): Smtp
     {
-        return new ScriptedSmtp(new ConnectionConfig('mail.example.com', security: Security::None));
+        return new Smtp(
+            new ConnectionConfig('mail.example.com', security: Security::None),
+            connection: $server ?? new SmtpServer(),
+        );
     }
 
-    private static function session(string ...$capabilities): ScriptedSmtp
+    private static function session(?SmtpServer $server = null, string ...$capabilities): Smtp
     {
-        $smtp = self::smtp();
+        $server ??= new SmtpServer();
         if ([] !== $capabilities) {
-            $smtp->setCapabilities(...$capabilities);
+            $server->setCapabilities(...$capabilities);
         }
 
+        $smtp = self::smtp($server);
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -850,9 +888,9 @@ final class SmtpTransactionTest extends TestCase
     /**
      * A session with MAIL and RCPT accepted.
      */
-    private static function open(): ScriptedSmtp
+    private static function open(?SmtpServer $server = null): Smtp
     {
-        $smtp = self::session();
+        $smtp = self::session($server);
         $smtp->mail('sender@example.com');
         $smtp->rcpt('recipient@example.com');
 
@@ -864,9 +902,9 @@ final class SmtpTransactionTest extends TestCase
      *
      * @return list<string>
      */
-    private static function transaction(ScriptedSmtp $smtp): array
+    private static function transaction(SmtpServer $server): array
     {
-        return array_slice($smtp->sentLines(), offset: 1);
+        return array_slice($server->sentLines(), offset: 1);
     }
 
     /**
@@ -874,8 +912,8 @@ final class SmtpTransactionTest extends TestCase
      *
      * @return list<string>
      */
-    private static function message(ScriptedSmtp $smtp): array
+    private static function message(SmtpServer $server): array
     {
-        return array_slice($smtp->sentLines(), offset: 4);
+        return array_slice($server->sentLines(), offset: 4);
     }
 }

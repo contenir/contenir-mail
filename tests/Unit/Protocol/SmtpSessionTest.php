@@ -14,7 +14,7 @@ use Contenir\Mail\Protocol\Smtp\Auth\ChannelInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\CramMd5;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
-use Contenir\Mail\Tests\Unit\TestAsset\ScriptedSmtp;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -33,35 +33,93 @@ final class SmtpSessionTest extends TestCase
 {
     private const string AUTH_VALUE = 'correct horse battery staple';
 
-    #[DataProvider('transportProvider')]
+    #[DataProvider('securityProvider')]
     #[Test]
-    public function opensSocketWithTransportForSecurity(Security $security, string $expected): void
+    public function opensConnectionWithConfiguredSecurity(Security $security): void
     {
-        $smtp = self::smtp($security);
-        $smtp->connect();
+        $server = new SmtpServer();
+        self::smtp($security, server: $server)->connect();
 
-        static::assertSame($expected, $smtp->transport());
+        static::assertSame($security, $server->openedWith()?->security);
+    }
+
+    #[Test]
+    public function opensConnectionWithConfiguredTimeout(): void
+    {
+        $server = new SmtpServer();
+        (new Smtp(new ConnectionConfig('mail.example.com', timeout: 7), connection: $server))->connect();
+
+        static::assertSame(7, $server->openedWith()?->timeout);
     }
 
     #[DataProvider('portProvider')]
     #[Test]
     public function connectsToStandardPortForSecurity(Security $security, int $expected): void
     {
-        static::assertSame($expected, self::smtp($security)->port());
+        $server = new SmtpServer();
+        self::smtp($security, server: $server)->connect();
+
+        static::assertSame($expected, $server->openedPort());
     }
 
     #[Test]
     public function connectsToConfiguredPort(): void
     {
-        static::assertSame(2525, (new ScriptedSmtp(new ConnectionConfig('mail.example.com', 2525)))->port());
+        $server = new SmtpServer();
+        (new Smtp(new ConnectionConfig('mail.example.com', 2525), connection: $server))->connect();
+
+        static::assertSame(2525, $server->openedPort());
+    }
+
+    #[Test]
+    public function verifiesServerCertificateByDefault(): void
+    {
+        $server = new SmtpServer();
+        self::smtp(Security::Tls, server: $server)->connect();
+
+        static::assertTrue($server->openedWith()?->verifyPeer);
+    }
+
+    #[Test]
+    public function skipsCertificateVerificationWhenConfigured(): void
+    {
+        $server = new SmtpServer();
+        $smtp   = new Smtp(
+            new ConnectionConfig('mail.example.com', security: Security::Tls, verifyPeer: false),
+            connection: $server,
+        );
+        $smtp->connect();
+
+        static::assertFalse($server->openedWith()?->verifyPeer);
+    }
+
+    #[Test]
+    public function skipsCertificateVerificationWhenToldAfterConstruction(): void
+    {
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::Tls, server: $server);
+        $smtp->setNoValidateCert(true);
+        $smtp->connect();
+
+        static::assertFalse($server->openedWith()?->verifyPeer);
     }
 
     #[Test]
     public function upgradesWithStartTlsAndRepeatsEhlo(): void
     {
-        $smtp = self::session(Security::StartTls);
+        $server = new SmtpServer();
+        $_smtp  = self::session(Security::StartTls, server: $server);
 
-        static::assertSame(['EHLO localhost', 'STARTTLS', 'EHLO localhost'], $smtp->sentLines());
+        static::assertSame(['EHLO localhost', 'STARTTLS', 'EHLO localhost'], $server->sentLines());
+    }
+
+    #[Test]
+    public function startsTlsOnTheConnectionAfterStartTls(): void
+    {
+        $server = new SmtpServer();
+        self::session(Security::StartTls, server: $server);
+
+        static::assertTrue($server->tlsStarted());
     }
 
     #[DataProvider('encryptionProvider')]
@@ -90,7 +148,10 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function sendsNoStartTlsUnlessRequired(Security $security): void
     {
-        static::assertSame(['EHLO localhost'], self::session($security)->sentLines());
+        $server = new SmtpServer();
+        $_smtp  = self::session($security, server: $server);
+
+        static::assertSame(['EHLO localhost'], $server->sentLines());
     }
 
     /**
@@ -100,8 +161,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function refusesServerThatDoesNotOfferStartTls(): void
     {
-        $smtp = self::smtp(Security::StartTls);
-        $smtp->setCapabilities('AUTH PLAIN');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::StartTls, server: $server);
+        $server->setCapabilities('AUTH PLAIN');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -116,14 +178,15 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function sendsNothingMoreToServerWithoutStartTls(): void
     {
-        $smtp = self::smtp(Security::StartTls);
-        $smtp->setCapabilities('AUTH PLAIN');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::StartTls, server: $server);
+        $server->setCapabilities('AUTH PLAIN');
         $smtp->connect();
 
         try {
             $smtp->helo('localhost');
         } catch (RuntimeException) {
-            static::assertSame(['EHLO localhost'], $smtp->sentLines());
+            static::assertSame(['EHLO localhost'], $server->sentLines());
             return;
         }
 
@@ -133,8 +196,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function refusesSessionWhenServerRefusesStartTls(): void
     {
-        $smtp = self::smtp(Security::StartTls);
-        $smtp->reply('STARTTLS', '454 4.7.0 TLS not available');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::StartTls, server: $server);
+        $server->reply('STARTTLS', '454 4.7.0 TLS not available');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -147,8 +211,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function startsNoSessionWhenTlsFails(): void
     {
-        $smtp = self::smtp(Security::StartTls);
-        $smtp->failTls('Unable to start TLS: handshake failed');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::StartTls, server: $server);
+        $server->failTls('Unable to start TLS: handshake failed');
         $smtp->connect();
 
         try {
@@ -167,9 +232,10 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function discardsCapabilitiesFromBeforeStartTls(): void
     {
-        $smtp = self::smtp(Security::StartTls);
-        $smtp->reply('EHLO', '250-mail.example.com', '250-STARTTLS', '250 AUTH PLAIN');
-        $smtp->setCapabilities('SIZE 5000');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::StartTls, server: $server);
+        $server->reply('EHLO', '250-mail.example.com', '250-STARTTLS', '250 AUTH PLAIN');
+        $server->setCapabilities('SIZE 5000');
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -194,8 +260,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function readsCapabilitiesInOldAuthSyntax(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->setCapabilities('AUTH=login plain');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->setCapabilities('AUTH=login plain');
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -205,8 +272,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function skipsEmptyCapabilityLines(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->setCapabilities('', 'PIPELINING');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->setCapabilities('', 'PIPELINING');
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -216,8 +284,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function readsLowerCaseKeywordsAndSpacedParameters(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->setCapabilities('size   2000');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->setCapabilities('size   2000');
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -239,31 +308,34 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function fallsBackToHeloWhenEhloIsRefused(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->reply('EHLO', '502 5.5.1 Command not implemented');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->reply('EHLO', '502 5.5.1 Command not implemented');
         $smtp->connect();
         $smtp->helo('localhost');
 
-        static::assertSame(['EHLO localhost', 'HELO localhost'], $smtp->sentLines());
+        static::assertSame(['EHLO localhost', 'HELO localhost'], $server->sentLines());
     }
 
     #[Test]
     public function waitsFiveMinutesForHeloReply(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->reply('EHLO', '502 5.5.1 Command not implemented');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->reply('EHLO', '502 5.5.1 Command not implemented');
         $smtp->connect();
         $smtp->helo('localhost');
 
-        static::assertSame(300, $smtp->timeoutFor('HELO localhost'));
+        static::assertSame(300, $server->timeoutFor('HELO localhost'));
     }
 
     #[Test]
     public function refusesSessionWhenServerRefusesHeloToo(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->reply('EHLO', '502 5.5.1 Command not implemented');
-        $smtp->reply('HELO', '501 5.5.4 Invalid domain');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->reply('EHLO', '502 5.5.1 Command not implemented');
+        $server->reply('HELO', '501 5.5.4 Invalid domain');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -281,8 +353,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function hasNoCapabilitiesAfterHelo(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->reply('EHLO', '502 5.5.1 Command not implemented');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->reply('EHLO', '502 5.5.1 Command not implemented');
         $smtp->connect();
         $smtp->helo('localhost');
 
@@ -327,8 +400,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function refusesUnwelcomingGreeting(): void
     {
-        $smtp = self::smtp(Security::None);
-        $smtp->setGreeting('554 5.3.2 No service');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, server: $server);
+        $server->setGreeting('554 5.3.2 No service');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -341,7 +415,8 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function authenticatesAfterStartTls(): void
     {
-        $smtp = self::session(Security::StartTls, new Login('orders', self::AUTH_VALUE));
+        $server = new SmtpServer();
+        $_smtp  = self::session(Security::StartTls, new Login('orders', self::AUTH_VALUE), server: $server);
 
         static::assertSame(
             [
@@ -352,7 +427,7 @@ final class SmtpSessionTest extends TestCase
                 base64_encode('orders'),
                 base64_encode(self::AUTH_VALUE),
             ],
-            $smtp->sentLines(),
+            $server->sentLines(),
         );
     }
 
@@ -371,7 +446,10 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function sendsNoAuthWithoutAuthenticator(): void
     {
-        static::assertSame(['EHLO localhost'], self::session(Security::Tls)->sentLines());
+        $server = new SmtpServer();
+        $_smtp  = self::session(Security::Tls, server: $server);
+
+        static::assertSame(['EHLO localhost'], $server->sentLines());
     }
 
     #[DataProvider('secretProvider')]
@@ -427,13 +505,14 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function sendsNoCredentialsOverUnencryptedConnection(): void
     {
-        $smtp = self::smtp(Security::None, new Plain('orders', self::AUTH_VALUE));
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::None, new Plain('orders', self::AUTH_VALUE), server: $server);
         $smtp->connect();
 
         try {
             $smtp->helo('localhost');
         } catch (RuntimeException) {
-            static::assertSame(['EHLO localhost'], $smtp->sentLines());
+            static::assertSame(['EHLO localhost'], $server->sentLines());
             return;
         }
 
@@ -443,10 +522,11 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function authenticatesOverUnencryptedConnectionWhenAllowed(): void
     {
-        $smtp = new ScriptedSmtp(
+        $smtp = new Smtp(
             new ConnectionConfig('mail.example.com', security: Security::None),
             config: ['allow_insecure_auth' => true],
             authenticator: new Plain('orders', self::AUTH_VALUE),
+            connection: new SmtpServer(),
         );
         $smtp->connect();
         $smtp->helo('localhost');
@@ -457,8 +537,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function refusesMechanismServerDoesNotOffer(): void
     {
-        $smtp = self::smtp(Security::Tls, new CramMd5('orders', self::AUTH_VALUE));
-        $smtp->setCapabilities('AUTH PLAIN LOGIN');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::Tls, new CramMd5('orders', self::AUTH_VALUE), server: $server);
+        $server->setCapabilities('AUTH PLAIN LOGIN');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -470,8 +551,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function refusesAuthenticationWhenServerOffersNone(): void
     {
-        $smtp = self::smtp(Security::Tls, new Plain('orders', self::AUTH_VALUE));
-        $smtp->setCapabilities('SIZE 1000');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::Tls, new Plain('orders', self::AUTH_VALUE), server: $server);
+        $server->setCapabilities('SIZE 1000');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -483,8 +565,9 @@ final class SmtpSessionTest extends TestCase
     #[Test]
     public function reportsRejectedCredentials(): void
     {
-        $smtp = self::smtp(Security::Tls, new Plain('orders', self::AUTH_VALUE));
-        $smtp->reply(base64_encode("\0orders\0" . self::AUTH_VALUE), '535 5.7.8 Authentication credentials invalid');
+        $server = new SmtpServer();
+        $smtp   = self::smtp(Security::Tls, new Plain('orders', self::AUTH_VALUE), server: $server);
+        $server->reply(base64_encode("\0orders\0" . self::AUTH_VALUE), '535 5.7.8 Authentication credentials invalid');
         $smtp->connect();
 
         $this->expectException(RuntimeException::class);
@@ -593,14 +676,14 @@ final class SmtpSessionTest extends TestCase
     }
 
     /**
-     * @return array<string, array{Security, string}>
+     * @return array<string, array{Security}>
      */
-    public static function transportProvider(): array
+    public static function securityProvider(): array
     {
         return [
-            'TLS from the start' => [Security::Tls, 'ssl'],
-            'STARTTLS'           => [Security::StartTls, 'tcp'],
-            'none'               => [Security::None, 'tcp'],
+            'TLS from the start' => [Security::Tls],
+            'STARTTLS'           => [Security::StartTls],
+            'none'               => [Security::None],
         ];
     }
 
@@ -650,14 +733,24 @@ final class SmtpSessionTest extends TestCase
         ];
     }
 
-    private static function smtp(Security $security, ?AuthenticatorInterface $auth = null): ScriptedSmtp
-    {
-        return new ScriptedSmtp(new ConnectionConfig('mail.example.com', security: $security), authenticator: $auth);
+    private static function smtp(
+        Security $security,
+        ?AuthenticatorInterface $auth = null,
+        ?SmtpServer $server = null,
+    ): Smtp {
+        return new Smtp(
+            new ConnectionConfig('mail.example.com', security: $security),
+            authenticator: $auth,
+            connection: $server ?? new SmtpServer(),
+        );
     }
 
-    private static function session(Security $security, ?AuthenticatorInterface $auth = null): ScriptedSmtp
-    {
-        $smtp = self::smtp($security, $auth);
+    private static function session(
+        Security $security,
+        ?AuthenticatorInterface $auth = null,
+        ?SmtpServer $server = null,
+    ): Smtp {
+        $smtp = self::smtp($security, $auth, $server);
         $smtp->connect();
         $smtp->helo('localhost');
 

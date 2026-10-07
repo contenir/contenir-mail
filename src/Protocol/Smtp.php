@@ -18,26 +18,18 @@ use function explode;
 use function implode;
 use function in_array;
 use function is_array;
-use function is_resource;
 use function ltrim;
 use function preg_match;
 use function preg_replace;
-use function restore_error_handler;
 use function rtrim;
-use function set_error_handler;
 use function sprintf;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
-use function stream_get_meta_data;
-use function stream_socket_enable_crypto;
 use function strlen;
 use function strtolower;
 use function strtoupper;
 use function substr;
-
-use const STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
-use const STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
 
 /**
  * An SMTP client session (RFC 5321): EHLO, STARTTLS, AUTH, MAIL, RCPT, DATA, RSET, NOOP, VRFY and QUIT.
@@ -60,10 +52,9 @@ use const STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
  * @mago-expect lint:kan-defect The SMTP command set, kept as one class as in laminas-mail.
  * @mago-expect lint:too-many-properties Session state from laminas-mail plus the EHLO capabilities.
  * @mago-expect lint:no-boolean-flag-parameter MAIL's ESMTP parameters SMTPUTF8 and BODY=8BITMIME are on or off.
- * @mago-expect analysis:class-must-be-final Tests replace the socket methods in a subclass until the Connection interface lands.
  * @mago-expect lint:method-name The underscored methods override AbstractProtocol's, kept from laminas-mail.
  */
-class Smtp extends AbstractProtocol
+final class Smtp extends AbstractProtocol
 {
     use ProtocolTrait;
 
@@ -77,7 +68,7 @@ class Smtp extends AbstractProtocol
     /** The most lines read for one reply, so a hostile server cannot keep a client reading forever */
     public const int MAX_REPLY_LINES = 100;
 
-    /** Written to the session log in place of a line that carries credentials */
+    /** Written to the session log and getRequest() in place of a line that carries credentials */
     public const string HIDDEN_LINE = '[credentials hidden]';
 
     /** Keys of the $config array when a ConnectionConfig is given */
@@ -88,7 +79,7 @@ class Smtp extends AbstractProtocol
 
     private const array LEGACY_SSL = ['', 'none', 'ssl', 'tls'];
 
-    private ConnectionConfig $connection;
+    private ConnectionConfig $config;
 
     private ?AuthenticatorInterface $authenticator;
 
@@ -128,9 +119,6 @@ class Smtp extends AbstractProtocol
     /** Whether at least one RCPT has been accepted for the current transaction */
     private bool $rcpt = false;
 
-    /** Whether the line being sent carries credentials */
-    private bool $secretLine = false;
-
     /**
      * Pass a ConnectionConfig, with an optional $config of "use_complete_quit" and
      * "allow_insecure_auth"; or the laminas-mail arguments: a host name, a port and an array
@@ -141,6 +129,7 @@ class Smtp extends AbstractProtocol
      *
      * @param ConnectionConfig|string|array<array-key, mixed> $host
      * @param array<array-key, mixed>|null $config
+     * @param ConnectionInterface|null $connection The connection to the server, a StreamConnection by default.
      * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
      * @throws Exception\RuntimeException When the host name is invalid.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
@@ -150,23 +139,24 @@ class Smtp extends AbstractProtocol
         ?int $port = null,
         ?array $config = null,
         ?AuthenticatorInterface $authenticator = null,
+        ?ConnectionInterface $connection = null,
     ) {
-        [$reader, $connection] = $host instanceof ConnectionConfig
+        [$reader, $settings] = $host instanceof ConnectionConfig
             ? self::readSettings($host, $port, $config)
             : self::readLegacySettings($host, $port, $config);
 
-        $this->connection        = $connection;
+        $this->config            = $settings;
         $this->authenticator     = $authenticator;
         $this->useCompleteQuit   = $reader->bool('use_complete_quit', default: true);
         $this->allowInsecureAuth = $reader->bool('allow_insecure_auth', default: false);
-        $this->setNoValidateCert(! $connection->verifyPeer);
+        $this->setNoValidateCert(! $settings->verifyPeer);
 
-        parent::__construct($connection->host, $connection->portOr(25, 465));
+        parent::__construct($settings->host, $settings->portOr(25, 465), $connection);
     }
 
     public function getConnectionConfig(): ConnectionConfig
     {
-        return $this->connection;
+        return $this->config;
     }
 
     public function getAuthenticator(): ?AuthenticatorInterface
@@ -196,16 +186,17 @@ class Smtp extends AbstractProtocol
     }
 
     /**
-     * Open the socket: TLS from the start for Security::Tls, otherwise plain until STARTTLS.
+     * Open the connection: TLS from the start for Security::Tls, otherwise plain until STARTTLS.
+     *
+     * The peer is verified unless setNoValidateCert(true) or ConnectionConfig::$verifyPeer turned it off.
      *
      * @throws Exception\RuntimeException When the connection fails.
      */
     #[Override]
     public function connect(): bool
     {
-        $tls = Security::Tls === $this->connection->security;
-        $this->openSocket($tls ? 'ssl' : 'tcp');
-        $this->encrypted = $tls;
+        $this->openConnection($this->connectionSettings(), (int) $this->port);
+        $this->encrypted = Security::Tls === $this->config->security;
 
         return true;
     }
@@ -231,7 +222,7 @@ class Smtp extends AbstractProtocol
         $this->_expect(220, 300);
         $this->ehlo($host);
 
-        if (Security::StartTls === $this->connection->security) {
+        if (Security::StartTls === $this->config->security) {
             $this->startTls($host);
         }
 
@@ -492,6 +483,22 @@ class Smtp extends AbstractProtocol
     }
 
     /**
+     * The configured settings, with peer verification as setNoValidateCert() last left it.
+     *
+     * @throws \Contenir\Mail\Exception\InvalidArgumentException Never: the settings were checked when constructed.
+     */
+    private function connectionSettings(): ConnectionConfig
+    {
+        return new ConnectionConfig(
+            host: $this->config->host,
+            port: $this->config->port,
+            security: $this->config->security,
+            verifyPeer: $this->validateCert(),
+            timeout: $this->config->timeout,
+        );
+    }
+
+    /**
      * Send EHLO, falling back to HELO for servers that do not support it, and record the
      * keywords the server lists.
      *
@@ -511,60 +518,12 @@ class Smtp extends AbstractProtocol
     }
 
     /**
-     * Open the socket with the stream transport "ssl" or "tcp".
-     *
-     * @throws Exception\RuntimeException When the connection fails.
-     */
-    protected function openSocket(string $transport): void
-    {
-        $this->socket = $this->setupSocket($transport, $this->host, $this->port, $this->connection->timeout);
-    }
-
-    /**
-     * Switch the open socket to TLS 1.2 or later after the server has agreed to STARTTLS.
-     *
-     * The peer is verified unless ConnectionConfig::$verifyPeer is false.
-     *
-     * @throws Exception\RuntimeException When the handshake fails, or the server sent more data
-     *     after agreeing, which an attacker could have injected into the plain-text stream.
-     */
-    protected function enableCrypto(): void
-    {
-        $socket = $this->socket;
-        if (! is_resource($socket)) {
-            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
-        }
-
-        if (stream_get_meta_data($socket)['unread_bytes'] > 0) {
-            throw new Exception\RuntimeException('The server sent data after agreeing to STARTTLS; not starting TLS');
-        }
-
-        $error = '';
-        set_error_handler(static function (int $_number, string $message) use (&$error): bool {
-            $error = $message;
-            return true;
-        });
-        $enabled = stream_socket_enable_crypto(
-            $socket,
-            enable: true,
-            crypto_method: STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT,
-        );
-        restore_error_handler();
-
-        if (true !== $enabled) {
-            throw new Exception\RuntimeException("Unable to start TLS: {$error}");
-        }
-    }
-
-    /**
      * Read a reply of at most MAX_REPLY_LINES lines and check the code of its last line.
      *
      * @param int|string|array<array-key, mixed> $code One or more codes that mean success.
      * @param int|null $timeout Seconds to wait for each line.
      * @return string The text of the last line, after the code.
      * @throws Exception\RuntimeException When the code is unexpected or the reply is too long.
-     *
-     * @mago-expect analysis:possibly-null-argument AbstractProtocol::_receive() takes null for its default timeout.
      */
     #[Override]
     protected function _expect($code, $timeout = null) // phpcs:ignore
@@ -599,21 +558,10 @@ class Smtp extends AbstractProtocol
     }
 
     /**
-     * Keep lines that carry credentials out of the session log.
+     * Close the session before closing the connection. A server that has already gone cannot be
+     * asked to QUIT, so its failure to answer is ignored and the connection closed anyway.
      *
-     * @param string $value
-     */
-    #[Override]
-    protected function _addLog($value) // phpcs:ignore
-    {
-        parent::_addLog($this->secretLine ? self::HIDDEN_LINE . self::EOL : $value);
-    }
-
-    /**
-     * Close the session before closing the socket. A server that has already gone cannot be
-     * asked to QUIT, so its failure to answer is ignored and the socket closed anyway.
-     *
-     * @mago-expect lint:no-empty-catch-clause The socket is closed next, which is all that is left to do.
+     * @mago-expect lint:no-empty-catch-clause The connection is closed next, which is all that is left to do.
      */
     #[Override]
     protected function _disconnect() // phpcs:ignore
@@ -772,7 +720,10 @@ class Smtp extends AbstractProtocol
     }
 
     /**
-     * Ask for STARTTLS, upgrade the socket and repeat EHLO, as RFC 3207 requires.
+     * Ask for STARTTLS, upgrade the connection and repeat EHLO, as RFC 3207 requires.
+     *
+     * The connection refuses to start TLS when the server sent more after agreeing, since an
+     * attacker could have injected it into the plain-text stream (CVE-2011-0411).
      *
      * @throws Exception\ExceptionInterface When the server does not offer or refuses STARTTLS, or TLS fails.
      */
@@ -796,7 +747,7 @@ class Smtp extends AbstractProtocol
             );
         }
 
-        $this->enableCrypto();
+        $this->connection()->enableTls();
         $this->encrypted = true;
         $this->ehlo($host);
     }
@@ -807,13 +758,21 @@ class Smtp extends AbstractProtocol
      * @throws Exception\InvalidArgumentException When the line contains CR, LF or NUL.
      * @throws Exception\RuntimeException When there is no connection.
      */
-    private function command(#[SensitiveParameter] string $line): void
+    private function command(string $line): void
+    {
+        $this->_send(self::singleLine($line));
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When the line contains CR, LF or NUL.
+     */
+    private static function singleLine(#[SensitiveParameter] string $line): string
     {
         if (1 === preg_match('/[\r\n\0]/', $line)) {
             throw new Exception\InvalidArgumentException('An SMTP command must not contain CR, LF or NUL');
         }
 
-        $this->_send($line);
+        return $line;
     }
 
     /**
@@ -835,13 +794,8 @@ class Smtp extends AbstractProtocol
      */
     private function exchangeSecret(#[SensitiveParameter] string $line, int $expect): string
     {
-        $this->secretLine = true;
-        try {
-            $this->command($line);
-        } finally {
-            $this->secretLine = false;
-            $this->request    = self::HIDDEN_LINE;
-        }
+        $this->request = self::HIDDEN_LINE;
+        $this->sendSensitive(self::singleLine($line), self::HIDDEN_LINE);
 
         return $this->_expect($expect, 300);
     }
