@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Address;
 use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Header\AbstractAddressList;
 use Contenir\Mail\Header\AddressEncoder;
 use Contenir\Mail\Header\AddressListCodec;
@@ -216,6 +217,27 @@ final class AddressListHeaderTest extends TestCase
             'Comment',
             From::fromString('From: user@example.com (Comment)')->getAddressList()->first()?->getComment(),
         );
+    }
+
+    #[Test]
+    public function unfoldsDisplayNameFoldedOverLines(): void
+    {
+        static::assertSame(
+            'John Doe',
+            From::fromString("From: \"John\r\n Doe\" <john@example.com>")->getAddressList()->first()?->getName(),
+        );
+    }
+
+    /**
+     * Text after the closing angle bracket is not part of a name-addr, so the entry is read as a bare address.
+     */
+    #[Test]
+    public function refusesTextAfterAngleAddress(): void
+    {
+        $this->expectException(MailInvalidArgumentException::class);
+        $this->expectExceptionMessage("'example.com> trailing' is not a valid hostname for the email address");
+
+        From::fromString('From: Name <user@example.com> trailing');
     }
 
     #[Test]

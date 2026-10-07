@@ -24,13 +24,22 @@
             ]
         },
         "DecrementInteger": {
-            // Any read size gives the same output, as unencoded bytes carry over to the next read.
-            "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"],
+            "ignore": [
+                // Any read size gives the same output, as unencoded bytes carry over to the next read.
+                "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64",
+                // The default of 0 lines is clamped to 0 before use, so -1 asks for the same TOP.
+                "Contenir\\Mail\\Protocol\\Pop3::top"
+            ],
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a
                 // space or tab, so stepping onto it again only re-validates a valid character.
                 "\\$i \\+= 2;"
             ]
+        },
+        "FalseValue": {
+            // RemoteConnection reads "ssl" as a bool only once has('ssl') is true, so the default
+            // is never used.
+            "ignore": ["Contenir\\Mail\\Storage\\RemoteConnection::legacySecurity"]
         },
         "IncrementInteger": {
             // Any read size gives the same output, as unencoded bytes carry over to the next read.
@@ -40,6 +49,10 @@
             // Encoding fewer whole groups per read only keeps more bytes buffered; the output is
             // the same, as whatever is left over is encoded at the end.
             "ignore": ["Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"]
+        },
+        "TrueValue": {
+            // $tryApop is unused: XOAUTH2 has no APOP. It keeps the Protocol\Pop3::login() signature.
+            "ignore": ["Contenir\\Mail\\Protocol\\Pop3\\Xoauth2\\Microsoft::login"]
         },
         "ReturnRemoval": {
             // The chunked stream encoder only saves memory: falling through to Mime::encode()
