@@ -10,7 +10,6 @@ use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderLocatorInterface;
 use Countable;
 use Iterator;
-use Laminas\Loader\PluginClassLocator;
 use ReturnTypeWillChange;
 use Traversable;
 
@@ -33,10 +32,7 @@ use function reset;
 use function sprintf;
 use function str_replace;
 use function strtolower;
-use function trigger_error;
 use function trim;
-
-use const E_USER_DEPRECATED;
 
 /**
  * Basic mail headers collection functionality
@@ -54,12 +50,6 @@ class Headers implements Countable, Iterator
     public const FOLDING = "\r\n ";
 
     private ?HeaderLocatorInterface $headerLocator = null;
-
-    /**
-     * @todo Remove for 3.0.0.
-     * @var null|PluginClassLocator
-     */
-    protected $pluginClassLoader;
 
     /** @var list<string> key names for $headers array */
     protected $headersKeys = [];
@@ -152,53 +142,6 @@ class Headers implements Countable, Iterator
             $headers->addHeaderLine($currentLine);
         }
         return $headers;
-    }
-
-    /**
-     * Set an alternate PluginClassLocator implementation for loading header classes.
-     *
-     * @deprecated since 2.12.0
-     *
-     * @todo Remove for version 3.0.0
-     * @return $this
-     */
-    public function setPluginClassLoader(PluginClassLocator $pluginClassLoader)
-    {
-        // Silenced; can be caught in custom error handlers.
-        @trigger_error(sprintf(
-            'Since laminas/laminas-mail 2.12.0: Usage of %s is deprecated; use %s::setHeaderLocator() instead',
-            __METHOD__,
-            self::class,
-        ), E_USER_DEPRECATED);
-
-        $this->pluginClassLoader = $pluginClassLoader;
-        return $this;
-    }
-
-    /**
-     * Return a PluginClassLocator instance for customizing headers.
-     *
-     * Lazyloads a Header\HeaderLoader if necessary.
-     *
-     * @deprecated since 2.12.0
-     *
-     * @todo Remove for version 3.0.0
-     * @return PluginClassLocator
-     */
-    public function getPluginClassLoader()
-    {
-        // Silenced; can be caught in custom error handlers.
-        @trigger_error(sprintf(
-            'Since laminas/laminas-mail 2.12.0: Usage of %s is deprecated; use %s::getHeaderLocator() instead',
-            __METHOD__,
-            self::class,
-        ), E_USER_DEPRECATED);
-
-        if (! $this->pluginClassLoader) {
-            $this->pluginClassLoader = new Header\HeaderLoader();
-        }
-
-        return $this->pluginClassLoader;
     }
 
     /**
@@ -634,9 +577,6 @@ class Headers implements Countable, Iterator
      */
     private function resolveHeaderClass($key): ?string
     {
-        if ($this->pluginClassLoader) {
-            return $this->pluginClassLoader->load($key) ?: GenericHeader::class;
-        }
         return $this->getHeaderLocator()->get($key, GenericHeader::class);
     }
 }

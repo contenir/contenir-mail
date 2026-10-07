@@ -19,7 +19,6 @@
     "require": {
         "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
         "ext-iconv": "*",
-        "laminas/laminas-loader": "^2.11.1",
         "laminas/laminas-stdlib": "^3.21",
         "laminas/laminas-validator": "^2.65",
         "symfony/polyfill-intl-idn": "^1.27.0",

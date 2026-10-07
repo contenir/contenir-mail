@@ -83,6 +83,10 @@ There are no `Laminas\*` class aliases. The following were also removed:
   `laminasmail*` aliases of `SmtpPluginManager`. Use the class names or the short
   names (`smtp`, `login`, `plain`, `crammd5`, `xoauth2`).
 - The `TESTS_LAMINAS_MAIL_*` test environment variables, now `TESTS_CONTENIR_MAIL_*`.
+- `Headers::setPluginClassLoader()`, `Headers::getPluginClassLoader()` and
+  `Header\HeaderLoader`, deprecated since laminas-mail 2.12, together with the
+  abandoned `laminas/laminas-loader` dependency. Use `Headers::setHeaderLocator()`
+  and `Headers::getHeaderLocator()` with a `Header\HeaderLocatorInterface`.
 
 Behaviour changes:
 
