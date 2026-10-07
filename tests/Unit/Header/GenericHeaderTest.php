@@ -9,6 +9,7 @@ use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderWrap;
+use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -313,7 +314,7 @@ final class GenericHeaderTest extends TestCase
     public function rejectsNameLongerThanMaximumLength(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be at most 981 characters');
+        $this->expectExceptionMessage('Header name must be at most 972 characters');
 
         new GenericHeader(str_repeat('X', HeaderName::MAX_LENGTH + 1), 'value');
     }
@@ -351,5 +352,24 @@ final class GenericHeaderTest extends TestCase
         $name = str_repeat('X', times: 990);
 
         static::assertSame($name, GenericHeader::fromString("{$name}: value")->getFieldName());
+    }
+
+    #[Test]
+    public function writesEmojiRunAsEncodedWordsOfWholeCharacters(): void
+    {
+        $header = new GenericHeader('X-Test', str_repeat("\u{1F600}", times: 30));
+
+        static::assertSame([], EncodedWordReader::wordsWithPartialCharacters($header->toString()));
+    }
+
+    #[Test]
+    public function readsWrittenEmojiRunBackToTheValue(): void
+    {
+        $value = str_repeat("\u{1F600}", times: 30);
+
+        static::assertSame(
+            $value,
+            GenericHeader::fromString((new GenericHeader('X-Test', $value))->toString())->getFieldValue(),
+        );
     }
 }

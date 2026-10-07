@@ -243,6 +243,41 @@ final class Utf8Test extends TestCase
     }
 
     /**
+     * @return array<string, array{string, int, list<string>}>
+     */
+    public static function chunkProvider(): array
+    {
+        return [
+            'empty string'                    => ['', 3, ['']],
+            'shorter than the limit'          => ['ab', 3, ['ab']],
+            'exactly the limit'               => ['abc', 3, ['abc']],
+            'one past the limit'              => ['abcd', 3, ['abc', 'd']],
+            'character that would cross'      => ["ab\u{E9}", 3, ['ab', "\u{E9}"]],
+            'characters that fill exactly'    => ["\u{E9}\u{20AC}\u{1F600}a", 5, ["\u{E9}\u{20AC}", "\u{1F600}a"]],
+            'character longer than the limit' => ["\u{1F600}\u{1F600}a", 3, ["\u{1F600}", "\u{1F600}", 'a']],
+            'zero bytes'                      => ['ab', 0, ['a', 'b']],
+            'ill-formed subparts'             => ["\xF0\x9F\x98a\x80", 3, ["\xF0\x9F\x98", "a\x80"]],
+        ];
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[Test]
+    #[DataProvider('chunkProvider')]
+    public function chunksBetweenCharacters(string $value, int $maxBytes, array $expected): void
+    {
+        static::assertSame($expected, Utf8::chunk($value, $maxBytes));
+    }
+
+    #[Test]
+    #[DataProvider('anyInputProvider')]
+    public function chunksJoinBackIntoTheInput(string $value): void
+    {
+        static::assertSame($value, implode('', Utf8::chunk($value, maxBytes: 5)));
+    }
+
+    /**
      * Fixed edge cases and seeded random strings, well-formed or not.
      *
      * @return array<string, array{string}>

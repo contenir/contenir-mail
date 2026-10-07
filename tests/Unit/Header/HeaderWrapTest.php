@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 use Contenir\Mail\Header\EncodedWordDecoder;
 use Contenir\Mail\Header\EncodedWords;
 use Contenir\Mail\Header\HeaderWrap;
+use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -20,6 +21,7 @@ use function error_get_last;
 use function explode;
 use function iconv_mime_decode;
 use function max;
+use function range;
 use function str_repeat;
 use function strlen;
 use function substr;
@@ -386,6 +388,85 @@ final class HeaderWrapTest extends TestCase
             'long run after spaces' => ['ab cd ' . str_repeat('x', times: 150) . 'é'],
             'four-byte characters'  => [str_repeat('😀', times: 60)],
         ];
+    }
+
+    /**
+     * Multi-byte runs after 0 to 11 ASCII characters, so that a word fills
+     * up at every byte of every character: an escaped character is 6, 9 or
+     * 12 characters long.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function multiByteRunProvider(): array
+    {
+        $runs = [
+            'emoji'                    => str_repeat("\u{1F600}", times: 30),
+            'mixed 2-, 3- and 4-byte'  => str_repeat("\u{E9}\u{20AC}\u{1F600}", times: 12),
+            '4-, 3- and 2-byte spaced' => str_repeat("\u{1F600}\u{20AC}\u{E9} ", times: 10),
+        ];
+        $cases = [];
+        foreach ($runs as $name => $run) {
+            foreach (range(
+                start: 0,
+                end: 11,
+            ) as $offset) {
+                $cases["{$name} after {$offset} ASCII"] = [str_repeat('a', $offset) . $run];
+            }
+        }
+
+        return $cases;
+    }
+
+    /**
+     * RFC 2047, section 5: each encoded word must hold whole characters.
+     */
+    #[DataProvider('multiByteRunProvider')]
+    #[Test]
+    public function keepsEveryCharacterWithinOneEncodedWord(string $value): void
+    {
+        static::assertSame(
+            [],
+            EncodedWordReader::wordsWithPartialCharacters(HeaderWrap::mimeEncodeValue($value, firstLineGapSize: 0)),
+        );
+    }
+
+    #[DataProvider('multiByteRunProvider')]
+    #[Test]
+    public function keepsEveryCharacterWithinOneEncodedWordAfterAHeaderName(string $value): void
+    {
+        static::assertSame([], EncodedWordReader::wordsWithPartialCharacters(HeaderWrap::fold('Subject', $value)));
+    }
+
+    #[DataProvider('multiByteRunProvider')]
+    #[Test]
+    public function keepsEveryCharacterWithinOneEncodedPhraseWord(string $value): void
+    {
+        static::assertSame([], EncodedWordReader::wordsWithPartialCharacters(HeaderWrap::encodePhrase($value)));
+    }
+
+    #[DataProvider('multiByteRunProvider')]
+    #[Test]
+    public function decodesMultiByteRunBackToTheValue(string $value): void
+    {
+        static::assertSame($value, HeaderWrap::mimeDecodeValue(HeaderWrap::fold('Subject', $value)));
+    }
+
+    #[DataProvider('multiByteRunProvider')]
+    #[Test]
+    public function keepsMultiByteRunWordsWithinSeventyFiveCharacters(string $value): void
+    {
+        $lengths = array_map(strlen(...), EncodedWordReader::words(HeaderWrap::fold('Subject', $value)));
+
+        static::assertLessThanOrEqual(75, max($lengths));
+    }
+
+    #[Test]
+    public function startsANewWordBeforeACharacterThatDoesNotFit(): void
+    {
+        static::assertSame(
+            '=?UTF-8?Q?' . str_repeat('a', times: 60) . "?=\r\n =?UTF-8?Q?=F0=9F=98=80?=",
+            HeaderWrap::mimeEncodeValue(str_repeat('a', times: 60) . "\u{1F600}", firstLineGapSize: 0),
+        );
     }
 
     #[Test]

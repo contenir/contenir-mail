@@ -19,10 +19,11 @@ final class HeaderName
      *
      * Every written line must fit in 998 characters (RFC 5322, section
      * 2.1.1), and the first line holds the name, ": " and at least the
-     * first word of the value. That word is at worst one encoded byte in an
-     * encoded word, "=?UTF-8?Q?=XX?=", 15 characters: 998 - 2 - 15 = 981.
+     * first word of the value. That word is at worst one four-byte
+     * character in an encoded word, "=?UTF-8?Q?=XX=XX=XX=XX?=", 24
+     * characters, as a word never splits a character: 998 - 2 - 24 = 972.
      */
-    public const int MAX_LENGTH = 981;
+    public const int MAX_LENGTH = 972;
 
     private function __construct() {}
 
