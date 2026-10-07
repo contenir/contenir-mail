@@ -57,7 +57,7 @@ final readonly class HeaderParser
         return $parsed;
     }
 
-    public function parseLine(string $line): HeaderInterface
+    private function parseLine(string $line): HeaderInterface
     {
         [$name] = GenericHeader::splitHeaderLine($line);
         $class = $this->locator->get($name);

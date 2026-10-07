@@ -62,8 +62,9 @@ final class MimeParameterParser
     {
         $value  = (string) preg_replace('/\r\n[ \t]/', replacement: ' ', subject: $value);
         $offset = strcspn($value, characters: ';');
+        $length = strlen($value);
         $parser = new self($headerLine, $fieldName);
-        while ($offset < strlen($value)) {
+        while ($offset !== $length) {
             $offset = $parser->read($value, $offset + 1);
         }
 

@@ -12,7 +12,6 @@ use function sprintf;
 use function str_replace;
 use function strcspn;
 use function strlen;
-use function strtoupper;
 use function substr;
 
 /**
@@ -104,17 +103,15 @@ final class ParameterText
             $fields = explode("'", $text, limit: 3);
             $value  = $fields[2] ?? null;
             if ($extended && 0 === $i && null !== $value) {
-                $charset = strtoupper($fields[0]);
+                $charset = $fields[0];
                 $text    = $value;
             }
 
             $bytes .= $extended ? rawurldecode($text) : $text;
         }
 
-        return self::clean(match ($charset) {
-            null    => EncodedWordDecoder::decode($bytes),
-            ''      => $bytes,
-            default => EncodedWordDecoder::toUtf8($bytes, $charset),
-        });
+        return self::clean(
+            null === $charset ? EncodedWordDecoder::decode($bytes) : EncodedWordDecoder::toUtf8($bytes, $charset),
+        );
     }
 }

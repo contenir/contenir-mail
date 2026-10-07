@@ -40,6 +40,31 @@ final class SafeTextTest extends TestCase
     }
 
     #[Test]
+    public function keepsTheStartOfLongFilename(): void
+    {
+        static::assertSame(
+            'b' . str_repeat('a', times: 250) . '.pdf',
+            SafeText::filename('b' . str_repeat('a', times: 299) . '.pdf'),
+        );
+    }
+
+    #[Test]
+    public function keepsExtensionOfTheLengthLimit(): void
+    {
+        $extension = '.' . str_repeat('x', times: SafeText::MAX_EXTENSION_BYTES - 1);
+
+        static::assertStringEndsWith($extension, SafeText::filename(str_repeat('a', times: 300) . $extension));
+    }
+
+    #[Test]
+    public function keepsFilenameOfExactlyTheLimit(): void
+    {
+        $name = str_repeat('a', times: SafeText::MAX_FILENAME_BYTES);
+
+        static::assertSame($name, SafeText::filename($name));
+    }
+
+    #[Test]
     public function shortensLongMultibyteFilenameWithoutSplittingACharacter(): void
     {
         $safe = SafeText::filename(str_repeat('é', times: 200));

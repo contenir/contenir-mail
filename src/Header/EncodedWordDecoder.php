@@ -30,8 +30,6 @@ final class EncodedWordDecoder
 
     private const string WORD_PARTS = '/^=\?(?<charset>[^?*]+)(?:\*[^?]*)?\?(?<scheme>[BbQq])\?(?<text>[^?]*)\?=$/';
 
-    private function __construct() {}
-
     public static function decode(string $value): string
     {
         // Text and encoded words alternate: text, word, text, word, ..., text
