@@ -264,23 +264,6 @@ final class StreamConnectionTest extends TestCase
     }
 
     #[Test]
-    public function handsTheStreamOver(): void
-    {
-        [$connection, , $stream] = $this->pair();
-
-        static::assertSame($stream, $connection->detach());
-    }
-
-    #[Test]
-    public function forgetsTheStreamItHandsOver(): void
-    {
-        [$connection] = $this->pair();
-        $connection->detach();
-
-        static::assertFalse($connection->isConnected());
-    }
-
-    #[Test]
     public function refusesToWorkBeforeOpening(): void
     {
         $this->expectException(RuntimeException::class);

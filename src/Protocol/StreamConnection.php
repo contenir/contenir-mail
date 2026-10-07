@@ -210,21 +210,6 @@ final class StreamConnection implements ConnectionInterface
     }
 
     /**
-     * Hand the stream to code that does not use a Connection yet; this connection forgets it.
-     *
-     * @internal For ProtocolTrait::setupSocket(), until SMTP opens its own Connection.
-     * @return resource
-     * @throws Exception\RuntimeException When the connection is not open.
-     */
-    public function detach(): mixed
-    {
-        $stream       = $this->stream();
-        $this->stream = null;
-
-        return $stream;
-    }
-
-    /**
      * @return resource
      * @throws Exception\RuntimeException When the connection is not open.
      */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Protocol\TestAsset;
 
 use Contenir\Mail\Protocol\AbstractProtocol;
+use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\ConnectionInterface;
 use Override;
 
@@ -19,17 +20,9 @@ final class ExposedProtocol extends AbstractProtocol
         return true;
     }
 
-    /**
-     * @param resource|null $socket
-     */
-    public function useSocket(mixed $socket): void
+    public function open(ConnectionConfig $config, int $port): void
     {
-        $this->socket = $socket;
-    }
-
-    public function connectTo(string $remote): bool
-    {
-        return $this->_connect($remote);
+        $this->openConnection($config, $port);
     }
 
     public function send(string $request): int

@@ -25,7 +25,7 @@ final class TlsServer
     ) {}
 
     /**
-     * @param 'implicit'|'starttls' $mode
+     * @param 'implicit'|'starttls'|'smtp' $mode
      */
     public static function start(string $mode): self
     {

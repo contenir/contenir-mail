@@ -18,8 +18,8 @@ use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Tests\Unit\TestAsset\InjectingHeader;
-use Contenir\Mail\Tests\Unit\TestAsset\ScriptedSmtp;
 use Contenir\Mail\Tests\Unit\TestAsset\SettableClock;
+use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
 use Contenir\Mail\Transport\Envelope;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\HeaderGuard;
@@ -54,7 +54,7 @@ final class SmtpTest extends TestCase
     #[Test]
     public function sendsMinimalMessageWithSender(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $message = self::datedMessage()
             ->setSender('ralph@example.com', 'Ralph Schindler')
             ->setBody('testSendMailWithoutMinimalHeaders')
@@ -74,19 +74,19 @@ final class SmtpTest extends TestCase
                 'testSendMailWithoutMinimalHeaders',
                 '.',
             ],
-            self::transaction($connection),
+            self::transaction($server),
         );
     }
 
     #[Test]
     public function usesFirstFromAddressWithoutSender(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $message = self::datedMessage()->setFrom('ralph@example.com', 'Ralph')->addTo('test@example.com');
 
         $transport->send($message);
 
-        static::assertStringStartsWith('MAIL FROM:<ralph@example.com>', self::transaction($connection)[0]);
+        static::assertStringStartsWith('MAIL FROM:<ralph@example.com>', self::transaction($server)[0]);
     }
 
     /**
@@ -122,58 +122,58 @@ final class SmtpTest extends TestCase
     #[Test]
     public function deliversToToCcAndBccRecipientsOnce(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message()->addCc('test@example.com'));
 
         static::assertSame(
             ['RCPT TO:<test@example.com>', 'RCPT TO:<matthew@example.com>', 'RCPT TO:<list@example.com>'],
-            self::recipients($connection),
+            self::recipients($server),
         );
     }
 
     #[Test]
     public function usesEnvelopeSender(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->setEnvelope(new Envelope(from: 'bounces@example.com'));
 
         $transport->send(self::message());
 
-        static::assertStringStartsWith('MAIL FROM:<bounces@example.com>', self::transaction($connection)[0]);
+        static::assertStringStartsWith('MAIL FROM:<bounces@example.com>', self::transaction($server)[0]);
     }
 
     #[Test]
     public function usesMessageRecipientsWithEnvelopeSenderOnly(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->setEnvelope(new Envelope(from: 'bounces@example.com'));
 
         $transport->send(self::message());
 
-        static::assertCount(3, self::recipients($connection));
+        static::assertCount(3, self::recipients($server));
     }
 
     #[Test]
     public function deliversOnlyToEnvelopeRecipients(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->setEnvelope(new Envelope(to: ['users@example.com', 'dev@example.com']));
 
         $transport->send(self::message());
 
-        static::assertSame(['RCPT TO:<users@example.com>', 'RCPT TO:<dev@example.com>'], self::recipients($connection));
+        static::assertSame(['RCPT TO:<users@example.com>', 'RCPT TO:<dev@example.com>'], self::recipients($server));
     }
 
     #[Test]
     public function usesMessageSenderWithEnvelopeRecipientsOnly(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->setEnvelope(new Envelope(to: 'users@example.com'));
 
         $transport->send(self::message());
 
-        static::assertStringStartsWith('MAIL FROM:<ralph@example.com>', self::transaction($connection)[0]);
+        static::assertStringStartsWith('MAIL FROM:<ralph@example.com>', self::transaction($server)[0]);
     }
 
     #[Test]
@@ -196,24 +196,24 @@ final class SmtpTest extends TestCase
     #[Test]
     public function writesHeadersAndBody(string $expected): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message());
 
-        static::assertContains($expected, self::transaction($connection));
+        static::assertContains($expected, self::transaction($server));
     }
 
     #[Test]
     public function doesNotSendBccHeader(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::mimeMessage());
 
         static::assertSame(
             [],
             array_values(array_filter(
-                self::transaction($connection),
+                self::transaction($server),
                 static fn(string $line): bool => str_starts_with($line, 'Bcc:'),
             )),
         );
@@ -234,75 +234,75 @@ final class SmtpTest extends TestCase
     #[Test]
     public function writesMimeMessage(string $expected): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::mimeMessage());
 
-        static::assertStringContainsString($expected, implode("\r\n", self::transaction($connection)));
+        static::assertStringContainsString($expected, implode("\r\n", self::transaction($server)));
     }
 
     #[DataProvider('encodedHeaderProvider')]
     #[Test]
     public function encodesNonAsciiHeadersOnTheWire(string $expected): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message()->setSubject('Grüße aus Köln')->setTo('test@example.com', 'Jösé'));
 
-        static::assertContains($expected, self::transaction($connection));
+        static::assertContains($expected, self::transaction($server));
     }
 
     #[Test]
     public function declaresMessageSize(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $message = self::message();
 
         $transport->send($message);
 
         $size = strlen($message->getHeaders()->without('Bcc')->toString() . Headers::EOL . $message->getBodyText());
-        static::assertSame("MAIL FROM:<ralph@example.com> SIZE={$size}", self::transaction($connection)[0]);
+        static::assertSame("MAIL FROM:<ralph@example.com> SIZE={$size}", self::transaction($server)[0]);
     }
 
     #[Test]
     public function declaresEightBitBody(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message()->setBody('Grüße'));
 
-        static::assertStringEndsWith(' BODY=8BITMIME', self::transaction($connection)[0]);
+        static::assertStringEndsWith(' BODY=8BITMIME', self::transaction($server)[0]);
     }
 
     #[Test]
     public function declaresSmtpUtf8ForInternationalRecipient(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message()->addBcc('jösé@example.com'));
 
-        static::assertStringEndsWith(' SMTPUTF8', self::transaction($connection)[0]);
+        static::assertStringEndsWith(' SMTPUTF8', self::transaction($server)[0]);
     }
 
     #[Test]
     public function declaresSmtpUtf8ForInternationalEnvelopeSender(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->setEnvelope(new Envelope(from: 'jösé@example.com'));
 
         $transport->send(self::message());
 
-        static::assertStringEndsWith(' SMTPUTF8', self::transaction($connection)[0]);
+        static::assertStringEndsWith(' SMTPUTF8', self::transaction($server)[0]);
     }
 
     #[Test]
     public function declaresNoSmtpUtf8ForAsciiAddresses(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message());
 
-        static::assertStringEndsNotWith(' SMTPUTF8', self::transaction($connection)[0]);
+        static::assertStringEndsNotWith(' SMTPUTF8', self::transaction($server)[0]);
     }
 
     /**
@@ -322,12 +322,12 @@ final class SmtpTest extends TestCase
     #[Test]
     public function sendsNothingForHeaderWithUnfoldedLineBreak(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         try {
             $transport->send(self::message()->addHeader(new InjectingHeader()));
         } catch (RuntimeException) {
-            static::assertSame([], self::transaction($connection));
+            static::assertSame([], self::transaction($server));
             return;
         }
 
@@ -337,8 +337,8 @@ final class SmtpTest extends TestCase
     #[Test]
     public function refusesHeaderLineLongerThanSmtpAllows(): void
     {
-        [$transport, $connection] = self::transport();
-        $connection->setCapabilities('STARTTLS');
+        [$transport, , $server] = self::transport();
+        $server->setCapabilities('STARTTLS');
         $message = self::message()->addHeader(new GenericHeader('X-Long', str_repeat('0123456789abcdef', times: 64)));
 
         $this->expectException(ProtocolInvalidArgumentException::class);
@@ -360,7 +360,7 @@ final class SmtpTest extends TestCase
     #[Test]
     public function reusesSessionForNextMessage(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message());
         $transport->send(self::message());
@@ -368,7 +368,7 @@ final class SmtpTest extends TestCase
         static::assertSame(
             ['EHLO localhost', 'STARTTLS', 'EHLO localhost'],
             array_values(array_filter(
-                $connection->sentLines(),
+                $server->sentLines(),
                 static fn(string $line): bool => str_starts_with($line, 'EHLO') || 'STARTTLS' === $line,
             )),
         );
@@ -377,12 +377,12 @@ final class SmtpTest extends TestCase
     #[Test]
     public function resetsTransactionBeforeReusingSession(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
 
         $transport->send(self::message());
         $transport->send(self::message());
 
-        static::assertContains('RSET', $connection->sentLines());
+        static::assertContains('RSET', $server->sentLines());
     }
 
     #[Test]
@@ -400,18 +400,21 @@ final class SmtpTest extends TestCase
     #[Test]
     public function sendsHeloWithConfiguredName(): void
     {
-        [$transport, $connection] = self::transport(new SmtpConfig(name: 'client.example.com'));
+        [$transport, , $server] = self::transport(new SmtpConfig(name: 'client.example.com'));
 
         $transport->send(self::message());
 
-        static::assertSame('EHLO client.example.com', $connection->sentLines()[0]);
+        static::assertSame('EHLO client.example.com', $server->sentLines()[0]);
     }
 
     #[Test]
     public function authenticatesWithConnectionAuthenticator(): void
     {
         $transport  = new Smtp();
-        $connection = new ScriptedSmtp(authenticator: new Login('orders', self::AUTH_VALUE));
+        $connection = new SmtpProtocol(
+            authenticator: new Login('orders', self::AUTH_VALUE),
+            connection: new SmtpServer(),
+        );
         $transport->setConnection($connection);
 
         $transport->send(self::message());
@@ -566,12 +569,12 @@ final class SmtpTest extends TestCase
     #[Test]
     public function disconnectsOnRequest(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->send(self::message());
 
         $transport->disconnect();
 
-        static::assertFalse($connection->isConnected());
+        static::assertFalse($server->isConnected());
     }
 
     #[Test]
@@ -613,36 +616,36 @@ final class SmtpTest extends TestCase
     #[Test]
     public function closesConnectionOnDestruction(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->send(self::message());
 
         unset($transport);
 
-        static::assertFalse($connection->isConnected());
+        static::assertFalse($server->isConnected());
     }
 
     #[Test]
     public function quitsOnDestructionWithoutAutoDisconnect(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, $connection, $server] = self::transport();
         $transport->send(self::message());
         $transport->setAutoDisconnect(false);
 
         unset($transport);
 
-        static::assertSame([false, true], [$connection->hasSession(), $connection->isConnected()]);
+        static::assertSame([false, true], [$connection->hasSession(), $server->isConnected()]);
     }
 
     #[Test]
     public function closesConnectionToServerThatHasGoneOnDestruction(): void
     {
-        [$transport, $connection] = self::transport();
+        [$transport, , $server] = self::transport();
         $transport->send(self::message());
-        $connection->reply('QUIT', '421 4.4.2 Connection dropped');
+        $server->reply('QUIT', '421 4.4.2 Connection dropped');
 
         unset($transport);
 
-        static::assertFalse($connection->isConnected());
+        static::assertFalse($server->isConnected());
     }
 
     /**
@@ -689,15 +692,16 @@ final class SmtpTest extends TestCase
     /**
      * A transport whose connection is a scripted server.
      *
-     * @return array{Smtp, ScriptedSmtp}
+     * @return array{Smtp, SmtpProtocol, SmtpServer}
      */
     private static function transport(?SmtpConfig $config = null, ?SettableClock $clock = null): array
     {
         $transport  = new Smtp($config, $clock ?? new SettableClock());
-        $connection = new ScriptedSmtp();
+        $server     = new SmtpServer();
+        $connection = new SmtpProtocol(connection: $server);
         $transport->setConnection($connection);
 
-        return [$transport, $connection];
+        return [$transport, $connection, $server];
     }
 
     /**
@@ -705,10 +709,10 @@ final class SmtpTest extends TestCase
      *
      * @return list<string>
      */
-    private static function transaction(ScriptedSmtp $connection): array
+    private static function transaction(SmtpServer $server): array
     {
         return array_values(array_filter(
-            $connection->sentLines(),
+            $server->sentLines(),
             static fn(string $line): bool => ! str_starts_with($line, 'EHLO') && 'STARTTLS' !== $line,
         ));
     }
@@ -716,10 +720,10 @@ final class SmtpTest extends TestCase
     /**
      * @return list<string>
      */
-    private static function recipients(ScriptedSmtp $connection): array
+    private static function recipients(SmtpServer $server): array
     {
         return array_values(array_filter(
-            $connection->sentLines(),
+            $server->sentLines(),
             static fn(string $line): bool => str_starts_with($line, 'RCPT'),
         ));
     }

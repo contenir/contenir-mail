@@ -11,16 +11,12 @@ use SensitiveParameter;
 use function array_map;
 use function array_shift;
 use function count;
-use function fclose;
 use function implode;
 use function in_array;
 use function is_array;
-use function is_resource;
 use function preg_match;
 use function preg_split;
 use function str_starts_with;
-use function stream_set_timeout;
-use function stream_socket_client;
 use function strlen;
 
 use const PREG_SPLIT_DELIM_CAPTURE;
@@ -30,7 +26,7 @@ use const PREG_SPLIT_DELIM_CAPTURE;
  * remote mail server and track requests and responses.
  *
  * Requests and responses travel over a Connection: the one given to the
- * constructor, or one wrapping the socket a subclass opens into $socket.
+ * constructor, or a StreamConnection that openConnection() opens.
  *
  * The log and getRequest() never hold credentials: LOGIN, AUTHENTICATE,
  * AUTH, USER, PASS and APOP arguments are replaced by "[redacted]", and
@@ -40,10 +36,10 @@ use const PREG_SPLIT_DELIM_CAPTURE;
  *
  * @mago-expect analysis:missing-constant-type Subclasses may redeclare these laminas-mail constants untyped.
  * @mago-expect analysis:missing-property-type Subclasses may redeclare these laminas-mail properties untyped.
- * @mago-expect analysis:missing-parameter-type The laminas-mail signatures Protocol\Smtp and its subclasses override.
- * @mago-expect analysis:missing-return-type Protocol\Smtp and its subclasses override these without return types.
- * @mago-expect lint:cyclomatic-complexity The protected API Protocol\Smtp and its subclasses build on, kept from laminas-mail.
- * @mago-expect lint:too-many-methods The protected API Protocol\Smtp and its subclasses build on, kept from laminas-mail.
+ * @mago-expect analysis:missing-parameter-type The laminas-mail signatures Protocol\Smtp overrides.
+ * @mago-expect analysis:missing-return-type Protocol\Smtp overrides these without return types.
+ * @mago-expect lint:cyclomatic-complexity The protected API Protocol\Smtp builds on, kept from laminas-mail.
+ * @mago-expect lint:too-many-methods The protected API Protocol\Smtp builds on, kept from laminas-mail.
  */
 abstract class AbstractProtocol
 {
@@ -92,13 +88,6 @@ abstract class AbstractProtocol
     protected $validHost;
 
     /**
-     * Socket connection resource, for subclasses that open their own socket
-     *
-     * @var null|resource
-     */
-    protected $socket;
-
-    /**
      * Last request sent to server, with credentials redacted
      *
      * @var string|null
@@ -119,15 +108,12 @@ abstract class AbstractProtocol
      */
     private array $log = [];
 
-    /** @var resource|null The socket $connection wraps, when it was made from $socket */
-    private mixed $wrappedSocket = null;
-
     private ?ConnectionInterface $connection = null;
 
     /**
      * @param  string  $host OPTIONAL Hostname of remote connection (default: 127.0.0.1)
      * @param  int $port OPTIONAL Port number (default: null)
-     * @param  ConnectionInterface|null $connection OPTIONAL The connection to use instead of a socket in $socket
+     * @param  ConnectionInterface|null $connection OPTIONAL The connection to use, a StreamConnection by default
      * @throws Exception\RuntimeException
      */
     public function __construct(
@@ -199,7 +185,7 @@ abstract class AbstractProtocol
      * Create a connection to the remote host
      *
      * Concrete adapters for this class will implement their own unique connect
-     * scripts, using the _connect() method to create the socket resource.
+     * scripts, using openConnection() to open the connection.
      */
     abstract public function connect();
 
@@ -264,7 +250,7 @@ abstract class AbstractProtocol
      *
      * @param  string $value new transaction
      *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _addLog($value)
@@ -277,47 +263,25 @@ abstract class AbstractProtocol
     }
 
     /**
-     * Connect to the server using the supplied transport and target
+     * Open the connection given to the constructor, or a new StreamConnection.
      *
-     * An example $remote string may be 'tcp://mail.example.com:25' or 'ssh://hostname.com:2222'
-     *
-     * @deprecated Since 1.12.0. Implementations should use the ProtocolTrait::setupSocket() method instead.
-     *
-     * @todo Remove for 3.0.0.
-     * @param  string $remote Remote
-     * @throws Exception\RuntimeException
-     * @return bool
-     *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @throws Exception\RuntimeException When the connection cannot be made.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
-    protected function _connect($remote)
+    protected function openConnection(ConnectionConfig $config, int $port): void
     {
-        [$socket, $warning] = ErrorCapture::run(static fn(): mixed => stream_socket_client(
-            $remote,
-            timeout: self::TIMEOUT_CONNECTION,
-        ));
-        if (! is_resource($socket)) {
-            throw new Exception\RuntimeException("Could not open socket: {$warning}");
-        }
-
-        $this->socket = $socket;
-
-        return stream_set_timeout($socket, self::TIMEOUT_CONNECTION);
+        $this->connection ??= new StreamConnection();
+        $this->connection->open($config, $port);
     }
 
     /**
      * Disconnect from remote host and free resource
      *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _disconnect()
     {
         $this->connection?->close();
-        if (is_resource($this->socket)) {
-            fclose($this->socket);
-        }
     }
 
     /**
@@ -327,7 +291,7 @@ abstract class AbstractProtocol
      * @throws Exception\RuntimeException
      * @return int Number of bytes written to remote host
      *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _send($request)
@@ -353,7 +317,7 @@ abstract class AbstractProtocol
      * @throws Exception\RuntimeException
      * @return string
      *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _receive($timeout = null)
@@ -389,7 +353,7 @@ abstract class AbstractProtocol
      * @throws Exception\RuntimeException
      * @return string Last line of response string
      *
-     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      * @mago-expect analysis:unreachable-match-arm The analyser does not carry $errMsg into the next iteration of the loop.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
@@ -430,31 +394,12 @@ abstract class AbstractProtocol
      */
     protected function connection(): ConnectionInterface
     {
-        $connection = $this->adoptSocket() ?? $this->connection;
+        $connection = $this->connection;
         if (null === $connection || ! $connection->isConnected()) {
             throw new Exception\RuntimeException("No connection has been established to {$this->host}");
         }
 
         return $connection;
-    }
-
-    /**
-     * Wrap the socket a subclass opened into $socket, when it is new.
-     *
-     * @throws Exception\InvalidArgumentException Never: the socket is checked to be a resource first.
-     *
-     * @mago-expect lint:halstead Three property comparisons; splitting them further would not read better.
-     */
-    private function adoptSocket(): ?ConnectionInterface
-    {
-        if (! is_resource($this->socket) || $this->socket === $this->wrappedSocket) {
-            return null;
-        }
-
-        $this->connection    = StreamConnection::fromStream($this->socket, $this->host);
-        $this->wrappedSocket = $this->socket;
-
-        return $this->connection;
     }
 
     /**
