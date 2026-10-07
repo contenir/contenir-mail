@@ -133,7 +133,7 @@ class SmtpTest extends TestCase
         $this->transport->setEnvelope($envelope);
         $this->transport->send($message);
 
-        static::assertEquals($to, $this->connection->getRecipients());
+        static::assertSame($to, $this->connection->getRecipients());
 
         $data = $this->connection->getLog();
         static::assertStringContainsString('MAIL FROM:<mailer@example.com>', $data);
@@ -196,7 +196,7 @@ class SmtpTest extends TestCase
         $this->transport->send($message);
 
         $expectedRecipients = ['test@example.com', 'matthew@example.com', 'list@example.com'];
-        static::assertEquals($expectedRecipients, $this->connection->getRecipients());
+        static::assertSame($expectedRecipients, $this->connection->getRecipients());
 
         $data = $this->connection->getLog();
         static::assertStringContainsString('MAIL FROM:<ralph@example.com>', $data);
@@ -220,7 +220,7 @@ class SmtpTest extends TestCase
     public function longLinesFoldingRFC5322(): void
     {
         $message = 'The folding logic expects exactly 1 byte after \r\n in folding';
-        static::assertEquals("\r\n ", Headers::FOLDING, $message);
+        static::assertSame("\r\n ", Headers::FOLDING, $message);
 
         $message = $this->getMessage();
         // Create buffer of 8192 bytes (PHP_SOCK_CHUNK_SIZE)
@@ -270,8 +270,8 @@ class SmtpTest extends TestCase
             'host'     => 'localhost',
         ]);
         static::assertInstanceOf(Login::class, $connection);
-        static::assertEquals('matthew', $connection->getUsername());
-        static::assertEquals('password', $connection->getPassword());
+        static::assertSame('matthew', $connection->getUsername());
+        static::assertSame('password', $connection->getPassword());
     }
 
     #[Test]
@@ -394,7 +394,7 @@ class SmtpTest extends TestCase
         $this->transport->send($this->getMessage());
 
         // Make sure that there was no new connect() (and no new timestamp was written)
-        static::assertEquals($connectedTimeAfterFirstMail, $connectedTimeProperty->getValue($this->transport));
+        static::assertSame($connectedTimeAfterFirstMail, $connectedTimeProperty->getValue($this->transport));
 
         // Manipulate the timestamp to trigger the auto-reconnect
         $connectedTimeProperty->setValue($this->transport, time() - (10 * 3600));

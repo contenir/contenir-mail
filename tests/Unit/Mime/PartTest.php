@@ -68,15 +68,15 @@ class PartTest extends TestCase
     {
         // Test with base64 encoding
         $content = $this->part->getContent();
-        static::assertEquals($this->testText, base64_decode($content));
+        static::assertSame($this->testText, base64_decode($content));
         // Test with quotedPrintable Encoding:
         $this->part->encoding = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
         $content              = $this->part->getContent();
-        static::assertEquals($this->testText, quoted_printable_decode($content));
+        static::assertSame($this->testText, quoted_printable_decode($content));
         // Test with 8Bit encoding
         $this->part->encoding = Mime\Mime::ENCODING_8BIT;
         $content              = $this->part->getContent();
-        static::assertEquals($this->testText, $content);
+        static::assertSame($this->testText, $content);
     }
 
     #[Test]
@@ -94,7 +94,7 @@ class PartTest extends TestCase
         static::assertIsResource($fp2);
         $encoded = stream_get_contents($fp2);
         fclose($fp);
-        static::assertEquals(base64_decode($encoded), $original);
+        static::assertSame(base64_decode($encoded), $original);
 
         // test QuotedPrintable
         $fp = fopen($testfile, 'rb');
@@ -105,7 +105,7 @@ class PartTest extends TestCase
         static::assertIsResource($fp2);
         $encoded = stream_get_contents($fp2);
         fclose($fp);
-        static::assertEquals(quoted_printable_decode($encoded), $original);
+        static::assertSame(quoted_printable_decode($encoded), $original);
     }
 
     /**
@@ -114,7 +114,7 @@ class PartTest extends TestCase
     #[Group('Laminas-1491')]
     public function getRawContentFromPart()
     {
-        static::assertEquals($this->testText, $this->part->getRawContent());
+        static::assertSame($this->testText, $this->part->getRawContent());
     }
 
     /**
@@ -132,7 +132,7 @@ class PartTest extends TestCase
         $part->encoding           = Mime\Mime::ENCODING_BASE64;
         $contentEncodedFirstTime  = $part->getContent();
         $contentEncodedSecondTime = $part->getContent();
-        static::assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
+        static::assertSame($contentEncodedFirstTime, $contentEncodedSecondTime);
         fclose($fp);
 
         $fp                       = fopen($testfile, 'rb');
@@ -140,7 +140,7 @@ class PartTest extends TestCase
         $part->encoding           = Mime\Mime::ENCODING_QUOTEDPRINTABLE;
         $contentEncodedFirstTime  = $part->getContent();
         $contentEncodedSecondTime = $part->getContent();
-        static::assertEquals($contentEncodedFirstTime, $contentEncodedSecondTime);
+        static::assertSame($contentEncodedFirstTime, $contentEncodedSecondTime);
         fclose($fp);
     }
 
@@ -162,19 +162,19 @@ class PartTest extends TestCase
             ->setFilters(['foo'])
             ->setDescription('foobar');
 
-        static::assertEquals($this->testText, $part->getContent());
-        static::assertEquals(Mime\Mime::ENCODING_8BIT, $part->getEncoding());
-        static::assertEquals('text/plain', $part->getType());
-        static::assertEquals('test.txt', $part->getFileName());
-        static::assertEquals('attachment', $part->getDisposition());
-        static::assertEquals('iso8859-1', $part->getCharset());
-        static::assertEquals('4711', $part->getId());
-        static::assertEquals('frontier', $part->getBoundary());
-        static::assertEquals('fiction1/fiction2', $part->getLocation());
-        static::assertEquals('en', $part->getLanguage());
-        static::assertEquals(false, $part->isStream());
-        static::assertEquals(['foo'], $part->getFilters());
-        static::assertEquals('foobar', $part->getDescription());
+        static::assertSame($this->testText, $part->getContent());
+        static::assertSame(Mime\Mime::ENCODING_8BIT, $part->getEncoding());
+        static::assertSame('text/plain', $part->getType());
+        static::assertSame('test.txt', $part->getFileName());
+        static::assertSame('attachment', $part->getDisposition());
+        static::assertSame('iso8859-1', $part->getCharset());
+        static::assertSame('4711', $part->getId());
+        static::assertSame('frontier', $part->getBoundary());
+        static::assertSame('fiction1/fiction2', $part->getLocation());
+        static::assertSame('en', $part->getLanguage());
+        static::assertSame(false, $part->isStream());
+        static::assertSame(['foo'], $part->getFilters());
+        static::assertSame('foobar', $part->getDescription());
     }
 
     /** @psalm-return array<string, array{0: mixed}> */

@@ -31,7 +31,7 @@ class Crammd5Test extends TestCase
             ['frodo', 'speakfriendandenter'],
         );
 
-        static::assertEquals('be56fa81a5671e0c62e00134180aae2c', $result);
+        static::assertSame('be56fa81a5671e0c62e00134180aae2c', $result);
     }
 
     #[Test]
@@ -66,13 +66,13 @@ class Crammd5Test extends TestCase
     public function usernameAccessors(): void
     {
         $this->auth->setUsername('test');
-        static::assertEquals('test', $this->auth->getUsername());
+        static::assertSame('test', $this->auth->getUsername());
     }
 
     #[Test]
     public function passwordAccessors(): void
     {
         $this->auth->setPassword('test');
-        static::assertEquals('test', $this->auth->getPassword());
+        static::assertSame('test', $this->auth->getPassword());
     }
 }

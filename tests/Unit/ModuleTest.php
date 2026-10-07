@@ -17,6 +17,6 @@ class ModuleTest extends TestCase
     {
         $module = new Module();
         $config = $module->getConfig();
-        static::assertEquals(['service_manager'], array_keys($config));
+        static::assertSame(['service_manager'], array_keys($config));
     }
 }

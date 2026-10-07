@@ -61,7 +61,7 @@ class IdentificationFieldTest extends TestCase
     {
         /** @var IdentificationField $header */
         $header = $className::fromString($headerString);
-        static::assertEquals($ids, $header->getIds());
+        static::assertSame($ids, $header->getIds());
     }
 
     /**
@@ -76,7 +76,7 @@ class IdentificationFieldTest extends TestCase
         /** @var IdentificationField $header */
         $header = new $className();
         $header->setIds($ids);
-        static::assertEquals($headerString, $header->toString());
+        static::assertSame($headerString, $header->toString());
     }
 
     /**

@@ -116,8 +116,8 @@ class GenericHeaderTest extends TestCase
     {
         $header = GenericHeader::fromString('Foo:' . $encodedValue);
 
-        static::assertEquals($decodedValue, $header->getFieldValue());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($decodedValue, $header->getFieldValue());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     #[Test]
@@ -128,9 +128,9 @@ class GenericHeaderTest extends TestCase
         $header = new GenericHeader('Foo');
         $header->setFieldValue($decodedValue);
 
-        static::assertEquals($decodedValue, $header->getFieldValue());
-        static::assertEquals('Foo: ' . $encodedValue, $header->toString());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($decodedValue, $header->getFieldValue());
+        static::assertSame('Foo: ' . $encodedValue, $header->toString());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     /** @return array<string, array{0: string, 1: string, 2: string}> */
@@ -162,9 +162,9 @@ class GenericHeaderTest extends TestCase
         $header = new GenericHeader('Foo');
         $header->setFieldValue($raw);
 
-        static::assertEquals($raw, $header->getFieldValue());
-        static::assertEquals($encoded, $header->getFieldValue(HeaderInterface::FORMAT_ENCODED));
-        static::assertEquals('Foo: ' . $encoded, $header->toString());
+        static::assertSame($raw, $header->getFieldValue());
+        static::assertSame($encoded, $header->getFieldValue(HeaderInterface::FORMAT_ENCODED));
+        static::assertSame('Foo: ' . $encoded, $header->toString());
     }
 
     #[Test]
@@ -173,7 +173,7 @@ class GenericHeaderTest extends TestCase
         /** @psalm-suppress InvalidArgument $header */
         $header = new GenericHeader('Foo', 0);
         static::assertEquals(0, $header->getFieldValue());
-        static::assertEquals('Foo: 0', $header->toString());
+        static::assertSame('Foo: 0', $header->toString());
     }
 
     #[Test]

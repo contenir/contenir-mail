@@ -23,7 +23,7 @@ class FileOptionsTest extends TestCase
     #[Test]
     public function pathIsSysTempDirByDefault(): void
     {
-        static::assertEquals(sys_get_temp_dir(), $this->options->getPath());
+        static::assertSame(sys_get_temp_dir(), $this->options->getPath());
     }
 
     #[Test]
@@ -42,7 +42,7 @@ class FileOptionsTest extends TestCase
         $this->options->setPath(__DIR__);
         $test = $this->options->getPath();
         static::assertNotEquals($original, $test);
-        static::assertEquals(__DIR__, $test);
+        static::assertSame(__DIR__, $test);
     }
 
     #[Test]

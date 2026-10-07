@@ -22,7 +22,7 @@ class Xoauth2Test extends TestCase
         /**
          * @psalm-suppress InternalMethod
          */
-        static::assertEquals(
+        static::assertSame(
             $accessToken,
             Xoauth2::encodeXoauth2Sasl(
                 'test@contoso.onmicrosoft.com',

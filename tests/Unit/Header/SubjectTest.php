@@ -28,7 +28,7 @@ class SubjectTest extends TestCase
             . "batfoobarblahblahblah baz batfoobarblahblahblah baz batfoobarblahblahblah baz\r\n "
             . 'batfoobarblahblahblah baz batfoobarblahblahblah baz bat';
         $test = $subject->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
-        static::assertEquals($expected, $test);
+        static::assertSame($expected, $test);
     }
 
     #[Test]
@@ -58,8 +58,8 @@ class SubjectTest extends TestCase
     {
         $header = Header\Subject::fromString('Subject:' . $encodedValue);
 
-        static::assertEquals($decodedValue, $header->getFieldValue());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($decodedValue, $header->getFieldValue());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     /**
@@ -101,9 +101,9 @@ class SubjectTest extends TestCase
         $header = new Header\Subject();
         $header->setSubject($decodedValue);
 
-        static::assertEquals($decodedValue, $header->getFieldValue());
-        static::assertEquals('Subject: ' . $encodedValue, $header->toString());
-        static::assertEquals($encoding, $header->getEncoding());
+        static::assertSame($decodedValue, $header->getFieldValue());
+        static::assertSame('Subject: ' . $encodedValue, $header->toString());
+        static::assertSame($encoding, $header->getEncoding());
     }
 
     public static function validSubjectValuesProvider(): array

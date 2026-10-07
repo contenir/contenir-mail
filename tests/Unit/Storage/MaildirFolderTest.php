@@ -173,7 +173,7 @@ class MaildirFolderTest extends TestCase
 
         $mail->selectFolder('subfolder.test');
 
-        static::assertEquals($mail->getCurrentFolder(), 'subfolder.test');
+        static::assertSame($mail->getCurrentFolder(), 'subfolder.test');
     }
 
     #[Test]
@@ -191,7 +191,7 @@ class MaildirFolderTest extends TestCase
     {
         $mail = new Folder\Maildir($this->params);
 
-        static::assertEquals($mail->getFolders()->subfolder->__toString(), 'subfolder');
+        static::assertSame($mail->getFolders()->subfolder->__toString(), 'subfolder');
     }
 
     #[Test]
@@ -199,7 +199,7 @@ class MaildirFolderTest extends TestCase
     {
         $mail = new Folder\Maildir($this->params);
 
-        static::assertEquals($mail->getFolders()->subfolder->key(), 'test');
+        static::assertSame($mail->getFolders()->subfolder->key(), 'test');
     }
 
     #[Test]
@@ -273,7 +273,7 @@ class MaildirFolderTest extends TestCase
             $foundFolders[$folder->__toString()] = $localName;
         }
 
-        static::assertEquals($searchFolders, $foundFolders);
+        static::assertSame($searchFolders, $foundFolders);
     }
 
     #[Test]
@@ -283,7 +283,7 @@ class MaildirFolderTest extends TestCase
         $iterator = new RecursiveIteratorIterator($mail->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
 
         foreach ($iterator as $localName => $folder) {
-            static::assertEquals($localName, $folder->getLocalName());
+            static::assertSame($localName, $folder->getLocalName());
         }
     }
 
@@ -293,11 +293,11 @@ class MaildirFolderTest extends TestCase
         $mail = new Folder\Maildir($this->params);
 
         $count = $mail->countMessages();
-        static::assertEquals(5, $count);
+        static::assertSame(5, $count);
 
         $mail->selectFolder('subfolder.test');
         $count = $mail->countMessages();
-        static::assertEquals(1, $count);
+        static::assertSame(1, $count);
     }
 
     #[Test]
@@ -307,11 +307,11 @@ class MaildirFolderTest extends TestCase
         $shouldSizes = [1 => 397, 89, 694, 452, 497];
 
         $sizes = $mail->getSize();
-        static::assertEquals($shouldSizes, $sizes);
+        static::assertSame($shouldSizes, $sizes);
 
         $mail->selectFolder('subfolder.test');
         $sizes = $mail->getSize();
-        static::assertEquals([1 => 410], $sizes);
+        static::assertSame([1 => 410], $sizes);
     }
 
     #[Test]
@@ -320,11 +320,11 @@ class MaildirFolderTest extends TestCase
         $mail = new Folder\Maildir($this->params);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
 
         $mail->selectFolder('subfolder.test');
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Message in subfolder', $subject);
+        static::assertSame('Message in subfolder', $subject);
     }
 
     #[Test]
@@ -410,7 +410,7 @@ class MaildirFolderTest extends TestCase
 
         $mail = new Folder\Maildir($this->params);
         $mail->selectFolder('xyyx');
-        static::assertEquals($mail->countMessages(), 0);
+        static::assertSame($mail->countMessages(), 0);
 
         rmdir($this->params['dirname'] . '.xyyx/cur');
         rmdir($this->params['dirname'] . '.xyyx/new');

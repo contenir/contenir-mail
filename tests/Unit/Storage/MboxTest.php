@@ -156,7 +156,7 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $count = $mail->countMessages();
-        static::assertEquals(7, $count);
+        static::assertSame(7, $count);
     }
 
     #[Test]
@@ -166,7 +166,7 @@ class MboxTest extends TestCase
         $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
 
         $sizes = $mail->getSize();
-        static::assertEquals($shouldSizes, $sizes);
+        static::assertSame($shouldSizes, $sizes);
     }
 
     #[Test]
@@ -175,7 +175,7 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $size = $mail->getSize(2);
-        static::assertEquals(89, $size);
+        static::assertSame(89, $size);
     }
 
     #[Test]
@@ -184,7 +184,7 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     /*
@@ -206,7 +206,7 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->getUnixMboxFile(), 'messageEOL' => "\n"]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -215,7 +215,7 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -225,7 +225,7 @@ class MboxTest extends TestCase
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
     }
 
     #[Test]
@@ -236,7 +236,7 @@ class MboxTest extends TestCase
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
     }
 
     #[Test]
@@ -291,8 +291,8 @@ class MboxTest extends TestCase
         copy($this->mboxOriginalFile, $this->mboxFile);
         $mail = unserialize($serialzed);
 
-        static::assertEquals($mail->countMessages(), $count);
-        static::assertEquals($mail->getMessage(1)->getContent(), $content);
+        static::assertSame($mail->countMessages(), $count);
+        static::assertSame($mail->getMessage(1)->getContent(), $content);
     }
 
     #[Test]
@@ -347,11 +347,11 @@ class MboxTest extends TestCase
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
 
         static::assertFalse($mail->hasUniqueId);
-        static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
+        static::assertSame(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
         $ids = $mail->getUniqueId();
         foreach ($ids as $num => $id) {
-            static::assertEquals($num, $id);
+            static::assertSame($num, $id);
 
             if ($mail->getNumberByUniqueId($id) != $num) {
                 static::fail('reverse lookup failed');
@@ -366,11 +366,11 @@ class MboxTest extends TestCase
         fwrite($fh, "From \r\nSubject: test\r\nFrom \r\nSubject: test2\r\n");
         fclose($fh);
         $mail = new Storage\Mbox(['filename' => $this->mboxFile]);
-        static::assertEquals($mail->countMessages(), 2);
-        static::assertEquals($mail->getMessage(1)->subject, 'test');
-        static::assertEquals($mail->getMessage(1)->getContent(), '');
-        static::assertEquals($mail->getMessage(2)->subject, 'test2');
-        static::assertEquals($mail->getMessage(2)->getContent(), '');
+        static::assertSame($mail->countMessages(), 2);
+        static::assertSame($mail->getMessage(1)->subject, 'test');
+        static::assertSame($mail->getMessage(1)->getContent(), '');
+        static::assertSame($mail->getMessage(2)->subject, 'test2');
+        static::assertSame($mail->getMessage(2)->getContent(), '');
     }
 
     private function getUnixMboxFile(): string

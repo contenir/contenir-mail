@@ -191,7 +191,7 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $count = $mail->countMessages();
-        static::assertEquals(5, $count);
+        static::assertSame(5, $count);
     }
 
     #[Test]
@@ -201,7 +201,7 @@ class MaildirTest extends TestCase
         $shouldSizes = [1 => 397, 89, 694, 452, 497];
 
         $sizes = $mail->getSize();
-        static::assertEquals($shouldSizes, $sizes);
+        static::assertSame($shouldSizes, $sizes);
     }
 
     #[Test]
@@ -210,7 +210,7 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $size = $mail->getSize(2);
-        static::assertEquals(89, $size);
+        static::assertSame(89, $size);
     }
 
     #[Test]
@@ -219,7 +219,7 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -228,7 +228,7 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -238,7 +238,7 @@ class MaildirTest extends TestCase
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
     }
 
     #[Test]
@@ -298,7 +298,7 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         static::assertTrue($mail->hasUniqueId);
-        static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
+        static::assertSame(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
         $ids       = $mail->getUniqueId();
         $shouldIds = [
@@ -309,7 +309,7 @@ class MaildirTest extends TestCase
             '1000000004.P1.example.org',
         ];
         foreach ($ids as $num => $id) {
-            static::assertEquals($id, $shouldIds[$num]);
+            static::assertSame($id, $shouldIds[$num]);
 
             if ($mail->getNumberByUniqueId($id) != $num) {
                 static::fail('reverse lookup failed');
@@ -391,26 +391,26 @@ class MaildirTest extends TestCase
     public function countFlags(): void
     {
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertEquals($mail->countMessages(Storage::FLAG_DELETED), 0);
-        static::assertEquals($mail->countMessages(Storage::FLAG_RECENT), 1);
-        static::assertEquals($mail->countMessages(Storage::FLAG_FLAGGED), 1);
-        static::assertEquals($mail->countMessages(Storage::FLAG_SEEN), 4);
-        static::assertEquals($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]), 1);
-        static::assertEquals($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_RECENT]), 0);
+        static::assertSame($mail->countMessages(Storage::FLAG_DELETED), 0);
+        static::assertSame($mail->countMessages(Storage::FLAG_RECENT), 1);
+        static::assertSame($mail->countMessages(Storage::FLAG_FLAGGED), 1);
+        static::assertSame($mail->countMessages(Storage::FLAG_SEEN), 4);
+        static::assertSame($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_FLAGGED]), 1);
+        static::assertSame($mail->countMessages([Storage::FLAG_SEEN, Storage::FLAG_RECENT]), 0);
     }
 
     #[Test]
     public function fetchPart(): void
     {
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertEquals($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
+        static::assertSame($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
     }
 
     #[Test]
     public function partSize(): void
     {
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
-        static::assertEquals($mail->getMessage(4)->getPart(2)->getSize(), 88);
+        static::assertSame($mail->getMessage(4)->getPart(2)->getSize(), 88);
     }
 
     #[Test]
@@ -428,7 +428,7 @@ class MaildirTest extends TestCase
         $shouldSizes = [1 => 123, 456, 694, 452, 497];
 
         $sizes = $mail->getSize();
-        static::assertEquals($shouldSizes, $sizes);
+        static::assertSame($shouldSizes, $sizes);
     }
 
     #[Test]
@@ -441,6 +441,6 @@ class MaildirTest extends TestCase
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $size = $mail->getSize(2);
-        static::assertEquals(456, $size);
+        static::assertSame(456, $size);
     }
 }

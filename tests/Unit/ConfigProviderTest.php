@@ -17,6 +17,6 @@ class ConfigProviderTest extends TestCase
     {
         $configProvider = new ConfigProvider();
         $config         = $configProvider();
-        static::assertEquals(['dependencies'], array_keys($config));
+        static::assertSame(['dependencies'], array_keys($config));
     }
 }

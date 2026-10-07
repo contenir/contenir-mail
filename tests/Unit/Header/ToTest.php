@@ -30,7 +30,7 @@ class ToTest extends TestCase
         }
         $string = $header->getFieldValue();
         $emails = explode("\r\n ", $string);
-        static::assertEquals(10, count($emails));
+        static::assertSame(10, count($emails));
     }
 
     public static function headerLines(): array

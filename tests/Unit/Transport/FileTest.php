@@ -81,7 +81,7 @@ class FileTest extends TestCase
         $file = $this->transport->getLastFile();
         $test = file_get_contents($file);
 
-        static::assertEquals($message->toString(), $test);
+        static::assertSame($message->toString(), $test);
     }
 
     #[Test]

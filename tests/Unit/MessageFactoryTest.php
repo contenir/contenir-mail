@@ -35,11 +35,11 @@ class MessageFactoryTest extends TestCase
         $message = MessageFactory::getInstance($options);
 
         static::assertInstanceOf(Message::class, $message);
-        static::assertEquals('UTF-8', $message->getEncoding());
-        static::assertEquals('subject', $message->getSubject());
-        static::assertEquals('body', $message->getBody());
+        static::assertSame('UTF-8', $message->getEncoding());
+        static::assertSame('subject', $message->getSubject());
+        static::assertSame('body', $message->getBody());
         static::assertInstanceOf(Address::class, $message->getSender());
-        static::assertEquals($options['sender'], $message->getSender()->getEmail());
+        static::assertSame($options['sender'], $message->getSender()->getEmail());
 
         $getMethods = [
             'from'     => 'getFrom',
@@ -52,7 +52,7 @@ class MessageFactoryTest extends TestCase
         foreach ($getMethods as $key => $method) {
             $value = $message->{$method}();
             static::assertInstanceOf(AddressList::class, $value);
-            static::assertEquals(1, count($value));
+            static::assertSame(1, count($value));
             static::assertTrue($value->has($options[$key]));
         }
     }
@@ -72,13 +72,13 @@ class MessageFactoryTest extends TestCase
 
         $from = $message->getFrom();
         static::assertInstanceOf(AddressList::class, $from);
-        static::assertEquals(1, count($from));
+        static::assertSame(1, count($from));
         static::assertTrue($from->has('matthew@example.com'));
-        static::assertEquals('Matthew', $from->get('matthew@example.com')->getName());
+        static::assertSame('Matthew', $from->get('matthew@example.com')->getName());
 
         $to = $message->getTo();
         static::assertInstanceOf(AddressList::class, $to);
-        static::assertEquals(2, count($to));
+        static::assertSame(2, count($to));
         static::assertTrue($to->has('test@example.com'));
         static::assertTrue($to->has('list@example.com'));
     }

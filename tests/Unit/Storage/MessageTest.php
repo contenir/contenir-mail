@@ -62,7 +62,7 @@ class MessageTest extends TestCase
     public function getHeader(array $params): void
     {
         $message = new Message($params);
-        static::assertEquals($message->subject, 'multipart');
+        static::assertSame($message->subject, 'multipart');
     }
 
     #[Test]
@@ -72,7 +72,7 @@ class MessageTest extends TestCase
         $message = new Message($params);
         /** @var HeaderInterface $toHeader */
         $toHeader = $message->getHeader('To');
-        static::assertEquals('foo@example.com', $toHeader->getFieldValue());
+        static::assertSame('foo@example.com', $toHeader->getFieldValue());
     }
 
     /**
@@ -82,7 +82,7 @@ class MessageTest extends TestCase
     public function getDecodedHeader(array $params): void
     {
         $message = new Message($params);
-        static::assertEquals('Peter Müller <peter-mueller@example.com>', $message->from);
+        static::assertSame('Peter Müller <peter-mueller@example.com>', $message->from);
     }
 
     #[Test]
@@ -90,7 +90,7 @@ class MessageTest extends TestCase
     public function getHeaderAsArray(array $params): void
     {
         $message = new Message($params);
-        static::assertEquals(['multipart'], $message->getHeader('subject', 'array'), 'getHeader() value not match');
+        static::assertSame(['multipart'], $message->getHeader('subject', 'array'), 'getHeader() value not match');
     }
 
     #[Test]
@@ -98,7 +98,7 @@ class MessageTest extends TestCase
     {
         $message = new Message(['file' => $this->file]);
 
-        static::assertEquals(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
+        static::assertSame(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
     }
 
     #[Test]
@@ -107,7 +107,7 @@ class MessageTest extends TestCase
         $message = new Message(['file' => $this->file]);
 
         $message->getPart(1);
-        static::assertEquals(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
+        static::assertSame(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
     }
 
     #[Test]
@@ -123,13 +123,13 @@ class MessageTest extends TestCase
     {
         $message = new Message(['file' => __FILE__]);
 
-        static::assertEquals(substr($message->getContent(), 0, 5), '<?php');
+        static::assertSame(substr($message->getContent(), 0, 5), '<?php');
 
         $raw     = file_get_contents(__FILE__);
         $raw     = "\t" . $raw;
         $message = new Message(['raw' => $raw]);
 
-        static::assertEquals(substr($message->getContent(), 0, 6), "\t<?php");
+        static::assertSame(substr($message->getContent(), 0, 6), "\t<?php");
     }
 
     /**
@@ -143,7 +143,7 @@ class MessageTest extends TestCase
     {
         $message   = new Message(['file' => $this->file]);
         $messageId = $message->messageId;
-        static::assertEquals('<CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com>', $messageId);
+        static::assertSame('<CALTvGe4_oYgf9WsYgauv7qXh2-6=KbPLExmJNG7fCs9B=1nOYg@mail.example.com>', $messageId);
     }
 
     #[Test]
@@ -153,12 +153,12 @@ class MessageTest extends TestCase
         $raw     = "sUBject: test\r\nSubJect: test2\r\n" . $raw;
         $message = new Message(['raw' => $raw]);
 
-        static::assertEquals(
+        static::assertSame(
             'test' . Mime\Mime::LINEEND . 'test2' . Mime\Mime::LINEEND . 'multipart',
             $message->getHeader('subject', 'string'),
         );
 
-        static::assertEquals(
+        static::assertSame(
             ['test', 'test2', 'multipart'],
             $message->getHeader('subject', 'array'),
         );
@@ -175,7 +175,7 @@ class MessageTest extends TestCase
             . "Don't forget to meet us for the tailgate party!\n";
         $message = new Message(['raw' => $src]);
 
-        static::assertEquals(
+        static::assertSame(
             'This is your reminder about the football game tonight',
             $message->getHeader('subject', 'string'),
         );
@@ -192,7 +192,7 @@ class MessageTest extends TestCase
             . "Don't forget to meet us for the tailgate party!\n";
         $message = new Message(['raw' => $src]);
 
-        static::assertEquals(
+        static::assertSame(
             'This is your reminder about the football game tonight',
             $message->getHeader('subject', 'string'),
         );
@@ -203,7 +203,7 @@ class MessageTest extends TestCase
     {
         $message = new Message(['file' => $this->file]);
 
-        static::assertEquals(
+        static::assertSame(
             Mime\Decode::splitContentType($message->ContentType),
             ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart'],
         );
@@ -212,7 +212,7 @@ class MessageTest extends TestCase
     #[Test]
     public function splitEmptyMessage(): void
     {
-        static::assertEquals(Mime\Decode::splitMessageStruct('', 'xxx'), null);
+        static::assertSame(Mime\Decode::splitMessageStruct('', 'xxx'), null);
     }
 
     #[Test]
@@ -244,28 +244,28 @@ class MessageTest extends TestCase
         foreach (new RecursiveIteratorIterator($message) as $num => $part) {
             if ($num == 1) {
                 // explicit call of __toString() needed for PHP < 5.2
-                static::assertEquals(substr($part->__toString(), 0, 14), 'The first part');
+                static::assertSame(substr($part->__toString(), 0, 14), 'The first part');
             }
         }
-        static::assertEquals($part->contentType, 'text/x-vertical');
+        static::assertSame($part->contentType, 'text/x-vertical');
     }
 
     #[Test]
     public function decodeString(): void
     {
         $is = Mime\Decode::decodeQuotedPrintable('=?UTF-8?Q?"Peter M=C3=BCller"?= <peter-mueller@example.com>');
-        static::assertEquals('"Peter Müller" <peter-mueller@example.com>', $is);
+        static::assertSame('"Peter Müller" <peter-mueller@example.com>', $is);
     }
 
     #[Test]
     public function splitHeader(): void
     {
         $header = 'foo; x=y; y="x"';
-        static::assertEquals(Mime\Decode::splitHeaderField($header), ['foo', 'x' => 'y', 'y' => 'x']);
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'x'), 'y');
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'y'), 'x');
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'foo', 'foo'), 'foo');
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'foo'), null);
+        static::assertSame(Mime\Decode::splitHeaderField($header), ['foo', 'x' => 'y', 'y' => 'x']);
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'x'), 'y');
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'y'), 'x');
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo', 'foo'), 'foo');
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo'), null);
     }
 
     #[Test]
@@ -290,8 +290,8 @@ class MessageTest extends TestCase
             foreach ($newlines as $decodeEol) {
                 $content = $header . $contentEol . $contentEol . $body;
                 Mime\Decode::splitMessage($content, $decodedHeaders, $decodedBody, $decodeEol);
-                static::assertEquals(['Test' => 'test'], $decodedHeaders->toArray());
-                static::assertEquals($body, $decodedBody);
+                static::assertSame(['Test' => 'test'], $decodedHeaders->toArray());
+                static::assertSame($body, $decodedBody);
             }
         }
     }
@@ -315,7 +315,7 @@ class MessageTest extends TestCase
     public function emptyHeader(): void
     {
         $message = new Message([]);
-        static::assertEquals([], $message->getHeaders()->toArray());
+        static::assertSame([], $message->getHeaders()->toArray());
 
         $message = new Message([]);
 
@@ -351,7 +351,7 @@ class MessageTest extends TestCase
         }
 
         $message = new Message([]);
-        static::assertEquals(0, $message->countParts());
+        static::assertSame(0, $message->countParts());
     }
 
     /**
@@ -383,11 +383,11 @@ class MessageTest extends TestCase
         $mail = new Storage\Mbox(['filename' => __DIR__ . '/../_files/test.mbox/INBOX']);
 
         $message = new Message(['handler' => $mail, 'id' => 5]);
-        static::assertEquals($message->countParts(), 2);
-        static::assertEquals($message->countParts(), 2);
+        static::assertSame($message->countParts(), 2);
+        static::assertSame($message->countParts(), 2);
 
         $message = new Message(['handler' => $mail, 'id' => 5]);
-        static::assertEquals($message->subject, 'multipart');
+        static::assertSame($message->subject, 'multipart');
 
         $message = new Message(['handler' => $mail, 'id' => 5]);
         static::assertStringStartsWith('multipart message', $message->getContent());
@@ -399,21 +399,21 @@ class MessageTest extends TestCase
         $message = new Message(['file' => $this->file]);
 
         static::assertTrue($message->valid());
-        static::assertEquals($message->getChildren(), $message->current());
-        static::assertEquals($message->key(), 1);
+        static::assertSame($message->getChildren(), $message->current());
+        static::assertSame($message->key(), 1);
 
         $message->next();
         static::assertTrue($message->valid());
-        static::assertEquals($message->getChildren(), $message->current());
-        static::assertEquals($message->key(), 2);
+        static::assertSame($message->getChildren(), $message->current());
+        static::assertSame($message->key(), 2);
 
         $message->next();
         static::assertFalse($message->valid());
 
         $message->rewind();
         static::assertTrue($message->valid());
-        static::assertEquals($message->getChildren(), $message->current());
-        static::assertEquals($message->key(), 1);
+        static::assertSame($message->getChildren(), $message->current());
+        static::assertSame($message->key(), 1);
     }
 
     #[Test]
@@ -428,28 +428,28 @@ class MessageTest extends TestCase
         $messageFlags = $message->getFlags();
         static::assertTrue($message->hasFlag('bar'), var_export($messageFlags, true));
         static::assertTrue($message->hasFlag('bat'), var_export($messageFlags, true));
-        static::assertEquals(['bar' => 'bar', 'bat' => 'bat'], $messageFlags);
+        static::assertSame(['bar' => 'bar', 'bat' => 'bat'], $messageFlags);
     }
 
     #[Test]
     public function getHeaderFieldSingle(): void
     {
         $message = new Message(['file' => $this->file]);
-        static::assertEquals($message->getHeaderField('subject'), 'multipart');
+        static::assertSame($message->getHeaderField('subject'), 'multipart');
     }
 
     #[Test]
     public function getHeaderFieldDefault(): void
     {
         $message = new Message(['file' => $this->file]);
-        static::assertEquals($message->getHeaderField('content-type'), 'multipart/alternative');
+        static::assertSame($message->getHeaderField('content-type'), 'multipart/alternative');
     }
 
     #[Test]
     public function getHeaderFieldNamed(): void
     {
         $message = new Message(['file' => $this->file]);
-        static::assertEquals($message->getHeaderField('content-type', 'boundary'), 'crazy-multipart');
+        static::assertSame($message->getHeaderField('content-type', 'boundary'), 'crazy-multipart');
     }
 
     #[Test]
@@ -478,15 +478,15 @@ class MessageTest extends TestCase
     public function caseInsensitiveField(): void
     {
         $header = 'test; fOO="this is a test"';
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'Foo'), 'this is a test');
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'bar'), null);
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'Foo'), 'this is a test');
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'bar'), null);
     }
 
     #[Test]
     public function spaceInFieldName(): void
     {
         $header = 'test; foo =bar; baz      =42';
-        static::assertEquals(Mime\Decode::splitHeaderField($header, 'foo'), 'bar');
+        static::assertSame(Mime\Decode::splitHeaderField($header, 'foo'), 'bar');
         static::assertEquals(Mime\Decode::splitHeaderField($header, 'baz'), 42);
     }
 
@@ -536,10 +536,10 @@ class MessageTest extends TestCase
         /** @var To $header */
         $header      = $message->getHeader('to');
         $addressList = $header->getAddressList();
-        static::assertEquals(2, $addressList->count());
+        static::assertSame(2, $addressList->count());
         $address = $addressList->get('bar@example.pl');
         static::assertInstanceOf(AddressInterface::class, $address);
-        static::assertEquals('nicpoń', $address->getName());
+        static::assertSame('nicpoń', $address->getName());
     }
 
     public static function filesProvider(): array

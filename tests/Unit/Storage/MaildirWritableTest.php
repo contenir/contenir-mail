@@ -301,8 +301,8 @@ class MaildirWritableTest extends TestCase
         $message .= "This is a test\r\n";
         $mail->appendMessage($message);
 
-        static::assertEquals($count + 1, $mail->countMessages());
-        static::assertEquals($mail->getMessage($count + 1)->subject, 'append test');
+        static::assertSame($count + 1, $mail->countMessages());
+        static::assertSame($mail->getMessage($count + 1)->subject, 'append test');
     }
 
     #[Test]
@@ -317,10 +317,10 @@ class MaildirWritableTest extends TestCase
 
         $mail->copyMessage(1, 'subfolder.test');
         $mail->selectFolder('subfolder.test');
-        static::assertEquals($count + 1, $mail->countMessages());
-        static::assertEquals($mail->getMessage($count + 1)->subject, $message->subject);
-        static::assertEquals($mail->getMessage($count + 1)->from, $message->from);
-        static::assertEquals($mail->getMessage($count + 1)->to, $message->to);
+        static::assertSame($count + 1, $mail->countMessages());
+        static::assertSame($mail->getMessage($count + 1)->subject, $message->subject);
+        static::assertSame($mail->getMessage($count + 1)->from, $message->from);
+        static::assertSame($mail->getMessage($count + 1)->to, $message->to);
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $mail->copyMessage(1, 'justARandomFolder');
@@ -369,10 +369,10 @@ class MaildirWritableTest extends TestCase
         $count = $mail->countMessages();
 
         $mail->removeMessage(1);
-        static::assertEquals($mail->countMessages(), --$count);
+        static::assertSame($mail->countMessages(), --$count);
 
         unset($mail[2]);
-        static::assertEquals($mail->countMessages(), --$count);
+        static::assertSame($mail->countMessages(), --$count);
     }
 
     #[Test]
@@ -423,7 +423,7 @@ class MaildirWritableTest extends TestCase
         static::assertFalse($mail->getQuota());
 
         $mail->setQuota(['size' => 100, 'count' => 2, 'X' => 0]);
-        static::assertEquals($mail->getQuota(), ['size' => 100, 'count' => 2, 'X' => 0]);
+        static::assertSame($mail->getQuota(), ['size' => 100, 'count' => 2, 'X' => 0]);
         static::assertEquals($mail->getQuota(true), ['size' => 3000, 'L' => 1, 'count' => 10]);
 
         $quotaResult = [
@@ -436,7 +436,7 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        static::assertEquals($quotaResult, $mail->checkQuota(true, true));
+        static::assertSame($quotaResult, $mail->checkQuota(true, true));
         static::assertEquals(['size' => 100, 'count' => 2, 'X' => 0], $mail->getQuota(true));
     }
 
@@ -472,7 +472,7 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        static::assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertSame($quotaResult, $mail->checkQuota(true));
 
         static::assertEquals($quotaResult['quota'], $mail->getQuota(true));
     }
@@ -494,7 +494,7 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        static::assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertSame($quotaResult, $mail->checkQuota(true));
 
         $mail->setQuota(false);
         static::assertTrue($mail->checkQuota());
@@ -537,7 +537,7 @@ class MaildirWritableTest extends TestCase
             ],
             'over_quota' => true,
         ];
-        static::assertEquals($quotaResult, $mail->checkQuota(true));
+        static::assertSame($quotaResult, $mail->checkQuota(true));
     }
 
     #[Test]
@@ -550,7 +550,7 @@ class MaildirWritableTest extends TestCase
         $mail->appendMessage($fh);
         fclose($fh);
 
-        static::assertEquals($mail->getMessage($mail->countMessages())->subject, 'test');
+        static::assertSame($mail->getMessage($mail->countMessages())->subject, 'test');
     }
 
     #[Test]
@@ -564,9 +564,9 @@ class MaildirWritableTest extends TestCase
         $fromCount = $mail->countMessages();
         $mail->moveMessage(1, $target);
 
-        static::assertEquals($fromCount - 1, $mail->countMessages());
+        static::assertSame($fromCount - 1, $mail->countMessages());
         $mail->selectFolder($target);
-        static::assertEquals($toCount + 1, $mail->countMessages());
+        static::assertSame($toCount + 1, $mail->countMessages());
     }
 
     #[Test]
@@ -575,7 +575,7 @@ class MaildirWritableTest extends TestCase
         // this should be a noop
         Writable\Maildir::initMaildir($this->params['dirname']);
         $mail = new Writable\Maildir($this->params);
-        static::assertEquals($mail->countMessages(), 5);
+        static::assertSame($mail->countMessages(), 5);
     }
 
     #[Test]
@@ -593,7 +593,7 @@ class MaildirWritableTest extends TestCase
 
         Writable\Maildir::initMaildir($this->params['dirname']);
         $mail = new Writable\Maildir($this->params);
-        static::assertEquals($mail->countMessages(), 0);
+        static::assertSame($mail->countMessages(), 0);
     }
 
     #[Test]
@@ -611,6 +611,6 @@ class MaildirWritableTest extends TestCase
 
         $this->params['create'] = true;
         $mail                   = new Writable\Maildir($this->params);
-        static::assertEquals($mail->countMessages(), 0);
+        static::assertSame($mail->countMessages(), 0);
     }
 }

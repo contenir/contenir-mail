@@ -33,24 +33,24 @@ class HeadersTest extends TestCase
     public function headersFromStringFactoryCreatesSingleObject(): void
     {
         $headers = Mail\Headers::fromString('Fake: foo-bar');
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
 
         $header = $headers->get('fake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Fake', $header->getFieldName());
-        static::assertEquals('foo-bar', $header->getFieldValue());
+        static::assertSame('Fake', $header->getFieldName());
+        static::assertSame('foo-bar', $header->getFieldValue());
     }
 
     #[Test]
     public function headersFromStringFactoryHandlesMissingWhitespace(): void
     {
         $headers = Mail\Headers::fromString('Fake:foo-bar');
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
 
         $header = $headers->get('fake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Fake', $header->getFieldName());
-        static::assertEquals('foo-bar', $header->getFieldValue());
+        static::assertSame('Fake', $header->getFieldName());
+        static::assertSame('foo-bar', $header->getFieldValue());
     }
 
     #[Test]
@@ -58,24 +58,24 @@ class HeadersTest extends TestCase
     public function headersFromStringFactoryCreatesSingleObjectWithContinuationLine(): void
     {
         $headers = Mail\Headers::fromString("Fake: foo-bar,\r\n      blah-blah");
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
 
         $header = $headers->get('fake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Fake', $header->getFieldName());
-        static::assertEquals('foo-bar, blah-blah', $header->getFieldValue());
+        static::assertSame('Fake', $header->getFieldName());
+        static::assertSame('foo-bar, blah-blah', $header->getFieldValue());
     }
 
     #[Test]
     public function headersFromStringFactoryCreatesSingleObjectWithHeaderBreakLine(): void
     {
         $headers = Mail\Headers::fromString("Fake: foo-bar\r\n\r\n");
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
 
         $header = $headers->get('fake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Fake', $header->getFieldName());
-        static::assertEquals('foo-bar', $header->getFieldValue());
+        static::assertSame('Fake', $header->getFieldName());
+        static::assertSame('foo-bar', $header->getFieldValue());
     }
 
     #[Test]
@@ -98,17 +98,17 @@ class HeadersTest extends TestCase
     public function headersFromStringFactoryCreatesMultipleObjects(): void
     {
         $headers = Mail\Headers::fromString("Fake: foo-bar\r\nAnother-Fake: boo-baz");
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
 
         $header = $headers->get('fake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Fake', $header->getFieldName());
-        static::assertEquals('foo-bar', $header->getFieldValue());
+        static::assertSame('Fake', $header->getFieldName());
+        static::assertSame('foo-bar', $header->getFieldValue());
 
         $header = $headers->get('anotherfake');
         static::assertInstanceOf(GenericHeader::class, $header);
-        static::assertEquals('Another-Fake', $header->getFieldName());
-        static::assertEquals('boo-baz', $header->getFieldValue());
+        static::assertSame('Another-Fake', $header->getFieldName());
+        static::assertSame('boo-baz', $header->getFieldValue());
     }
 
     #[Test]
@@ -119,7 +119,7 @@ class HeadersTest extends TestCase
         $loader->add('foo', GenericMultiHeader::class);
         $headers->addHeaderLine('foo: bar1,bar2,bar3');
         $headers->forceLoading();
-        static::assertEquals(3, $headers->count());
+        static::assertSame(3, $headers->count());
     }
 
     #[Test]
@@ -133,7 +133,7 @@ class HeadersTest extends TestCase
         static::assertFalse($headers->has('foobar'));
         static::assertTrue($headers->has('foo'));
         static::assertTrue($headers->has('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
     }
 
     #[Test]
@@ -142,8 +142,8 @@ class HeadersTest extends TestCase
         $fakeHeader = new Header\GenericHeader('Fake', 'bar');
         $headers    = new Mail\Headers();
         $headers->addHeader($fakeHeader);
-        static::assertEquals(1, $headers->count());
-        static::assertEquals('bar', $headers->get('Fake')->getFieldValue());
+        static::assertSame(1, $headers->count());
+        static::assertSame('bar', $headers->get('Fake')->getFieldValue());
     }
 
     #[Test]
@@ -151,7 +151,7 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeader(new Header\GenericHeader('Fake', 'bar'));
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Fake'));
     }
 
@@ -160,7 +160,7 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaderLine('Fake', 'bar');
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Fake'));
     }
 
@@ -199,38 +199,38 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders([new Header\GenericHeader('Foo', 'bar'), new Header\GenericHeader('Baz', 'baz')]);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
-        static::assertEquals('baz', $headers->get('baz')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('baz', $headers->get('baz')->getFieldValue());
 
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo: bar', 'Baz: baz']);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
-        static::assertEquals('baz', $headers->get('baz')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('baz', $headers->get('baz')->getFieldValue());
 
         $headers = new Mail\Headers();
         $headers->addHeaders([['Foo' => 'bar'], ['Baz' => 'baz']]);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
-        static::assertEquals('baz', $headers->get('baz')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('baz', $headers->get('baz')->getFieldValue());
 
         $headers = new Mail\Headers();
         $headers->addHeaders([['Foo', 'bar'], ['Baz', 'baz']]);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
-        static::assertEquals('baz', $headers->get('baz')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('baz', $headers->get('baz')->getFieldValue());
 
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo' => 'bar', 'Baz' => 'baz']);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertInstanceOf(GenericHeader::class, $headers->get('Foo'));
-        static::assertEquals('bar', $headers->get('foo')->getFieldValue());
-        static::assertEquals('baz', $headers->get('baz')->getFieldValue());
+        static::assertSame('bar', $headers->get('foo')->getFieldValue());
+        static::assertSame('baz', $headers->get('baz')->getFieldValue());
     }
 
     #[Test]
@@ -247,9 +247,9 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo' => 'bar', 'Baz' => 'baz']);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         $headers->removeHeader('foo');
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
         static::assertFalse($headers->has('foo'));
         static::assertTrue($headers->has('baz'));
     }
@@ -259,9 +259,9 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders([['Foo' => 'foo'], ['Foo' => 'bar'], 'Baz' => 'baz']);
-        static::assertEquals(3, $headers->count());
+        static::assertSame(3, $headers->count());
         $headers->removeHeader('foo');
-        static::assertEquals(1, $headers->count());
+        static::assertSame(1, $headers->count());
         static::assertFalse($headers->get('foo'));
         static::assertTrue($headers->has('baz'));
     }
@@ -272,9 +272,9 @@ class HeadersTest extends TestCase
         $headers = new Mail\Headers();
         $headers->addHeaders([['Foo' => 'foo'], ['Foo' => 'bar'], 'Baz' => 'baz']);
         $header = $headers->get('foo')->current();
-        static::assertEquals(3, $headers->count());
+        static::assertSame(3, $headers->count());
         $headers->removeHeader($header);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         static::assertTrue($headers->has('foo'));
         static::assertNotSame($header, $headers->get('foo'));
     }
@@ -291,9 +291,9 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo' => 'bar', 'Baz' => 'baz']);
-        static::assertEquals(2, $headers->count());
+        static::assertSame(2, $headers->count());
         $headers->clearHeaders();
-        static::assertEquals(0, $headers->count());
+        static::assertSame(0, $headers->count());
     }
 
     #[Test]
@@ -307,16 +307,16 @@ class HeadersTest extends TestCase
             static::assertInstanceOf(GenericHeader::class, $header);
             switch ($index) {
                 case 0:
-                    static::assertEquals('bar', $header->getFieldValue());
+                    static::assertSame('bar', $header->getFieldValue());
                     break;
                 case 1:
-                    static::assertEquals('baz', $header->getFieldValue());
+                    static::assertSame('baz', $header->getFieldValue());
                     break;
                 default:
                     static::fail('Invalid index returned from iterator');
             }
         }
-        static::assertEquals(2, $iterations);
+        static::assertSame(2, $iterations);
     }
 
     #[Test]
@@ -324,7 +324,7 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo' => 'bar', 'Baz' => 'baz']);
-        static::assertEquals('Foo: bar' . "\r\n" . 'Baz: baz' . "\r\n", $headers->toString());
+        static::assertSame('Foo: bar' . "\r\n" . 'Baz: baz' . "\r\n", $headers->toString());
     }
 
     #[Test]
@@ -332,7 +332,7 @@ class HeadersTest extends TestCase
     {
         $headers = new Mail\Headers();
         $headers->addHeaders(['Foo' => 'bar', 'Baz' => 'baz']);
-        static::assertEquals(['Foo' => 'bar', 'Baz' => 'baz'], $headers->toArray());
+        static::assertSame(['Foo' => 'bar', 'Baz' => 'baz'], $headers->toArray());
     }
 
     #[Test]
@@ -358,7 +358,7 @@ class HeadersTest extends TestCase
                 $received2->getFieldValue(),
             ],
         ];
-        static::assertEquals($expected, $array);
+        static::assertSame($expected, $array);
     }
 
     #[Test]
@@ -383,7 +383,7 @@ class HeadersTest extends TestCase
             'Received: ' . $received2->getFieldValue(),
         ];
         $expected = implode("\r\n", $expected) . "\r\n";
-        static::assertEquals($expected, $string);
+        static::assertSame($expected, $string);
     }
 
     #[Test]
@@ -414,7 +414,7 @@ class HeadersTest extends TestCase
         $expected = [
             'Subject' => 'PD: My: Gołblahblah',
         ];
-        static::assertEquals($expected, $array);
+        static::assertSame($expected, $array);
     }
 
     /**
@@ -435,7 +435,7 @@ class HeadersTest extends TestCase
         $expected = [
             'Subject' => '=?UTF-8?Q?PD:=20My:=20Go=C5=82blahblah?=',
         ];
-        static::assertEquals($expected, $array);
+        static::assertSame($expected, $array);
     }
 
     #[Test]
@@ -521,7 +521,7 @@ class HeadersTest extends TestCase
         $to->setEncoding('UTF-8');
         $to->getAddressList()->add('local-part@ä-umlaut.de');
         $encodedValue = $to->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
-        static::assertEquals('local-part@xn---umlaut-4wa.de', $encodedValue);
+        static::assertSame('local-part@xn---umlaut-4wa.de', $encodedValue);
     }
 
     /**
@@ -547,14 +547,14 @@ class HeadersTest extends TestCase
         $to = Header\To::fromString('To: "=?UTF-8?Q?=C3=B5lu?= <bar" <foo.bar@test.com>');
 
         $address = $to->getAddressList()->get('foo.bar@test.com');
-        static::assertEquals('õlu <bar', $address->getName());
-        static::assertEquals('foo.bar@test.com', $address->getEmail());
+        static::assertSame('õlu <bar', $address->getName());
+        static::assertSame('foo.bar@test.com', $address->getEmail());
 
         $encodedValue = $to->getFieldValue(Header\HeaderInterface::FORMAT_ENCODED);
-        static::assertEquals('=?UTF-8?Q?"=C3=B5lu=20<bar"?= <foo.bar@test.com>', $encodedValue);
+        static::assertSame('=?UTF-8?Q?"=C3=B5lu=20<bar"?= <foo.bar@test.com>', $encodedValue);
 
         $encodedValue = $to->getFieldValue(Header\HeaderInterface::FORMAT_RAW);
-        static::assertEquals('"õlu <bar" <foo.bar@test.com>', $encodedValue);
+        static::assertSame('"õlu <bar" <foo.bar@test.com>', $encodedValue);
     }
 
     #[Test]

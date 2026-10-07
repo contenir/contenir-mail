@@ -95,7 +95,7 @@ class MicrosoftTest extends TestCase
         /** @psalm-suppress InternalMethod */
         $xoauth2Sasl = Xoauth2::encodeXoauth2Sasl('test@example.com', '123');
 
-        static::assertEquals(
+        static::assertSame(
             'AUTH XOAUTH2' . "\n" . $xoauth2Sasl . "\n",
             $streamContents,
         );

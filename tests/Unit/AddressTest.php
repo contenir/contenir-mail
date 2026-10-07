@@ -17,7 +17,7 @@ class AddressTest extends TestCase
     public function doesNotRequireNameForInstantiation(): void
     {
         $address = new Address('test@example.com');
-        static::assertEquals('test@example.com', $address->getEmail());
+        static::assertSame('test@example.com', $address->getEmail());
         static::assertNull($address->getName());
     }
 
@@ -25,15 +25,15 @@ class AddressTest extends TestCase
     public function acceptsNameViaConstructor(): void
     {
         $address = new Address('test@example.com', 'Example Test');
-        static::assertEquals('test@example.com', $address->getEmail());
-        static::assertEquals('Example Test', $address->getName());
+        static::assertSame('test@example.com', $address->getEmail());
+        static::assertSame('Example Test', $address->getName());
     }
 
     #[Test]
     public function toStringCreatesStringRepresentation(): void
     {
         $address = new Address('test@example.com', 'Example Test');
-        static::assertEquals('Example Test <test@example.com>', $address->toString());
+        static::assertSame('Example Test <test@example.com>', $address->toString());
     }
 
     /**

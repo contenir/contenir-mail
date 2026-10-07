@@ -68,7 +68,7 @@ class MboxMessageOldTest extends TestCase
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -77,7 +77,7 @@ class MboxMessageOldTest extends TestCase
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
 
         $subject = $mail->getMessage(1)->subject;
-        static::assertEquals('Simple Message', $subject);
+        static::assertSame('Simple Message', $subject);
     }
 
     #[Test]
@@ -87,7 +87,7 @@ class MboxMessageOldTest extends TestCase
 
         $content = $mail->getMessage(3)->getContent();
         [$content] = explode("\n", $content, 2);
-        static::assertEquals('Fair river! in thy bright, clear flow', trim($content));
+        static::assertSame('Fair river! in thy bright, clear flow', trim($content));
     }
 
     #[Test]
@@ -97,10 +97,10 @@ class MboxMessageOldTest extends TestCase
         fwrite($fh, "From \r\nSubject: test\r\nFrom \r\nSubject: test2\r\n");
         fclose($fh);
         $mail = new TestAsset\MboxOldMessage(['filename' => $this->mboxFile]);
-        static::assertEquals($mail->countMessages(), 2);
-        static::assertEquals($mail->getMessage(1)->subject, 'test');
-        static::assertEquals($mail->getMessage(1)->getContent(), '');
-        static::assertEquals($mail->getMessage(2)->subject, 'test2');
-        static::assertEquals($mail->getMessage(2)->getContent(), '');
+        static::assertSame($mail->countMessages(), 2);
+        static::assertSame($mail->getMessage(1)->subject, 'test');
+        static::assertSame($mail->getMessage(1)->getContent(), '');
+        static::assertSame($mail->getMessage(2)->subject, 'test2');
+        static::assertSame($mail->getMessage(2)->getContent(), '');
     }
 }

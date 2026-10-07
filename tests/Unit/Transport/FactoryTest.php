@@ -164,7 +164,7 @@ class FactoryTest extends TestCase
             ],
         ]);
 
-        static::assertEquals($transport->getOptions()->getHost(), 'somehost');
+        static::assertSame($transport->getOptions()->getHost(), 'somehost');
     }
 
     #[Test]
@@ -177,6 +177,6 @@ class FactoryTest extends TestCase
             ],
         ]);
 
-        static::assertEquals($transport->getOptions()->getPath(), __DIR__);
+        static::assertSame($transport->getOptions()->getPath(), __DIR__);
     }
 }

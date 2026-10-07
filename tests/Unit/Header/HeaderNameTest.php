@@ -37,7 +37,7 @@ class HeaderNameTest extends TestCase
     public function filterName(string $name, string $expected): void
     {
         HeaderName::assertValid($expected);
-        static::assertEquals($expected, HeaderName::filter($name));
+        static::assertSame($expected, HeaderName::filter($name));
     }
 
     public static function validateNames(): array

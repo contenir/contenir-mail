@@ -97,9 +97,9 @@ class SendmailTest extends TestCase
         $this->transport->setParameters('-R hdrs');
 
         $this->transport->send($message);
-        static::assertEquals('Example Test <test@example.com>', $this->to);
-        static::assertEquals('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
-        static::assertEquals('This is only a test.', trim($this->message));
+        static::assertSame('Example Test <test@example.com>', $this->to);
+        static::assertSame('Testing Contenir\Mail\Transport\Sendmail', $this->subject);
+        static::assertSame('This is only a test.', trim($this->message));
         if (PHP_VERSION_ID < 80000) {
             static::assertStringNotContainsString("To: Example Test <test@example.com>\n", $this->additionalHeaders);
             static::assertStringContainsString("Cc: matthew@example.com\n", $this->additionalHeaders);
@@ -139,7 +139,7 @@ class SendmailTest extends TestCase
                 $this->additionalHeaders,
             );
         }
-        static::assertEquals('-R hdrs -f\'ralph@example.com\'', $this->additionalParameters);
+        static::assertSame('-R hdrs -f\'ralph@example.com\'', $this->additionalParameters);
     }
 
     #[Test]
@@ -186,7 +186,7 @@ class SendmailTest extends TestCase
         $message = $this->getMessage();
         $message->setEncoding('UTF-8');
         $this->transport->send($message);
-        static::assertEquals('=?UTF-8?Q?Testing=20Contenir\Mail\Transport\Sendmail?=', $this->subject);
+        static::assertSame('=?UTF-8?Q?Testing=20Contenir\Mail\Transport\Sendmail?=', $this->subject);
     }
 
     #[Test]
@@ -235,7 +235,7 @@ class SendmailTest extends TestCase
         $r = new ReflectionMethod($this->transport, 'prepareParameters');
 
         $parameters = $r->invoke($this->transport, $message);
-        static::assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
+        static::assertSame(' -f' . escapeshellarg($injectedEmail), $parameters);
     }
 
     /**
@@ -261,7 +261,7 @@ class SendmailTest extends TestCase
         $r = new ReflectionMethod($this->transport, 'prepareParameters');
 
         $parameters = $r->invoke($this->transport, $message);
-        static::assertEquals(' -f' . escapeshellarg($injectedEmail), $parameters);
+        static::assertSame(' -f' . escapeshellarg($injectedEmail), $parameters);
     }
 
     #[Test]
@@ -326,8 +326,8 @@ class SendmailTest extends TestCase
 
         $this->transport->send($message);
 
-        static::assertEquals('matthew@example.org', $this->to);
-        static::assertEquals('Greetings and Salutations!', $this->subject);
+        static::assertSame('matthew@example.org', $this->to);
+        static::assertSame('Greetings and Salutations!', $this->subject);
 
         static::assertDoesNotMatchRegularExpression(
             '/^To: matthew\@example\.org$/m',
@@ -357,6 +357,6 @@ class SendmailTest extends TestCase
         $this->transport->setParameters($parameters);
 
         $this->transport->send($message);
-        static::assertEquals($parameters, $this->additionalParameters);
+        static::assertSame($parameters, $this->additionalParameters);
     }
 }

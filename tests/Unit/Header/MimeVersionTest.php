@@ -19,15 +19,15 @@ class MimeVersionTest extends TestCase
         $version = '2.0';
         $mime    = new Header\MimeVersion();
         $mime->setVersion($version);
-        static::assertEquals($version, $mime->getFieldValue());
+        static::assertSame($version, $mime->getFieldValue());
     }
 
     #[Test]
     public function defaultVersion(): void
     {
         $mime = new Header\MimeVersion();
-        static::assertEquals('1.0', $mime->getVersion());
-        static::assertEquals('MIME-Version: 1.0', $mime->toString());
+        static::assertSame('1.0', $mime->getVersion());
+        static::assertSame('MIME-Version: 1.0', $mime->toString());
     }
 
     public static function headerLines(): array
@@ -107,7 +107,7 @@ class MimeVersionTest extends TestCase
     {
         $header = Header\MimeVersion::fromString($headerLine);
         static::assertInstanceOf(Header\MimeVersion::class, $header);
-        static::assertEquals('MIME-Version', $header->getFieldName());
-        static::assertEquals($expected, $header->getFieldValue());
+        static::assertSame('MIME-Version', $header->getFieldName());
+        static::assertSame($expected, $header->getFieldValue());
     }
 }
