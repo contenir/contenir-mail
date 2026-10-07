@@ -208,8 +208,8 @@ abstract class HeaderWrap
     {
         return (
             str_starts_with($value, '=?')
-            && (strlen($value) - 2) === strpos($value, '?=')
-            && str_contains($originalValue, $value)
+                && (strlen($value) - 2) === strpos($value, '?=')
+                && str_contains($originalValue, $value)
         );
     }
 

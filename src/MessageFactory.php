@@ -50,18 +50,18 @@ class MessageFactory
     private static function getSetterMethod($key)
     {
         return 'set'
-        . str_replace(
-            ' ',
-            '',
-            ucwords(
-                strtr(
-                    $key,
-                    [
-                        '-' => ' ',
-                        '_' => ' ',
-                    ],
+            . str_replace(
+                ' ',
+                '',
+                ucwords(
+                    strtr(
+                        $key,
+                        [
+                            '-' => ' ',
+                            '_' => ' ',
+                        ],
+                    ),
                 ),
-            ),
-        );
+            );
     }
 }

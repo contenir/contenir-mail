@@ -107,7 +107,7 @@ class HeaderWrapTest extends TestCase
         $header = $headers->get('DKIM-Signature');
         $this->assertEquals(
             'v=1; a=rsa-sha25; c=relaxed/simple; d=example.org;'
-            . ' h= content-language:content-type:content-type:in-reply-to',
+                . ' h= content-language:content-type:content-type:in-reply-to',
             $header->getFieldValue(),
         );
     }

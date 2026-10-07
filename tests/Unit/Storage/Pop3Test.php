@@ -50,10 +50,10 @@ class Pop3Test extends TestCase
             ) {
                 $this->markTestSkipped(
                     'There is no file name "inbox" or "INBOX" in '
-                    . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
-                    . '. I won\'t use it for testing. '
-                    . 'This is you safety net. If you think it is the right directory just '
-                    . 'create an empty file named INBOX or remove/deactived this message.',
+                        . getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR')
+                        . '. I won\'t use it for testing. '
+                        . 'This is you safety net. If you think it is the right directory just '
+                        . 'create an empty file named INBOX or remove/deactived this message.',
                 );
             }
 

@@ -78,7 +78,7 @@ class MaildirTest extends TestCase
 
         if (! file_exists($originalMaildir . 'maildirsize')) {
             $this->markTestSkipped('You have to unpack maildir.tar in '
-            . 'Laminas/Mail/_files/test.maildir/ directory to run the maildir tests');
+                . 'Laminas/Mail/_files/test.maildir/ directory to run the maildir tests');
             return;
         }
 

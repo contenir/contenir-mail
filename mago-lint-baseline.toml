@@ -3081,7 +3081,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
 code = "no-redundant-math"
-message = "Redundant subtraction of `0`: subtracting 0 does not change the value."
+message = "Redundant subtraction from `0`: subtracting from 0 is equivalent to negation."
 count = 1
 
 [[issues]]

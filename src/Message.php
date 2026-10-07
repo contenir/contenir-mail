@@ -388,7 +388,7 @@ class Message
                 if (! method_exists($body, '__toString')) {
                     throw new Exception\InvalidArgumentException(sprintf(
                         '%s expects object arguments of type %s or implementing __toString();'
-                        . ' object of type "%s" received',
+                            . ' object of type "%s" received',
                         __METHOD__,
                         Mime\Message::class,
                         $body::class,
@@ -529,7 +529,7 @@ class Message
         if (! is_string($emailOrAddressOrList) && ! $emailOrAddressOrList instanceof Address\AddressInterface) {
             throw new Exception\InvalidArgumentException(sprintf(
                 '%s expects a string, AddressInterface, array, AddressList, or Traversable as its first argument;'
-                . ' received "%s"',
+                    . ' received "%s"',
                 $callingMethod,
                 is_object($emailOrAddressOrList) ? $emailOrAddressOrList::class : gettype($emailOrAddressOrList),
             ));
@@ -552,8 +552,8 @@ class Message
     {
         $headers = $this->getHeaders();
         return $headers->toString()
-        . Headers::EOL
-        . $this->getBodyText();
+            . Headers::EOL
+            . $this->getBodyText();
     }
 
     /**

@@ -62,6 +62,24 @@ count = 1
 
 [[issues]]
 file = "src/Address.php"
+code = "missing-property-type"
+message = "Property `$comment` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Address.php"
+code = "missing-property-type"
+message = "Property `$email` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Address.php"
+code = "missing-property-type"
+message = "Property `$name` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Address.php"
 code = "missing-return-type"
 message = "Function `constructName` is missing a return type hint."
 count = 1
@@ -76,12 +94,6 @@ count = 1
 file = "src/Address.php"
 code = "missing-return-type"
 message = "Function `getComment` is missing a return type hint."
-count = 1
-
-[[issues]]
-file = "src/Address.php"
-code = "mixed-argument"
-message = "Invalid argument type for argument #1 of `trim`: expected `string`, but found `mixed`."
 count = 1
 
 [[issues]]
@@ -190,12 +202,6 @@ count = 2
 file = "src/AddressList.php"
 code = "invalid-return-statement"
 message = 'Invalid return type for function `Contenir\Mail\AddressList::current`: expected `Contenir\Mail\Address\AddressInterface`, but found `Contenir\Mail\Address\AddressInterface|false`.'
-count = 1
-
-[[issues]]
-file = "src/AddressList.php"
-code = "invalid-return-statement"
-message = 'Invalid return type for function `Contenir\Mail\AddressList::get`: expected `Contenir\Mail\Address\AddressInterface|false`, but found `Contenir\Mail\Address\AddressInterface|null`.'
 count = 1
 
 [[issues]]
@@ -363,19 +369,7 @@ count = 1
 [[issues]]
 file = "src/AddressList.php"
 code = "nullable-return-statement"
-message = 'Function `Contenir\Mail\AddressList::get` is declared to return `Contenir\Mail\Address\AddressInterface|false` but possibly returns a nullable value (inferred as `Contenir\Mail\Address\AddressInterface|null`).'
-count = 1
-
-[[issues]]
-file = "src/AddressList.php"
-code = "nullable-return-statement"
 message = 'Function `Contenir\Mail\AddressList::key` is declared to return `string` but possibly returns a nullable value (inferred as `null|string`).'
-count = 1
-
-[[issues]]
-file = "src/AddressList.php"
-code = "possibly-undefined-string-array-index"
-message = '''Possibly undefined array key `lowercase-non-empty-string|string('')` accessed on `array<string, Contenir\Mail\Address\AddressInterface>`.'''
 count = 1
 
 [[issues]]
@@ -525,13 +519,31 @@ count = 2
 [[issues]]
 file = "src/Header/AbstractAddressList.php"
 code = "missing-property-type"
+message = "Property `$addressList` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/AbstractAddressList.php"
+code = "missing-property-type"
 message = "Property `$encoding` is missing a type hint."
 count = 1
 
 [[issues]]
 file = "src/Header/AbstractAddressList.php"
 code = "missing-property-type"
+message = "Property `$fieldName` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/AbstractAddressList.php"
+code = "missing-property-type"
 message = "Property `$typeAliases` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/AbstractAddressList.php"
+code = "missing-property-type"
+message = "Property `$type` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -908,12 +920,6 @@ count = 1
 
 [[issues]]
 file = "src/Header/ContentDisposition.php"
-code = "possibly-null-operand"
-message = "Possibly null right operand used in string concatenation (type `null|string`)."
-count = 1
-
-[[issues]]
-file = "src/Header/ContentDisposition.php"
 code = "possibly-undefined-int-array-index"
 message = "Possibly undefined array index accessed on `non-empty-list<string>`."
 count = 2
@@ -927,7 +933,7 @@ count = 1
 [[issues]]
 file = "src/Header/ContentDisposition.php"
 code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `int(0)|int<2, max>` accessed on `array<array-key, mixed>`."
+message = "Possibly undefined array key `int(0)|int(2)|int<4, max>` accessed on `array<array-key, mixed>`."
 count = 1
 
 [[issues]]
@@ -939,13 +945,7 @@ count = 1
 [[issues]]
 file = "src/Header/ContentDisposition.php"
 code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `int(1)|int<3, max>` accessed on `array<array-key, mixed>`."
-count = 1
-
-[[issues]]
-file = "src/Header/ContentDisposition.php"
-code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `non-negative-int` accessed on `array{0: string}`."
+message = "Possibly undefined array key `int(1)|int(3)|int<5, max>` accessed on `array<array-key, mixed>`."
 count = 1
 
 [[issues]]
@@ -1024,6 +1024,12 @@ count = 1
 file = "src/Header/ContentTransferEncoding.php"
 code = "missing-property-type"
 message = "Property `$parameters` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/ContentTransferEncoding.php"
+code = "missing-property-type"
+message = "Property `$transferEncoding` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -1154,6 +1160,12 @@ count = 1
 
 [[issues]]
 file = "src/Header/ContentType.php"
+code = "missing-property-type"
+message = "Property `$type` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/ContentType.php"
 code = "missing-return-type"
 message = "Function `addParameter` is missing a return type hint."
 count = 1
@@ -1251,7 +1263,7 @@ count = 1
 [[issues]]
 file = "src/Header/ContentType.php"
 code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `int(0)|int<2, max>` accessed on `array<array-key, mixed>`."
+message = "Possibly undefined array key `int(0)|int(2)|int<4, max>` accessed on `array<array-key, mixed>`."
 count = 1
 
 [[issues]]
@@ -1263,7 +1275,7 @@ count = 1
 [[issues]]
 file = "src/Header/ContentType.php"
 code = "possibly-undefined-int-array-index"
-message = "Possibly undefined array key `int(1)|int<3, max>` accessed on `array<array-key, mixed>`."
+message = "Possibly undefined array key `int(1)|int(3)|int<5, max>` accessed on `array<array-key, mixed>`."
 count = 1
 
 [[issues]]
@@ -1330,6 +1342,12 @@ count = 1
 file = "src/Header/Date.php"
 code = "missing-parameter-type"
 message = "Parameter `$value` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/Date.php"
+code = "missing-property-type"
+message = "Property `$value` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -1468,6 +1486,18 @@ count = 2
 file = "src/Header/GenericHeader.php"
 code = "missing-parameter-type"
 message = "Parameter `$headerLine` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/GenericHeader.php"
+code = "missing-property-type"
+message = "Property `$encoding` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/GenericHeader.php"
+code = "missing-property-type"
+message = "Property `$fieldName` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -2054,6 +2084,24 @@ count = 1
 
 [[issues]]
 file = "src/Header/IdentificationField.php"
+code = "missing-property-type"
+message = "Property `$fieldName` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/IdentificationField.php"
+code = "missing-property-type"
+message = "Property `$messageIds` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/IdentificationField.php"
+code = "missing-property-type"
+message = "Property `$type` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/IdentificationField.php"
 code = "missing-return-type"
 message = "Function `arrow function` is missing a return type hint."
 count = 1
@@ -2204,6 +2252,12 @@ count = 1
 
 [[issues]]
 file = "src/Header/MessageId.php"
+code = "missing-property-type"
+message = "Property `$messageId` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/MessageId.php"
 code = "missing-return-type"
 message = "Function `createMessageId` is missing a return type hint."
 count = 1
@@ -2224,18 +2278,12 @@ count = 1
 file = "src/Header/MessageId.php"
 code = "mixed-assignment"
 message = "Assigning `nonnull` type to a variable may lead to unexpected behavior."
-count = 2
-
-[[issues]]
-file = "src/Header/MessageId.php"
-code = "mixed-operand"
-message = "Invalid middle operand: type `nonnull` cannot be reliably used in string concatenation."
 count = 1
 
 [[issues]]
 file = "src/Header/MessageId.php"
 code = "mixed-operand"
-message = "Invalid right operand: type `nonnull` cannot be reliably used in string concatenation."
+message = "Invalid middle operand: type `nonnull` cannot be reliably used in string concatenation."
 count = 1
 
 [[issues]]
@@ -2468,6 +2516,12 @@ count = 1
 
 [[issues]]
 file = "src/Header/Received.php"
+code = "missing-property-type"
+message = "Property `$value` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/Received.php"
 code = "mixed-assignment"
 message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
 count = 1
@@ -2584,6 +2638,18 @@ count = 1
 file = "src/Header/Sender.php"
 code = "missing-parameter-type"
 message = "Parameter `$name` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/Sender.php"
+code = "missing-property-type"
+message = "Property `$address` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/Sender.php"
+code = "missing-property-type"
+message = "Property `$encoding` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -2757,6 +2823,12 @@ count = 1
 [[issues]]
 file = "src/Header/Subject.php"
 code = "missing-property-type"
+message = "Property `$encoding` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Header/Subject.php"
+code = "missing-property-type"
 message = "Property `$subject` is missing a type hint."
 count = 1
 
@@ -2855,12 +2927,6 @@ file = "src/Headers.php"
 code = "invalid-class-string-expression"
 message = "Expression of type `never` cannot be used as a class name."
 count = 3
-
-[[issues]]
-file = "src/Headers.php"
-code = "invalid-iterator"
-message = "The expression provided to `foreach` is not iterable. It resolved to type `mixed`, which is not iterable."
-count = 1
 
 [[issues]]
 file = "src/Headers.php"
@@ -3026,6 +3092,12 @@ count = 1
 
 [[issues]]
 file = "src/Headers.php"
+code = "missing-property-type"
+message = "Property `$pluginClassLoader` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Headers.php"
 code = "missing-return-type"
 message = "Function `addHeaderLine` is missing a return type hint."
 count = 1
@@ -3166,7 +3238,7 @@ count = 3
 file = "src/Headers.php"
 code = "mixed-assignment"
 message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
-count = 8
+count = 7
 
 [[issues]]
 file = "src/Headers.php"
@@ -3219,7 +3291,7 @@ count = 2
 [[issues]]
 file = "src/Headers.php"
 code = "possibly-invalid-argument"
-message = 'Possible argument type mismatch for argument #1 of `Contenir\Mail\Headers::addHeader`: expected `Contenir\Mail\Header\HeaderInterface`, but possibly received `Contenir\Mail\Header\GenericHeader|Contenir\Mail\Header\GenericMultiHeader|Contenir\Mail\Header\GenericMultiHeader&static|array<array-key, mixed>`.'
+message = 'Possible argument type mismatch for argument #1 of `Contenir\Mail\Headers::addHeader`: expected `Contenir\Mail\Header\HeaderInterface`, but possibly received `Contenir\Mail\Header\GenericHeader|Contenir\Mail\Header\GenericMultiHeader|array<array-key, mixed>`.'
 count = 1
 
 [[issues]]
@@ -3263,6 +3335,12 @@ file = "src/Headers.php"
 code = "possibly-undefined-int-array-index"
 message = 'Possibly undefined array index accessed on `list<Contenir\Mail\Header\HeaderInterface>`.'
 count = 2
+
+[[issues]]
+file = "src/Headers.php"
+code = "possibly-undefined-int-array-index"
+message = "Possibly undefined array index accessed on `list<mixed>`."
+count = 1
 
 [[issues]]
 file = "src/Headers.php"
@@ -3393,7 +3471,7 @@ count = 3
 [[issues]]
 file = "src/Message.php"
 code = "invalid-property-assignment-value"
-message = '''Invalid type for property `$body`: expected `object|string`, but got `Contenir\Mail\Mime\Message|has-method<'__toString'>|null|string`.'''
+message = '''Invalid type for property `$body`: expected `object|string`, but got `(has-method<'__toString'>&has-method<'__toString'>)|Contenir\Mail\Mime\Message|null|string`.'''
 count = 1
 
 [[issues]]
@@ -3495,7 +3573,19 @@ count = 1
 [[issues]]
 file = "src/Message.php"
 code = "missing-property-type"
+message = "Property `$body` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Message.php"
+code = "missing-property-type"
 message = "Property `$encoding` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Message.php"
+code = "missing-property-type"
+message = "Property `$headers` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -3765,25 +3855,25 @@ count = 1
 [[issues]]
 file = "src/Message.php"
 code = "non-existent-method"
-message = "Method `getfieldvalue` does not exist on type `ArrayIterator`."
+message = "Method `getFieldValue` does not exist on type `ArrayIterator`."
 count = 1
 
 [[issues]]
 file = "src/Message.php"
 code = "non-existent-method"
-message = "Method `setencoding` does not exist on type `ArrayIterator`."
+message = "Method `setEncoding` does not exist on type `ArrayIterator`."
 count = 1
 
 [[issues]]
 file = "src/Message.php"
 code = "non-existent-method"
-message = "Method `setsubject` does not exist on type `ArrayIterator`."
+message = "Method `setSubject` does not exist on type `ArrayIterator`."
 count = 1
 
 [[issues]]
 file = "src/Message.php"
 code = "non-existent-method"
-message = 'Method `setsubject` does not exist on type `Contenir\Mail\Header\HeaderInterface`.'
+message = 'Method `setSubject` does not exist on type `Contenir\Mail\Header\HeaderInterface`.'
 count = 1
 
 [[issues]]
@@ -4106,12 +4196,6 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Decode.php"
-code = "possibly-false-argument"
-message = "Argument #1 of function `substr` is possibly `false`, but parameter type `string` does not accept it."
-count = 1
-
-[[issues]]
-file = "src/Mime/Decode.php"
 code = "possibly-false-array-access"
 message = "Cannot perform array access on possibly `false` value."
 count = 1
@@ -4121,12 +4205,6 @@ file = "src/Mime/Decode.php"
 code = "possibly-false-operand"
 message = "Left operand in arithmetic operation might be `false` (type `false|non-negative-int`)."
 count = 1
-
-[[issues]]
-file = "src/Mime/Decode.php"
-code = "possibly-null-argument"
-message = "Argument #1 of function `substr` is possibly `null`, but parameter type `string` does not accept it."
-count = 2
 
 [[issues]]
 file = "src/Mime/Decode.php"
@@ -4299,6 +4377,12 @@ count = 1
 [[issues]]
 file = "src/Mime/Message.php"
 code = "missing-property-type"
+message = "Property `$mime` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Message.php"
+code = "missing-property-type"
 message = "Property `$parts` is missing a type hint."
 count = 1
 
@@ -4419,7 +4503,7 @@ count = 4
 [[issues]]
 file = "src/Mime/Message.php"
 code = "mixed-property-type-coercion"
-message = 'A value with a less specific type `array<array-key, mixed>` is being assigned to property `$$parts` (array<array-key, Contenir\Mail\Mime\Part>).'
+message = 'A value with a less specific type `array<array-key, mixed>` is being assigned to property `$parts` (array<array-key, Contenir\Mail\Mime\Part>).'
 count = 1
 
 [[issues]]
@@ -4679,6 +4763,12 @@ file = "src/Mime/Mime.php"
 code = "missing-parameter-type"
 message = "Parameter `$str` is missing a type hint."
 count = 9
+
+[[issues]]
+file = "src/Mime/Mime.php"
+code = "missing-property-type"
+message = "Property `$boundary` is missing a type hint."
+count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -5043,7 +5133,43 @@ count = 1
 [[issues]]
 file = "src/Mime/Part.php"
 code = "missing-property-type"
+message = "Property `$boundary` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$charset` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$content` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$description` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$disposition` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
 message = "Property `$encoding` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$filename` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -5055,7 +5181,25 @@ count = 1
 [[issues]]
 file = "src/Mime/Part.php"
 code = "missing-property-type"
+message = "Property `$id` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
 message = "Property `$isStream` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$language` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Mime/Part.php"
+code = "missing-property-type"
+message = "Property `$location` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -5368,7 +5512,7 @@ count = 1
 file = "src/Protocol/AbstractProtocol.php"
 code = "impossible-condition"
 message = "This condition (type `false`) will always evaluate to false."
-count = 2
+count = 1
 
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
@@ -5475,7 +5619,37 @@ count = 1
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
 code = "missing-property-type"
+message = "Property `$host` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/AbstractProtocol.php"
+code = "missing-property-type"
 message = "Property `$maximumLog` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/AbstractProtocol.php"
+code = "missing-property-type"
+message = "Property `$request` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/AbstractProtocol.php"
+code = "missing-property-type"
+message = "Property `$response` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/AbstractProtocol.php"
+code = "missing-property-type"
+message = "Property `$socket` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/AbstractProtocol.php"
+code = "missing-property-type"
+message = "Property `$validHost` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -5566,7 +5740,7 @@ count = 1
 file = "src/Protocol/AbstractProtocol.php"
 code = "mixed-argument"
 message = "Invalid argument type for argument #1 of `str_starts_with`: expected `string`, but found `mixed`."
-count = 2
+count = 1
 
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
@@ -5650,12 +5824,6 @@ count = 1
 file = "src/Protocol/AbstractProtocol.php"
 code = "redundant-comparison"
 message = "Redundant `!==` comparison: left-hand side is always not identical to right-hand side."
-count = 1
-
-[[issues]]
-file = "src/Protocol/AbstractProtocol.php"
-code = "redundant-comparison"
-message = "Redundant `!==` comparison: left-hand side is never identical to (always false for !==) right-hand side."
 count = 1
 
 [[issues]]
@@ -5757,7 +5925,7 @@ count = 1
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "less-specific-nested-argument-type"
-message = "Argument type mismatch for argument #2 of `implode`: expected `array<array-key, Stringable|null|scalar>|null`, but provided type `array{}|non-empty-list<mixed>` is less specific."
+message = "Argument type mismatch for argument #2 of `implode`: expected `array<array-key, Stringable|null|scalar>|null`, but provided type `list<mixed>` is less specific."
 count = 1
 
 [[issues]]
@@ -5944,6 +6112,12 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "missing-parameter-type"
 message = "Parameter `$wantedTag` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Imap.php"
+code = "missing-property-type"
+message = "Property `$socket` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -6489,12 +6663,6 @@ count = 15
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "possibly-undefined-variable"
-message = "Variable `$data` might not have been defined on all execution paths leading to this point."
-count = 2
-
-[[issues]]
-file = "src/Protocol/Imap.php"
-code = "possibly-undefined-variable"
 message = "Variable `$matches` might not have been defined on all execution paths leading to this point."
 count = 1
 
@@ -6664,6 +6832,24 @@ count = 1
 file = "src/Protocol/Pop3.php"
 code = "missing-parameter-type"
 message = "Parameter `$user` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Pop3.php"
+code = "missing-property-type"
+message = "Property `$hasTop` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Pop3.php"
+code = "missing-property-type"
+message = "Property `$socket` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Pop3.php"
+code = "missing-property-type"
+message = "Property `$timestamp` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -6859,6 +7045,18 @@ message = "Expression has no effect as a statement"
 count = 1
 
 [[issues]]
+file = "src/Protocol/Pop3/Response.php"
+code = "missing-property-type"
+message = "Property `$message` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Pop3/Response.php"
+code = "missing-property-type"
+message = "Property `$status` is missing a type hint."
+count = 1
+
+[[issues]]
 file = "src/Protocol/Pop3/Xoauth2/Microsoft.php"
 code = "missing-constant-type"
 message = "Class constant `AUTH_INITIALIZE_REQUEST` is missing a type hint."
@@ -6886,6 +7084,12 @@ count = 1
 file = "src/Protocol/ProtocolTrait.php"
 code = "missing-api-or-internal"
 message = 'Trait `Contenir\Mail\Protocol\ProtocolTrait` is missing an `@api` or `@internal` annotation.'
+count = 1
+
+[[issues]]
+file = "src/Protocol/ProtocolTrait.php"
+code = "missing-property-type"
+message = "Property `$novalidatecert` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -7023,6 +7227,12 @@ count = 1
 [[issues]]
 file = "src/Protocol/Smtp.php"
 code = "missing-property-type"
+message = "Property `$data` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp.php"
+code = "missing-property-type"
 message = "Property `$mail` is missing a type hint."
 count = 1
 
@@ -7030,6 +7240,12 @@ count = 1
 file = "src/Protocol/Smtp.php"
 code = "missing-property-type"
 message = "Property `$rcpt` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp.php"
+code = "missing-property-type"
+message = "Property `$secure` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -7358,6 +7574,18 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Crammd5.php"
+code = "missing-property-type"
+message = "Property `$password` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Crammd5.php"
+code = "missing-property-type"
+message = "Property `$username` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Crammd5.php"
 code = "missing-return-type"
 message = "Function `getPassword` is missing a return type hint."
 count = 1
@@ -7532,6 +7760,18 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Login.php"
+code = "missing-property-type"
+message = "Property `$password` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Login.php"
+code = "missing-property-type"
+message = "Property `$username` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Login.php"
 code = "missing-return-type"
 message = "Function `getPassword` is missing a return type hint."
 count = 1
@@ -7658,6 +7898,18 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Plain.php"
+code = "missing-property-type"
+message = "Property `$password` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Plain.php"
+code = "missing-property-type"
+message = "Property `$username` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Plain.php"
 code = "missing-return-type"
 message = "Function `getPassword` is missing a return type hint."
 count = 1
@@ -7748,6 +8000,18 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Xoauth2.php"
+code = "missing-property-type"
+message = "Property `$accessToken` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Xoauth2.php"
+code = "missing-property-type"
+message = "Property `$username` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/Xoauth2.php"
 code = "missing-return-type"
 message = "Function `getAccessToken` is missing a return type hint."
 count = 1
@@ -7768,6 +8032,12 @@ count = 1
 file = "src/Protocol/Smtp/Auth/Xoauth2.php"
 code = "missing-return-type"
 message = "Function `setUsername` is missing a return type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/SmtpPluginManager.php"
+code = "incompatible-property-type"
+message = 'Property `Contenir\Mail\Protocol\SmtpPluginManager::$aliases` has an incompatible type declaration from docblock.'
 count = 1
 
 [[issues]]
@@ -7814,6 +8084,12 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/SmtpPluginManagerFactory.php"
+code = "incorrect-class-like-casing"
+message = 'Incorrect casing for class-like `Interop\Container\ContainerInterface`.'
+count = 1
+
+[[issues]]
+file = "src/Protocol/SmtpPluginManagerFactory.php"
 code = "missing-override-attribute"
 message = 'Missing `#[Override]` attribute on overriding method `Contenir\Mail\Protocol\SmtpPluginManagerFactory::__invoke`.'
 count = 1
@@ -7832,6 +8108,12 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/SmtpPluginManagerFactory.php"
+code = "missing-property-type"
+message = "Property `$creationOptions` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Protocol/SmtpPluginManagerFactory.php"
 code = "missing-return-type"
 message = "Function `createService` is missing a return type hint."
 count = 1
@@ -7846,12 +8128,6 @@ count = 1
 file = "src/Protocol/SmtpPluginManagerFactory.php"
 code = "mixed-argument"
 message = 'Invalid argument type for argument #2 of `Contenir\Mail\Protocol\SmtpPluginManagerFactory::__invoke`: expected `string`, but found `truthy-mixed`.'
-count = 1
-
-[[issues]]
-file = "src/Protocol/SmtpPluginManagerFactory.php"
-code = "non-existent-use-import"
-message = 'Imported class, interface, trait, or enum `Interop\Container\ContainerInterface` does not exist.'
 count = 1
 
 [[issues]]
@@ -8079,6 +8355,12 @@ count = 1
 [[issues]]
 file = "src/Storage/AbstractStorage.php"
 code = "missing-property-type"
+message = "Property `$iterationMax` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/AbstractStorage.php"
+code = "missing-property-type"
 message = "Property `$iterationPos` is missing a type hint."
 count = 1
 
@@ -8247,12 +8529,6 @@ count = 1
 [[issues]]
 file = "src/Storage/Folder.php"
 code = "invalid-return-statement"
-message = 'Invalid return type for function `Contenir\Mail\Storage\Folder::__get`: expected `Contenir\Mail\Storage\Folder`, but found `Contenir\Mail\Storage\Folder|null`.'
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder.php"
-code = "invalid-return-statement"
 message = 'Invalid return type for function `Contenir\Mail\Storage\Folder::current`: expected `Contenir\Mail\Storage\Folder`, but found `Contenir\Mail\Storage\Folder|false`.'
 count = 1
 
@@ -8336,6 +8612,12 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Folder.php"
+code = "missing-property-type"
+message = "Property `$globalName` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder.php"
 code = "missing-return-type"
 message = "Function `__get` is missing a return type hint."
 count = 1
@@ -8385,19 +8667,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Folder.php"
 code = "nullable-return-statement"
-message = 'Function `Contenir\Mail\Storage\Folder::__get` is declared to return `Contenir\Mail\Storage\Folder` but possibly returns a nullable value (inferred as `Contenir\Mail\Storage\Folder|null`).'
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder.php"
-code = "nullable-return-statement"
 message = 'Function `Contenir\Mail\Storage\Folder::key` is declared to return `string` but possibly returns a nullable value (inferred as `null|string`).'
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder.php"
-code = "possibly-undefined-string-array-index"
-message = 'Possibly undefined array key `string` accessed on `array<string, Contenir\Mail\Storage\Folder>`.'
 count = 1
 
 [[issues]]
@@ -8480,6 +8750,30 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Folder/Maildir.php"
+code = "missing-property-type"
+message = "Property `$currentFolder` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Maildir.php"
+code = "missing-property-type"
+message = "Property `$delim` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Maildir.php"
+code = "missing-property-type"
+message = "Property `$rootFolder` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Maildir.php"
+code = "missing-property-type"
+message = "Property `$rootdir` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Maildir.php"
 code = "missing-return-type"
 message = "Function `buildFolderTree` is missing a return type hint."
 count = 1
@@ -8542,12 +8836,6 @@ count = 1
 file = "src/Storage/Folder/Maildir.php"
 code = "possibly-undefined-int-array-index"
 message = "Possibly undefined array index accessed on `non-empty-list<string>`."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
-code = "redundant-condition"
-message = "This condition (type `list{null}|non-empty-list<null>`) will always evaluate to true."
 count = 1
 
 [[issues]]
@@ -8632,6 +8920,24 @@ count = 1
 file = "src/Storage/Folder/Mbox.php"
 code = "missing-parameter-type"
 message = "Parameter `$parentGlobalName` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Mbox.php"
+code = "missing-property-type"
+message = "Property `$currentFolder` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Mbox.php"
+code = "missing-property-type"
+message = "Property `$rootFolder` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Folder/Mbox.php"
+code = "missing-property-type"
+message = "Property `$rootdir` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -8728,12 +9034,6 @@ count = 1
 file = "src/Storage/Imap.php"
 code = "invalid-iterator"
 message = "The expression provided to `foreach` is not iterable. It resolved to type `mixed`, which is not iterable."
-count = 1
-
-[[issues]]
-file = "src/Storage/Imap.php"
-code = "invalid-member-selector"
-message = "Invalid type `array-key` used as a member selector; a string is expected."
 count = 1
 
 [[issues]]
@@ -8913,7 +9213,19 @@ count = 1
 [[issues]]
 file = "src/Storage/Imap.php"
 code = "missing-property-type"
+message = "Property `$delimiter` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Imap.php"
+code = "missing-property-type"
 message = "Property `$knownFlags` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Imap.php"
+code = "missing-property-type"
+message = "Property `$protocol` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -8991,7 +9303,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Imap.php"
 code = "mixed-property-type-coercion"
-message = "A value with a less specific type `mixed` is being assigned to property `$$delimiter` (null|string)."
+message = "A value with a less specific type `mixed` is being assigned to property `$delimiter` (null|string)."
 count = 1
 
 [[issues]]
@@ -9087,12 +9399,6 @@ count = 1
 [[issues]]
 file = "src/Storage/Imap.php"
 code = "redundant-condition"
-message = "This condition (type `list{null}|non-empty-list<null>`) will always evaluate to true."
-count = 1
-
-[[issues]]
-file = "src/Storage/Imap.php"
-code = "redundant-condition"
 message = "This condition (type `non-empty-list<null>`) will always evaluate to true."
 count = 1
 
@@ -9106,6 +9412,12 @@ count = 2
 file = "src/Storage/Imap.php"
 code = "redundant-type-comparison"
 message = "Redundant type assertion: `$parent` is already `truthy-string`."
+count = 1
+
+[[issues]]
+file = "src/Storage/Imap.php"
+code = "string-member-selector"
+message = "This member selector uses a non-literal string type (`string`); its specific value cannot be statically determined."
 count = 1
 
 [[issues]]
@@ -9447,12 +9759,6 @@ count = 2
 [[issues]]
 file = "src/Storage/Maildir.php"
 code = "possibly-null-argument"
-message = "Argument #1 of function `substr` is possibly `null`, but parameter type `string` does not accept it."
-count = 1
-
-[[issues]]
-file = "src/Storage/Maildir.php"
-code = "possibly-null-argument"
 message = "Argument #2 of function `explode` is possibly `null`, but parameter type `string` does not accept it."
 count = 1
 
@@ -9460,7 +9766,7 @@ count = 1
 file = "src/Storage/Maildir.php"
 code = "possibly-null-array-access"
 message = "Cannot perform array access on possibly `null` value."
-count = 3
+count = 2
 
 [[issues]]
 file = "src/Storage/Maildir.php"
@@ -9670,6 +9976,36 @@ count = 1
 file = "src/Storage/Mbox.php"
 code = "missing-parameter-type"
 message = "Parameter `$params` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Mbox.php"
+code = "missing-property-type"
+message = "Property `$fh` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Mbox.php"
+code = "missing-property-type"
+message = "Property `$filemtime` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Mbox.php"
+code = "missing-property-type"
+message = "Property `$filename` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Mbox.php"
+code = "missing-property-type"
+message = "Property `$messageEOL` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Mbox.php"
+code = "missing-property-type"
+message = "Property `$positions` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -10161,7 +10497,31 @@ count = 1
 [[issues]]
 file = "src/Storage/Part.php"
 code = "missing-property-type"
+message = "Property `$content` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Part.php"
+code = "missing-property-type"
+message = "Property `$countParts` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Part.php"
+code = "missing-property-type"
+message = "Property `$headers` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Part.php"
+code = "missing-property-type"
 message = "Property `$iterationPos` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Part.php"
+code = "missing-property-type"
+message = "Property `$mail` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -10251,13 +10611,13 @@ count = 2
 [[issues]]
 file = "src/Storage/Part.php"
 code = "mixed-property-type-coercion"
-message = "A value with a less specific type `nonnull` is being assigned to property `$$content` (null|string)."
+message = "A value with a less specific type `nonnull` is being assigned to property `$content` (null|string)."
 count = 1
 
 [[issues]]
 file = "src/Storage/Part.php"
 code = "mixed-property-type-coercion"
-message = "A value with a less specific type `nonnull` is being assigned to property `$$messageNum` (int)."
+message = "A value with a less specific type `nonnull` is being assigned to property `$messageNum` (int)."
 count = 1
 
 [[issues]]
@@ -10287,7 +10647,7 @@ count = 1
 [[issues]]
 file = "src/Storage/Part.php"
 code = "non-existent-method"
-message = "Method `getfieldvalue` does not exist on type `ArrayIterator`."
+message = "Method `getFieldValue` does not exist on type `ArrayIterator`."
 count = 2
 
 [[issues]]
@@ -10474,6 +10834,12 @@ count = 1
 file = "src/Storage/Part/File.php"
 code = "missing-property-type"
 message = "Property `$contentPos` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Part/File.php"
+code = "missing-property-type"
+message = "Property `$fh` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -10844,6 +11210,12 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Pop3.php"
+code = "missing-property-type"
+message = "Property `$protocol` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Pop3.php"
 code = "mixed-argument"
 message = 'Invalid argument type for argument #1 of `Contenir\Mail\Mime\Decode::splitMessage`: expected `Contenir\Mail\Headers|string`, but found `mixed`.'
 count = 1
@@ -11122,6 +11494,12 @@ count = 1
 file = "src/Storage/Writable/Maildir.php"
 code = "missing-parameter-type"
 message = "Parameter `$value` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Storage/Writable/Maildir.php"
+code = "missing-property-type"
+message = "Property `$quota` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -11738,6 +12116,18 @@ count = 1
 
 [[issues]]
 file = "src/Transport/Envelope.php"
+code = "missing-property-type"
+message = "Property `$from` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Envelope.php"
+code = "missing-property-type"
+message = "Property `$to` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Envelope.php"
 code = "missing-return-type"
 message = "Function `getFrom` is missing a return type hint."
 count = 1
@@ -11853,7 +12243,7 @@ count = 2
 [[issues]]
 file = "src/Transport/Factory.php"
 code = "mixed-argument"
-message = "Invalid argument type for argument #1 of `class_exists`: expected `string`, but found `nonnull`."
+message = "Invalid argument type for argument #1 of `class_exists`: expected `string`, but found `mixed`."
 count = 1
 
 [[issues]]
@@ -11865,7 +12255,7 @@ count = 1
 [[issues]]
 file = "src/Transport/Factory.php"
 code = "mixed-argument"
-message = "Invalid argument type for argument #3 of `sprintf`: expected `Stringable|null|scalar`, but found `nonnull`."
+message = "Invalid argument type for argument #3 of `sprintf`: expected `Stringable|null|scalar`, but found `mixed`."
 count = 1
 
 [[issues]]
@@ -11896,6 +12286,18 @@ count = 1
 file = "src/Transport/File.php"
 code = "missing-override-attribute"
 message = 'Missing `#[Override]` attribute on overriding method `Contenir\Mail\Transport\File::send`.'
+count = 1
+
+[[issues]]
+file = "src/Transport/File.php"
+code = "missing-property-type"
+message = "Property `$lastFile` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/File.php"
+code = "missing-property-type"
+message = "Property `$options` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -11956,6 +12358,18 @@ count = 1
 file = "src/Transport/FileOptions.php"
 code = "missing-parameter-type"
 message = "Parameter `$path` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/FileOptions.php"
+code = "missing-property-type"
+message = "Property `$callback` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/FileOptions.php"
+code = "missing-property-type"
+message = "Property `$path` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -12034,6 +12448,12 @@ count = 1
 file = "src/Transport/InMemory.php"
 code = "missing-override-attribute"
 message = 'Missing `#[Override]` attribute on overriding method `Contenir\Mail\Transport\InMemory::send`.'
+count = 1
+
+[[issues]]
+file = "src/Transport/InMemory.php"
+code = "missing-property-type"
+message = "Property `$lastMessage` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -12140,6 +12560,30 @@ count = 1
 
 [[issues]]
 file = "src/Transport/Sendmail.php"
+code = "missing-property-type"
+message = "Property `$callable` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Sendmail.php"
+code = "missing-property-type"
+message = "Property `$errstr` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Sendmail.php"
+code = "missing-property-type"
+message = "Property `$operatingSystem` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Sendmail.php"
+code = "missing-property-type"
+message = "Property `$parameters` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Sendmail.php"
 code = "missing-return-type"
 message = "Function `handleMailErrors` is missing a return type hint."
 count = 1
@@ -12225,7 +12669,7 @@ count = 2
 [[issues]]
 file = "src/Transport/Sendmail.php"
 code = "non-existent-method"
-message = "Method `getfieldvalue` does not exist on type `ArrayIterator`."
+message = "Method `getFieldValue` does not exist on type `ArrayIterator`."
 count = 1
 
 [[issues]]
@@ -12364,6 +12808,36 @@ count = 1
 file = "src/Transport/Smtp.php"
 code = "missing-property-type"
 message = "Property `$autoDisconnect` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Smtp.php"
+code = "missing-property-type"
+message = "Property `$connectedTime` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Smtp.php"
+code = "missing-property-type"
+message = "Property `$connection` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Smtp.php"
+code = "missing-property-type"
+message = "Property `$envelope` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Smtp.php"
+code = "missing-property-type"
+message = "Property `$options` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/Smtp.php"
+code = "missing-property-type"
+message = "Property `$plugins` is missing a type hint."
 count = 1
 
 [[issues]]
@@ -12513,7 +12987,7 @@ count = 4
 [[issues]]
 file = "src/Transport/Smtp.php"
 code = "property-type-coercion"
-message = 'A value of a less specific type `Contenir\Mail\Protocol\AbstractProtocol` is being assigned to property `$$connection` (Contenir\Mail\Protocol\Smtp|null).'
+message = 'A value of a less specific type `Contenir\Mail\Protocol\AbstractProtocol` is being assigned to property `$connection` (Contenir\Mail\Protocol\Smtp|null).'
 count = 1
 
 [[issues]]
@@ -12610,6 +13084,12 @@ count = 1
 file = "src/Transport/SmtpOptions.php"
 code = "missing-property-type"
 message = "Property `$connectionConfig` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/Transport/SmtpOptions.php"
+code = "missing-property-type"
+message = "Property `$connectionTimeLimit` is missing a type hint."
 count = 1
 
 [[issues]]

@@ -584,11 +584,11 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'Content-Type: text/plain;'
-            . Headers::FOLDING
-            . 'charset="utf-8"'
-            . Headers::EOL
-            . 'Content-Transfer-Encoding: quoted-printable'
-            . Headers::EOL,
+                . Headers::FOLDING
+                . 'charset="utf-8"'
+                . Headers::EOL
+                . 'Content-Transfer-Encoding: quoted-printable'
+                . Headers::EOL,
             $this->message->getHeaders()->toString(),
         );
     }
@@ -887,9 +887,9 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-            . "\r\n",
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+                . "\r\n",
             $mail->toString(),
         );
     }
@@ -901,9 +901,9 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'Subject: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-            . "\r\n",
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+                . "\r\n",
             $mail->toString(),
         );
     }
@@ -916,9 +916,9 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-            . "\r\n",
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+                . "\r\n",
             $mail->toString(),
         );
     }
@@ -933,9 +933,9 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
-            . "\r\n",
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?='
+                . "\r\n",
             $mail->toString(),
         );
     }
@@ -951,8 +951,8 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
             $mail->toString(),
         );
     }
@@ -971,8 +971,8 @@ class MessageTest extends TestCase
 
         $this->assertStringContainsString(
             'X-Test: =?UTF-8?Q?Non=20=E2=80=9Cascii=E2=80=9D=20characters=20like=20?='
-            . "\r\n"
-            . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
+                . "\r\n"
+                . ' =?UTF-8?Q?accented=20vowels=20=C3=B2=C3=A0=C3=B9=C3=A8=C3=A9=C3=AC?=',
             $mail->toString(),
         );
     }
