@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Protocol\Pop3\Response::class)]
+#[CoversClass(Response::class)]
 class ResponseTest extends TestCase
 {
     /** @psalm-suppress InternalClass */

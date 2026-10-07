@@ -34,7 +34,7 @@ class Crammd5 extends Smtp
     public function __construct($host = '127.0.0.1', $port = null, $config = null)
     {
         // Did we receive a configuration array?
-        $config     = $config ?? [];
+        $config     ??= [];
         $origConfig = $config;
         if (is_array($host)) {
             // Merge config array with principal array, if provided
@@ -64,7 +64,7 @@ class Crammd5 extends Smtp
         $challenge = $this->_expect(334);
         $challenge = base64_decode($challenge);
         $digest    = $this->hmacMd5($this->getPassword(), $challenge);
-        $this->_send(base64_encode($this->getUsername() . ' ' . $digest));
+        $this->_send(base64_encode("{$this->getUsername()} {$digest}"));
         $this->_expect(235);
         $this->auth = true;
     }
@@ -123,11 +123,11 @@ class Crammd5 extends Smtp
      */
     protected function hmacMd5($key, $data, /** @deprecated  */ $block = 64)
     {
-        if (! is_string($key) || $key === '') {
+        if (! is_string($key) || '' === $key) {
             throw new InvalidArgumentException('CramMD5 authentication requires a non-empty password');
         }
 
-        if (! is_string($data) || $data === '') {
+        if (! is_string($data) || '' === $data) {
             throw new InvalidArgumentException('CramMD5 authentication requires a non-empty challenge');
         }
 

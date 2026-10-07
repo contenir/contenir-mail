@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\ContentDisposition::class)]
+#[CoversClass(ContentDisposition::class)]
 class ContentDispositionTest extends TestCase
 {
     #[Test]
@@ -55,7 +55,7 @@ class ContentDispositionTest extends TestCase
     #[DataProvider('getLiteralData')]
     public function handlesLiterals(array $expected, string $header): void
     {
-        $header = ContentDisposition::fromString('Content-Disposition: ' . $header);
+        $header = ContentDisposition::fromString("Content-Disposition: {$header}");
         static::assertSame($expected, $header->getParameters());
     }
 
@@ -203,20 +203,20 @@ class ContentDispositionTest extends TestCase
     {
         // @codingStandardsIgnoreStart
         $foldingFieldValue      = "attachment;\r\n filename=\"this-test-filename-is-long-enough-to-flow-to-two-lines.txt\"";
-        $foldingHeaderLine      = "Content-Disposition: $foldingFieldValue";
+        $foldingHeaderLine      = "Content-Disposition: {$foldingFieldValue}";
         $continuationFieldValue = "attachment;\r\n filename*0=\"this-file-name-is-so-long-that-it-does-not-even-fit-on-a-whole-\";\r\n filename*1=\"line-by-itself-so-we-need-to-split-it-with-value-continuation.t\";\r\n filename*2=\"xt\"";
-        $continuationHeaderLine = "Content-Disposition: $continuationFieldValue";
+        $continuationHeaderLine = "Content-Disposition: {$continuationFieldValue}";
 
         $encodedHeaderLine = 'Content-Disposition: attachment; filename="=?UTF-8?Q?=C3=93?="';
         $encodedFieldValue = 'attachment; filename="Ó"';
 
         $multibyteFilename   = '办公.xlsx';
         $multibyteFieldValue = "attachment;\r\n filename=\"=?UTF-8?Q?=E5=8A=9E=E5=85=AC.xlsx?=\"";
-        $multibyteHeaderLine = "Content-Disposition: $multibyteFieldValue";
+        $multibyteHeaderLine = "Content-Disposition: {$multibyteFieldValue}";
 
         $multibyteContinuationFilename   = '办公用品预约Apply for office supplies online.xlsx';
         $multibyteContinuationFieldValue = "attachment;\r\n filename*0=\"=?UTF-8?Q?=E5=8A=9E=E5=85=AC=E7=94=A8=E5=93=81=E9=A2=84?=\";\r\n filename*1=\"=?UTF-8?Q?=E7=BA=A6Apply=20for=20office=20supplies=20online.x?=\";\r\n filename*2=\"=?UTF-8?Q?lsx?=\"";
-        $multibyteContinuationHeaderLine = "Content-Disposition: $multibyteContinuationFieldValue";
+        $multibyteContinuationHeaderLine = "Content-Disposition: {$multibyteContinuationFieldValue}";
 
         return [
             // Description => [$disposition, $parameters, $fieldValue, toString()]
@@ -275,13 +275,13 @@ class ContentDispositionTest extends TestCase
             'UTF-8 multibyte'              => [
                 'attachment',
                 ['filename' => $multibyteFilename],
-                "attachment; filename=\"$multibyteFilename\"",
+                "attachment; filename=\"{$multibyteFilename}\"",
                 $multibyteHeaderLine,
             ],
             'UTF-8 multibyte continuation' => [
                 'attachment',
                 ['filename' => $multibyteContinuationFilename],
-                "attachment;\r\n filename=\"$multibyteContinuationFilename\"",
+                "attachment;\r\n filename=\"{$multibyteContinuationFilename}\"",
                 $multibyteContinuationHeaderLine,
             ],
         ];

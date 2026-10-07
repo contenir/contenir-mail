@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Transport\InMemory::class)]
+#[CoversClass(InMemory::class)]
 class InMemoryTest extends TestCase
 {
     public function getMessage(): Message

@@ -3,6 +3,7 @@
 namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
+use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\Exception;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -10,7 +11,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\Date::class)]
+#[CoversClass(Date::class)]
 class DateTest extends TestCase
 {
     public static function headerLines(): array

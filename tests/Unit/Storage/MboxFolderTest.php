@@ -61,7 +61,7 @@ class MboxFolderTest extends TestCase
                 ++$count;
             }
             closedir($dh);
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
@@ -72,12 +72,12 @@ class MboxFolderTest extends TestCase
         $this->params['folder']  = 'INBOX';
 
         foreach ($this->subdirs as $dir) {
-            if ($dir != '.') {
+            if ('.' != $dir) {
                 mkdir($this->tmpdir . $dir);
             }
             $dh = opendir($this->originalDir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $dir . '/' . $entry;
+                $entry = "{$dir}/{$entry}";
                 if (! is_file($this->originalDir . $entry)) {
                     continue;
                 }
@@ -92,14 +92,14 @@ class MboxFolderTest extends TestCase
         foreach (array_reverse($this->subdirs) as $dir) {
             $dh = opendir($this->tmpdir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $this->tmpdir . $dir . '/' . $entry;
+                $entry = "{$this->tmpdir}{$dir}/{$entry}";
                 if (! is_file($entry)) {
                     continue;
                 }
                 unlink($entry);
             }
             closedir($dh);
-            if ($dir != '.') {
+            if ('.' != $dir) {
                 rmdir($this->tmpdir . $dir);
             }
         }
@@ -320,7 +320,7 @@ class MboxFolderTest extends TestCase
     #[Test]
     public function notMboxFile(): void
     {
-        touch($this->params['dirname'] . 'foobar');
+        touch("{$this->params['dirname']}foobar");
         $mail = new Folder\Mbox($this->params);
 
         $this->expectException(Exception\InvalidArgumentException::class);
@@ -330,14 +330,14 @@ class MboxFolderTest extends TestCase
     #[Test]
     public function notReadableFolder(): void
     {
-        static::assertDirectoryExists($this->params['dirname'] . 'subfolder');
+        static::assertDirectoryExists("{$this->params['dirname']}subfolder");
 
-        $stat = stat($this->params['dirname'] . 'subfolder');
-        chmod($this->params['dirname'] . 'subfolder', 0);
+        $stat = stat("{$this->params['dirname']}subfolder");
+        chmod("{$this->params['dirname']}subfolder", 0);
         clearstatcache();
-        $statcheck = stat($this->params['dirname'] . 'subfolder');
+        $statcheck = stat("{$this->params['dirname']}subfolder");
         if (($statcheck['mode'] % (8 * 8 * 8)) !== 0) {
-            chmod($this->params['dirname'] . 'subfolder', $stat['mode']);
+            chmod("{$this->params['dirname']}subfolder", $stat['mode']);
             static::markTestSkipped(
                 'cannot remove read rights, which makes this test useless (maybe you are using Windows?)',
             );
@@ -357,7 +357,7 @@ class MboxFolderTest extends TestCase
         static::assertArrayHasKey('dirname', $this->params);
         static::assertIsString($this->params['dirname']);
 
-        chmod($this->params['dirname'] . 'subfolder', $stat['mode']);
+        chmod("{$this->params['dirname']}subfolder", $stat['mode']);
 
         if (! $check) {
             if (function_exists('posix_getuid') && posix_getuid() === 0) {

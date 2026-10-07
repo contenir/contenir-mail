@@ -441,7 +441,7 @@ class Mime
 
             // Ensure we are not splitting across an encoded character
             $endingMarkerPos = strrpos($chunk, '=');
-            if ($endingMarkerPos !== false && $endingMarkerPos >= (strlen($chunk) - 2)) {
+            if (false !== $endingMarkerPos && $endingMarkerPos >= (strlen($chunk) - 2)) {
                 $chunk      = substr($chunk, 0, $endingMarkerPos);
                 $continueAt = $endingMarkerPos;
             }
@@ -461,13 +461,12 @@ class Mime
             }
 
             // Add string and continue
-            $out        .= $chunk . '=' . $lineEnd;
+            $out        .= "{$chunk}={$lineEnd}";
             $initialPtr += $continueAt;
         }
 
         $out = rtrim($out, $lineEnd);
-        $out = rtrim($out, '=');
-        return $out;
+        return rtrim($out, '=');
     }
 
     /**
@@ -482,8 +481,7 @@ class Mime
         // @codingStandardsIgnoreEnd
         $str = str_replace('=', '=3D', $str);
         $str = str_replace(static::$qpKeys, static::$qpReplaceValues, $str);
-        $str = rtrim($str);
-        return $str;
+        return rtrim($str);
     }
 
     /**
@@ -530,10 +528,10 @@ class Mime
             $str         = false === $substr ? '' : $substr;
 
             $tmp .= $token;
-            if ($token === '=20') {
+            if ('=20' === $token) {
                 // only if we have a single char token or space, we can append the
                 // tempstring it to the current line or start a new line if necessary.
-                if ($currentLine === 0) {
+                if (0 === $currentLine) {
                     // The size of the first line should be calculated with the header name.
                     $currentLineLength = strlen($lines[$currentLine] . $tmp) + $headerNameSize;
                 } else {
@@ -541,7 +539,7 @@ class Mime
                 }
 
                 $lineLimitReached = $currentLineLength > $lineLength;
-                $noCurrentLine    = $lines[$currentLine] === '';
+                $noCurrentLine    = '' === $lines[$currentLine];
                 if ($noCurrentLine && $lineLimitReached) {
                     $lines[$currentLine]     = $tmp;
                     $lines[$currentLine + 1] = '';
@@ -560,10 +558,9 @@ class Mime
 
         // assemble the lines together by pre- and appending delimiters, charset, encoding.
         for ($i = 0, $count = count($lines); $i < $count; $i++) {
-            $lines[$i] = ' ' . $prefix . $lines[$i] . '?=';
+            $lines[$i] = " {$prefix}{$lines[$i]}?=";
         }
-        $str = trim(implode($lineEnd, $lines));
-        return $str;
+        return trim(implode($lineEnd, $lines));
     }
 
     /**
@@ -597,14 +594,13 @@ class Mime
         $lineLength = self::LINELENGTH,
         $lineEnd = self::LINEEND,
     ) {
-        $prefix          = '=?' . $charset . '?B?';
+        $prefix          = "=?{$charset}?B?";
         $suffix          = '?=';
         $remainingLength = $lineLength - strlen($prefix) - strlen($suffix);
 
         $encodedValue = static::encodeBase64($str, $remainingLength, $lineEnd);
-        $encodedValue = str_replace($lineEnd, $suffix . $lineEnd . ' ' . $prefix, $encodedValue);
-        $encodedValue = $prefix . $encodedValue . $suffix;
-        return $encodedValue;
+        $encodedValue = str_replace($lineEnd, "{$suffix}{$lineEnd} {$prefix}", $encodedValue);
+        return $prefix . $encodedValue . $suffix;
     }
 
     /**
@@ -621,7 +617,7 @@ class Mime
         $lineLength = self::LINELENGTH,
         $lineEnd = self::LINEEND,
     ) {
-        $lineLength = $lineLength - ($lineLength % 4);
+        $lineLength -= $lineLength % 4;
         return rtrim(chunk_split(base64_encode($str), $lineLength, $lineEnd));
     }
 
@@ -634,7 +630,7 @@ class Mime
     public function __construct($boundary = null)
     {
         // This string needs to be somewhat unique
-        if ($boundary === null) {
+        if (null === $boundary) {
             $this->boundary = '=_' . md5(microtime(1) . static::$makeUnique++);
         } else {
             $this->boundary = $boundary;
@@ -688,7 +684,7 @@ class Mime
      */
     public function boundaryLine($EOL = self::LINEEND)
     {
-        return $EOL . '--' . $this->boundary . $EOL;
+        return "{$EOL}--{$this->boundary}{$EOL}";
     }
 
     /**
@@ -700,7 +696,7 @@ class Mime
      */
     public function mimeEnd($EOL = self::LINEEND)
     {
-        return $EOL . '--' . $this->boundary . '--' . $EOL;
+        return "{$EOL}--{$this->boundary}--{$EOL}";
     }
 
     /**

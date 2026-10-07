@@ -195,8 +195,8 @@ class Smtp implements TransportInterface
     {
         $timeLimit = $this->getOptions()->getConnectionTimeLimit();
         if (
-            $timeLimit !== null
-            && $this->connectedTime !== null
+            null !== $timeLimit
+            && null !== $this->connectedTime
             && (time() - $this->connectedTime) > $timeLimit
         ) {
             $this->connection = null;
@@ -319,8 +319,7 @@ class Smtp implements TransportInterface
             $recipients[] = $address->getEmail();
         }
 
-        $recipients = array_unique($recipients);
-        return $recipients;
+        return array_unique($recipients);
     }
 
     /**

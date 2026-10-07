@@ -36,7 +36,7 @@ class Message extends Part implements Message\MessageInterface
                 ErrorHandler::start();
                 $params['raw'] = file_get_contents($params['file']);
                 $error         = ErrorHandler::stop();
-                if ($params['raw'] === false) {
+                if (false === $params['raw']) {
                     throw new Exception\RuntimeException('could not open file', 0, $error);
                 }
             } else {

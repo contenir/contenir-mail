@@ -31,12 +31,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Address.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Address/AddressInterface.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
@@ -65,12 +59,6 @@ file = "src/AddressList.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/AddressList.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "src/ConfigProvider.php"
@@ -188,12 +176,6 @@ count = 1
 
 [[issues]]
 file = "src/Header/AbstractAddressList.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
-count = 1
-
-[[issues]]
-file = "src/Header/AbstractAddressList.php"
 code = "strict-behavior"
 message = "Call to `in_array` must enforce strict comparison."
 count = 1
@@ -203,12 +185,6 @@ file = "src/Header/AbstractAddressList.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Header/AbstractAddressList.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "src/Header/Bcc.php"
@@ -313,18 +289,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/ContentDisposition.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 4
-
-[[issues]]
-file = "src/Header/ContentDisposition.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "src/Header/ContentTransferEncoding.php"
 code = "strict-behavior"
 message = "Call to `in_array` must enforce strict comparison."
@@ -334,12 +298,6 @@ count = 2
 file = "src/Header/ContentTransferEncoding.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Header/ContentTransferEncoding.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -385,21 +343,9 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/ContentType.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
 file = "src/Header/Date.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Header/Date.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -469,18 +415,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/GenericHeader.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Header/GenericHeader.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 4
-
-[[issues]]
 file = "src/Header/GenericMultiHeader.php"
 code = "literal-named-argument"
 message = "Literal argument `','` should be passed as a named argument for clarity."
@@ -511,12 +445,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/HeaderName.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Header/HeaderValue.php"
 code = "literal-named-argument"
 message = "Literal argument `true` should be passed as a named argument for clarity."
@@ -527,12 +455,6 @@ file = "src/Header/HeaderValue.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Header/HeaderValue.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 7
 
 [[issues]]
 file = "src/Header/HeaderWrap.php"
@@ -584,18 +506,6 @@ count = 1
 
 [[issues]]
 file = "src/Header/HeaderWrap.php"
-code = "no-else-clause"
-message = "Avoid `elseif` clauses."
-count = 1
-
-[[issues]]
-file = "src/Header/HeaderWrap.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
-count = 1
-
-[[issues]]
-file = "src/Header/HeaderWrap.php"
 code = "strict-behavior"
 message = "Call to `base64_decode` must enforce strict comparison."
 count = 1
@@ -605,18 +515,6 @@ file = "src/Header/HeaderWrap.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Header/HeaderWrap.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Header/HeaderWrap.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 7
 
 [[issues]]
 file = "src/Header/IdentificationField.php"
@@ -685,18 +583,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/MessageId.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Header/MessageId.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "src/Header/MimeVersion.php"
 code = "strict-behavior"
 message = "Call to `in_array` must enforce strict comparison."
@@ -709,12 +595,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/MimeVersion.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
 file = "src/Header/MultipleHeadersInterface.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
@@ -724,12 +604,6 @@ count = 1
 file = "src/Header/Received.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Header/Received.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -769,18 +643,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Header/Sender.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Header/Sender.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Header/StructuredInterface.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
@@ -791,18 +653,6 @@ file = "src/Header/Subject.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Header/Subject.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Header/Subject.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
 
 [[issues]]
 file = "src/Header/To.php"
@@ -854,12 +704,6 @@ count = 1
 
 [[issues]]
 file = "src/Headers.php"
-code = "no-assign-in-condition"
-message = "Avoid assignments in conditions."
-count = 1
-
-[[issues]]
-file = "src/Headers.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
 count = 3
@@ -868,7 +712,7 @@ count = 3
 file = "src/Headers.php"
 code = "no-else-clause"
 message = "Avoid `elseif` clauses."
-count = 6
+count = 5
 
 [[issues]]
 file = "src/Headers.php"
@@ -896,39 +740,15 @@ count = 1
 
 [[issues]]
 file = "src/Headers.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
-count = 1
-
-[[issues]]
-file = "src/Headers.php"
 code = "no-redundant-variable"
 message = "Variable `$item` is assigned but never used."
 count = 1
 
 [[issues]]
 file = "src/Headers.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
-count = 1
-
-[[issues]]
-file = "src/Headers.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Headers.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Headers.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "src/Message.php"
@@ -956,12 +776,6 @@ count = 1
 
 [[issues]]
 file = "src/Message.php"
-code = "no-redundant-use"
-message = 'Redundant import: `Mime` is already in the current namespace `Contenir\Mail`.'
-count = 1
-
-[[issues]]
-file = "src/Message.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -977,12 +791,6 @@ file = "src/Message.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Message.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "src/MessageFactory.php"
@@ -1082,12 +890,6 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Decode.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 4
-
-[[issues]]
-file = "src/Mime/Decode.php"
 code = "tagged-todo"
 message = "TODO should be tagged with (@username) or (#issue)."
 count = 2
@@ -1097,12 +899,6 @@ file = "src/Mime/Decode.php"
 code = "variable-name"
 message = "Variable name `$EOL` should be in camel case."
 count = 2
-
-[[issues]]
-file = "src/Mime/Decode.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 8
 
 [[issues]]
 file = "src/Mime/Exception/ExceptionInterface.php"
@@ -1172,18 +968,6 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Message.php"
-code = "no-redundant-use"
-message = 'Redundant import: `Mime` is already in the current namespace `Contenir\Mail\Mime`.'
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "no-redundant-use"
-message = 'Redundant import: `Part` is already in the current namespace `Contenir\Mail\Mime`.'
-count = 1
-
-[[issues]]
-file = "src/Mime/Message.php"
 code = "strict-behavior"
 message = "Call to `base64_decode` must enforce strict comparison."
 count = 1
@@ -1198,19 +982,13 @@ count = 1
 file = "src/Mime/Message.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 4
+count = 3
 
 [[issues]]
 file = "src/Mime/Message.php"
 code = "variable-name"
 message = "Variable name `$EOL` should be in camel case."
 count = 4
-
-[[issues]]
-file = "src/Mime/Message.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -1223,12 +1001,6 @@ file = "src/Mime/Mime.php"
 code = "halstead"
 message = "Method has a high halstead difficulty and effort"
 count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "inline-variable-return"
-message = "Variable assignment can be inlined into the return statement."
-count = 4
 
 [[issues]]
 file = "src/Mime/Mime.php"
@@ -1316,20 +1088,8 @@ count = 1
 
 [[issues]]
 file = "src/Mime/Mime.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 6
-
-[[issues]]
-file = "src/Mime/Mime.php"
 code = "too-many-methods"
 message = "Class has too many methods."
-count = 1
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "use-compound-assignment"
-message = "Use a compound assignment for clarity and performance."
 count = 1
 
 [[issues]]
@@ -1337,12 +1097,6 @@ file = "src/Mime/Mime.php"
 code = "variable-name"
 message = "Variable name `$EOL` should be in camel case."
 count = 3
-
-[[issues]]
-file = "src/Mime/Mime.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 5
 
 [[issues]]
 file = "src/Mime/Part.php"
@@ -1384,7 +1138,7 @@ count = 1
 file = "src/Mime/Part.php"
 code = "string-style"
 message = "String concatenation can be replaced with interpolation."
-count = 5
+count = 2
 
 [[issues]]
 file = "src/Mime/Part.php"
@@ -1490,21 +1244,9 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/AbstractProtocol.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 6
-
-[[issues]]
-file = "src/Protocol/AbstractProtocol.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Protocol/AbstractProtocol.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 8
 
 [[issues]]
 file = "src/Protocol/Exception/ExceptionInterface.php"
@@ -1546,13 +1288,13 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "identity-comparison"
 message = "Use identity comparison `===` instead of equality comparison `==`."
-count = 19
+count = 18
 
 [[issues]]
 file = "src/Protocol/Imap.php"
 code = "identity-comparison"
 message = "Use identity inequality `!==` instead of inequality comparison `!=`."
-count = 10
+count = 11
 
 [[issues]]
 file = "src/Protocol/Imap.php"
@@ -1618,7 +1360,7 @@ count = 7
 file = "src/Protocol/Imap.php"
 code = "no-else-clause"
 message = "Avoid `elseif` clauses."
-count = 4
+count = 3
 
 [[issues]]
 file = "src/Protocol/Imap.php"
@@ -1640,12 +1382,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Imap.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Imap.php"
 code = "no-shorthand-ternary"
 message = "Use of the shorthand ternary operator."
 count = 1
@@ -1654,12 +1390,6 @@ count = 1
 file = "src/Protocol/Imap.php"
 code = "prefer-array-spread"
 message = "Use the array spread operator instead of `array_merge()`."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Imap.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
 count = 1
 
 [[issues]]
@@ -1682,12 +1412,6 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Imap.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 5
-
-[[issues]]
-file = "src/Protocol/Imap.php"
 code = "tagged-todo"
 message = "TODO should be tagged with (@username) or (#issue)."
 count = 2
@@ -1697,18 +1421,6 @@ file = "src/Protocol/Imap.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Protocol/Imap.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 29
-
-[[issues]]
-file = "src/Protocol/Pop3.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 8
 
 [[issues]]
 file = "src/Protocol/Pop3.php"
@@ -1808,21 +1520,9 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Pop3.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Protocol/Pop3.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Protocol/Pop3.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 4
 
 [[issues]]
 file = "src/Protocol/Pop3/Xoauth2/Microsoft.php"
@@ -1928,21 +1628,9 @@ count = 1
 
 [[issues]]
 file = "src/Protocol/Smtp.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 7
-
-[[issues]]
-file = "src/Protocol/Smtp.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 12
 
 [[issues]]
 file = "src/Protocol/Smtp/Auth/Crammd5.php"
@@ -1975,24 +1663,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Protocol/Smtp/Auth/Crammd5.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Crammd5.php"
-code = "use-compound-assignment"
-message = "Use a compound assignment for clarity and performance."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Crammd5.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Protocol/Smtp/Auth/Login.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
@@ -2038,12 +1708,6 @@ count = 1
 file = "src/Protocol/Smtp/Auth/Plain.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Protocol/Smtp/Auth/Plain.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -2114,20 +1778,8 @@ count = 1
 
 [[issues]]
 file = "src/Storage/AbstractStorage.php"
-code = "no-redundant-use"
-message = 'Redundant import: `Message` is already in the current namespace `Contenir\Mail\Storage`.'
-count = 1
-
-[[issues]]
-file = "src/Storage/AbstractStorage.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Storage/AbstractStorage.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -2135,12 +1787,6 @@ file = "src/Storage/AbstractStorage.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/AbstractStorage.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "src/Storage/Exception/ExceptionInterface.php"
@@ -2164,12 +1810,6 @@ count = 1
 file = "src/Storage/Exception/RuntimeException.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
 count = 1
 
 [[issues]]
@@ -2210,20 +1850,8 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Folder/Maildir.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
-code = "halstead"
-message = "Method has a high halstead difficulty"
 count = 1
 
 [[issues]]
@@ -2270,20 +1898,8 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Folder/Maildir.php"
-code = "no-else-clause"
-message = "Avoid `elseif` clauses."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
 count = 1
 
 [[issues]]
@@ -2291,24 +1907,6 @@ file = "src/Storage/Folder/Maildir.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Storage/Folder/Maildir.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 4
-
-[[issues]]
-file = "src/Storage/Folder/Mbox.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 2
 
 [[issues]]
 file = "src/Storage/Folder/Mbox.php"
@@ -2365,12 +1963,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Storage/Folder/Mbox.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "src/Storage/Imap.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
@@ -2398,7 +1990,7 @@ count = 3
 file = "src/Storage/Imap.php"
 code = "no-else-clause"
 message = "Avoid `elseif` clauses."
-count = 2
+count = 1
 
 [[issues]]
 file = "src/Storage/Imap.php"
@@ -2410,12 +2002,6 @@ count = 3
 file = "src/Storage/Imap.php"
 code = "no-negated-ternary"
 message = "Negated ternary condition."
-count = 1
-
-[[issues]]
-file = "src/Storage/Imap.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
 count = 1
 
 [[issues]]
@@ -2432,12 +2018,6 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Imap.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Storage/Imap.php"
 code = "tagged-todo"
 message = "TODO should be tagged with (@username) or (#issue)."
 count = 8
@@ -2447,12 +2027,6 @@ file = "src/Storage/Imap.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/Imap.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 7
 
 [[issues]]
 file = "src/Storage/Maildir.php"
@@ -2504,21 +2078,9 @@ count = 5
 
 [[issues]]
 file = "src/Storage/Maildir.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
-count = 1
-
-[[issues]]
-file = "src/Storage/Maildir.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Storage/Maildir.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 9
 
 [[issues]]
 file = "src/Storage/Maildir.php"
@@ -2531,12 +2093,6 @@ file = "src/Storage/Maildir.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/Maildir.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 9
 
 [[issues]]
 file = "src/Storage/Mbox.php"
@@ -2605,12 +2161,6 @@ message = "Class has too many methods."
 count = 1
 
 [[issues]]
-file = "src/Storage/Mbox.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Storage/Message.php"
 code = "no-else-clause"
 message = "Avoid `else` clauses."
@@ -2632,12 +2182,6 @@ count = 2
 file = "src/Storage/Message.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Storage/Message.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
 count = 1
 
 [[issues]]
@@ -2668,12 +2212,6 @@ count = 1
 file = "src/Storage/ParamsNormalizer.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "src/Storage/Part.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
 count = 1
 
 [[issues]]
@@ -2747,12 +2285,6 @@ file = "src/Storage/Part.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/Part.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 7
 
 [[issues]]
 file = "src/Storage/Part/Exception/ExceptionInterface.php"
@@ -2839,18 +2371,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "src/Storage/Part/File.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Storage/Part/File.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 5
-
-[[issues]]
 file = "src/Storage/Part/PartInterface.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
@@ -2882,12 +2402,6 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Pop3.php"
-code = "no-redundant-use"
-message = 'Redundant import: `Message` is already in the current namespace `Contenir\Mail\Storage`.'
-count = 1
-
-[[issues]]
-file = "src/Storage/Pop3.php"
 code = "no-shorthand-ternary"
 message = "Use of the shorthand ternary operator."
 count = 1
@@ -2909,18 +2423,6 @@ file = "src/Storage/Pop3.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/Pop3.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 4
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 9
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
@@ -3010,7 +2512,7 @@ count = 8
 file = "src/Storage/Writable/Maildir.php"
 code = "no-else-clause"
 message = "Avoid `elseif` clauses."
-count = 3
+count = 2
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
@@ -3032,20 +2534,8 @@ count = 7
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
-code = "no-redundant-else"
-message = "The `if` branch always terminates; the trailing branches can be extracted."
-count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
 code = "no-redundant-math"
 message = "Redundant subtraction from `0`: subtracting from 0 is equivalent to negation."
-count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
 count = 1
 
 [[issues]]
@@ -3062,12 +2552,6 @@ count = 1
 
 [[issues]]
 file = "src/Storage/Writable/Maildir.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 23
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
 code = "tagged-todo"
 message = "TODO should be tagged with (@username) or (#issue)."
 count = 6
@@ -3077,12 +2561,6 @@ file = "src/Storage/Writable/Maildir.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Storage/Writable/Maildir.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 31
 
 [[issues]]
 file = "src/Storage/Writable/WritableInterface.php"
@@ -3176,12 +2654,6 @@ count = 2
 
 [[issues]]
 file = "src/Transport/Sendmail.php"
-code = "inline-variable-return"
-message = "Variable assignment can be inlined into the return statement."
-count = 2
-
-[[issues]]
-file = "src/Transport/Sendmail.php"
 code = "kan-defect"
 message = "Class has a high kan defect score."
 count = 1
@@ -3224,33 +2696,15 @@ count = 1
 
 [[issues]]
 file = "src/Transport/Sendmail.php"
-code = "readable-literal"
-message = "Numeric literal could use underscore separators for readability."
-count = 1
-
-[[issues]]
-file = "src/Transport/Sendmail.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
 file = "src/Transport/Sendmail.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "src/Transport/Sendmail.php"
 code = "too-many-methods"
 message = "Class has too many methods."
 count = 1
-
-[[issues]]
-file = "src/Transport/Sendmail.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 5
 
 [[issues]]
 file = "src/Transport/Smtp.php"
@@ -3262,18 +2716,12 @@ count = 1
 file = "src/Transport/Smtp.php"
 code = "halstead"
 message = "Method has a high halstead difficulty"
-count = 2
+count = 1
 
 [[issues]]
 file = "src/Transport/Smtp.php"
 code = "identity-comparison"
 message = "Use identity comparison `===` instead of equality comparison `==`."
-count = 1
-
-[[issues]]
-file = "src/Transport/Smtp.php"
-code = "inline-variable-return"
-message = "Variable assignment can be inlined into the return statement."
 count = 1
 
 [[issues]]
@@ -3313,22 +2761,10 @@ message = "Class has too many methods."
 count = 1
 
 [[issues]]
-file = "src/Transport/Smtp.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
-
-[[issues]]
 file = "src/Transport/SmtpOptions.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "src/Transport/SmtpOptions.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
 
 [[issues]]
 file = "src/Transport/TransportInterface.php"
@@ -3338,38 +2774,14 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/AddressListTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/AddressListTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
-file = "tests/Unit/AddressTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
 file = "tests/Unit/AddressTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ConfigProviderTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3383,12 +2795,6 @@ file = "tests/Unit/Header/AddressListHeaderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Header/AddressListHeaderTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 10
 
 [[issues]]
 file = "tests/Unit/Header/ContentDispositionTest.php"
@@ -3398,26 +2804,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 6
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentDispositionTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -3434,12 +2822,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
 code = "no-redundant-variable"
 message = "Variable `$contentTransferEncodingHeader` is assigned but never used."
 count = 1
@@ -3451,12 +2833,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/ContentTransferEncodingTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
 file = "tests/Unit/Header/ContentTypeTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
@@ -3464,26 +2840,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ContentTypeTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ContentTypeTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/DateTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
 count = 1
 
 [[issues]]
@@ -3500,32 +2858,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/GenericHeaderTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Header/GenericMultiHeaderTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3542,20 +2876,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderNameTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderNameTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderValueTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3602,20 +2924,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/HeaderWrapTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1
 
 [[issues]]
@@ -3638,18 +2948,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/MessageIdTest.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MessageIdTest.php"
 code = "no-redundant-variable"
 message = "Variable `$messageid` is assigned but never used."
 count = 1
@@ -3662,12 +2960,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/MimeVersionTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/MimeVersionTest.php"
 code = "no-redundant-variable"
 message = "Variable `$mime` is assigned but never used."
 count = 1
@@ -3676,12 +2968,6 @@ count = 1
 file = "tests/Unit/Header/MimeVersionTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ReceivedTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3704,12 +2990,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/SenderTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SenderTest.php"
 code = "prefer-array-spread"
 message = "Use the array spread operator instead of `array_merge()`."
 count = 1
@@ -3721,12 +3001,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Header/SenderTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 4
-
-[[issues]]
 file = "tests/Unit/Header/SubjectTest.php"
 code = "literal-named-argument"
 message = "Literal argument `10` should be passed as a named argument for clarity."
@@ -3734,50 +3008,14 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Header/SubjectTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/SubjectTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Header/ToTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
 file = "tests/Unit/Header/ToTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 2
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
+code = "strict-types"
+message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
 
 [[issues]]
@@ -3790,18 +3028,6 @@ count = 1
 file = "tests/Unit/HeadersTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/HeadersTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "tests/Unit/MessageFactoryTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3821,18 +3047,6 @@ file = "tests/Unit/MessageTest.php"
 code = "literal-named-argument"
 message = "Literal argument `16` should be passed as a named argument for clarity."
 count = 4
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
-
-[[issues]]
-file = "tests/Unit/MessageTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
 
 [[issues]]
 file = "tests/Unit/MessageTest.php"
@@ -3861,7 +3075,7 @@ count = 1
 [[issues]]
 file = "tests/Unit/Mime/MimeTest.php"
 code = "literal-named-argument"
-message = "Literal argument `200000` should be passed as a named argument for clarity."
+message = "Literal argument `200_000` should be passed as a named argument for clarity."
 count = 1
 
 [[issues]]
@@ -3878,33 +3092,15 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Mime/MimeTest.php"
-code = "readable-literal"
-message = "Numeric literal could use underscore separators for readability."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
 code = "strict-behavior"
 message = "Call to `base64_decode` must enforce strict comparison."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Mime/MimeTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
 
 [[issues]]
 file = "tests/Unit/Mime/PartTest.php"
 code = "literal-named-argument"
 message = "Literal argument `'rb'` should be passed as a named argument for clarity."
 count = 4
-
-[[issues]]
-file = "tests/Unit/Mime/PartTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
 
 [[issues]]
 file = "tests/Unit/Mime/PartTest.php"
@@ -3920,26 +3116,8 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/ModuleTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/ModuleTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3947,12 +3125,6 @@ file = "tests/Unit/Protocol/AbstractProtocolTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/AbstractProtocolTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
 
 [[issues]]
 file = "tests/Unit/Protocol/HttpStatusService/index.php"
@@ -3964,12 +3136,6 @@ count = 1
 file = "tests/Unit/Protocol/HttpStatusService/index.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/ResponseTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -3991,24 +3157,6 @@ message = "Avoid assignments in conditions."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Pop3/Xoauth2/MicrosoftTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "tests/Unit/Protocol/ProtocolTraitTest.php"
 code = "ambiguous-constant-access"
 message = "Ambiguous constant access detected."
@@ -4022,20 +3170,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Smtp/Auth/Crammd5Test.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/SmtpPluginManagerCompatibilityTest.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
 count = 1
 
 [[issues]]
@@ -4078,12 +3214,6 @@ count = 1
 file = "tests/Unit/Protocol/TestAsset/ErroneousSmtp.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -4136,18 +3266,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/ImapTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 2
@@ -4165,12 +3283,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 5
-
-[[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
@@ -4180,12 +3292,6 @@ count = 2
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "explicit-octal"
-message = "Use explicit octal numeral notation."
 count = 1
 
 [[issues]]
@@ -4209,14 +3315,14 @@ count = 1
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "literal-named-argument"
-message = "Literal argument `0700` should be passed as a named argument for clarity."
-count = 1
+message = "Literal argument `0` should be passed as a named argument for clarity."
+count = 3
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "literal-named-argument"
-message = "Literal argument `0` should be passed as a named argument for clarity."
-count = 3
+message = "Literal argument `0o700` should be passed as a named argument for clarity."
+count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirFolderTest.php"
@@ -4241,18 +3347,6 @@ file = "tests/Unit/Storage/MaildirFolderTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 20
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirFolderTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirMessageOldTest.php"
@@ -4309,18 +3403,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirMessageOldTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
@@ -4330,12 +3412,6 @@ count = 4
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "explicit-octal"
-message = "Use explicit octal numeral notation."
 count = 1
 
 [[issues]]
@@ -4359,14 +3435,14 @@ count = 1
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "literal-named-argument"
-message = "Literal argument `0700` should be passed as a named argument for clarity."
-count = 1
+message = "Literal argument `0` should be passed as a named argument for clarity."
+count = 3
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "literal-named-argument"
-message = "Literal argument `0` should be passed as a named argument for clarity."
-count = 3
+message = "Literal argument `0o700` should be passed as a named argument for clarity."
+count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MaildirTest.php"
@@ -4396,18 +3472,6 @@ count = 2
 file = "tests/Unit/Storage/MaildirTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 21
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
 count = 1
 
 [[issues]]
@@ -4513,18 +3577,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 15
-
-[[issues]]
-file = "tests/Unit/Storage/MaildirWritableTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
-
-[[issues]]
 file = "tests/Unit/Storage/MboxFolderTest.php"
 code = "cyclomatic-complexity"
 message = "Class has high complexity."
@@ -4585,30 +3637,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 9
-
-[[issues]]
-file = "tests/Unit/Storage/MboxFolderTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "braced-string-interpolation"
-message = "Unbraced variable in string interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxInterfaceTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MboxInterfaceTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
@@ -4666,18 +3694,6 @@ count = 1
 file = "tests/Unit/Storage/MboxMessageOldTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxMessageOldTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
 count = 1
 
 [[issues]]
@@ -4730,12 +3746,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MboxTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."
 count = 1
@@ -4771,18 +3781,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MboxTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
 code = "ambiguous-function-call"
 message = "Ambiguous function call detected."
@@ -4791,7 +3789,7 @@ count = 1
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
 code = "identity-comparison"
-message = "Use identity comparison `===` instead of equality comparison `==`."
+message = "Use identity inequality `!==` instead of inequality comparison `!=`."
 count = 1
 
 [[issues]]
@@ -4838,18 +3836,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
-code = "no-empty-comment"
-message = "Empty comments are not allowed."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
 count = 2
@@ -4862,26 +3848,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Storage/MessageTest.php"
-code = "prefer-early-continue"
-message = "Consider using early continue pattern to reduce nesting."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/MessageTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
 count = 1
 
 [[issues]]
@@ -4928,12 +3896,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Storage/Pop3Test.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference detected."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
 code = "no-redundant-variable"
 message = "Variable `$count` is assigned but never used."
 count = 1
@@ -4943,12 +3905,6 @@ file = "tests/Unit/Storage/Pop3Test.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 5
 
 [[issues]]
 file = "tests/Unit/Storage/TestAsset/MaildirOldMessage.php"
@@ -4993,12 +3949,6 @@ message = "Missing `declare(strict_types=1);` statement at the beginning of the 
 count = 1
 
 [[issues]]
-file = "tests/Unit/TestAsset/SmtpProtocolSpy.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 1
-
-[[issues]]
 file = "tests/Unit/TestAsset/StringSerializableObject.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
@@ -5008,12 +3958,6 @@ count = 1
 file = "tests/Unit/Transport/FactoryTest.php"
 code = "literal-named-argument"
 message = "Literal argument `'3.3.0'` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FactoryTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -5030,12 +3974,6 @@ count = 2
 
 [[issues]]
 file = "tests/Unit/Transport/FileOptionsTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileOptionsTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
@@ -5048,26 +3986,8 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/FileTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/FileTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/InMemoryTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
 count = 1
 
 [[issues]]
@@ -5102,27 +4022,9 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/SendmailTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "readable-literal"
-message = "Numeric literal could use underscore separators for readability."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
 count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SendmailTest.php"
-code = "yoda-conditions"
-message = "Use Yoda condition style for safer comparisons"
-count = 2
 
 [[issues]]
 file = "tests/Unit/Transport/SmtpTest.php"
@@ -5138,12 +4040,6 @@ count = 1
 
 [[issues]]
 file = "tests/Unit/Transport/SmtpTest.php"
-code = "no-fully-qualified-global-class-like"
-message = "Fully-qualified class-like reference is already in scope."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."
 count = 1
@@ -5152,10 +4048,4 @@ count = 1
 file = "tests/Unit/Transport/SmtpTest.php"
 code = "strict-types"
 message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Transport/SmtpTest.php"
-code = "string-style"
-message = "String concatenation can be replaced with interpolation."
 count = 1

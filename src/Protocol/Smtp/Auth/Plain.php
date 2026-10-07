@@ -68,7 +68,7 @@ class Plain extends Smtp
 
         $this->_send('AUTH PLAIN');
         $this->_expect(334);
-        $this->_send(base64_encode("\0" . $this->getUsername() . "\0" . $this->getPassword()));
+        $this->_send(base64_encode("\0{$this->getUsername()}\0{$this->getPassword()}"));
         $this->_expect(235);
         $this->auth = true;
     }

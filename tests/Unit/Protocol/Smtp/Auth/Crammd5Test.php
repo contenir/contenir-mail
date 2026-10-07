@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
-#[CoversClass(\Contenir\Mail\Protocol\Smtp\Auth\Crammd5::class)]
+#[CoversClass(Crammd5::class)]
 class Crammd5Test extends TestCase
 {
     /** @var Crammd5 */

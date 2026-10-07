@@ -100,11 +100,11 @@ class AddressListHeaderTest extends TestCase
     {
         $value = self::getExpectedFieldValue();
         return [
-            'cc'       => ['Cc: ' . $value, Cc::class],
-            'bcc'      => ['Bcc: ' . $value, Bcc::class],
-            'from'     => ['From: ' . $value, From::class],
-            'reply-to' => ['Reply-To: ' . $value, ReplyTo::class],
-            'to'       => ['To: ' . $value, To::class],
+            'cc'       => ["Cc: {$value}", Cc::class],
+            'bcc'      => ["Bcc: {$value}", Bcc::class],
+            'from'     => ["From: {$value}", From::class],
+            'reply-to' => ["Reply-To: {$value}", ReplyTo::class],
+            'to'       => ["To: {$value}", To::class],
         ];
     }
 
@@ -138,11 +138,11 @@ class AddressListHeaderTest extends TestCase
     {
         $value = self::getExpectedFieldValue();
         return [
-            'cc'       => ['Cc:' . $value, Cc::class],
-            'bcc'      => ['Bcc:' . $value, Bcc::class],
-            'from'     => ['From:' . $value, From::class],
-            'reply-to' => ['Reply-To:' . $value, ReplyTo::class],
-            'to'       => ['To:' . $value, To::class],
+            'cc'       => ["Cc:{$value}", Cc::class],
+            'bcc'      => ["Bcc:{$value}", Bcc::class],
+            'from'     => ["From:{$value}", From::class],
+            'reply-to' => ["Reply-To:{$value}", ReplyTo::class],
+            'to'       => ["To:{$value}", To::class],
         ];
     }
 

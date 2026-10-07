@@ -3,8 +3,6 @@
 namespace Contenir\Mail\Mime;
 
 use Contenir\Mail\Header\HeaderInterface;
-use Contenir\Mail\Mime\Mime;
-use Contenir\Mail\Mime\Part;
 
 use function array_keys;
 use function base64_decode;
@@ -104,7 +102,7 @@ class Message
      */
     public function getMime()
     {
-        if ($this->mime === null) {
+        if (null === $this->mime) {
             $this->mime = new Mime();
         }
 
@@ -138,9 +136,7 @@ class Message
             $mime = $this->getMime();
 
             $boundaryLine = $mime->boundaryLine($EOL);
-            $body         = 'This is a message in Mime Format.  If you see this, '
-            . 'your mail reader does not support this format.'
-            . $EOL;
+            $body         = "This is a message in Mime Format.  If you see this, your mail reader does not support this format.{$EOL}";
 
             foreach (array_keys($this->parts) as $p) {
                 $body .=
@@ -209,7 +205,7 @@ class Message
         // string before it.
         // the part before the first boundary string is discarded:
         $p = strpos($body, '--' . $boundary . "\n", $start);
-        if ($p === false) {
+        if (false === $p) {
             // no parts found!
             return [];
         }
@@ -224,7 +220,7 @@ class Message
 
         // no more parts, find end boundary
         $p = strpos($body, '--' . $boundary . '--', $start);
-        if ($p === false) {
+        if (false === $p) {
             throw new Exception\RuntimeException('Not a valid Mime Message: End Missing');
         }
 

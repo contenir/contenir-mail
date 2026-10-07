@@ -82,7 +82,7 @@ class Received implements HeaderInterface, MultipleHeadersInterface
      */
     public function toString()
     {
-        return 'Received: ' . $this->getFieldValue();
+        return "Received: {$this->getFieldValue()}";
     }
 
     /**

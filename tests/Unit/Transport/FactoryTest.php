@@ -23,7 +23,7 @@ use function version_compare;
 
 use const E_USER_DEPRECATED;
 
-#[CoversClass(\Contenir\Mail\Transport\Factory::class)]
+#[CoversClass(Factory::class)]
 class FactoryTest extends TestCase
 {
     #[Test]

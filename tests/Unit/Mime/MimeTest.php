@@ -365,20 +365,10 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     public function fromMessageDecode(string $input, string $encoding, string $result): void
     {
         $parts = Mime\Message::createFromMessage(
-            '--089e0141a1902f83ee04e0a07b7a'
-                . "\r\n"
-                . 'Content-Type: text/plain; charset=UTF-8'
-                . "\r\n"
-                . 'Content-Transfer-Encoding: '
-                . $encoding
-                . "\r\n"
-                . "\r\n"
-                . $result
-                . "\r\n"
-                . '--089e0141a1902f83ee04e0a07b7a--',
+            "--089e0141a1902f83ee04e0a07b7a\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: {$encoding}\r\n\r\n{$result}\r\n--089e0141a1902f83ee04e0a07b7a--",
             '089e0141a1902f83ee04e0a07b7a',
         )->getParts();
-        static::assertSame($input . "\n", $parts[0]->getRawContent());
+        static::assertSame("{$input}\n", $parts[0]->getRawContent());
     }
 
     #[Test]
@@ -428,7 +418,7 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!',
     #[Test]
     public function encodeQuotedPrintableShouldBeFastEnoughForLongInputStrings()
     {
-        $str  = str_repeat('this could be anything, ', 200000);
+        $str  = str_repeat('this could be anything, ', 200_000);
         $time = microtime(true);
         Mime\Mime::encodeQuotedPrintable($str);
         static::assertLessThan(5, microtime(true) - $time);

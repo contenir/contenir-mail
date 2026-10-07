@@ -77,16 +77,18 @@ class Maildir extends AbstractStorage
      */
     public function countMessages($flags = null)
     {
-        if ($flags === null) {
+        if (null === $flags) {
             return count($this->files);
         }
 
         $count = 0;
         if (! is_array($flags)) {
             foreach ($this->files as $file) {
-                if (isset($file['flaglookup'][$flags])) {
-                    ++$count;
+                if (! isset($file['flaglookup'][$flags])) {
+                    continue;
                 }
+
+                ++$count;
             }
             return $count;
         }
@@ -136,7 +138,7 @@ class Maildir extends AbstractStorage
      */
     public function getSize($id = null)
     {
-        if ($id !== null) {
+        if (null !== $id) {
             $filedata = $this->getFileData($id);
             return $filedata['size'] ?? filesize($filedata['filename']);
         }
@@ -188,7 +190,7 @@ class Maildir extends AbstractStorage
      */
     public function getRawHeader($id, $part = null, $topLines = 0)
     {
-        if ($part !== null) {
+        if (null !== $part) {
             // TODO: implement
             throw new Exception\RuntimeException('not implemented');
         }
@@ -218,7 +220,7 @@ class Maildir extends AbstractStorage
      */
     public function getRawContent($id, $part = null)
     {
-        if ($part !== null) {
+        if (null !== $part) {
             // TODO: implement
             throw new Exception\RuntimeException('not implemented');
         }
@@ -277,13 +279,13 @@ class Maildir extends AbstractStorage
      */
     protected function isMaildir($dirname)
     {
-        if (file_exists($dirname . '/new') && ! is_dir($dirname . '/new')) {
+        if (file_exists("{$dirname}/new") && ! is_dir("{$dirname}/new")) {
             return false;
         }
-        if (file_exists($dirname . '/tmp') && ! is_dir($dirname . '/tmp')) {
+        if (file_exists("{$dirname}/tmp") && ! is_dir("{$dirname}/tmp")) {
             return false;
         }
-        return is_dir($dirname . '/cur');
+        return is_dir("{$dirname}/cur");
     }
 
     /**
@@ -299,12 +301,12 @@ class Maildir extends AbstractStorage
         }
 
         ErrorHandler::start(E_WARNING);
-        $dh    = opendir($dirname . '/cur/');
+        $dh    = opendir("{$dirname}/cur/");
         $error = ErrorHandler::stop();
         if (! $dh) {
             throw new Exception\RuntimeException('cannot open maildir', 0, $error);
         }
-        $this->getMaildirFiles($dh, $dirname . '/cur/');
+        $this->getMaildirFiles($dh, "{$dirname}/cur/");
         closedir($dh);
 
         // isMaildir() accepts a maildir without new/; it just has no recent mail
@@ -313,13 +315,13 @@ class Maildir extends AbstractStorage
         }
 
         ErrorHandler::start(E_WARNING);
-        $dh    = opendir($dirname . '/new/');
+        $dh    = opendir("{$dirname}/new/");
         $error = ErrorHandler::stop();
         if (! $dh) {
             throw new Exception\RuntimeException('cannot read recent mails in maildir', 0, $error);
         }
 
-        $this->getMaildirFiles($dh, $dirname . '/new/', [Mail\Storage::FLAG_RECENT]);
+        $this->getMaildirFiles($dh, "{$dirname}/new/", [Mail\Storage::FLAG_RECENT]);
         closedir($dh);
     }
 
@@ -333,7 +335,7 @@ class Maildir extends AbstractStorage
     protected function getMaildirFiles($dh, $dirname, $defaultFlags = [])
     {
         while (($entry = readdir($dh)) !== false) {
-            if ($entry[0] == '.' || ! is_file($dirname . $entry)) {
+            if ('.' == $entry[0] || ! is_file($dirname . $entry)) {
                 continue;
             }
 
@@ -350,7 +352,7 @@ class Maildir extends AbstractStorage
                 $size = '';
             }
 
-            if (strlen($size) >= 2 && $size[0] === 'S' && $size[1] === '=') {
+            if (strlen($size) >= 2 && 'S' === $size[0] && '=' === $size[1]) {
                 $size = substr($size, 2);
             }
 
@@ -365,7 +367,7 @@ class Maildir extends AbstractStorage
                 $flags   = '';
             }
 
-            if ($version !== '2') {
+            if ('2' !== $version) {
                 $flags = '';
             }
 
@@ -382,7 +384,7 @@ class Maildir extends AbstractStorage
                 'flaglookup' => array_flip($namedFlags),
                 'filename'   => $dirname . $entry,
             ];
-            if ($size !== null) {
+            if (null !== $size) {
                 $data['size'] = (int) $size;
             }
             $this->files[] = $data;

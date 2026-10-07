@@ -58,7 +58,7 @@ class SmtpProtocolSpy extends Smtp
      */
     public function rcpt($to): void
     {
-        if ($to === self::ERRONEOUS_RECIPIENT) {
+        if (self::ERRONEOUS_RECIPIENT === $to) {
             $this->setFakeResponse(self::ERRONEOUS_RECIPIENT_RESPONSE);
             try {
                 parent::rcpt($to);

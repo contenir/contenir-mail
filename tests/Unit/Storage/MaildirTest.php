@@ -63,7 +63,7 @@ class MaildirTest extends TestCase
                 ++$count;
             }
             closedir($dh);
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
@@ -77,7 +77,7 @@ class MaildirTest extends TestCase
             mkdir($this->tmpdir . $dir);
             $dh = opendir($originalMaildir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $dir . '/' . $entry;
+                $entry = "{$dir}/{$entry}";
                 if (! is_file($originalMaildir . $entry)) {
                     continue;
                 }
@@ -91,17 +91,17 @@ class MaildirTest extends TestCase
     {
         foreach (['cur', 'new'] as $dir) {
             if (! is_dir($this->tmpdir . $dir)) {
-                if (is_dir($this->tmpdir . $dir . '-isFileTest')) {
+                if (is_dir("{$this->tmpdir}{$dir}-isFileTest")) {
                     unlink($this->tmpdir . $dir);
-                    rename($this->tmpdir . $dir . '-isFileTest', $this->tmpdir . $dir);
+                    rename("{$this->tmpdir}{$dir}-isFileTest", $this->tmpdir . $dir);
                 } else {
                     continue;
                 }
             }
-            chmod($this->tmpdir . $dir, 0700);
+            chmod($this->tmpdir . $dir, 0o700);
             $dh = opendir($this->tmpdir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $this->tmpdir . $dir . '/' . $entry;
+                $entry = "{$this->tmpdir}{$dir}/{$entry}";
                 if (! is_file($entry)) {
                     continue;
                 }
@@ -111,8 +111,8 @@ class MaildirTest extends TestCase
             rmdir($this->tmpdir . $dir);
         }
 
-        if (file_exists($this->tmpdir . 'tmp')) {
-            unlink($this->tmpdir . 'tmp');
+        if (file_exists("{$this->tmpdir}tmp")) {
+            unlink("{$this->tmpdir}tmp");
         }
     }
 
@@ -330,8 +330,8 @@ class MaildirTest extends TestCase
     #[Test]
     public function curIsFile(): void
     {
-        rename($this->maildir . 'cur', $this->maildir . 'cur-isFileTest');
-        touch($this->maildir . 'cur');
+        rename("{$this->maildir}cur", "{$this->maildir}cur-isFileTest");
+        touch("{$this->maildir}cur");
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('invalid maildir given');
@@ -341,8 +341,8 @@ class MaildirTest extends TestCase
     #[Test]
     public function newIsFile(): void
     {
-        rename($this->maildir . 'new', $this->maildir . 'new-isFileTest');
-        touch($this->maildir . 'new');
+        rename("{$this->maildir}new", "{$this->maildir}new-isFileTest");
+        touch("{$this->maildir}new");
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('invalid maildir given');
@@ -352,7 +352,7 @@ class MaildirTest extends TestCase
     #[Test]
     public function tmpIsFile(): void
     {
-        touch($this->maildir . 'tmp');
+        touch("{$this->maildir}tmp");
 
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('invalid maildir given');
@@ -366,7 +366,7 @@ class MaildirTest extends TestCase
             static::markTestSkipped('File permissions are not enforced for the root user');
         }
 
-        chmod($this->maildir . 'cur', 0);
+        chmod("{$this->maildir}cur", 0);
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('cannot open maildir');
@@ -380,7 +380,7 @@ class MaildirTest extends TestCase
             static::markTestSkipped('File permissions are not enforced for the root user');
         }
 
-        chmod($this->maildir . 'new', 0);
+        chmod("{$this->maildir}new", 0);
 
         $this->expectException(Exception\RuntimeException::class);
         $this->expectExceptionMessage('cannot read recent mails in maildir');
@@ -417,12 +417,12 @@ class MaildirTest extends TestCase
     public function sizePlusPlus(): void
     {
         rename(
-            $this->maildir . '/cur/1000000000.P1.example.org:2,S',
-            $this->maildir . '/cur/1000000000.P1.example.org,S=123:2,S',
+            "{$this->maildir}/cur/1000000000.P1.example.org:2,S",
+            "{$this->maildir}/cur/1000000000.P1.example.org,S=123:2,S",
         );
         rename(
-            $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
-            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS',
+            "{$this->maildir}/cur/1000000001.P1.example.org:2,FS",
+            "{$this->maildir}/cur/1000000001.P1.example.org,S=456:2,FS",
         );
         $mail        = new Storage\Maildir(['dirname' => $this->maildir]);
         $shouldSizes = [1 => 123, 456, 694, 452, 497];
@@ -435,8 +435,8 @@ class MaildirTest extends TestCase
     public function singleSizePlusPlus(): void
     {
         rename(
-            $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
-            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS',
+            "{$this->maildir}/cur/1000000001.P1.example.org:2,FS",
+            "{$this->maildir}/cur/1000000001.P1.example.org,S=456:2,FS",
         );
         $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 

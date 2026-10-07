@@ -17,7 +17,7 @@ use function rmdir;
 use function sys_get_temp_dir;
 use function unlink;
 
-#[CoversClass(\Contenir\Mail\Transport\File::class)]
+#[CoversClass(File::class)]
 class FileTest extends TestCase
 {
     private string $tempDir;
@@ -46,7 +46,7 @@ class FileTest extends TestCase
 
     protected function cleanup(string $dir): void
     {
-        foreach (glob($dir . '/*.*') as $file) {
+        foreach (glob("{$dir}/*.*") as $file) {
             unlink($file);
         }
     }

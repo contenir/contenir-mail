@@ -119,7 +119,7 @@ class ContentType implements UnstructuredInterface
      */
     public function toString()
     {
-        return 'Content-Type: ' . $this->getFieldValue(HeaderInterface::FORMAT_ENCODED);
+        return "Content-Type: {$this->getFieldValue(HeaderInterface::FORMAT_ENCODED)}";
     }
 
     /**

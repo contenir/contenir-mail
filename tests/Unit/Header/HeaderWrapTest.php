@@ -19,7 +19,7 @@ use function wordwrap;
 
 use const ICONV_MIME_DECODE_CONTINUE_ON_ERROR;
 
-#[CoversClass(\Contenir\Mail\Header\HeaderWrap::class)]
+#[CoversClass(HeaderWrap::class)]
 class HeaderWrapTest extends TestCase
 {
     #[Test]
@@ -146,7 +146,7 @@ class HeaderWrapTest extends TestCase
         $part1 = base64_encode(substr($originalValue, 0, 3));
         $part2 = base64_encode(substr($originalValue, 3));
 
-        $header = '=?utf-8?B?' . $part1 . '?==?utf-8?B?' . $part2 . '?=';
+        $header = "=?utf-8?B?{$part1}?==?utf-8?B?{$part2}?=";
 
         static::assertSame(
             $originalValue,

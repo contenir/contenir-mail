@@ -97,7 +97,7 @@ class ContentTransferEncoding implements HeaderInterface
      */
     public function toString()
     {
-        return 'Content-Transfer-Encoding: ' . $this->getFieldValue();
+        return "Content-Transfer-Encoding: {$this->getFieldValue()}";
     }
 
     /**

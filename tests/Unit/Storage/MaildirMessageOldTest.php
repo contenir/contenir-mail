@@ -58,7 +58,7 @@ class MaildirMessageOldTest extends TestCase
                 ++$count;
             }
             closedir($dh);
-            if ($count != 2) {
+            if (2 != $count) {
                 $this->markTestSkipped('Are you sure your tmp dir is a valid empty dir?');
                 return;
             }
@@ -72,7 +72,7 @@ class MaildirMessageOldTest extends TestCase
             mkdir($this->tmpdir . $dir);
             $dh = opendir($originalMaildir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $dir . '/' . $entry;
+                $entry = "{$dir}/{$entry}";
                 if (! is_file($originalMaildir . $entry)) {
                     continue;
                 }
@@ -90,7 +90,7 @@ class MaildirMessageOldTest extends TestCase
             }
             $dh = opendir($this->tmpdir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $this->tmpdir . $dir . '/' . $entry;
+                $entry = "{$this->tmpdir}{$dir}/{$entry}";
                 if (! is_file($entry)) {
                     continue;
                 }

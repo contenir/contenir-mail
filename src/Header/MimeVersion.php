@@ -73,7 +73,7 @@ class MimeVersion implements HeaderInterface
      */
     public function toString()
     {
-        return 'MIME-Version: ' . $this->getFieldValue();
+        return "MIME-Version: {$this->getFieldValue()}";
     }
 
     /**

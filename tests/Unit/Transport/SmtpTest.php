@@ -23,7 +23,7 @@ use function strlen;
 use function substr;
 use function time;
 
-#[CoversClass(\Contenir\Mail\Transport\Smtp::class)]
+#[CoversClass(Smtp::class)]
 class SmtpTest extends TestCase
 {
     /** @var Smtp */
@@ -242,7 +242,7 @@ class SmtpTest extends TestCase
         static::assertCount(28, $lines);
 
         foreach ($lines as $line) {
-            static::assertLessThanOrEqual($maxLen, strlen($line), 'Line is too long: ' . $line);
+            static::assertLessThanOrEqual($maxLen, strlen($line), "Line is too long: {$line}");
         }
 
         static::assertStringNotContainsString(

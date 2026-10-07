@@ -108,8 +108,6 @@ class PartTest extends TestCase
         static::assertSame(quoted_printable_decode($encoded), $original);
     }
 
-    /**
-     */
     #[Test]
     #[Group('Laminas-1491')]
     public function getRawContentFromPart()

@@ -3,7 +3,6 @@
 namespace Contenir\Mail\Storage;
 
 use ArrayAccess;
-use Contenir\Mail\Storage\Message;
 use Countable;
 use ReturnTypeWillChange;
 use SeekableIterator;
@@ -69,7 +68,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
             return $this->has[$var] ?? null;
         }
 
-        throw new Exception\InvalidArgumentException($var . ' not found');
+        throw new Exception\InvalidArgumentException("{$var} not found");
     }
 
     /**
@@ -302,7 +301,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
     #[ReturnTypeWillChange]
     public function valid()
     {
-        if ($this->iterationMax === null) {
+        if (null === $this->iterationMax) {
             $this->iterationMax = $this->countMessages();
         }
         return $this->iterationPos && $this->iterationPos <= $this->iterationMax;
@@ -317,7 +316,7 @@ abstract class AbstractStorage implements ArrayAccess, Countable, SeekableIterat
     #[ReturnTypeWillChange]
     public function seek($pos)
     {
-        if ($this->iterationMax === null) {
+        if (null === $this->iterationMax) {
             $this->iterationMax = $this->countMessages();
         }
 

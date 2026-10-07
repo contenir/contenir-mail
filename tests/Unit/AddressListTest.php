@@ -14,7 +14,7 @@ use Traversable;
 
 use function count;
 
-#[CoversClass(\Contenir\Mail\AddressList::class)]
+#[CoversClass(AddressList::class)]
 class AddressListTest extends TestCase
 {
     private AddressList $list;
@@ -141,7 +141,7 @@ class AddressListTest extends TestCase
     {
         $header = '"Supports (E-mail)" <support@example.org>';
 
-        $to          = Header\To::fromString('To:' . $header);
+        $to          = Header\To::fromString("To:{$header}");
         $addressList = $to->getAddressList();
         $address     = $addressList->get('support@example.org');
         static::assertSame('Supports', $address->getName());
@@ -178,7 +178,7 @@ class AddressListTest extends TestCase
         // In previous versions, this throws: 'The input exceeds the allowed
         // length'; hence the try/catch block, to allow finding the root cause.
         try {
-            $to = Header\To::fromString('To:' . $header);
+            $to = Header\To::fromString("To:{$header}");
         } catch (InvalidArgumentException) {
             static::fail('Header\To::fromString should not throw');
         }
@@ -241,7 +241,7 @@ class AddressListTest extends TestCase
         // 'Bob O'Reilly <bob@example.com>,blah' can not be matched against dot-atom format
         // hence the try/catch block, to allow finding the root cause.
         try {
-            $to = Header\To::fromString('To:' . $header);
+            $to = Header\To::fromString("To:{$header}");
         } catch (InvalidArgumentException) {
             static::fail('Header\To::fromString should not throw');
         }

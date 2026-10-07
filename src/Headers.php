@@ -98,7 +98,7 @@ class Headers implements Countable, Iterator
         for ($i = 0; $i < $total; $i += 1) {
             $line = $lines[$i];
 
-            if ($line === '') {
+            if ('' === $line) {
                 // Empty line indicates end of headers
                 // EXCEPT if there are more lines, in which case, there's a possible error condition
                 $emptyLine += 1;
@@ -106,7 +106,9 @@ class Headers implements Countable, Iterator
                     throw new Exception\RuntimeException('Malformed header detected');
                 }
                 continue;
-            } elseif (preg_match('/^\s*$/', $line)) {
+            }
+
+            if (preg_match('/^\s*$/', $line)) {
                 // skip empty continuation line
                 continue;
             }
@@ -255,7 +257,7 @@ class Headers implements Countable, Iterator
             ));
         }
 
-        if ($fieldValue === null) {
+        if (null === $fieldValue) {
             $headers = $this->loadHeader($headerFieldNameOrLine);
             $headers = is_array($headers) ? $headers : [$headers];
             foreach ($headers as $header) {
@@ -263,10 +265,10 @@ class Headers implements Countable, Iterator
             }
         } elseif (is_array($fieldValue)) {
             foreach ($fieldValue as $i) {
-                $this->addHeader(Header\GenericMultiHeader::fromString($headerFieldNameOrLine . ':' . $i));
+                $this->addHeader(Header\GenericMultiHeader::fromString("{$headerFieldNameOrLine}:{$i}"));
             }
         } else {
-            $this->addHeader(GenericHeader::fromString($headerFieldNameOrLine . ':' . $fieldValue));
+            $this->addHeader(GenericHeader::fromString("{$headerFieldNameOrLine}:{$fieldValue}"));
         }
 
         return $this;
@@ -463,9 +465,11 @@ class Headers implements Countable, Iterator
     {
         $headers = '';
         foreach ($this as $header) {
-            if ($str = $header->toString()) {
-                $headers .= $str . self::EOL;
+            if (! ($str = $header->toString())) {
+                continue;
             }
+
+            $headers .= $str . self::EOL;
         }
 
         return $headers;

@@ -4,6 +4,7 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\MessageId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -12,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 use function sprintf;
 
-#[CoversClass(\Contenir\Mail\Header\MessageId::class)]
+#[CoversClass(MessageId::class)]
 class MessageIdTest extends TestCase
 {
     #[Test]
@@ -25,7 +26,7 @@ class MessageIdTest extends TestCase
         $expected = sprintf('<%s>', $id);
         static::assertSame($expected, $messageid->getFieldValue());
         static::assertSame($expected, $messageid->getId());
-        static::assertSame("Message-ID: $expected", $messageid->toString());
+        static::assertSame("Message-ID: {$expected}", $messageid->toString());
     }
 
     #[Test]

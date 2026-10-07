@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Protocol\Xoauth2\Xoauth2::class)]
+#[CoversClass(Xoauth2::class)]
 class Xoauth2Test extends TestCase
 {
     /** @psalm-suppress InternalClass */

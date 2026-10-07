@@ -109,11 +109,11 @@ class Mbox extends Storage\Mbox implements FolderInterface
         $dh = opendir($currentDir);
         ErrorHandler::stop();
         if (! $dh) {
-            throw new Exception\InvalidArgumentException("can't read dir $currentDir");
+            throw new Exception\InvalidArgumentException("can't read dir {$currentDir}");
         }
         while (($entry = readdir($dh)) !== false) {
             // ignore hidden files for mbox
-            if ($entry[0] == '.') {
+            if ('.' == $entry[0]) {
                 continue;
             }
             $absoluteEntry = $currentDir . $entry;
@@ -164,7 +164,7 @@ class Mbox extends Storage\Mbox implements FolderInterface
         }
 
         if ($currentFolder->getGlobalName() != DIRECTORY_SEPARATOR . trim($rootFolder, DIRECTORY_SEPARATOR)) {
-            throw new Exception\InvalidArgumentException("folder $rootFolder not found");
+            throw new Exception\InvalidArgumentException("folder {$rootFolder} not found");
         }
         return $currentFolder;
     }

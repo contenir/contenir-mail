@@ -4,13 +4,14 @@ namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header;
 use Contenir\Mail\Header\Exception;
+use Contenir\Mail\Header\MimeVersion;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(\Contenir\Mail\Header\MimeVersion::class)]
+#[CoversClass(MimeVersion::class)]
 class MimeVersionTest extends TestCase
 {
     #[Test]

@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 use function chr;
 
-#[CoversClass(\Contenir\Mail\Header\GenericHeader::class)]
+#[CoversClass(GenericHeader::class)]
 class GenericHeaderTest extends TestCase
 {
     /** @return array<string, array{0: string, 1: string}> */
@@ -67,8 +67,6 @@ class GenericHeaderTest extends TestCase
         new GenericHeader($fieldName);
     }
 
-    /**
-     */
     #[Test]
     #[DataProvider('fieldNames')]
     #[Group('ZF2015-04')]
@@ -114,7 +112,7 @@ class GenericHeaderTest extends TestCase
     #[Group('ZF2015-04')]
     public function parseValidSubjectHeader(string $decodedValue, string $encodedValue, string $encoding): void
     {
-        $header = GenericHeader::fromString('Foo:' . $encodedValue);
+        $header = GenericHeader::fromString("Foo:{$encodedValue}");
 
         static::assertSame($decodedValue, $header->getFieldValue());
         static::assertSame($encoding, $header->getEncoding());
@@ -129,7 +127,7 @@ class GenericHeaderTest extends TestCase
         $header->setFieldValue($decodedValue);
 
         static::assertSame($decodedValue, $header->getFieldValue());
-        static::assertSame('Foo: ' . $encodedValue, $header->toString());
+        static::assertSame("Foo: {$encodedValue}", $header->toString());
         static::assertSame($encoding, $header->getEncoding());
     }
 
@@ -164,7 +162,7 @@ class GenericHeaderTest extends TestCase
 
         static::assertSame($raw, $header->getFieldValue());
         static::assertSame($encoded, $header->getFieldValue(HeaderInterface::FORMAT_ENCODED));
-        static::assertSame('Foo: ' . $encoded, $header->toString());
+        static::assertSame("Foo: {$encoded}", $header->toString());
     }
 
     #[Test]

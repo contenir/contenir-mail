@@ -45,8 +45,8 @@ class Decode
         // find every mime part limiter and cut out the
         // string before it.
         // the part before the first boundary string is discarded:
-        $p = strpos($body, '--' . $boundary . "\n", $start);
-        if ($p === false) {
+        $p = strpos($body, "--{$boundary}\n", $start);
+        if (false === $p) {
             // no parts found!
             return [];
         }
@@ -54,14 +54,14 @@ class Decode
         // position after first boundary line
         $start = $p + 3 + strlen($boundary);
 
-        while (($p = strpos($body, '--' . $boundary . "\n", $start)) !== false) {
+        while (($p = strpos($body, "--{$boundary}\n", $start)) !== false) {
             $res[] = substr($body, $start, $p - $start);
             $start = $p + 3 + strlen($boundary);
         }
 
         // no more parts, find end boundary
-        $p = strpos($body, '--' . $boundary . '--', $start);
-        if ($p === false) {
+        $p = strpos($body, "--{$boundary}--", $start);
+        if (false === $p) {
             throw new Exception\RuntimeException('Not a valid Mime Message: End Missing');
         }
 
@@ -119,7 +119,7 @@ class Decode
         }
         // check for valid header at first line
         $firstlinePos = strpos($message, "\n");
-        $firstline    = $firstlinePos === false ? $message : substr($message, 0, $firstlinePos);
+        $firstline    = false === $firstlinePos ? $message : substr($message, 0, $firstlinePos);
         if (! preg_match('%^[^\s]+[^:]*:%', $firstline)) {
             $headers = new Headers();
             // TODO: we're ignoring \r for now - is this function fast enough and is it safe to assume noone needs \r?
@@ -146,12 +146,12 @@ class Decode
             [$headers, $body] = explode($EOL . $EOL, $message, 2);
 
             // next is the standard new line
-        } elseif ($EOL !== "\r\n" && strpos($message, "\r\n\r\n")) {
+        } elseif ("\r\n" !== $EOL && strpos($message, "\r\n\r\n")) {
             [$headers, $body] = explode("\r\n\r\n", $message, 2);
             $headersEOL = "\r\n"; // Headers::fromString will fail with incorrect EOL
 
             // next is the other "standard" new line
-        } elseif ($EOL !== "\n" && strpos($message, "\n\n")) {
+        } elseif ("\n" !== $EOL && strpos($message, "\n\n")) {
             [$headers, $body] = explode("\n\n", $message, 2);
             $headersEOL = "\n";
 
@@ -194,10 +194,10 @@ class Decode
         // special case - a bit optimized
         if ($firstName === $wantedPart) {
             $field = strtok($field, ';');
-            return $field[0] === '"' ? substr($field, 1, -1) : $field;
+            return '"' === $field[0] ? substr($field, 1, -1) : $field;
         }
 
-        $field = $firstName . '=' . $field;
+        $field = "{$firstName}={$field}";
         if (! preg_match_all('%([^=\s]+)\s*=\s*("[^"]+"|[^;]+)(;\s*|$)%', $field, $matches)) {
             throw new Exception\RuntimeException('not a valid header field');
         }
@@ -207,7 +207,7 @@ class Decode
                 if (strcasecmp($name, $wantedPart)) {
                     continue;
                 }
-                if ($matches[2][$key][0] !== '"') {
+                if ('"' !== $matches[2][$key][0]) {
                     return $matches[2][$key];
                 }
                 return substr($matches[2][$key], 1, -1);
@@ -218,7 +218,7 @@ class Decode
         $split = [];
         foreach ($matches[1] as $key => $name) {
             $name = strtolower($name);
-            if ($matches[2][$key][0] === '"') {
+            if ('"' === $matches[2][$key][0]) {
                 $split[$name] = substr($matches[2][$key], 1, -1);
             } else {
                 $split[$name] = $matches[2][$key];
