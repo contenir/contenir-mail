@@ -1,35 +1,49 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Validator\HostnameValidator;
+use LogicException;
+use SensitiveParameter;
 
+use function array_map;
 use function array_shift;
 use function count;
 use function fclose;
-use function fgets;
-use function fwrite;
 use function implode;
 use function in_array;
 use function is_array;
 use function is_resource;
+use function preg_match;
 use function preg_split;
-use function restore_error_handler;
-use function set_error_handler;
-use function sprintf;
 use function str_starts_with;
-use function stream_get_meta_data;
 use function stream_set_timeout;
 use function stream_socket_client;
+use function strlen;
 
-use const E_WARNING;
 use const PREG_SPLIT_DELIM_CAPTURE;
 
 /**
  * Provides low-level methods for concrete adapters to communicate with a
  * remote mail server and track requests and responses.
  *
- * @todo Implement proxy settings
+ * Requests and responses travel over a Connection: the one given to the
+ * constructor, or one wrapping the socket a subclass opens into $socket.
+ *
+ * The log and getRequest() never hold credentials: LOGIN, AUTHENTICATE,
+ * AUTH, USER, PASS and APOP arguments are replaced by "[redacted]", and
+ * requests sent with sendSensitive() are logged as their redacted form.
+ *
+ * @api
+ *
+ * @mago-expect analysis:missing-constant-type Subclasses may redeclare these laminas-mail constants untyped.
+ * @mago-expect analysis:missing-property-type Subclasses may redeclare these laminas-mail properties untyped.
+ * @mago-expect analysis:missing-parameter-type The laminas-mail signatures Protocol\Smtp and its subclasses override.
+ * @mago-expect analysis:missing-return-type Protocol\Smtp and its subclasses override these without return types.
+ * @mago-expect lint:cyclomatic-complexity The protected API Protocol\Smtp and its subclasses build on, kept from laminas-mail.
+ * @mago-expect lint:too-many-methods The protected API Protocol\Smtp and its subclasses build on, kept from laminas-mail.
  */
 abstract class AbstractProtocol
 {
@@ -42,6 +56,19 @@ abstract class AbstractProtocol
      * Default timeout in seconds for initiating session
      */
     public const TIMEOUT_CONNECTION = 30;
+
+    /** Bytes read for one line of a response, as fgets() read them before */
+    public const int RESPONSE_LINE_LENGTH = 1023;
+
+    /** What a redacted credential is logged as */
+    public const string REDACTED = '[redacted]';
+
+    /**
+     * Commands whose arguments are credentials
+     */
+    private const string CREDENTIAL_COMMAND =
+        '/^(?<prefix>(?:\S+ +)??)(?<command>LOGIN|AUTHENTICATE|AUTH|USER|PASS|APOP)'
+            . '(?<mechanism>(?<=AUTH|AUTHENTICATE) +\S+)?(?<secret> .*)?$/isD';
 
     /**
      * Maximum of the transaction log
@@ -65,39 +92,48 @@ abstract class AbstractProtocol
     protected $validHost;
 
     /**
-     * Socket connection resource
+     * Socket connection resource, for subclasses that open their own socket
      *
      * @var null|resource
      */
     protected $socket;
 
     /**
-     * Last request sent to server
+     * Last request sent to server, with credentials redacted
      *
-     * @var string
+     * @var string|null
      */
     protected $request;
 
     /**
      * Array of server responses to last request
      *
-     * @var array
+     * @var array<array-key, string>|null
      */
     protected $response;
 
     /**
      * Log of mail requests and server responses for a session
+     *
+     * @var list<string>
      */
     private array $log = [];
+
+    /** @var resource|null The socket $connection wraps, when it was made from $socket */
+    private mixed $wrappedSocket = null;
+
+    private ?ConnectionInterface $connection = null;
 
     /**
      * @param  string  $host OPTIONAL Hostname of remote connection (default: 127.0.0.1)
      * @param  int $port OPTIONAL Port number (default: null)
+     * @param  ConnectionInterface|null $connection OPTIONAL The connection to use instead of a socket in $socket
      * @throws Exception\RuntimeException
      */
     public function __construct(
         $host = '127.0.0.1',
         protected $port = null,
+        ?ConnectionInterface $connection = null,
     ) {
         $this->validHost = HostnameValidator::forConnection();
 
@@ -105,7 +141,8 @@ abstract class AbstractProtocol
             throw new Exception\RuntimeException(implode(', ', $this->validHost->getMessages()));
         }
 
-        $this->host = $host;
+        $this->host       = $host;
+        $this->connection = $connection;
     }
 
     /**
@@ -114,6 +151,28 @@ abstract class AbstractProtocol
     public function __destruct()
     {
         $this->_disconnect();
+    }
+
+    /**
+     * A protocol holds a live connection, so it cannot be serialized.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __serialize(): array
+    {
+        throw new LogicException(static::class . ' cannot be serialized');
+    }
+
+    /**
+     * Refuse to unserialize, so that a crafted payload never reaches the destructor.
+     *
+     * @return never
+     * @throws LogicException
+     */
+    public function __wakeup(): void
+    {
+        throw new LogicException(static::class . ' cannot be unserialized');
     }
 
     /**
@@ -145,9 +204,9 @@ abstract class AbstractProtocol
     abstract public function connect();
 
     /**
-     * Retrieve the last client request
+     * Retrieve the last client request, with credentials redacted
      *
-     * @return string
+     * @return string|null
      */
     public function getRequest()
     {
@@ -157,7 +216,7 @@ abstract class AbstractProtocol
     /**
      * Retrieve the last server response
      *
-     * @return array
+     * @return array<array-key, string>|null
      */
     public function getResponse()
     {
@@ -165,7 +224,7 @@ abstract class AbstractProtocol
     }
 
     /**
-     * Retrieve the transaction log
+     * Retrieve the transaction log, with credentials redacted
      *
      * @return string
      */
@@ -183,9 +242,29 @@ abstract class AbstractProtocol
     }
 
     /**
+     * The request as it may be logged: the arguments of credential commands replaced by "[redacted]".
+     */
+    private static function redact(string $request): string
+    {
+        if (1 !== preg_match(self::CREDENTIAL_COMMAND, $request, $matches) || '' === ($matches['secret'] ?? '')) {
+            return $request;
+        }
+
+        return (
+            ($matches['prefix'] ?? '')
+                . ($matches['command'] ?? '')
+                . ($matches['mechanism'] ?? '')
+                . ' '
+                . self::REDACTED
+        );
+    }
+
+    /**
      * Add the transaction log
      *
      * @param  string $value new transaction
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _addLog($value)
@@ -208,46 +287,34 @@ abstract class AbstractProtocol
      * @param  string $remote Remote
      * @throws Exception\RuntimeException
      * @return bool
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _connect($remote)
     {
-        $errorNum = 0;
-        $errorStr = '';
-
-        // open connection
-        set_error_handler(
-            static function ($error, $message = '') {
-                throw new Exception\RuntimeException(sprintf('Could not open socket: %s', $message), $error);
-            },
-            E_WARNING,
-        );
-        try {
-            $this->socket = stream_socket_client($remote, $errorNum, $errorStr, self::TIMEOUT_CONNECTION);
-        } finally {
-            restore_error_handler();
+        [$socket, $warning] = ErrorCapture::run(static fn(): mixed => stream_socket_client(
+            $remote,
+            timeout: self::TIMEOUT_CONNECTION,
+        ));
+        if (! is_resource($socket)) {
+            throw new Exception\RuntimeException("Could not open socket: {$warning}");
         }
 
-        if (false === $this->socket) {
-            if (0 == $errorNum) {
-                $errorStr = 'Could not open socket';
-            }
-            throw new Exception\RuntimeException($errorStr);
-        }
+        $this->socket = $socket;
 
-        if (($result = stream_set_timeout($this->socket, self::TIMEOUT_CONNECTION)) === false) {
-            throw new Exception\RuntimeException('Could not set stream timeout');
-        }
-
-        return $result;
+        return stream_set_timeout($socket, self::TIMEOUT_CONNECTION);
     }
 
     /**
      * Disconnect from remote host and free resource
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _disconnect()
     {
+        $this->connection?->close();
         if (is_resource($this->socket)) {
             fclose($this->socket);
         }
@@ -258,64 +325,55 @@ abstract class AbstractProtocol
      *
      * @param  string $request
      * @throws Exception\RuntimeException
-     * @return int|bool Number of bytes written to remote host
+     * @return int Number of bytes written to remote host
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _send($request)
     {
-        if (! is_resource($this->socket)) {
-            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
-        }
+        return $this->sendAndLog($request, self::redact($request));
+    }
 
-        $this->request = $request;
-
-        $result = fwrite($this->socket, $request . self::EOL);
-
-        // Save request to internal log
-        $this->_addLog($request . self::EOL);
-
-        if (false === $result) {
-            throw new Exception\RuntimeException("Could not send request to {$this->host}");
-        }
-
-        return $result;
+    /**
+     * Send a request that holds a secret, such as a SASL response, logging it as $loggedAs.
+     *
+     * @throws Exception\RuntimeException
+     * @return int Number of bytes written to remote host
+     */
+    protected function sendSensitive(#[SensitiveParameter] string $request, string $loggedAs = self::REDACTED): int
+    {
+        return $this->sendAndLog($request, $loggedAs);
     }
 
     /**
      * Get a line from the stream.
      *
-     * @param  int $timeout Per-request timeout value if applicable
+     * @param  int|null $timeout Per-request timeout value if applicable
      * @throws Exception\RuntimeException
      * @return string
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _receive($timeout = null)
     {
-        if (! is_resource($this->socket)) {
-            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
-        }
+        $connection = $this->connection();
 
         // Adapters may wish to supply per-commend timeouts according to appropriate RFC
         if (null !== $timeout) {
-            stream_set_timeout($this->socket, $timeout);
+            $connection->setTimeout((int) $timeout);
         }
 
-        // Retrieve response
-        $response = fgets($this->socket, 1024);
+        try {
+            $response = $connection->readLine(self::RESPONSE_LINE_LENGTH);
+        } catch (Exception\TimeoutException $e) {
+            throw new Exception\RuntimeException("{$this->host} has timed out", previous: $e);
+        } catch (Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException("Could not read from {$this->host}", previous: $e);
+        }
 
-        // Save request to internal log
         $this->_addLog($response);
-
-        // Check meta data to ensure connection is still valid
-        $info = stream_get_meta_data($this->socket);
-
-        if ($info['timed_out']) {
-            throw new Exception\RuntimeException("{$this->host} has timed out");
-        }
-
-        if (false === $response) {
-            throw new Exception\RuntimeException("Could not read from {$this->host}");
-        }
 
         return $response;
     }
@@ -326,38 +384,118 @@ abstract class AbstractProtocol
      * Read the response from the stream and check for expected return code.
      * Throws a Contenir\Mail\Protocol\Exception\ExceptionInterface if an unexpected code is returned.
      *
-     * @param  string|array $code One or more codes that indicate a successful response
-     * @param  int $timeout Per-request timeout value if applicable
+     * @param  string|int|array<string|int> $code One or more codes that indicate a successful response
+     * @param  int|null $timeout Per-request timeout value if applicable
      * @throws Exception\RuntimeException
      * @return string Last line of response string
+     *
+     * @mago-expect lint:method-name The protected name Protocol\Smtp and its subclasses call.
+     * @mago-expect analysis:unreachable-match-arm The analyser does not carry $errMsg into the next iteration of the loop.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _expect($code, $timeout = null)
     {
         $this->response = [];
-        $errMsg         = '';
+        $errMsg         = null;
+        $cmd            = '';
+        $msg            = '';
 
         if (! is_array($code)) {
             $code = [$code];
         }
 
+        $codes = array_map(strval(...), $code);
         do {
-            $this->response[] = $result = $this->_receive($timeout);
-            [$cmd, $more, $msg] = preg_split('/([\s-]+)/', $result, 2, PREG_SPLIT_DELIM_CAPTURE);
-
-            if ('' !== $errMsg) {
-                $errMsg .= " {$msg}";
-            } elseif (null === $cmd || ! in_array($cmd, $code)) {
-                $errMsg = $msg;
-            }
-
-            // The '-' message prefix indicates an information string instead of a response string.
+            $result           = $this->_receive($timeout);
+            $this->response[] = $result;
+            [$cmd, $more, $msg] = self::splitReply($result);
+            $errMsg = match (true) {
+                null !== $errMsg => "{$errMsg} {$msg}",
+                in_array($cmd, $codes, strict: true) => null,
+                default                              => $msg,
+            };
         } while (str_starts_with($more, '-'));
 
-        if ('' !== $errMsg) {
+        if (null !== $errMsg) {
             throw new Exception\RuntimeException($errMsg, (int) $cmd);
         }
 
         return $msg;
+    }
+
+    /**
+     * The connection requests and responses travel over.
+     *
+     * @throws Exception\RuntimeException When there is none, or it is closed.
+     */
+    protected function connection(): ConnectionInterface
+    {
+        $connection = $this->adoptSocket() ?? $this->connection;
+        if (null === $connection || ! $connection->isConnected()) {
+            throw new Exception\RuntimeException("No connection has been established to {$this->host}");
+        }
+
+        return $connection;
+    }
+
+    /**
+     * Wrap the socket a subclass opened into $socket, when it is new.
+     *
+     * @throws Exception\InvalidArgumentException Never: the socket is checked to be a resource first.
+     *
+     * @mago-expect lint:halstead Three property comparisons; splitting them further would not read better.
+     */
+    private function adoptSocket(): ?ConnectionInterface
+    {
+        if (! is_resource($this->socket) || $this->socket === $this->wrappedSocket) {
+            return null;
+        }
+
+        $this->connection    = StreamConnection::fromStream($this->socket, $this->host);
+        $this->wrappedSocket = $this->socket;
+
+        return $this->connection;
+    }
+
+    /**
+     * The reply code, the separator after it ("-" for a line that more lines follow), and the text.
+     *
+     * @return array{string, string, string}
+     */
+    private static function splitReply(string $line): array
+    {
+        $parts = preg_split(
+            pattern: '/([\s-]+)/',
+            subject: $line,
+            limit: 2,
+            flags: PREG_SPLIT_DELIM_CAPTURE,
+        );
+        // @codeCoverageIgnoreStart
+        // preg_split() fails only on an invalid pattern or a backtracking limit, neither possible with this pattern.
+        if (false === $parts) {
+            return [$line, '', ''];
+        }
+
+        // @codeCoverageIgnoreEnd
+
+        return [$parts[0] ?? '', $parts[1] ?? '', $parts[2] ?? ''];
+    }
+
+    /**
+     * @throws Exception\RuntimeException
+     */
+    private function sendAndLog(string $request, string $loggedAs): int
+    {
+        $connection    = $this->connection();
+        $this->request = $loggedAs;
+        $this->_addLog($loggedAs . self::EOL);
+
+        try {
+            $connection->write($request . self::EOL);
+        } catch (Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException("Could not send request to {$this->host}", previous: $e);
+        }
+
+        return strlen($request) + strlen(self::EOL);
     }
 }
