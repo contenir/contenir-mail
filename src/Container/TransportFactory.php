@@ -32,8 +32,8 @@ use function strtolower;
  * ],
  * ```
  *
- * "type" is smtp, sendmail (the default), file or in-memory; the other keys are passed to
- * that transport's Config.
+ * "type" is required: smtp, sendmail, file or in-memory. The other keys are passed to that
+ * transport's Config.
  *
  * @mago-expect analysis:mixed-assignment Container configuration arrives untyped; each Config reads it into types.
  */
@@ -43,8 +43,8 @@ final readonly class TransportFactory
     public const array TYPES = ['smtp', 'sendmail', 'file', 'inmemory'];
 
     /**
-     * @throws InvalidArgumentException When the configuration is not an array, the type is unknown,
-     *     or the transport's settings are invalid.
+     * @throws InvalidArgumentException When the configuration is not an array, the type is missing or
+     *     unknown, or the transport's settings are invalid.
      * @throws ContainerExceptionInterface When the container cannot provide its "config".
      */
     public function __invoke(ContainerInterface $container): Transport\TransportInterface
@@ -54,8 +54,15 @@ final readonly class TransportFactory
         $transport = self::array($mail, 'config["mail"]')['transport'] ?? [];
         $transport = self::array($transport, 'config["mail"]["transport"]');
 
-        $type = $transport['type'] ?? 'sendmail';
+        $type = $transport['type'] ?? null;
         unset($transport['type']);
+        if (null === $type) {
+            throw new InvalidArgumentException(sprintf(
+                'config["mail"]["transport"]["type"] is required; set it to one of %s',
+                implode(', ', self::TYPES),
+            ));
+        }
+
         if (! is_string($type)) {
             throw new InvalidArgumentException(sprintf(
                 'config["mail"]["transport"]["type"] must be one of %s, got %s',
