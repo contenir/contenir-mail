@@ -1,6 +1,6 @@
 # IMAP and POP3 for the integration suite: one static user whose mbox
 # folders are the test fixtures, copied in by the tests themselves.
-protocols = imap pop3
+protocols = imap pop3 lmtp
 listen = *
 log_path = /dev/stderr
 
@@ -10,7 +10,12 @@ ssl_key = </certs/server.key
 ssl_dh = </certs/dh.pem
 
 disable_plaintext_auth = no
-auth_mechanisms = plain login
+# XOAUTH2 and OAUTHBEARER check the token as the passdb password, so the
+# token is the same secret as the password.
+auth_mechanisms = plain login xoauth2 oauthbearer
+# LMTP recipients such as inbox@example.org are the user "inbox".
+auth_username_format = %Ln
+postmaster_address = postmaster@example.org
 
 first_valid_uid = 1
 first_valid_gid = 1
@@ -25,6 +30,18 @@ passdb {
 userdb {
   driver = static
   args = uid=${MAIL_UID} gid=${MAIL_GID} home=/srv/mail/%u
+}
+
+service auth {
+  inet_listener {
+    port = 12345
+  }
+}
+
+service lmtp {
+  inet_listener lmtp {
+    port = 24
+  }
 }
 
 protocol pop3 {

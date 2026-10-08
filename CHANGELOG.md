@@ -39,7 +39,7 @@ PHP 8.3, 8.4 and 8.5, under the `Contenir\Mail` namespace.
 ### Added
 
 - `<Component>Config` objects for transports, protocols and storage, built from arrays or iterables.
-- XOAUTH2 for SMTP, IMAP and POP3, with a token provider.
+- XOAUTH2 for SMTP, with a token provider, and for POP3 through `Protocol\Pop3\Xoauth2\Microsoft`.
 - A `Failover` transport, which tries a list of transports in turn.
 - Address groups, read and written as `AddressGroup` values.
 - SMTPUTF8 and RFC 6532 UTF-8 headers.
