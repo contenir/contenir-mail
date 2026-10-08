@@ -8,6 +8,7 @@ use Contenir\Mail\Address;
 use Contenir\Mail\AddressGroup;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Validator\DomainName;
 
 use function idn_to_ascii;
 use function implode;
@@ -16,7 +17,6 @@ use function strlen;
 use function strrpos;
 use function substr;
 
-use const IDNA_DEFAULT;
 use const INTL_IDNA_VARIANT_UTS46;
 
 /**
@@ -93,7 +93,7 @@ final class AddressEncoder
         return (
             substr($email, offset: 0, length: $at)
                 . '@'
-                . (string) idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46)
+                . (string) idn_to_ascii($domain, DomainName::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46)
         );
     }
 }

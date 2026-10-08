@@ -181,4 +181,13 @@ final class AddressGroupHeaderTest extends TestCase
 
         static::assertSame('y@x.example, B:;', $header->getFieldValue());
     }
+
+    /**
+     * IDNA2008 keeps "ß", where transitional processing would write a different domain, "fass.de".
+     */
+    #[Test]
+    public function writesInternationalDomainWithIdna2008(): void
+    {
+        static::assertSame('To: jo@xn--fa-hia.de', (new To(new Address('jo@faß.de')))->toString());
+    }
 }
