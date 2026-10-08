@@ -27,9 +27,9 @@ chmod 644 "$var/certs/"*
 
 envsubst '${MAIL_PASSWORD} ${MAIL_UID} ${MAIL_GID}' < dovecot.conf.template > "$var/dovecot.conf"
 
-docker compose up -d --wait >&2
+docker compose up -d --build --wait >&2
 
-for port in 143 993 110 995 1025 8025; do
+for port in 143 993 110 995 587 1025 8025; do
   for _ in $(seq 1 30); do
     (echo > "/dev/tcp/127.0.0.1/$port") 2>/dev/null && break
     sleep 1
