@@ -13,6 +13,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `text/html` part as UTF-8, or null. Transfer encodings and allow-listed
   charsets are decoded, and the last `multipart/alternative` part wins. The
   HTML is returned as sent and is not sanitised.
+- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
+  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
+  its other flags alone. They are not on `WritableInterface`, as Maildir has
+  no equivalent.
 
 ### Changed
 
@@ -34,10 +38,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
-  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
-  its other flags alone. They are not on `WritableInterface`, as Maildir has
-  no equivalent.
+- Nothing.
 
 ### Changed
 
