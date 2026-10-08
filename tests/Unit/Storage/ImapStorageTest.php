@@ -161,10 +161,12 @@ final class ImapStorageTest extends TestCase
             ->expect("TAG2 STARTTLS\r\n")
             ->reply("TAG2 OK begin TLS\r\n")
             ->startTls()
-            ->expect('TAG3 LOGIN "u" "' . self::PASSWORD . "\"\r\n")
-            ->reply("TAG3 OK logged in\r\n")
-            ->expect("TAG4 SELECT \"INBOX\"\r\n")
-            ->reply("TAG4 OK selected\r\n")
+            ->expect("TAG3 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1\r\nTAG3 OK\r\n")
+            ->expect('TAG4 LOGIN "u" "' . self::PASSWORD . "\"\r\n")
+            ->reply("TAG4 OK logged in\r\n")
+            ->expect("TAG5 SELECT \"INBOX\"\r\n")
+            ->reply("TAG5 OK selected\r\n")
             ->hangUp();
 
         new Imap(

@@ -321,10 +321,12 @@ final class CommandInjectionTest extends TestCase
     public function sendsAPasswordWithALineBreakAsALiteralRatherThanASecondCommand(): void
     {
         $server = ScriptedServer::imapGreeting()
-            ->expect("TAG1 LOGIN \"user\" {21}\r\n")
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1\r\nTAG1 OK\r\n")
+            ->expect("TAG2 LOGIN \"user\" {21}\r\n")
             ->reply("+ go\r\n")
             ->expect("pw\r\nTAG2 DELETE INBOX\r\n")
-            ->reply("TAG1 NO\r\n")
+            ->reply("TAG2 NO\r\n")
             ->hangUp();
 
         static::assertFalse(ScriptedServer::imap($server)->login('user', "pw\r\nTAG2 DELETE INBOX"));

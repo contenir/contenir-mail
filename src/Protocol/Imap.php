@@ -11,6 +11,7 @@ use function array_chunk;
 use function array_map;
 use function array_pop;
 use function array_shift;
+use function array_values;
 use function count;
 use function explode;
 use function implode;
@@ -80,6 +81,14 @@ class Imap
 
     /** Bytes read so far for the current command's response */
     private int $responseBytes = 0;
+
+    /**
+     * The server's capabilities in upper case, as last read; null until read, and again after STARTTLS,
+     * which RFC 3501 requires clients to re-read them after.
+     *
+     * @var list<string>|null
+     */
+    private ?array $capabilities = null;
 
     /**
      * Public constructor
@@ -488,17 +497,25 @@ class Imap
     /**
      * Login to IMAP server.
      *
+     * The server's capabilities are read first, unless already known, so the
+     * password is never sent to a server that advertises LOGINDISABLED.
+     *
      * @param  string $user      username
      * @param  string $password  password
      * @return bool success
+     * @throws Exception\RuntimeException When the server advertises LOGINDISABLED.
      * @throws Exception\ExceptionInterface
      */
     public function login(string $user, #[SensitiveParameter] string $password): bool
     {
-        return $this->succeeded($this->requestAndResponse('LOGIN', [
-            $this->escapeOne($user),
-            $this->escapeOne($password),
-        ]));
+        $arguments = [$this->escapeOne($user), $this->escapeOne($password)];
+        if (in_array('LOGINDISABLED', $this->capabilities ?? $this->upperCaseCapabilities(), strict: true)) {
+            throw new Exception\RuntimeException(
+                'The server does not allow LOGIN on this connection (LOGINDISABLED); connect with TLS or STARTTLS',
+            );
+        }
+
+        return $this->succeeded($this->requestAndResponse('LOGIN', $arguments));
     }
 
     /**
@@ -913,11 +930,7 @@ class Imap
      */
     private function startTls(): void
     {
-        $capabilities = array_map(
-            static fn(mixed $capability): string => is_string($capability) ? strtoupper($capability) : '',
-            $this->capability(),
-        );
-        if (! in_array('STARTTLS', $capabilities, strict: true)) {
+        if (! in_array('STARTTLS', $this->upperCaseCapabilities(), strict: true)) {
             throw new Exception\RuntimeException(
                 'cannot enable TLS: the server does not offer STARTTLS; refusing to continue in plain text',
             );
@@ -928,6 +941,21 @@ class Imap
         }
 
         $this->connection->enableTls();
+        $this->capabilities = null;
+    }
+
+    /**
+     * Read the capabilities from the server, in upper case, and remember them until STARTTLS.
+     *
+     * @return list<string>
+     * @throws Exception\ExceptionInterface
+     */
+    private function upperCaseCapabilities(): array
+    {
+        return $this->capabilities = array_values(array_map(
+            static fn(mixed $capability): string => is_string($capability) ? strtoupper($capability) : '',
+            $this->capability(),
+        ));
     }
 
     /**
