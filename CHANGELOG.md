@@ -42,6 +42,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   FETCH, each body only when it's read. `countMessages()` asks the server for
   the count with ESEARCH (RFC 4731) when it can. New on `Protocol\Imap`:
   `sort()` and `searchCount()`. (#21)
+- Reading TNEF (`winmail.dat`) attachments: `Storage\Part::getTnefContents()`
+  and `Storage\Message::getTnefContents()` find a message's
+  `application/ms-tnef` part and return its attachments, its plain-text body
+  and its RTF body, decompressed. `Storage\Tnef\Reader` reads a container
+  directly. The container is parsed as hostile: lengths are bounds-checked,
+  checksums verified, and attachments and output limited (100 and 64 MiB by
+  default). (#22)
 - SCRAM-SHA-256 authentication (RFC 5802, RFC 7677) for SMTP, IMAP and POP3.
   `Protocol\Smtp\Auth\ScramSha256` is an SMTP authenticator, with `type`
   `scram-sha-256` in settings, and `Imap::authenticate()` and

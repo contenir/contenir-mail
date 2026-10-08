@@ -215,6 +215,17 @@ final class Message implements PartInterface, IteratorAggregate
     }
 
     /**
+     * The attachments and body of the message's first TNEF part (winmail.dat), see Part::getTnefContents().
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read, or the TNEF part is malformed
+     *     or exceeds the reader's limits.
+     */
+    public function getTnefContents(?Tnef\Reader $reader = null): ?Tnef\Contents
+    {
+        return $this->part->getTnefContents($reader);
+    }
+
+    /**
      * The size of the body as stored, in bytes.
      *
      * @throws Exception\RuntimeException When the body cannot be read.

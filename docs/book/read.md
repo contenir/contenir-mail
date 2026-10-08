@@ -402,6 +402,62 @@ Display names and comments are kept as written too. Pass them through
 `Contenir\Mail\Header\SafeText::addressList()` or `SafeText::display()` before
 showing them, to remove control and bidirectional characters.
 
+### TNEF attachments (winmail.dat)
+
+Outlook and Exchange sometimes wrap a message's attachments in a TNEF
+container: an `application/ms-tnef` part, usually named `winmail.dat`, that
+other mail clients can't open. `getTnefContents()` finds the first such part
+of a message, searching depth first, and reads it. It returns null when there
+is none:
+
+```php
+$tnef = $message->getTnefContents();
+foreach ($tnef?->attachments ?? [] as $attachment) {
+    file_put_contents("/srv/attachments/{$attachment->filename}", $attachment->content);
+}
+```
+
+The result is a `Contenir\Mail\Storage\Tnef\Contents` with three properties:
+
+- `attachments`: a list of `Tnef\Attachment`, each with:
+  - `filename`: the long file name, or else the short title, already passed
+    through `SafeText::filename()`;
+  - `content`: the file's bytes;
+  - `type`: the media type the sender gave, in lower case, or
+    `application/octet-stream` when it gave none, or something other than a
+    plain `type/subtype`.
+- `text`: the plain-text body as UTF-8, or null.
+- `rtf`: the RTF body, decompressed, or null. It's returned as sent and isn't
+  safe to render as it is.
+
+A part is TNEF when its type is `application/ms-tnef` or
+`application/vnd.ms-tnef`, or its file name is `winmail.dat`. To read a part
+found some other way, or a `winmail.dat` file, use the reader directly:
+
+```php
+use Contenir\Mail\Storage\Tnef\Reader;
+
+$contents = (new Reader())->read($part->getContent());
+```
+
+TNEF is a binary format, and the container comes from the sender, so the
+reader treats it as hostile. It refuses the container with a
+`Storage\Exception\RuntimeException`, rather than returning part of it, when:
+
+- a length runs past the end of the data;
+- a record's checksum doesn't match;
+- the container holds more than 100 attachments;
+- it would produce more than 64 MiB of attachments, text and RTF together.
+
+Both limits can be changed:
+
+```php
+$tnef = $message->getTnefContents(new Reader(maxAttachments: 20, maxBytes: 10 * 1024 * 1024));
+```
+
+To forward an attachment, build a part from it with
+`Mime\Attachment::fromString($attachment->content, $attachment->filename, $attachment->type)`.
+
 ### Forwarding and attaching
 
 `toString()` writes a message or part back out. Headers that were not
