@@ -555,6 +555,26 @@ Method | Description
 `isEmpty()` | Whether the list is empty.
 `toArray()` | Return the addresses as a list.
 
+### Groups
+
+An address list can also name groups of addresses (RFC 5322, section 3.4).
+`Contenir\Mail\AddressGroup` holds a group's name and its `AddressList`; every
+address method accepts one. A group may be empty, which is how a message sent
+only to Bcc recipients usually fills its To header:
+
+```php
+use Contenir\Mail\AddressGroup;
+use Contenir\Mail\AddressList;
+
+$message->setTo(new AddressGroup('undisclosed-recipients')); // To: undisclosed-recipients:;
+$message->addCc(new AddressGroup('Team', AddressList::fromIterable(['jo@example.org', 'sam@example.org'])));
+```
+
+`getTo()` and the other address getters return every address, group members
+included, since they are all recipients. The groups themselves, with their
+names, are on the header: `$message->getHeaders()->get('To')?->getGroups()`.
+Groups read from stored mail keep their names.
+
 ## Headers
 
 `Contenir\Mail\Headers` is an immutable, countable and iterable collection of
