@@ -1,0 +1,20 @@
+compatibility_level = 3.6
+maillog_file = /dev/stdout
+
+myhostname = localhost
+mydestination =
+inet_interfaces = all
+inet_protocols = ipv4
+
+smtpd_tls_cert_file = /certs/server.crt
+smtpd_tls_key_file = /certs/server.key
+smtpd_tls_security_level = may
+smtpd_tls_auth_only = yes
+
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = inet:dovecot:12345
+smtpd_sasl_auth_enable = yes
+
+virtual_mailbox_domains = example.org
+virtual_transport = lmtp:inet:dovecot:24
+smtpd_relay_restrictions = permit_sasl_authenticated, reject_unauth_destination
