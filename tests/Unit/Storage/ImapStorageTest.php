@@ -25,6 +25,7 @@ use Contenir\Mail\Storage\RawMessage;
 use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
 use Contenir\Mail\Testing\InMemoryConnection;
+use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -790,6 +791,108 @@ final class ImapStorageTest extends TestCase
         $this->expectExceptionMessage('Cannot set the flags');
 
         $this->imap($protocol)->setFlags(2, [Flag::Seen]);
+    }
+
+    /**
+     * A storage whose server accepts SELECT, then expects $request and answers $response.
+     */
+    private static function scriptedImap(string $request, string $response): Imap
+    {
+        $server = ScriptedServer::imapGreeting()
+            ->expect("TAG1 SELECT \"INBOX\"\r\n")
+            ->reply("TAG1 OK selected\r\n")
+            ->expect($request)
+            ->reply($response)
+            ->hangUp();
+
+        return new Imap(ScriptedServer::imap($server));
+    }
+
+    /**
+     * @return array<string, array{string, Flag|string, string}>
+     */
+    public static function flagChangeProvider(): array
+    {
+        return [
+            'add an enum'     => ['addFlags', Flag::Seen, "TAG2 STORE 1 +FLAGS.SILENT (\\Seen)\r\n"],
+            'add a string'    => ['addFlags', '\answered', "TAG2 STORE 1 +FLAGS.SILENT (\\Answered)\r\n"],
+            'remove an enum'  => ['removeFlags', Flag::Seen, "TAG2 STORE 1 -FLAGS.SILENT (\\Seen)\r\n"],
+            'remove a string' => ['removeFlags', '\flagged', "TAG2 STORE 1 -FLAGS.SILENT (\\Flagged)\r\n"],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('flagChangeProvider')]
+    public function changesSingleFlags(string $method, Flag|string $flag, string $command): void
+    {
+        $server = ScriptedServer::imapGreeting()
+            ->expect("TAG1 SELECT \"INBOX\"\r\n")
+            ->reply("TAG1 OK selected\r\n")
+            ->expect($command)
+            ->reply("TAG2 OK done\r\n")
+            ->hangUp();
+        $imap = new Imap(ScriptedServer::imap($server));
+
+        $imap->$method(1, [$flag]);
+
+        static::assertTrue($server->isScriptComplete());
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function refusedFlagChangeProvider(): array
+    {
+        return [
+            'add'    => ['addFlags', '+', 'Cannot add the flags'],
+            'remove' => ['removeFlags', '-', 'Cannot remove the flags'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('refusedFlagChangeProvider')]
+    public function reportsRefusedFlagChange(string $method, string $mode, string $message): void
+    {
+        $imap = self::scriptedImap("TAG2 STORE 1 {$mode}FLAGS.SILENT (\\Seen)\r\n", "TAG2 NO refused\r\n");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage($message);
+
+        $imap->$method(1, [Flag::Seen]);
+    }
+
+    #[Test]
+    #[DataProvider('flagMethodProvider')]
+    public function refusesInvalidFlagChange(string $method): void
+    {
+        $protocol = $this->protocol();
+        $protocol->expects($this->never())->method('store');
+        $imap = $this->imap($protocol);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $imap->$method(1, [Flag::Recent]);
+    }
+
+    #[Test]
+    #[DataProvider('flagMethodProvider')]
+    public function refusesFlagChangeBelowOne(string $method): void
+    {
+        $protocol = $this->protocol();
+        $protocol->expects($this->never())->method('store');
+        $imap = $this->imap($protocol);
+
+        $this->expectException(OutOfBoundsException::class);
+
+        $imap->$method(0, [Flag::Seen]);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function flagMethodProvider(): array
+    {
+        return ['add' => ['addFlags'], 'remove' => ['removeFlags']];
     }
 
     #[Test]
