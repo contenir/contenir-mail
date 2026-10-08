@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
+use Contenir\Mail\AddressGroup;
+use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
 
 use function idn_to_ascii;
+use function implode;
 use function sprintf;
 use function strlen;
 use function strrpos;
@@ -53,6 +56,24 @@ final class AddressEncoder
         }
 
         return sprintf('%s <%s>', HeaderWrap::encodePhrase($name), $email);
+    }
+
+    /**
+     * A group as it is written: its name as a display name would be, then its members, then ";".
+     */
+    public static function encodeGroup(AddressGroup $group): string
+    {
+        $name    = $group->getName();
+        $members = [];
+        foreach ($group->getAddresses() as $address) {
+            $members[] = self::encode($address);
+        }
+
+        return sprintf(
+            '%s:%s;',
+            Mime::isPrintable($name) ? Address::quoteDisplayName($name) : HeaderWrap::encodePhrase($name),
+            [] === $members ? '' : ' ' . implode(',' . Headers::FOLDING, $members),
+        );
     }
 
     /**

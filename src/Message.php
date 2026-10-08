@@ -168,19 +168,23 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setFrom(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function setFrom(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new From(self::toAddressList($addresses, $name)));
+        return $this->setAddressList(new From(self::toEntry($addresses, $name)));
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addFrom(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function addFrom(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new From($this->getFrom()->withList(self::toAddressList($addresses, $name))));
+        $header = $this->headers->get('From');
+
+        return $this->setAddressList(
+            ($header instanceof From ? $header : new From())->withAdded(self::toEntry($addresses, $name)),
+        );
     }
 
     public function getFrom(): AddressList
@@ -189,19 +193,23 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function setTo(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new To(self::toAddressList($addresses, $name)));
+        return $this->setAddressList(new To(self::toEntry($addresses, $name)));
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function addTo(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new To($this->getTo()->withList(self::toAddressList($addresses, $name))));
+        $header = $this->headers->get('To');
+
+        return $this->setAddressList(
+            ($header instanceof To ? $header : new To())->withAdded(self::toEntry($addresses, $name)),
+        );
     }
 
     public function getTo(): AddressList
@@ -210,19 +218,23 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setCc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function setCc(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new Cc(self::toAddressList($addresses, $name)));
+        return $this->setAddressList(new Cc(self::toEntry($addresses, $name)));
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addCc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function addCc(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new Cc($this->getCc()->withList(self::toAddressList($addresses, $name))));
+        $header = $this->headers->get('Cc');
+
+        return $this->setAddressList(
+            ($header instanceof Cc ? $header : new Cc())->withAdded(self::toEntry($addresses, $name)),
+        );
     }
 
     public function getCc(): AddressList
@@ -231,19 +243,23 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setBcc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function setBcc(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new Bcc(self::toAddressList($addresses, $name)));
+        return $this->setAddressList(new Bcc(self::toEntry($addresses, $name)));
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addBcc(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function addBcc(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new Bcc($this->getBcc()->withList(self::toAddressList($addresses, $name))));
+        $header = $this->headers->get('Bcc');
+
+        return $this->setAddressList(
+            ($header instanceof Bcc ? $header : new Bcc())->withAdded(self::toEntry($addresses, $name)),
+        );
     }
 
     public function getBcc(): AddressList
@@ -252,21 +268,23 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function setReplyTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function setReplyTo(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        return $this->setAddressList(new ReplyTo(self::toAddressList($addresses, $name)));
+        return $this->setAddressList(new ReplyTo(self::toEntry($addresses, $name)));
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      */
-    public function addReplyTo(Address|AddressList|string|iterable $addresses, ?string $name = null): self
+    public function addReplyTo(Address|AddressList|AddressGroup|string|iterable $addresses, ?string $name = null): self
     {
-        $addressList = $this->getReplyTo()->withList(self::toAddressList($addresses, $name));
+        $header = $this->headers->get('Reply-To');
 
-        return $this->setAddressList(new ReplyTo($addressList));
+        return $this->setAddressList(
+            ($header instanceof ReplyTo ? $header : new ReplyTo())->withAdded(self::toEntry($addresses, $name)),
+        );
     }
 
     public function getReplyTo(): AddressList
@@ -451,11 +469,13 @@ final class Message
     }
 
     /**
-     * @param Address|AddressList|string|iterable<int|string, Address|string|null> $addresses
+     * @param Address|AddressList|AddressGroup|string|iterable<int|string, Address|string|null> $addresses
      * @throws Exception\InvalidArgumentException When a name is given with anything but an e-mail address string.
      */
-    private static function toAddressList(Address|AddressList|string|iterable $addresses, ?string $name): AddressList
-    {
+    private static function toEntry(
+        Address|AddressList|AddressGroup|string|iterable $addresses,
+        ?string $name,
+    ): AddressList|AddressGroup {
         if (null !== $name && ! is_string($addresses)) {
             throw new Exception\InvalidArgumentException(
                 'A display name can only be given with a single e-mail address',
@@ -463,7 +483,7 @@ final class Message
         }
 
         return match (true) {
-            $addresses instanceof AddressList => $addresses,
+            $addresses instanceof AddressGroup => $addresses,
             $addresses instanceof Address => new AddressList($addresses),
             is_string($addresses) && null !== $name => new AddressList(new Address($addresses, $name)),
             is_string($addresses) => new AddressList(Address::fromString($addresses)),

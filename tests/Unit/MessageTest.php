@@ -1092,9 +1092,10 @@ final class MessageTest extends TestCase
         $list = new AddressList(new Address('first@example.com'));
 
         static::assertSame(
-            $list,
+            $list->toArray(),
             (new Message())->setTo($list)
-                ->getTo(),
+                ->getTo()
+                ->toArray(),
         );
     }
 }

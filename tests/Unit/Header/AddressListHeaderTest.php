@@ -106,7 +106,7 @@ final class AddressListHeaderTest extends TestCase
     {
         $list = self::makeAddressList();
 
-        static::assertSame($list, (new To($list))->getAddressList());
+        static::assertSame($list->toArray(), (new To($list))->getAddressList()->toArray());
     }
 
     #[Test]
@@ -140,9 +140,10 @@ final class AddressListHeaderTest extends TestCase
         $list = self::makeAddressList();
 
         static::assertSame(
-            $list,
+            $list->toArray(),
             (new Cc())->withAddressList($list)
-                ->getAddressList(),
+                ->getAddressList()
+                ->toArray(),
         );
     }
 
