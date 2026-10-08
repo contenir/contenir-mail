@@ -563,6 +563,14 @@ final class HeadersTest extends TestCase
     }
 
     #[Test]
+    public function withFirstPrependsBeforeExistingHeadersAndKeepsTheirWrittenText(): void
+    {
+        $headers = Headers::fromString("Foo:  one\r\n  folded\r\nBar: x")->withFirst(new GenericHeader('Foo', 'two'));
+
+        static::assertSame("Foo: two\r\nFoo:  one\r\n  folded\r\nBar: x\r\n", $headers->toString());
+    }
+
+    #[Test]
     public function withoutRemovesEveryInstanceOfHeader(): void
     {
         $headers = Headers::fromIterable([['Foo', 'foo'], ['Foo', 'bar'], 'Baz' => 'baz'])->without('foo');

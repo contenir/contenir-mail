@@ -59,6 +59,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   counts outside 4096 to 1,000,000 are refused. Non-ASCII credentials are
   normalised to NFKC when intl is installed. Channel binding (`-PLUS`) is not
   supported, as PHP does not expose the TLS data it needs. (#20)
+- DKIM signing (RFC 6376), with `rsa-sha256` and `ed25519-sha256` (RFC 8463).
+  `Dkim\Signer::sign()` returns a copy of the message with a `DKIM-Signature`
+  header first, holding the headers and CRLF body exactly as they were signed
+  and as the transports send them. Settings are a `Dkim\DkimConfig`: domain,
+  selector, key, signed headers (From always), `relaxed` or `simple`
+  canonicalisation, and optional `i=`, `t=`, `x=` and `l=`. `Dkim\PrivateKey`
+  reads RSA and Ed25519 keys from PEM, files, OpenSSL keys or raw Ed25519
+  seeds, refuses RSA keys under 1024 bits, hides the key from dumps and gives
+  the DNS record to publish. `Headers::withFirst()` adds a header before the
+  others. (#23)
 
 ### Changed
 

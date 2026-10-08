@@ -23,6 +23,11 @@
                 "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64"
             ]
         },
+        "CastArray": {
+            // preg_split() fails only for an invalid pattern or UTF-8 subject; the pattern is fixed
+            // and has no "u" flag, so it never fails and the cast never applies.
+            "ignore": ["Contenir\\Mail\\Dkim\\Signer::fields"]
+        },
         "DecrementInteger": {
             "ignore": [
                 // Any read size gives the same output, as unencoded bytes carry over to the next read.
