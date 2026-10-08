@@ -8,6 +8,7 @@ use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Transport;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use SensitiveParameter;
 use Traversable;
 
 use function get_debug_type;
@@ -63,7 +64,7 @@ final readonly class TransportFactory
      * @throws InvalidArgumentException When the configuration is not an array, the type is missing or
      *     unknown, or the transport's settings are invalid.
      */
-    private static function create(mixed $settings, string $path): Transport\TransportInterface
+    private static function create(#[SensitiveParameter] mixed $settings, string $path): Transport\TransportInterface
     {
         $transport = self::array($settings, $path);
         $type      = $transport['type'] ?? null;
@@ -109,7 +110,7 @@ final readonly class TransportFactory
      * @throws InvalidArgumentException When "transports" is missing or empty, another setting is given,
      *     or a transport's configuration is invalid.
      */
-    private static function failover(array $settings, string $path): Transport\Failover
+    private static function failover(#[SensitiveParameter] array $settings, string $path): Transport\Failover
     {
         $list = self::array($settings['transports'] ?? [], "{$path}[\"transports\"]");
         unset($settings['transports']);
@@ -137,7 +138,7 @@ final readonly class TransportFactory
      * @param array<array-key, mixed> $settings
      * @throws InvalidArgumentException When settings are given, since InMemory takes none.
      */
-    private static function inMemory(array $settings): Transport\InMemory
+    private static function inMemory(#[SensitiveParameter] array $settings): Transport\InMemory
     {
         if ([] !== $settings) {
             throw new InvalidArgumentException('The in-memory transport takes no settings besides "type"');
@@ -150,7 +151,7 @@ final readonly class TransportFactory
      * @return array<array-key, mixed>
      * @throws InvalidArgumentException When the value is neither an array nor Traversable.
      */
-    private static function array(mixed $value, string $name): array
+    private static function array(#[SensitiveParameter] mixed $value, string $name): array
     {
         if ($value instanceof Traversable) {
             return iterator_to_array($value);

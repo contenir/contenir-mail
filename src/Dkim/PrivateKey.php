@@ -282,7 +282,7 @@ final readonly class PrivateKey
     /**
      * The base64 inside a PEM block, without its armour lines and line breaks.
      */
-    private static function unarmour(string $pem): string
+    private static function unarmour(#[SensitiveParameter] string $pem): string
     {
         return (string) preg_replace('/-----[^-]+-----|\s+/', replacement: '', subject: $pem);
     }

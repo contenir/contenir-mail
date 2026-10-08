@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\ConnectionInterface;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Override;
+use SensitiveParameter;
 
 use function array_key_exists;
 use function array_key_last;
@@ -157,7 +158,7 @@ final class SmtpServer implements ConnectionInterface
     }
 
     #[Override]
-    public function write(string $data): void
+    public function write(#[SensitiveParameter] string $data): void
     {
         if (! $this->connected) {
             throw new RuntimeException('Cannot write: the connection is closed');

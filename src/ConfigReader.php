@@ -6,7 +6,10 @@ namespace Contenir\Mail;
 
 use BackedEnum;
 use Closure;
+use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
+use SensitiveParameter;
 
+use function array_fill_keys;
 use function array_key_exists;
 use function array_keys;
 use function get_debug_type;
@@ -56,6 +59,7 @@ final readonly class ConfigReader
      */
     private function __construct(
         private string $context,
+        #[SensitiveParameter]
         private array $values,
     ) {}
 
@@ -65,7 +69,7 @@ final readonly class ConfigReader
      * @param list<string> $keys The accepted keys, in snake_case.
      * @throws Exception\InvalidArgumentException When a key is unknown, not a string, or given twice.
      */
-    public static function read(string $context, iterable $config, array $keys): self
+    public static function read(string $context, #[SensitiveParameter] iterable $config, array $keys): self
     {
         $values = [];
         foreach ($config as $key => $value) {
@@ -99,6 +103,19 @@ final readonly class ConfigReader
         }
 
         return new self($context, $values);
+    }
+
+    /**
+     * Shown by var_dump() and print_r(), with every value hidden, since any of them may be a secret.
+     *
+     * @return array{context: string, values: array<string, string>}
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'context' => $this->context,
+            'values'  => array_fill_keys(array_keys($this->values), Credentials::HIDDEN),
+        ];
     }
 
     /**
@@ -353,7 +370,7 @@ final readonly class ConfigReader
         return $this->list($key, $value, 'a string or a list of strings');
     }
 
-    private static function closure(mixed $value): ?Closure
+    private static function closure(#[SensitiveParameter] mixed $value): ?Closure
     {
         return is_object($value) && method_exists($value, method: '__invoke') ? $value->__invoke(...) : null;
     }
@@ -375,7 +392,7 @@ final readonly class ConfigReader
      * @return list<string>
      * @throws Exception\InvalidArgumentException When the value is not an iterable of strings.
      */
-    private function list(string $key, mixed $value, string $expected): array
+    private function list(string $key, #[SensitiveParameter] mixed $value, string $expected): array
     {
         if (! is_iterable($value)) {
             throw $this->invalid($key, $expected, $value);
@@ -396,7 +413,7 @@ final readonly class ConfigReader
     /**
      * A bool, or one of the integers and strings that stand for one; null for anything else.
      */
-    private static function toBool(mixed $value): ?bool
+    private static function toBool(#[SensitiveParameter] mixed $value): ?bool
     {
         if (is_bool($value)) {
             return $value;
@@ -420,8 +437,12 @@ final readonly class ConfigReader
         return new Exception\InvalidArgumentException(sprintf('%s: option "%s" is required', $this->context, $key));
     }
 
-    private function invalid(string $key, string $expected, mixed $value): Exception\InvalidArgumentException
-    {
+    private function invalid(
+        string $key,
+        string $expected,
+        #[SensitiveParameter]
+        mixed $value,
+    ): Exception\InvalidArgumentException {
         return new Exception\InvalidArgumentException(sprintf(
             '%s: option "%s" must be %s, got %s',
             $this->context,

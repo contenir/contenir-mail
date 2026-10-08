@@ -65,45 +65,52 @@ final class HeaderBlock
      */
     private static function collect(string $block, string $eol, bool $skipMalformed): array
     {
+        /** @var list<array{string|null, list<string>|null}> $fields unfolded line, and written lines while complete */
         $fields = [];
-        /** @var array{string, list<string>, bool}|null $field unfolded line, written lines, whether those are complete */
-        $field = null;
+        /** @var string|null $value the current field's unfolded line, appended in place so a long fold stays linear */
+        $value = null;
+        /** @var list<string>|null $lines null once a line of only whitespace was dropped from the field */
+        $lines = null;
         foreach (HeaderLines::split($block, $eol) as $line) {
             if ('' === trim($line)) {
-                $field = null === $field ? null : [$field[0], $field[1], false];
+                $lines = null;
                 continue;
             }
 
             $name = [];
             if (1 === preg_match('/^([\x21-\x39\x3B-\x7E]+):/', $line, $name)) {
                 self::assertNameLength($name[1] ?? '');
-                $fields[] = $field;
-                $field    = [trim($line), [$line], true];
+                $fields[] = [$value, $lines];
+                $value    = trim($line);
+                $lines    = [$line];
                 continue;
             }
 
-            if (null === $field || 1 !== preg_match('/^\s/', $line)) {
+            if (null === $value || 1 !== preg_match('/^\s/', $line)) {
                 if (! $skipMalformed) {
                     throw new RuntimeException(sprintf('Line "%s" does not match header format!', $line));
                 }
 
-                $fields[] = $field;
-                $field    = null;
+                $fields[] = [$value, $lines];
+                $value    = null;
                 continue;
             }
 
-            $field = [$field[0] . ' ' . trim($line), [...$field[1], $line], $field[2]];
+            $value .= ' ' . trim($line);
+            if (null !== $lines) {
+                $lines[] = $line;
+            }
         }
 
-        $fields[] = $field;
+        $fields[] = [$value, $lines];
 
         $result = [];
-        foreach ($fields as $complete) {
-            if (null === $complete) {
+        foreach ($fields as [$unfolded, $written]) {
+            if (null === $unfolded) {
                 continue;
             }
 
-            $result[] = [$complete[0], $complete[2] ? HeaderLines::join($complete[1]) : null];
+            $result[] = [$unfolded, null === $written ? null : HeaderLines::join($written)];
         }
 
         if (count($result) > self::MAX_HEADERS) {

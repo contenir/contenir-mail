@@ -61,6 +61,7 @@ their own server. Everything else is not.
 | Parameter names, media types and disposition types must be RFC 2045 tokens (Symfony CVE-2026-45070) | `ContentTypeTest`, `ContentDispositionTest` token cases |
 | Non-ASCII parameter values are written with RFC 2231, not as encoded words inside quotes | `foldsParametersAtTheLineLimit`, `readsBackEscapedParameterValue` |
 | Multipart boundaries are validated against RFC 2046 and a generated boundary cannot occur in base64 or quoted-printable content | `MultipartTest` boundary cases |
+| A generated boundary is 128 random bits from `random_bytes()`, so a sender cannot predict it and end a part early in content that is not encoded | `generatesADifferentBoundaryEachTime`, `generatesABoundaryThatCannotAppearInEncodedContent` |
 | Attachment paths must be local files; `phar://`, `http://` and other stream wrappers are refused (PHPMailer CVE-2018-19296, CVE-2020-36326) | `AttachmentTest`, `FileConfigTest::rejectsStreamWrapperPath` |
 
 ### MIME and message parsing
@@ -69,6 +70,7 @@ their own server. Everything else is not.
 | --- | --- |
 | Structured headers are parsed before encoded words are decoded, so decoded text cannot change the structure (Mailsploit, 2017) | `ContentDispositionTest`, `keepsInjectedSubjectAsOneDecodedValue` |
 | Header blocks are limited to 1,000 headers and 1 MiB | `readsHeaderBlockOfExactlyTheLimit`, `refusesHeaderBlockLargerThanTheLimit` |
+| A folded header is unfolded in time linear in its lines; one folded over 80,000 lines took 17 seconds before 0.3.0 | `HeaderBlockTest::unfoldsALongFoldInLinearTime` |
 | Multiparts are limited to 1,000 parts and 32 levels of nesting, and a missing closing boundary cannot loop | `refusesPartsNestedTooDeeply`, `refusesMultipartWithoutClosingBoundary`, `hasNoPartsWhenBoundaryNeverAppears` |
 | A header its class cannot parse is kept as a `GenericHeader` instead of making the message unreadable | `MessageTest::keepsMalformedHeaderAsGenericHeaderAndParsesTheRest` |
 | Invalid UTF-8 in decoded text is replaced with U+FFFD | `Utf8Test`, `SafeTextTest` |
@@ -110,6 +112,7 @@ Prefer `cafile` or `capath` for a private certificate authority, and `peer_name`
 | The server certificate is verified, with TLS 1.2 or later only (RFC 8996) | `verifiesServerCertificateByDefault`, `offersOnlyTls12And13` |
 | AUTH is refused over an unencrypted connection unless `allow_insecure_auth` is set, and only advertised mechanisms are used | `refusesToAuthenticateOverUnencryptedConnection`, `refusesMechanismServerDoesNotOffer` |
 | Credentials are kept out of the session log, the last request and `var_dump()` output | `keepsCredentialsOutOfSessionLog`, `keepsCredentialsOutOfLastRequest`, `keepsPasswordOutOfDumps`, `keepsTokenOutOfDumps` |
+| Passwords, tokens, keys and SASL responses never appear in an exception's trace, even with `zend.exception_ignore_args` off: every parameter that can carry one is `#[SensitiveParameter]`, from the settings array to `ConnectionInterface::write()` | `SecretsInTracesTest` (SMTP cases) |
 | SASL fields refuse values that could rewrite them | `XOAuth2Test::rejectsValuesThatCouldRewriteSaslFields` |
 | SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256Test`, `Smtp\Auth\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
 | Replies are capped at 100 lines, and malformed replies are refused | `refusesReplyLongerThanLimit`, `refusesMalformedReply` |
@@ -149,7 +152,10 @@ which escapes them again for a shell.
 | Untrusted certificates are refused, with or without STARTTLS | `refusesAnUntrustedCertificateByDefault`, `refusesAnUntrustedCertificateAfterStartTls` |
 | Line and response sizes are limited (8 MiB and 64 MiB by default), and a literal larger than the limit is refused before it is read | `ResponseDecodingTest` limit cases |
 | A response with repeated spaces cannot loop | `skipsEmptyTokensBetweenRepeatedSpaces` |
+| A response line is tokenized in one pass, so a long line costs time linear in its length; a SEARCH reply of 200,000 ids took 9 seconds before 0.3.0 | `TokenizerScalingTest::decodesALongLineInLinearTime` |
+| A sequence set is checked range by range, so a set of many ranges, sent or received in ESEARCH, never exhausts PCRE's stack | `LargeSequenceSetTest` |
 | Credentials are redacted in the log | `keepsCredentialsOutOfTheLog`, `logsASensitiveRequestAsItsRedactedForm` |
+| Credentials never appear in an exception's trace: LOGIN, PASS, literals and command tokens are `#[SensitiveParameter]` down to the connection, and `ConfigReader` hides its values from `var_dump()` | `SecretsInTracesTest` (IMAP, POP3 and config cases), `ConfigReaderTest::hidesEveryValueFromVarDump` |
 | SCRAM-SHA-256 checks the server's signature before finishing, and cancels the exchange with `*` when it does not match. Without channel binding, which PHP cannot provide, it relies on TLS for the connection itself | `AuthenticateScramTest` (IMAP and POP3) |
 
 ### Storage

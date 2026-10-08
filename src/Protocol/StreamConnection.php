@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Protocol;
 
 use Override;
+use SensitiveParameter;
 
 use function fclose;
 use function fgets;
@@ -110,7 +111,7 @@ final class StreamConnection implements ConnectionInterface
     }
 
     #[Override]
-    public function write(string $data): void
+    public function write(#[SensitiveParameter] string $data): void
     {
         $stream = $this->stream();
 

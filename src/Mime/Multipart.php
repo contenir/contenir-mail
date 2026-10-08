@@ -7,11 +7,12 @@ namespace Contenir\Mail\Mime;
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Headers;
 use Override;
+use Random\RandomException;
 
 use function array_values;
-use function md5;
+use function bin2hex;
 use function preg_match;
-use function uniqid;
+use function random_bytes;
 
 /**
  * A multipart node of a MIME tree, holding other parts between boundary lines.
@@ -30,6 +31,7 @@ final readonly class Multipart implements PartInterface
      * @param list<PartInterface> $parts
      * @param string|null $boundary A random boundary is generated when none is given.
      * @throws Exception\InvalidArgumentException When there are no parts or the boundary is not valid.
+     * @throws Exception\RuntimeException When no boundary is given and the system has no source of randomness.
      */
     public function __construct(
         private MultipartType $type,
@@ -40,15 +42,34 @@ final readonly class Multipart implements PartInterface
             throw new Exception\InvalidArgumentException('A multipart needs at least one part');
         }
 
-        // "=_" cannot appear in quoted-printable or base64 content, so the boundary never collides with it;
-        // the rest only needs to be unique, not unpredictable
-        $boundary ??= '=_' . md5(uniqid(more_entropy: true));
+        $boundary ??= self::randomBoundary();
         if (1 !== preg_match(self::BOUNDARY, $boundary)) {
             throw new Exception\InvalidArgumentException("Invalid MIME boundary \"{$boundary}\"");
         }
 
         $this->parts    = array_values($parts);
         $this->boundary = $boundary;
+    }
+
+    /**
+     * "=_" and 32 random hex digits: "=_" cannot appear in quoted-printable or base64 content,
+     * so the boundary never collides with an encoded part, and a sender cannot predict it to
+     * end a part early in content it does not encode.
+     *
+     * @throws Exception\RuntimeException When the system has no source of randomness.
+     */
+    private static function randomBoundary(): string
+    {
+        try {
+            return '=_' . bin2hex(random_bytes(16));
+
+            // @codeCoverageIgnoreStart
+            // Unreachable on supported systems, which always have a source of randomness
+        } catch (RandomException $e) {
+            throw new Exception\RuntimeException('No source of randomness for a MIME boundary', 0, $e);
+        }
+
+        // @codeCoverageIgnoreEnd
     }
 
     public function getType(): MultipartType

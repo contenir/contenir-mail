@@ -136,8 +136,10 @@ final class Smtp extends AbstractProtocol
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
     public function __construct(
+        #[SensitiveParameter]
         ConnectionConfig|string|array $host = '127.0.0.1',
         ?int $port = null,
+        #[SensitiveParameter]
         ?array $config = null,
         ?AuthenticatorInterface $authenticator = null,
         ?ConnectionInterface $connection = null,
@@ -748,8 +750,12 @@ final class Smtp extends AbstractProtocol
      * @throws Exception\InvalidArgumentException When a port is given besides the ConnectionConfig.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    private static function readSettings(ConnectionConfig $connection, ?int $port, ?array $config): array
-    {
+    private static function readSettings(
+        ConnectionConfig $connection,
+        ?int $port,
+        #[SensitiveParameter]
+        ?array $config,
+    ): array {
         if (null !== $port) {
             throw new Exception\InvalidArgumentException('Give the port in the ConnectionConfig');
         }
@@ -764,8 +770,13 @@ final class Smtp extends AbstractProtocol
      * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
      */
-    private static function readLegacySettings(string|array $host, ?int $port, ?array $config): array
-    {
+    private static function readLegacySettings(
+        #[SensitiveParameter]
+        string|array $host,
+        ?int $port,
+        #[SensitiveParameter]
+        ?array $config,
+    ): array {
         $values = is_array($host)
             ? array_replace($host, $config ?? [])
             : array_replace($config ?? [], ['host' => $host, 'port' => $port]);
@@ -899,7 +910,7 @@ final class Smtp extends AbstractProtocol
      * @throws Exception\InvalidArgumentException When the line contains CR, LF or NUL.
      * @throws Exception\RuntimeException When there is no connection.
      */
-    private function command(string $line): void
+    private function command(#[SensitiveParameter] string $line): void
     {
         $this->_send(self::singleLine($line));
     }

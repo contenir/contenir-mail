@@ -118,6 +118,11 @@
             // method is a compile-time fatal error rather than a behaviour a test can observe.
             "ignore": ["Contenir\\Mail\\Protocol\\AbstractProtocol::_disconnect"]
         },
+        "GreaterThanOrEqualTo": {
+            // A position equal to the offset is where a fresh search from that offset would
+            // find the needle again, so searching anew gives the same position.
+            "ignore": ["Contenir\\Mail\\Protocol\\Imap::nextFrom"]
+        },
         "Coalesce": {
             // Scrubbing by character gives the same result as scrubbing by run, only slower,
             // which is why it is the fallback; Utf8ScrubTest checks both paths.
