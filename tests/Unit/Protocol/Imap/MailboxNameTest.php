@@ -66,6 +66,7 @@ final class MailboxNameTest extends TestCase
         return [
             'not closed'          => ['&ZeVn'],
             'an odd byte count'   => ['&AGEA-'],
+            'one base64 letter'   => ['&A-'],
             'a lone surrogate'    => ['&2D3-'],
             'not base64'          => ['&#!-'],
             'standard base64 "/"' => ['&U/BTFw-'],
