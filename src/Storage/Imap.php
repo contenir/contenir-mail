@@ -164,7 +164,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     /**
      * Several messages at once: their flags and headers come in one FETCH, and each
      * body is fetched only when it is read. This is the way to show a page of a
-     * large folder, with the numbers from sortMessages() or a range.
+     * large folder, with the numbers from getSortedNumbers() or a range.
      *
      * @return array<int, Message> The messages by number, in the order asked for; a number the
      *     server sends no headers for is left out.
