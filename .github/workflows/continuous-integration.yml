@@ -14,6 +14,9 @@ jobs:
       php-versions: '["8.3", "8.4", "8.5"]'
       coverage-php-version: "8.4"
       enable-infection: true
+      # Pull requests mutate only the lines they change; pushes to release
+      # branches still mutate everything.
+      infection-diff-on-pull-requests: true
       # Infection mutates only code the tests cover; every such mutant is
       # killed today, so any new survivor fails the build.
       min-msi: "100"
