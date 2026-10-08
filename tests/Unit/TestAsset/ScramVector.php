@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\TestAsset;
 
-use Contenir\Mail\Protocol\Sasl\ScramSha256 as Exchange;
+use Contenir\Mail\Protocol\Sasl\ScramSha256Exchange;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 
 use function base64_decode;
@@ -42,9 +42,9 @@ final class ScramVector
     /**
      * An exchange with the vector's credentials and client nonce.
      */
-    public static function exchange(): Exchange
+    public static function exchange(): ScramSha256Exchange
     {
-        return new Exchange(self::USER, self::PASSWORD, self::CLIENT_NONCE);
+        return new ScramSha256Exchange(self::USER, self::PASSWORD, self::CLIENT_NONCE);
     }
 
     /**

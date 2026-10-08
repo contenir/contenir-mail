@@ -114,7 +114,7 @@ final class AuthenticateScramTest extends TestCase
         $imap = ScriptedServer::imap($server);
         $imap->authenticate(ScramVector::authenticator());
 
-        static::assertSame([true, true], [$imap->hasUtf8Mailboxes(), $server->isScriptComplete()]);
+        static::assertSame([true, true], [$imap->usesUtf8MailboxNames(), $server->isScriptComplete()]);
     }
 
     #[Test]

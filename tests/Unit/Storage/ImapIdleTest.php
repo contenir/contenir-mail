@@ -7,10 +7,10 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Flag;
-use Contenir\Mail\Storage\Idle\Exists;
-use Contenir\Mail\Storage\Idle\Expunge;
 use Contenir\Mail\Storage\Idle\FlagsChanged;
-use Contenir\Mail\Storage\Idle\Recent;
+use Contenir\Mail\Storage\Idle\MessageCountChanged;
+use Contenir\Mail\Storage\Idle\MessageExpunged;
+use Contenir\Mail\Storage\Idle\RecentCountChanged;
 use Contenir\Mail\Storage\Imap;
 use Contenir\Mail\Storage\Message;
 use Contenir\Mail\Testing\InMemoryConnection;
@@ -62,7 +62,7 @@ final class ImapIdleTest extends TestCase
             ->reply("TAG3 OK\r\n");
 
         static::assertEquals(
-            [new Exists(3), new Recent(1)],
+            [new MessageCountChanged(3), new RecentCountChanged(1)],
             iterator_to_array(self::mailbox($server)->idle(600)),
         );
     }
@@ -92,7 +92,7 @@ final class ImapIdleTest extends TestCase
             ->reply("TAG3 OK\r\n");
 
         foreach (self::mailbox($server)->idle(60, $clock) as $event) {
-            static::assertEquals(new Exists(3), $event);
+            static::assertEquals(new MessageCountChanged(3), $event);
             $clock->advance(20);
         }
 
@@ -109,7 +109,7 @@ final class ImapIdleTest extends TestCase
             ->reply("TAG3 OK\r\n");
 
         static::assertEquals(
-            [new Expunge(1), new FlagsChanged(1, [Flag::Seen, '$Junk'])],
+            [new MessageExpunged(1), new FlagsChanged(1, [Flag::Seen, '$Junk'])],
             iterator_to_array(self::mailbox($server)->idle(600)),
         );
     }
@@ -124,7 +124,7 @@ final class ImapIdleTest extends TestCase
             ->reply("TAG3 OK\r\n");
 
         static::assertEquals(
-            [new Exists(3)],
+            [new MessageCountChanged(3)],
             iterator_to_array(self::mailbox($server)->idle(600), preserve_keys: false),
         );
     }
@@ -147,7 +147,7 @@ final class ImapIdleTest extends TestCase
         $new     = [];
 
         foreach ($mailbox->idle(600) as $event) {
-            if (! $event instanceof Exists || $event->count <= $last) {
+            if (! $event instanceof MessageCountChanged || $event->count <= $last) {
                 continue;
             }
 
@@ -189,7 +189,7 @@ final class ImapIdleTest extends TestCase
 
         $mailbox->noop();
 
-        static::assertEquals([new Exists(3), true], [$first, $server->isScriptComplete()]);
+        static::assertEquals([new MessageCountChanged(3), true], [$first, $server->isScriptComplete()]);
     }
 
     #[Test]

@@ -7,7 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp;
-use Contenir\Mail\Protocol\TlsOptions;
+use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3Config;
 use Contenir\Mail\Storage\RemoteConnection;
@@ -21,12 +21,12 @@ use PHPUnit\Framework\TestCase;
 /**
  * TLS settings beyond peer verification (contenir/contenir-mail#16).
  */
-#[CoversClass(TlsOptions::class)]
+#[CoversClass(TlsConfig::class)]
 #[CoversClass(ConnectionConfig::class)]
 #[CoversClass(SmtpConfig::class)]
 #[CoversClass(RemoteConnection::class)]
 #[Group('unit')]
-final class TlsOptionsTest extends TestCase
+final class TlsConfigTest extends TestCase
 {
     private const array SETTINGS = [
         'cafile'            => '/etc/ssl/internal-ca.pem',
@@ -40,7 +40,7 @@ final class TlsOptionsTest extends TestCase
     #[Test]
     public function addsNoContextOptionsByDefault(): void
     {
-        static::assertSame([], (new TlsOptions())->contextOptions());
+        static::assertSame([], (new TlsConfig())->contextOptions());
     }
 
     #[Test]
@@ -54,8 +54,8 @@ final class TlsOptionsTest extends TestCase
     {
         static::assertSame(
             ['cafile' => '/etc/ssl/internal-ca.pem'],
-            (new TlsOptions(
-                cafile: '/etc/ssl/internal-ca.pem',
+            (new TlsConfig(
+                caFile: '/etc/ssl/internal-ca.pem',
                 allowSelfSigned: false,
             ))->contextOptions(),
         );

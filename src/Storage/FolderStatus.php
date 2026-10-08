@@ -12,15 +12,18 @@ namespace Contenir\Mail\Storage;
 final readonly class FolderStatus
 {
     /**
-     * @param int $messages How many messages the folder holds.
-     * @param int $unseen How many of them have not been seen.
-     * @param int $uidNext The unique ID the next message will have, at least.
+     * @param int $messageCount How many messages the folder holds.
+     * @param int $unseenCount How many of them have not been seen.
+     * @param int $uidNext The UID the next message will have, at least.
+     * @param int $uidValidity The folder's UIDVALIDITY: a UID names the same message only while this
+     *     stays the same, so store it with any UID kept for later.
      * @param int|null $size The total size of its messages in octets; null when the server cannot say.
      */
     public function __construct(
-        public int $messages,
-        public int $unseen,
+        public int $messageCount,
+        public int $unseenCount,
         public int $uidNext,
+        public int $uidValidity,
         public ?int $size,
     ) {}
 }

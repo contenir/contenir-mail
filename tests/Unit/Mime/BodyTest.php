@@ -245,10 +245,10 @@ final class BodyTest extends TestCase
     public function leavesTheOriginalUnchanged(): void
     {
         $body = new Body();
-        $body->withText(Part::text('Hello'));
-        $body->withHtml(Part::html('<p>Hello</p>'));
-        $body->withEmbedded(Attachment::inline('logo', id: 'logo', type: 'image/png'));
-        $body->withAttachment(Attachment::fromString('a', filename: 'a.txt'));
+        static::assertNotSame($body, $body->withText(Part::text('Hello')));
+        static::assertNotSame($body, $body->withHtml(Part::html('<p>Hello</p>')));
+        static::assertNotSame($body, $body->withEmbedded(Attachment::inline('logo', id: 'logo', type: 'image/png')));
+        static::assertNotSame($body, $body->withAttachment(Attachment::fromString('a', filename: 'a.txt')));
 
         static::assertNull($body->toPart());
     }
@@ -269,7 +269,8 @@ final class BodyTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('An embedded part needs a Content-ID for the HTML to refer to');
 
-        (new Body())->withEmbedded(Attachment::fromString('a', filename: 'a.png', type: 'image/png'));
+        (new Body())->withEmbedded(Attachment::fromString('a', filename: 'a.png', type: 'image/png'))
+            ->toPart();
     }
 
     /**

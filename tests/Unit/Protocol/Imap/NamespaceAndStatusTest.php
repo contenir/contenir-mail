@@ -127,7 +127,7 @@ final class NamespaceAndStatusTest extends TestCase
         $imap = ScriptedServer::imap($server);
         $imap->login('jo', 'secret');
 
-        static::assertSame($expected, $imap->hasImap4Rev2());
+        static::assertSame($expected, $imap->isImap4Rev2Enabled());
     }
 
     /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Integration\Storage;
 
 use Contenir\Mail\Protocol\Imap as ImapProtocol;
-use Contenir\Mail\Storage\Idle\Exists;
+use Contenir\Mail\Storage\Idle\MessageCountChanged;
 use Contenir\Mail\Storage\Imap;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,7 +16,7 @@ use function getenv;
 
 /**
  * IDLE (RFC 2177) against Dovecot: mail appended from a second connection is
- * reported as Exists, and the mailbox is usable once the loop is left
+ * reported as MessageCountChanged, and the mailbox is usable once the loop is left
  * (contenir/contenir-mail#52).
  *
  * The message is appended before the loop starts, as one process cannot append
@@ -76,7 +76,7 @@ final class ImapIdleTest extends TestCase
 
         $count = null;
         foreach ($this->listener?->idle(timeout: 40) ?? [] as $event) {
-            if (! $event instanceof Exists) {
+            if (! $event instanceof MessageCountChanged) {
                 continue;
             }
 

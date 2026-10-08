@@ -48,7 +48,7 @@ use const OPENSSL_KEYTYPE_RSA;
  * ```php
  * PrivateKey::fromFile('/etc/dkim/2026.pem');
  * PrivateKey::fromPem($pem, passphrase: $passphrase);
- * PrivateKey::ed25519('nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=');
+ * PrivateKey::fromEd25519('nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=');
  * ```
  *
  * RSA keys need ext-openssl, and Ed25519 keys ext-sodium; reading an Ed25519 key from PEM needs both.
@@ -58,7 +58,7 @@ use const OPENSSL_KEYTYPE_RSA;
 final readonly class PrivateKey
 {
     /** Shown in place of the key by var_dump() and print_r() */
-    public const string HIDDEN = '[hidden]';
+    public const string REDACTED = '[hidden]';
 
     /** The smallest RSA key accepted; RFC 8301 requires verifiers to accept 1024 bits, and 2048 are recommended */
     public const int MIN_RSA_BITS = 1024;
@@ -140,7 +140,7 @@ final readonly class PrivateKey
 
         return str_contains($contents, '-----BEGIN')
             ? self::fromPem($contents, $passphrase)
-            : self::ed25519(trim($contents));
+            : self::fromEd25519(trim($contents));
     }
 
     /**
@@ -173,7 +173,7 @@ final readonly class PrivateKey
             throw new InvalidArgumentException('The DKIM private key must be an RSA or an Ed25519 key');
         }
 
-        return self::ed25519(substr($der, offset: 16));
+        return self::fromEd25519(substr($der, offset: 16));
     }
 
     /**
@@ -184,7 +184,7 @@ final readonly class PrivateKey
      *
      * @mago-expect analysis:unhandled-thrown-type libsodium throws only for a seed that is not 32 bytes, which is checked first.
      */
-    public static function ed25519(#[SensitiveParameter] string $key): self
+    public static function fromEd25519(#[SensitiveParameter] string $key): self
     {
         if (! function_exists('sodium_crypto_sign_detached')) {
             // @codeCoverageIgnoreStart
@@ -222,7 +222,7 @@ final readonly class PrivateKey
     /**
      * The TXT record to publish at "selector._domainkey.domain" for this key.
      *
-     * @mago-expect analysis:unhandled-thrown-type libsodium throws only for a secret key that is not 64 bytes, which ed25519() ensures.
+     * @mago-expect analysis:unhandled-thrown-type libsodium throws only for a secret key that is not 64 bytes, which fromEd25519() ensures.
      */
     public function dnsRecord(): string
     {
@@ -241,7 +241,7 @@ final readonly class PrivateKey
      * @internal
      * @throws RuntimeException When OpenSSL fails to sign.
      *
-     * @mago-expect analysis:unhandled-thrown-type libsodium throws only for a secret key that is not 64 bytes, which ed25519() ensures.
+     * @mago-expect analysis:unhandled-thrown-type libsodium throws only for a secret key that is not 64 bytes, which fromEd25519() ensures.
      */
     public function sign(string $data): string
     {
@@ -276,7 +276,7 @@ final readonly class PrivateKey
      */
     public function __debugInfo(): array
     {
-        return ['algorithm' => $this->algorithm->value, 'key' => self::HIDDEN];
+        return ['algorithm' => $this->algorithm->value, 'key' => self::REDACTED];
     }
 
     /**

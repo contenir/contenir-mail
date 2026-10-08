@@ -76,7 +76,7 @@ Method | Reads
 `PrivateKey::fromFile($path, $passphrase)` | A PEM file, RSA or Ed25519, encrypted or not, or a file holding an Ed25519 key in base64
 `PrivateKey::fromPem($pem, $passphrase)` | The same PEM, as a string
 `PrivateKey::fromOpenSsl($key)` | A key already loaded with `openssl_pkey_get_private()`
-`PrivateKey::ed25519($key)` | An Ed25519 key: the 32-byte seed or the 64-byte libsodium secret key, raw or in base64
+`PrivateKey::fromEd25519($key)` | An Ed25519 key: the 32-byte seed or the 64-byte libsodium secret key, raw or in base64
 
 In settings, give `private_key` (a PEM key, or an Ed25519 key in base64) or
 `private_key_path`, and `private_key_passphrase` for an encrypted PEM key.
@@ -110,14 +110,14 @@ Setting | Tag | Default | Meaning
 `domain` | `d=` | required | The signing domain. Its record holds the public key
 `selector` | `s=` | required | The selector. The record is at `selector._domainkey.domain`
 `privateKey`, or `private_key`, `private_key_path` and `private_key_passphrase` | `a=` | required | The key, which sets the algorithm
-`algorithm` | `a=` | the key's | Only checks the key is the one expected
+`expectedAlgorithm` | `a=` | the key's | Only checks the key is the one expected
 `headers` | `h=` | see below | The headers to sign when the message has them
 `headerCanonicalization` | `c=` | `relaxed` | `relaxed` or `simple`, for the headers
 `bodyCanonicalization` | `c=` | `relaxed` | `relaxed` or `simple`, for the body
 `identity` | `i=` | none | The user or agent signed for, at the domain or a subdomain of it, such as `@news.example.com`
-`timestamp` | `t=` | on | Write the signing time, from the signer's clock
+`includeTimestamp` | `t=` | on | Write the signing time, from the signer's clock
 `expiresAfter` | `x=` | none | Seconds after signing that the signature expires
-`bodyLength` | `l=` | off | Write the length of the signed body. Leave it off, see below
+`signBodyLength` | `l=` | off | Write the length of the signed body. Leave it off, see below
 
 Domains and selectors must be ASCII domain names. White space, `;` and control
 characters are refused, so a setting can't add a tag of its own.
@@ -149,7 +149,7 @@ more often in transit.
 With `l=`, the signature covers only the first part of the body, so anyone
 who relays the message can add text after it, such as a new MIME part with
 their own links. The signature still verifies, and mail clients show the
-added text as if you had sent it. Leave `bodyLength` off unless a mailing list
+added text as if you had sent it. Leave `signBodyLength` off unless a mailing list
 you send through adds a footer and you accept that risk.
 
 ## Sending the signed message

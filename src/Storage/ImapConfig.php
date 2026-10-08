@@ -9,7 +9,7 @@ use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
-use Contenir\Mail\Protocol\TlsOptions;
+use Contenir\Mail\Protocol\TlsConfig;
 use SensitiveParameter;
 
 /**
@@ -39,7 +39,7 @@ final readonly class ImapConfig
         'timeout',
         'ssl',
         'novalidatecert',
-        ...TlsOptions::KEYS,
+        ...TlsConfig::KEYS,
         'user',
         'password',
         'folder',

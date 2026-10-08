@@ -7,10 +7,10 @@ namespace Contenir\Mail\Tests\Unit\Storage\Idle;
 use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Idle\EventInterface;
 use Contenir\Mail\Storage\Idle\EventParser;
-use Contenir\Mail\Storage\Idle\Exists;
-use Contenir\Mail\Storage\Idle\Expunge;
 use Contenir\Mail\Storage\Idle\FlagsChanged;
-use Contenir\Mail\Storage\Idle\Recent;
+use Contenir\Mail\Storage\Idle\MessageCountChanged;
+use Contenir\Mail\Storage\Idle\MessageExpunged;
+use Contenir\Mail\Storage\Idle\RecentCountChanged;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -18,9 +18,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(EventParser::class)]
-#[CoversClass(Exists::class)]
-#[CoversClass(Expunge::class)]
-#[CoversClass(Recent::class)]
+#[CoversClass(MessageCountChanged::class)]
+#[CoversClass(MessageExpunged::class)]
+#[CoversClass(RecentCountChanged::class)]
 #[CoversClass(FlagsChanged::class)]
 #[Group('unit')]
 final class EventParserTest extends TestCase
@@ -41,11 +41,11 @@ final class EventParserTest extends TestCase
     public static function eventProvider(): array
     {
         return [
-            'new mail'              => [['3', 'EXISTS'], new Exists(3)],
-            'an empty folder'       => [['0', 'EXISTS'], new Exists(0)],
-            'a removed message'     => [['2', 'EXPUNGE'], new Expunge(2)],
-            'recent messages'       => [['1', 'RECENT'], new Recent(1)],
-            'a name in lower case'  => [['3', 'exists'], new Exists(3)],
+            'new mail'              => [['3', 'EXISTS'], new MessageCountChanged(3)],
+            'an empty folder'       => [['0', 'EXISTS'], new MessageCountChanged(0)],
+            'a removed message'     => [['2', 'EXPUNGE'], new MessageExpunged(2)],
+            'recent messages'       => [['1', 'RECENT'], new RecentCountChanged(1)],
+            'a name in lower case'  => [['3', 'exists'], new MessageCountChanged(3)],
             'changed flags'         => [
                 ['4', 'FETCH', ['FLAGS', ['\Seen', '$Junk']]],
                 new FlagsChanged(4, [Flag::Seen, '$Junk']),

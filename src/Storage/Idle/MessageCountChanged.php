@@ -10,7 +10,7 @@ namespace Contenir\Mail\Storage\Idle;
  *
  * @api
  */
-final readonly class Exists implements EventInterface
+final readonly class MessageCountChanged implements EventInterface
 {
     public function __construct(
         public int $count,

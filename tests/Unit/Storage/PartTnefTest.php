@@ -7,9 +7,9 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Message;
 use Contenir\Mail\Storage\Part;
-use Contenir\Mail\Storage\Tnef\Attachment;
 use Contenir\Mail\Storage\Tnef\Contents;
 use Contenir\Mail\Storage\Tnef\Reader;
+use Contenir\Mail\Storage\Tnef\TnefAttachment;
 use Contenir\Mail\Tests\Unit\TestAsset\TnefBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -132,7 +132,7 @@ final class PartTnefTest extends TestCase
     private static function filenames(?Contents $contents): array
     {
         return array_map(
-            static fn(Attachment $attachment): string => $attachment->filename,
+            static fn(TnefAttachment $attachment): string => $attachment->filename,
             $contents->attachments ?? [],
         );
     }

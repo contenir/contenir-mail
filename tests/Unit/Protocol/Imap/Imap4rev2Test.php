@@ -61,7 +61,7 @@ final class Imap4rev2Test extends TestCase
             ->hangUp();
         $imap = self::login($server);
 
-        static::assertSame([true, true], [$imap->hasUtf8Mailboxes(), $imap->create('R&D')]);
+        static::assertSame([true, true], [$imap->usesUtf8MailboxNames(), $imap->create('R&D')]);
     }
 
     /**
@@ -87,7 +87,10 @@ final class Imap4rev2Test extends TestCase
         $imap = self::login($server);
         $imap->create('Entwürfe');
 
-        static::assertSame([false, ['Entwürfe', 'R&D']], [$imap->hasUtf8Mailboxes(), array_keys($imap->listMailbox())]);
+        static::assertSame([false, ['Entwürfe', 'R&D']], [
+            $imap->usesUtf8MailboxNames(),
+            array_keys($imap->listMailbox()),
+        ]);
     }
 
     #[Test]
@@ -111,7 +114,7 @@ final class Imap4rev2Test extends TestCase
             ->reply("* ENABLED\r\nTAG3 OK\r\n")
             ->hangUp();
 
-        static::assertFalse(self::login($server)->hasUtf8Mailboxes());
+        static::assertFalse(self::login($server)->usesUtf8MailboxNames());
     }
 
     #[Test]
@@ -122,7 +125,7 @@ final class Imap4rev2Test extends TestCase
             ->reply("TAG3 BAD Unknown command\r\n")
             ->hangUp();
 
-        static::assertFalse(self::login($server)->hasUtf8Mailboxes());
+        static::assertFalse(self::login($server)->usesUtf8MailboxNames());
     }
 
     #[Test]
@@ -132,10 +135,23 @@ final class Imap4rev2Test extends TestCase
             ->expect("TAG3 CREATE \"Entw&APw-rfe\"\r\n")
             ->reply("TAG3 OK\r\n")
             ->hangUp();
-        $imap = ScriptedServer::imap($server)->useImap4Rev2(false);
+        $imap = ScriptedServer::imap($server)->preferImap4Rev2(false);
         $imap->login('jo', 'secret');
 
-        static::assertSame([true, false], [$imap->create('Entwürfe'), $imap->hasUtf8Mailboxes()]);
+        static::assertSame([true, false], [$imap->create('Entwürfe'), $imap->usesUtf8MailboxNames()]);
+    }
+
+    #[Test]
+    public function prefersImap4Rev2AgainWhenToldTo(): void
+    {
+        $server = self::signedIn('IMAP4rev2')
+            ->expect("TAG3 ENABLE IMAP4rev2\r\n")
+            ->reply("* ENABLED IMAP4rev2\r\nTAG3 OK\r\n")
+            ->hangUp();
+        $imap = ScriptedServer::imap($server)->preferImap4Rev2(false)->preferImap4Rev2();
+        $imap->login('jo', 'secret');
+
+        static::assertTrue($imap->isImap4Rev2Enabled());
     }
 
     #[Test]
@@ -181,7 +197,7 @@ final class Imap4rev2Test extends TestCase
         $imap = ScriptedServer::imap($server);
         $imap->authenticate(new XOAuth2('jo@example.com', 'token'));
 
-        static::assertTrue($imap->hasUtf8Mailboxes());
+        static::assertTrue($imap->usesUtf8MailboxNames());
     }
 
     #[Test]

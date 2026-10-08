@@ -270,7 +270,7 @@ Iterating a folder fetches messages one at a time. To show a page of a large
 folder, let the server sort the numbers, then fetch the page in one request:
 
 ```php
-$newest = $mail->sortMessages('REVERSE ARRIVAL');           // list of numbers
+$newest = $mail->getSortedNumbers('REVERSE ARRIVAL');       // list of numbers
 $page   = $mail->getMessages(...array_slice($newest, 0, 50)); // [number => Message]
 
 foreach ($page as $number => $message) {
@@ -280,7 +280,7 @@ foreach ($page as $number => $message) {
 
 `getMessages()` fetches the flags and headers of every message asked for in
 one FETCH, and each body only when it's read. A number the server sends no
-headers for is left out. `sortMessages()` takes sort keys from RFC 5256
+headers for is left out. `getSortedNumbers()` takes sort keys from RFC 5256
 (`ARRIVAL`, `CC`, `DATE`, `FROM`, `SIZE`, `SUBJECT`, `TO`) and RFC 5957
 (`DISPLAYFROM`, `DISPLAYTO`), each optionally after `REVERSE`, and needs a
 server that offers SORT. Without it, use number ranges: the highest numbers
@@ -305,17 +305,19 @@ use Contenir\Mail\Storage\Idle;
 $last = $mail->countMessages();
 
 foreach ($mail->idle(timeout: 600) as $event) {
-    if ($event instanceof Idle\Exists && $event->count > $last) {
+    if ($event instanceof Idle\MessageCountChanged && $event->count > $last) {
         $new  = $mail->getMessages(...range($last + 1, $event->count));
         $last = $event->count;
     }
 }
 ```
 
-The events are `Idle\Exists` (the folder now holds `$count` messages),
-`Idle\Expunge` (message `$number` was removed, and the ones after it moved down),
-`Idle\Recent` and `Idle\FlagsChanged` (message `$number` now has `$flags`).
-They all implement `Idle\EventInterface`. Other responses are skipped.
+The events are `Idle\MessageCountChanged` (the folder now holds `$count`
+messages), `Idle\MessageExpunged` (message `$number` was removed, and the
+ones after it moved down), `Idle\RecentCountChanged` (`$count` messages are
+new to this session) and `Idle\FlagsChanged` (message `$number` now has
+`$flags`). They all implement `Idle\EventInterface`. Other responses are
+skipped.
 
 Nothing is sent until the loop starts. The loop ends once the timeout has
 passed, 29 minutes by default, as RFC 2177 asks clients to end IDLE at least
@@ -337,8 +339,9 @@ is called.
 
 At the protocol level, `Protocol\Imap::idle()` yields each untagged response
 as its tokens, such as `['3', 'EXISTS']`. Both take a PSR-20 clock as their
-second argument, for tests. Waiting uses `ConnectionInterface::waitForData()`,
-so a quiet server is not a timeout.
+second argument, for tests. Waiting uses
+`ConnectionInterface::waitUntilReadable()`, so a quiet server is not a
+timeout.
 
 ## Working with messages
 
@@ -466,7 +469,7 @@ foreach ($tnef?->attachments ?? [] as $attachment) {
 
 The result is a `Contenir\Mail\Storage\Tnef\Contents` with three properties:
 
-- `attachments`: a list of `Tnef\Attachment`, each with:
+- `attachments`: a list of `Tnef\TnefAttachment`, each with:
   - `filename`: the long file name, or else the short title, already passed
     through `SafeText::filename()`;
   - `content`: the file's bytes;
@@ -561,7 +564,7 @@ IMAP folder names are always given and returned as UTF-8, such as
 `Entwürfe` or `R&D`. The client writes them in modified UTF-7 for an
 IMAP4rev1 server, and as they are once IMAP4rev2 or UTF8=ACCEPT is enabled.
 That happens after signing in, when the server offers it. Turn it off with
-`Protocol\Imap::useImap4Rev2(false)`.
+`Protocol\Imap::preferImap4Rev2(false)`.
 
 For local folders use `Storage\Folder\Mbox`, where each file in a directory
 tree is a folder, and `Storage\Folder\Maildir`, where each `.Name` maildir in
@@ -632,8 +635,8 @@ the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
 `INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
 New folders belong under the first personal prefix on servers that have one.
 
-`getFolderStatus()` reads a folder's message count, unseen count and next
-unique ID without selecting it. It also reads the folder's size in octets
+`getFolderStatus()` reads a folder's message count, unseen count, UIDNEXT
+and UIDVALIDITY without selecting it. It also reads the folder's size in octets
 when the server offers STATUS=SIZE (RFC 8438) or has IMAP4rev2 enabled.
 `getFolderSize()` reads only the size, and returns null when the server
 can't say:
@@ -642,7 +645,7 @@ can't say:
 foreach ($folders as $folder) {
     if ($folder->isSelectable()) {
         $status = $mail->getFolderStatus($folder);
-        printf("%s: %d unread, %s octets\n", $folder, $status->unseen, $status->size ?? '?');
+        printf("%s: %d unread, %s octets\n", $folder, $status->unseenCount, $status->size ?? '?');
     }
 }
 ```
@@ -669,20 +672,30 @@ $mail->renameFolder('INBOX.Projects', 'INBOX.Work');
 $mail->removeFolder('INBOX.Work');
 ```
 
-`appendMessage()` and `copyMessage()` return the UID of the new message when
-the storage reports one, and null otherwise. IMAP servers with UIDPLUS
-(RFC 4315, part of IMAP4rev2) report it, as Dovecot and Cyrus do; Maildir
-has no UIDs and always returns null. Keep the UID to find the message
-again, for example with `getNumberByUniqueId((string) $uid)`:
+`appendMessage()`, `copyMessage()` and `moveMessage()` return the UID the
+message has in the destination folder when the storage reports one, and null
+otherwise. IMAP servers with UIDPLUS (RFC 4315, part of IMAP4rev2) report it,
+as Dovecot and Cyrus do: for a move, from the COPYUID that MOVE sends before
+it expunges, or from the COPY when there is no MOVE. Maildir has no UIDs and
+always returns null.
+
+A UID is only meaningful together with the folder's UIDVALIDITY: when the
+server changes that, every UID in the folder may name another message. Store
+`getFolderStatus($folder)->uidValidity` with any UID you keep, and find the
+message again, for example with `getNumberByUniqueId((string) $uid)`, only
+while it is unchanged:
 
 ```php
-$uid = $imap->appendMessage($rawMessage, 'Sent');   // 3955, or null without UIDPLUS
+$uid      = $imap->appendMessage($rawMessage, 'Sent');      // 3955, or null without UIDPLUS
+$validity = $imap->getFolderStatus('Sent')->uidValidity;    // keep both
 ```
 
-At the protocol level, `Protocol\Imap::appendWithUid()` and `copyWithUid()`
-return a `Protocol\Imap\UidPlus` with the folder's UIDVALIDITY and the source
-and destination UIDs, true when the server reports none, or false when it
-refuses. `append()` and `copy()` still return a bool.
+At the protocol level, `Protocol\Imap::appendReturningUids()`,
+`copyReturningUids()` and `moveReturningUids()` return a
+`Protocol\Imap\UidMapping` with the folder's UIDVALIDITY and the source and
+destination UIDs, or null when the server reports none. They throw
+`Protocol\Exception\CommandRefusedException` when the server refuses.
+`append()`, `copy()` and `move()` still return a bool.
 
 IMAP literals, such as a message or a non-ASCII password, are sent without
 waiting for the server's go-ahead when it offers LITERAL+, or LITERAL- or
@@ -769,16 +782,6 @@ $mail = new Pop3(['host' => 'pop.example.com', 'user' => 'test', 'password' => $
 
 ## Migrating from laminas-mail
 
-laminas-mail                                   | contenir-mail
----------------------------------------------- | -------------
-`$message->subject`, `$message->getHeader()`   | `getSubject()`, `getFrom()`, … and `getHeaders()->get()`
-`isset($message->cc)`                          | `$message->getHeaders()->has('cc')`
-`$mail[3]`, `unset($mail[3])`                  | `getMessage(3)`, `removeMessage(3)`
-`$mail->getSize()` (all)                       | `getSizes()`
-`$mail->getUniqueId()` (all)                   | `getUniqueIds()`
-`$mail->hasTop`                                | `getCapabilities()['top']`
-`Storage::FLAG_SEEN`                           | `Storage\Flag::Seen`
-`$part->getContent()` (encoded)                | `getEncodedContent()`; `getContent()` now decodes
-`$folder->Archive`                             | `$folder->getFolder('Archive')`
-`messageEOL` setting                           | not needed: line breaks are detected
-`serialize($mbox)` to cache                    | not supported: storages hold open files
+The [migration guide](migrating.md) maps the laminas-mail storage API to this
+one. Check its silent changes first: message flags, decoded part content and
+IMAP folder names all behave differently without an error.

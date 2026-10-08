@@ -36,8 +36,8 @@ final class DkimConfigTest extends TestCase
                 'headerCanonicalization' => Canonicalization::Relaxed,
                 'bodyCanonicalization'   => Canonicalization::Relaxed,
                 'identity'               => null,
-                'bodyLength'             => false,
-                'timestamp'              => true,
+                'signBodyLength'         => false,
+                'includeTimestamp'       => true,
                 'expiresAfter'           => null,
             ],
             [
@@ -46,8 +46,8 @@ final class DkimConfigTest extends TestCase
                 'headerCanonicalization' => $config->headerCanonicalization,
                 'bodyCanonicalization'   => $config->bodyCanonicalization,
                 'identity'               => $config->identity,
-                'bodyLength'             => $config->bodyLength,
-                'timestamp'              => $config->timestamp,
+                'signBodyLength'         => $config->signBodyLength,
+                'includeTimestamp'       => $config->includeTimestamp,
                 'expiresAfter'           => $config->expiresAfter,
             ],
         );
@@ -86,7 +86,7 @@ final class DkimConfigTest extends TestCase
     #[Test]
     public function acceptsAlgorithmMatchingTheKey(): void
     {
-        $config = new DkimConfig('example.com', 'mail', self::key(), algorithm: Algorithm::Ed25519Sha256);
+        $config = new DkimConfig('example.com', 'mail', self::key(), expectedAlgorithm: Algorithm::Ed25519Sha256);
 
         static::assertSame(Algorithm::Ed25519Sha256, $config->algorithm);
     }
@@ -97,7 +97,7 @@ final class DkimConfigTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The DKIM algorithm is rsa-sha256, but the private key is for ed25519-sha256');
 
-        new DkimConfig('example.com', 'mail', self::key(), algorithm: Algorithm::RsaSha256);
+        new DkimConfig('example.com', 'mail', self::key(), expectedAlgorithm: Algorithm::RsaSha256);
     }
 
     #[Test]
@@ -338,13 +338,13 @@ final class DkimConfigTest extends TestCase
             'domain'                  => 'example.com',
             'selector'                => 'mail',
             'privateKey'              => DkimKeys::RFC8463_ED25519_SEED,
-            'algorithm'               => 'ED25519-SHA256',
+            'expected_algorithm'      => 'ED25519-SHA256',
             'headers'                 => 'From To Subject',
             'header_canonicalization' => 'simple',
             'body-canonicalization'   => 'simple',
             'identity'                => '@example.com',
-            'body_length'             => 'yes',
-            'timestamp'               => 'no',
+            'sign_body_length'        => 'yes',
+            'include_timestamp'       => 'no',
             'expires_after'           => '3600',
         ]);
 
@@ -369,8 +369,8 @@ final class DkimConfigTest extends TestCase
                 $config->headerCanonicalization,
                 $config->bodyCanonicalization,
                 $config->identity,
-                $config->bodyLength,
-                $config->timestamp,
+                $config->signBodyLength,
+                $config->includeTimestamp,
                 $config->expiresAfter,
             ],
         );
@@ -447,10 +447,10 @@ final class DkimConfigTest extends TestCase
         $this->expectExceptionMessage('DKIM algorithm rsa-sha1 is refused');
 
         DkimConfig::fromIterable([
-            'domain'      => 'example.com',
-            'selector'    => 'mail',
-            'private_key' => DkimKeys::RFC8463_ED25519_SEED,
-            'algorithm'   => 'rsa-sha1',
+            'domain'             => 'example.com',
+            'selector'           => 'mail',
+            'private_key'        => DkimKeys::RFC8463_ED25519_SEED,
+            'expected_algorithm' => 'rsa-sha1',
         ]);
     }
 
@@ -484,7 +484,7 @@ final class DkimConfigTest extends TestCase
 
     private static function key(): PrivateKey
     {
-        return PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED);
+        return PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED);
     }
 
     /**

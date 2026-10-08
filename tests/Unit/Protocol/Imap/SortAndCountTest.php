@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Imap;
 
+use Contenir\Mail\Protocol\Exception\CommandRefusedException;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Imap;
@@ -191,7 +192,7 @@ final class SortAndCountTest extends TestCase
             ->hangUp();
         $imap = ScriptedServer::imap($server);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CommandRefusedException::class);
         $this->expectExceptionMessage('The server refused the search');
 
         $imap->searchCount(['ALL']);

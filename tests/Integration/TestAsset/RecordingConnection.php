@@ -62,9 +62,9 @@ final class RecordingConnection implements ConnectionInterface
     }
 
     #[Override]
-    public function waitForData(int $seconds): bool
+    public function waitUntilReadable(int $seconds): bool
     {
-        return $this->connection->waitForData($seconds);
+        return $this->connection->waitUntilReadable($seconds);
     }
 
     #[Override]

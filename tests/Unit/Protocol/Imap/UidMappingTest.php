@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol\Imap;
 
-use Contenir\Mail\Protocol\Imap\UidPlus;
+use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Imap\UidSet;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,10 +18,10 @@ use function range;
  * The APPENDUID and COPYUID response codes (RFC 4315), read strictly
  * (contenir/contenir-mail#52).
  */
-#[CoversClass(UidPlus::class)]
+#[CoversClass(UidMapping::class)]
 #[CoversClass(UidSet::class)]
 #[Group('unit')]
-final class UidPlusTest extends TestCase
+final class UidMappingTest extends TestCase
 {
     /**
      * @param array<mixed> $tokens
@@ -37,8 +37,8 @@ final class UidPlusTest extends TestCase
         array $destination,
     ): void {
         static::assertEquals(
-            new UidPlus($uidValidity, $source, $destination),
-            UidPlus::fromTaggedReply($tokens),
+            new UidMapping($uidValidity, $source, $destination),
+            UidMapping::fromStatusResponse($tokens),
         );
     }
 
@@ -80,7 +80,7 @@ final class UidPlusTest extends TestCase
     #[Test]
     public function ignoresAMissingOrMalformedCode(array $tokens): void
     {
-        static::assertNull(UidPlus::fromTaggedReply($tokens));
+        static::assertNull(UidMapping::fromStatusResponse($tokens));
     }
 
     /**
@@ -114,28 +114,28 @@ final class UidPlusTest extends TestCase
     public function readsAsManyUidsAsMaxUids(): void
     {
         static::assertSame(
-            range(1, UidPlus::MAX_UIDS),
-            UidPlus::fromTaggedReply(['OK', '[APPENDUID', '1', '1:1000000]'])?->destinationUids,
+            range(1, UidMapping::MAX_UIDS),
+            UidMapping::fromStatusResponse(['OK', '[APPENDUID', '1', '1:1000000]'])?->destinationUids,
         );
     }
 
     #[DataProvider('uidProvider')]
     #[Test]
-    public function givesTheUidOfASingleStoredMessage(UidPlus $uids, ?int $uid): void
+    public function givesTheUidOfASingleStoredMessage(UidMapping $uids, ?int $uid): void
     {
         static::assertSame($uid, $uids->uid());
     }
 
     /**
-     * @return array<string, array{UidPlus, int|null}>
+     * @return array<string, array{UidMapping, int|null}>
      */
     public static function uidProvider(): array
     {
         return [
-            'one message'      => [new UidPlus(1, [], [42]), 42],
-            'one copy'         => [new UidPlus(1, [7], [42]), 42],
-            'several messages' => [new UidPlus(1, [7, 8], [42, 43]), null],
-            'no message'       => [new UidPlus(1, [], []), null],
+            'one message'      => [new UidMapping(1, [], [42]), 42],
+            'one copy'         => [new UidMapping(1, [7], [42]), 42],
+            'several messages' => [new UidMapping(1, [7, 8], [42, 43]), null],
+            'no message'       => [new UidMapping(1, [], []), null],
         ];
     }
 }

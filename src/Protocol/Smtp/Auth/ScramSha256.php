@@ -9,7 +9,7 @@ use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Sasl\SaslPrep;
-use Contenir\Mail\Protocol\Sasl\ScramSha256 as Exchange;
+use Contenir\Mail\Protocol\Sasl\ScramSha256Exchange;
 use Override;
 use SensitiveParameter;
 
@@ -49,9 +49,12 @@ final readonly class ScramSha256 implements AuthenticatorInterface
         ?Closure $nonce = null,
     ) {
         $prep = new SaslPrep();
-        $prep->prepare(Credentials::username(Exchange::MECHANISM, $username), 'username');
-        $this->password = $prep->prepare(Credentials::secret(Exchange::MECHANISM, 'a password', $password), 'password');
-        $this->nonce    = $nonce;
+        $prep->prepare(Credentials::username(ScramSha256Exchange::MECHANISM, $username), 'username');
+        $this->password = $prep->prepare(
+            Credentials::secret(ScramSha256Exchange::MECHANISM, 'a password', $password),
+            'password',
+        );
+        $this->nonce = $nonce;
     }
 
     /**
@@ -68,7 +71,7 @@ final readonly class ScramSha256 implements AuthenticatorInterface
     #[Override]
     public function mechanism(): string
     {
-        return Exchange::MECHANISM;
+        return ScramSha256Exchange::MECHANISM;
     }
 
     /**
@@ -77,9 +80,13 @@ final readonly class ScramSha256 implements AuthenticatorInterface
      * @throws InvalidArgumentException When the nonce Closure returns an invalid nonce.
      * @throws RuntimeException When the system has no source of randomness for the nonce.
      */
-    public function start(): Exchange
+    public function start(): ScramSha256Exchange
     {
-        return new Exchange($this->username, $this->password, null === $this->nonce ? null : ($this->nonce)());
+        return new ScramSha256Exchange(
+            $this->username,
+            $this->password,
+            null === $this->nonce ? null : ($this->nonce)(),
+        );
     }
 
     /**
@@ -92,7 +99,7 @@ final readonly class ScramSha256 implements AuthenticatorInterface
     public function authenticate(ChannelInterface $channel): void
     {
         $exchange = $this->start();
-        $channel->exchange('AUTH ' . Exchange::MECHANISM, 334);
+        $channel->exchange('AUTH ' . ScramSha256Exchange::MECHANISM, 334);
         $challenge = $channel->exchangeSecret($exchange->initialResponse(), 334);
         try {
             $response = $exchange->respond($challenge);

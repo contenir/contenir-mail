@@ -61,7 +61,7 @@ interface ConnectionInterface
      *
      * @throws Exception\RuntimeException When the connection is not open.
      */
-    public function waitForData(int $seconds): bool;
+    public function waitUntilReadable(int $seconds): bool;
 
     /**
      * Read exactly $length bytes, as for an IMAP literal.
