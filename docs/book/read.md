@@ -48,8 +48,8 @@ Storage                          | Config                                   | Ke
 `Storage\Maildir`                | `Storage\MaildirConfig`                  | `dirname`
 `Storage\Folder\Maildir`         | `Storage\Folder\MaildirConfig`           | `dirname`, `delim`, `folder`
 `Storage\Writable\Maildir`       | `Storage\Writable\MaildirConfig`         | `dirname`, `delim`, `folder`, `create`, `directory_mode`, `file_mode`
-`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`
-`Storage\Pop3`                   | `Storage\Pop3Config`                     | connection keys, `user`, `password`
+`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`, `auth`
+`Storage\Pop3`                   | `Storage\Pop3Config`                     | connection keys, `user`, `password`, `auth`
 
 Keys may be written in snake_case, camelCase or kebab-case. An unknown key, or
 a value of the wrong type, throws an exception that names the key, so a typo
@@ -156,6 +156,40 @@ $mail = new Pop3([
 
 Passwords are marked `#[SensitiveParameter]`, so they do not appear in stack
 traces, and `var_dump()` of a config shows them masked.
+
+### Signing in with an access token (OAuth 2.0)
+
+Microsoft 365 accepts only OAuth for IMAP and POP3. Gmail accepts an app
+password, or OAuth. To use OAuth, give an `auth` setting in place of the
+password. It takes the same `XOAuth2` authenticator as the SMTP transport, so
+one token signs in to all three protocols. The `user` defaults to the token's
+username.
+
+```php
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Storage\Imap;
+use Contenir\Mail\Storage\Pop3;
+
+$mail = new Imap([
+    'host'     => 'outlook.office365.com',
+    'security' => 'tls',
+    'auth'     => ['username' => 'jo@example.com', 'access_token' => $accessToken],
+]);
+
+// A Closure is called for a fresh token at each sign-in
+$mail = new Pop3([
+    'host'     => 'pop.gmail.com',
+    'security' => 'tls',
+    'auth'     => new XOAuth2('jo@gmail.com', static fn(): string => $tokens->fresh()),
+]);
+```
+
+IMAP sends the token with the `AUTHENTICATE` command when the server offers
+SASL-IR (RFC 4959), and after the server's continuation otherwise. When a
+token is refused, the client finishes the exchange as RFC 7628 requires. It
+then throws an error with the server's reason, such as "The server refused the
+access token (status 400): [AUTHENTICATIONFAILED] Invalid credentials". An
+expired token or a mailbox with IMAP turned off shows up there.
 
 Connection errors throw `Contenir\Mail\Protocol\Exception\ExceptionInterface`;
 a failed login throws `Contenir\Mail\Storage\Exception\RuntimeException`.

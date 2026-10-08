@@ -4,7 +4,7 @@
 
 1. **Get an access token**, if one is needed. For Microsoft, it signs you in with a device code.
 2. **Send** a message to yourself over SMTP with STARTTLS. The message has a UTF-8 body, a line starting with a dot, and an attachment.
-3. **Read it back over IMAP** with TLS. IMAP signs in with a password only, until [#32](https://github.com/contenir/contenir-mail/issues/32) adds XOAUTH2.
+3. **Read it back over IMAP** with TLS, using the access token or the password.
 4. **Read it back over POP3** with TLS, using the access token or the password.
 5. **Try a token the provider never issued.** The server must refuse it with a readable error. A raw base64 error, or a session left waiting, is a failure.
 
@@ -37,7 +37,7 @@ To also test OAuth, get an access token from the [OAuth 2.0 Playground](https://
 SMOKE_PROVIDER=gmail SMOKE_USER=you@gmail.com SMOKE_PASSWORD='app password' SMOKE_TOKEN='ya29.…' php tests/Smoke/smoke.php
 ```
 
-With a token, SMTP and POP3 sign in with XOAUTH2, and IMAP still uses the app password.
+With a token, SMTP, IMAP and POP3 all sign in with XOAUTH2, and the app password isn't needed.
 
 ## Outlook.com (personal Microsoft accounts)
 
@@ -51,7 +51,7 @@ Microsoft accepts only OAuth for IMAP, POP3 and SMTP. The script gets the token 
 SMOKE_PROVIDER=outlook SMOKE_USER=you@outlook.com SMOKE_MS_CLIENT_ID='client id' php tests/Smoke/smoke.php
 ```
 
-The script prints a code and a web address. Open the address, enter the code and sign in. The script continues once you've approved access to send mail and read it over IMAP and POP3. The IMAP check is skipped until #32.
+The script prints a code and a web address. Open the address, enter the code and sign in. The script continues once you've approved access to send mail and read it over IMAP and POP3.
 
 ## Microsoft 365 (work or school accounts)
 

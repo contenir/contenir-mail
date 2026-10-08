@@ -7,6 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use SensitiveParameter;
 
 /**
@@ -35,6 +36,7 @@ final readonly class ImapConfig
         'user',
         'password',
         'folder',
+        'auth',
     ];
 
     /** Shown instead of the password */
@@ -42,6 +44,7 @@ final readonly class ImapConfig
 
     /**
      * @param string $folder The folder selected after logging in.
+     * @param XOAuth2|null $auth An OAuth 2.0 access token to sign in with (XOAUTH2), used instead of the password.
      * @throws Exception\InvalidArgumentException When the folder name holds a line break or NUL.
      */
     public function __construct(
@@ -50,6 +53,7 @@ final readonly class ImapConfig
         #[SensitiveParameter]
         public string $password = '',
         public string $folder = 'INBOX',
+        public ?XOAuth2 $auth = null,
     ) {
         RemoteFolder::check($folder);
     }
@@ -61,12 +65,14 @@ final readonly class ImapConfig
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
+        $auth   = $reader->section('auth', XOAuth2::class, XOAuth2::fromIterable(...));
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),
-            user: $reader->requiredString('user'),
+            user: null === $auth ? $reader->requiredString('user') : $reader->string('user', default: $auth->username),
             password: $reader->string('password', default: ''),
             folder: $reader->string('folder', default: 'INBOX'),
+            auth: $auth,
         );
     }
 
@@ -82,6 +88,7 @@ final readonly class ImapConfig
             'user'       => $this->user,
             'password'   => self::MASK,
             'folder'     => $this->folder,
+            'auth'       => $this->auth,
         ];
     }
 }

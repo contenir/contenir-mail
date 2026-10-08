@@ -103,6 +103,7 @@ rev1 clients.
 | §6.2.1 STARTTLS, with capabilities re-read | Conforms | Required by default. `refusesToContinueInPlainTextWhenStartTlsIsNotOffered` |
 | §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |
 | Response parsing, server literals by byte count | Conforms | `ResponseDecodingTest` |
+| §6.2.2 AUTHENTICATE with XOAUTH2, RFC 4959 SASL-IR | Conforms | The token goes with the command when SASL-IR is offered, and after the continuation otherwise. A refused token is answered with an empty response (RFC 7628). `AuthenticateTest`, and against Dovecot in `ImapXoauth2Test` |
 | RFC 9051 IMAP4rev2, IDLE, MOVE, UIDPLUS, NAMESPACE, ENABLE, LITERAL+ | Not implemented | |
 
 ## POP3: RFC 1939, RFC 2449, RFC 2595, RFC 5034
@@ -112,7 +113,7 @@ rev1 clients.
 | RFC 1939 Commands, multi-line responses, dot-unstuffing, APOP | Conforms | `retrievesAMessageAndRemovesDotStuffing`, `fallsBackToUserAndPassWhenApopIsRefused` |
 | RFC 2449 CAPA | Conforms | `refusesToContinueInPlainTextWhenCapaIsNotSupported` |
 | RFC 2595 STLS | Conforms | Required by default. `refusesToContinueInPlainTextWhenStlsIsNotOffered` |
-| RFC 5034 SASL | Partial | XOAUTH2 for Microsoft 365 only. |
+| RFC 5034 SASL | Partial | XOAUTH2, for Gmail and Microsoft 365, through the `auth` setting or `Pop3\Xoauth2\Microsoft`. No other mechanism. |
 
 ## TLS: RFC 8996, RFC 9325, RFC 9525
 

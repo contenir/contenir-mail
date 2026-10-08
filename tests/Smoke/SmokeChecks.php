@@ -8,8 +8,6 @@ use Closure;
 use Contenir\Mail\Exception\RuntimeException as RefusedException;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Attachment;
-use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
@@ -165,21 +163,12 @@ final class SmokeChecks
 
     private function readOverImap(): string
     {
-        if (null === $this->account->password || ! $this->account->provider->acceptsPasswords()) {
-            throw new SkippedException('IMAP signs in with a password only until XOAUTH2 is added (#32)');
-        }
-
         [$host, $port, $security] = $this->account->provider->imap();
+        $settings = ['host' => $host, 'port' => $port, 'security' => $security, ...$this->signIn()];
 
-        return $this->waitFor(function () use ($host, $port, $security): ?string {
-            $mailbox = new Storage\Imap([
-                'host'     => $host,
-                'port'     => $port,
-                'security' => $security,
-                'user'     => $this->account->user,
-                'password' => $this->account->password,
-            ]);
-            $found = $this->findInNewest($mailbox);
+        return $this->waitFor(function () use ($settings): ?string {
+            $mailbox = new Storage\Imap($settings);
+            $found   = $this->findInNewest($mailbox);
             $mailbox->close();
 
             return $found;
@@ -188,10 +177,11 @@ final class SmokeChecks
 
     private function readOverPop3(): string
     {
-        $connect = $this->pop3Connector();
+        [$host, $port, $security] = $this->account->provider->pop3();
+        $settings = ['host' => $host, 'port' => $port, 'security' => $security, ...$this->signIn()];
 
-        return $this->waitFor(function () use ($connect): ?string {
-            $mailbox = $connect();
+        return $this->waitFor(function () use ($settings): ?string {
+            $mailbox = new Storage\Pop3($settings);
             $found   = $this->findInNewest($mailbox);
             $mailbox->close();
 
@@ -200,33 +190,21 @@ final class SmokeChecks
     }
 
     /**
-     * Opens the POP3 mailbox with the access token, or else the password.
+     * The sign-in settings for IMAP and POP3: the access token when there is one, and the password otherwise.
      *
-     * @return Closure(): Storage\Pop3
+     * @return array<string, mixed>
      */
-    private function pop3Connector(): Closure
+    private function signIn(): array
     {
-        [$host, $port, $security] = $this->account->provider->pop3();
         if (null !== $this->token) {
-            return function () use ($host, $port, $security): Storage\Pop3 {
-                $protocol = new Microsoft(new ConnectionConfig($host, $port, $security));
-                $protocol->login($this->account->user, (string) $this->token);
-
-                return new Storage\Pop3($protocol);
-            };
+            return ['auth' => new XOAuth2($this->account->user, $this->token)];
         }
 
         if (null === $this->account->password || ! $this->account->provider->acceptsPasswords()) {
-            throw new SkippedException('no access token or password for POP3');
+            throw new SkippedException('no access token or password');
         }
 
-        return fn(): Storage\Pop3 => new Storage\Pop3([
-            'host'     => $host,
-            'port'     => $port,
-            'security' => $security,
-            'user'     => $this->account->user,
-            'password' => $this->account->password,
-        ]);
+        return ['user' => $this->account->user, 'password' => $this->account->password];
     }
 
     /**

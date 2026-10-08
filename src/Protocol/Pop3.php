@@ -6,6 +6,8 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
 use LogicException;
 use SensitiveParameter;
 
@@ -310,6 +312,40 @@ class Pop3
 
         $this->request("USER {$user}");
         $this->request("PASS {$password}");
+    }
+
+    /**
+     * Sign in with an OAuth 2.0 access token (XOAUTH2), as Gmail and Microsoft 365 require.
+     *
+     * A refused token is answered with the empty response that ends the exchange
+     * (RFC 7628, section 3.2.3) before this throws, with the server's reason.
+     *
+     * @throws Exception\RuntimeException When the server refuses the mechanism or the token.
+     * @throws Exception\InvalidArgumentException When a token provider returns an invalid token.
+     */
+    public function authenticate(XOAuth2 $auth): void
+    {
+        $initial = $auth->initialResponse();
+        $this->sendRequest('AUTH XOAUTH2');
+        $response = $this->readRemoteResponse();
+        if ('+' !== $response->status()) {
+            throw new Exception\RuntimeException(self::failure($response->message()));
+        }
+
+        $this->sendRequest($initial);
+        $response = $this->readRemoteResponse();
+        if ('+' === $response->status()) {
+            $this->sendRequest('');
+            $final = $this->readRemoteResponse();
+
+            throw new Exception\RuntimeException(XoauthEncoder::refusal($response->message(), $final->message()));
+        }
+
+        if ('+OK' !== $response->status()) {
+            $reason = SafeText::display($response->message());
+
+            throw new Exception\RuntimeException('' === $reason ? 'The server refused the access token' : $reason);
+        }
     }
 
     /**
