@@ -44,7 +44,10 @@
                 "\\$i \\+= 2;",
                 // Not stripping the "(" of a nested list leaves the tokenizer pushing lists forever;
                 // the mutant can only end by exhausting memory, never by a failing assertion.
-                "\\$token\\s+= substr\\(\\$token, offset: 1\\);"
+                "\\$token\\s+= substr\\(\\$token, offset: 1\\);",
+                // The TNEF checksum sums each byte value times its count. Mode 0 also lists the
+                // byte values that do not occur, with a count of 0, which add nothing to the sum.
+                "foreach \\(count_chars\\(\\$data, mode: 1\\) as \\$byte => \\$count\\) {"
             ]
         },
         "IncrementInteger": {

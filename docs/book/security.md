@@ -73,6 +73,7 @@ their own server. Everything else is not.
 | A header its class cannot parse is kept as a `GenericHeader` instead of making the message unreadable | `MessageTest::keepsMalformedHeaderAsGenericHeaderAndParsesTheRest` |
 | Invalid UTF-8 in decoded text is replaced with U+FFFD | `Utf8Test`, `SafeTextTest` |
 | Attachment filenames read from mail are available sanitised: path components, controls and bidi characters removed | `SafeTextTest`, `Storage\Part::getSafeFilename()` |
+| TNEF (`winmail.dat`) containers are parsed as hostile. Every length is checked against the bytes left before it's used, a record with a bad checksum stops reading, and a container is limited to 100 attachments and 64 MiB of output. Compressed RTF can't grow past its declared size or the output limit, and a reference to bytes never written is refused. File names go through `SafeText::filename()`, and media types other than a plain `type/subtype` become `application/octet-stream`. Random and damaged containers, read with a fixed seed, only ever give a result or a package exception | `ReaderTest::refusesMalformedData`, `refusesOutputPastTheByteLimit`, `CompressedRtfTest::refusesMalformedCompressedRtf`, `MapiPropertiesTest::refusesMalformedProperties`, `ReaderFuzzTest` |
 
 ### TLS settings
 
