@@ -43,14 +43,18 @@ interface WritableInterface
      * @param string|resource|Message|ComposedMessage $message The raw message, a stream holding it, or a message.
      * @param Folder|string|null $folder The current folder when null.
      * @param iterable<Flag|string>|null $flags Seen when null.
+     * @return int|null The UID of the stored message when the storage reports one, as IMAP servers
+     *     with UIDPLUS do (RFC 4315), and null otherwise.
      * @throws ExceptionInterface When the message cannot be stored.
      */
-    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): void;
+    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): ?int;
 
     /**
+     * @return int|null The UID of the copy when the storage reports one, as IMAP servers with
+     *     UIDPLUS do (RFC 4315), and null otherwise.
      * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function copyMessage(int $id, Folder|string $folder): void;
+    public function copyMessage(int $id, Folder|string $folder): ?int;
 
     /**
      * @throws ExceptionInterface When there is no such message or folder.

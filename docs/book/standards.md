@@ -12,7 +12,7 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 90 requirements below, 76 conform, 4 are
+Summary: of the 93 requirements below, 79 conform, 4 are
 partial, 2 deviate by design, and 8 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
@@ -115,6 +115,7 @@ and rev2 servers accept rev1 clients.
 | Requirement | Verdict | Evidence and notes |
 | --- | --- | --- |
 | §4.3 Literals for strings a quoted string cannot carry | Conforms | `sendsStringsAQuotedStringCannotCarryAsLiterals`, `appendsAMessageAsALiteral` |
+| RFC 7888 LITERAL+ and LITERAL- | Conforms | A literal is sent without waiting for the server's `+` when LITERAL+ is offered, or LITERAL- or IMAP4rev2 and it is at most 4096 bytes; otherwise the client waits. Only capabilities already read are consulted. `NonSynchronisingLiteralTest`, and against Dovecot in `ImapTest` |
 | §9 Sequence sets, flags and atoms | Conforms | Validated before sending. `CommandInjectionTest` |
 | §6.2.1 STARTTLS, with capabilities re-read | Conforms | Required by default. `refusesToContinueInPlainTextWhenStartTlsIsNotOffered` |
 | §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |
@@ -122,9 +123,11 @@ and rev2 servers accept rev1 clients.
 | §6.2.2 AUTHENTICATE with XOAUTH2, RFC 4959 SASL-IR | Conforms | The token goes with the command when SASL-IR is offered, and after the continuation otherwise. A refused token is answered with an empty response (RFC 7628). `AuthenticateTest`, and against Dovecot in `ImapXoauth2Test` |
 | §6.2.2 AUTHENTICATE with SCRAM-SHA-256 | Conforms | Client-first goes with the command when SASL-IR is offered. Server-final is checked before the empty response that ends the exchange; a refused step is cancelled with `*`. `AuthenticateScramTest`, and against Dovecot in `ImapScramTest` |
 | §5.1.3 Mailbox names in modified UTF-7 | Conforms | Names are encoded on the way out and decoded from LIST. A malformed run is kept as the server wrote it. `MailboxNameTest`, `writesNamesInModifiedUtf7WithoutUtf8Mailboxes`, and against Dovecot in `ImapMailboxNameTest` |
-| RFC 5161 ENABLE, RFC 9051 IMAP4rev2, RFC 6855 UTF8=ACCEPT | Partial | After signing in, IMAP4rev2 is enabled when it's offered, or else UTF8=ACCEPT. Names then travel as UTF-8. SEARCH reads ESEARCH results, bounded to `MAX_SEARCH_RESULTS`, and `\NonExistent` folders can't be selected. IDLE, NAMESPACE, UNSELECT, UIDPLUS, SPECIAL-USE, STATUS SIZE and LITERAL- aren't used yet (#52). `Imap4rev2Test` |
+| RFC 5161 ENABLE, RFC 9051 IMAP4rev2, RFC 6855 UTF8=ACCEPT | Partial | After signing in, IMAP4rev2 is enabled when it's offered, or else UTF8=ACCEPT. Names then travel as UTF-8. SEARCH reads ESEARCH results, bounded to `MAX_SEARCH_RESULTS`, and `\NonExistent` folders can't be selected. IDLE, NAMESPACE, SPECIAL-USE and STATUS SIZE aren't used yet (#52). `Imap4rev2Test` |
 | RFC 5256 SORT, RFC 5957 display sort, RFC 4731 ESEARCH counts | Conforms | `Storage\Imap::sortMessages()` sorts on the server, and `getMessages()` fetches a page in one FETCH. Sort keys are checked before sending. `countMessages()` counts with `SEARCH RETURN (COUNT)` when ESEARCH or IMAP4rev2 is on, and from the numbers otherwise. `SortAndCountTest`, `ImapPagingTest` |
 | RFC 6851 MOVE | Conforms | `Storage\Imap::moveMessage()` uses MOVE when it's offered, and copy then expunge otherwise. `movesMessagesWhenTheServerOffersMove` |
+| RFC 4315 UIDPLUS | Conforms | `appendMessage()` and `copyMessage()` return the UID from the APPENDUID or COPYUID response code, and null without one. UID sets are validated, 32-bit and bounded to `UidPlus::MAX_UIDS`; a malformed code is ignored. The COPYUID that MOVE sends untagged is not read. `UidPlusTest`, `UidPlusCommandTest`, and against Dovecot in `ImapTest` |
+| RFC 3691 UNSELECT | Conforms | `Protocol\Imap::unselect()` leaves the selected folder without expunging, when UNSELECT is offered or IMAP4rev2 is enabled. CLOSE is never sent: selecting another folder and LOGOUT don't expunge either (RFC 3501, §6.4.2). `UidPlusCommandTest`, and against Dovecot in `ImapTest` |
 
 ## POP3: RFC 1939, RFC 2449, RFC 2595, RFC 5034
 
