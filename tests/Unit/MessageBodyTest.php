@@ -251,7 +251,7 @@ final class MessageBodyTest extends TestCase
         $message = $this->makeMessage()->setBody(Part::text('UTF-8 TestString: AaÜüÄäÖöß', 'utf-8'));
 
         static::assertStringContainsString(
-            "Content-Type: text/plain;\r\n charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            "Content-Type: text/plain; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
             $message->getHeaders()->toString(),
         );
     }
@@ -289,7 +289,7 @@ final class MessageBodyTest extends TestCase
         $message = $this->makeMessage()->setBody($this->makeMultipartBody());
 
         static::assertSame(
-            "Content-Type: multipart/alternative;\r\n boundary=\"foo-bar\"",
+            'Content-Type: multipart/alternative; boundary="foo-bar"',
             $message->getHeaders()->get('Content-Type')?->toString(),
         );
     }
@@ -314,14 +314,12 @@ final class MessageBodyTest extends TestCase
             "This is a multi-part message in MIME format.\r\n"
                 . "\r\n"
                 . "--foo-bar\r\n"
-                . "Content-Type: text/plain;\r\n"
-                . " charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "foo\r\n"
                 . "--foo-bar\r\n"
-                . "Content-Type: text/html;\r\n"
-                . " charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/html; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "<b>foo</b>\r\n"
@@ -339,18 +337,15 @@ final class MessageBodyTest extends TestCase
             "This is a multi-part message in MIME format.\r\n"
                 . "\r\n"
                 . "--outer\r\n"
-                . "Content-Type: multipart/alternative;\r\n"
-                . " boundary=\"foo-bar\"\r\n"
+                . "Content-Type: multipart/alternative; boundary=\"foo-bar\"\r\n"
                 . "\r\n"
                 . "--foo-bar\r\n"
-                . "Content-Type: text/plain;\r\n"
-                . " charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "foo\r\n"
                 . "--foo-bar\r\n"
-                . "Content-Type: text/html;\r\n"
-                . " charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/html; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "<b>foo</b>\r\n"
@@ -375,8 +370,7 @@ final class MessageBodyTest extends TestCase
             self::FIXED_DATE
                 . "\r\n"
                 . "MIME-Version: 1.0\r\n"
-                . "Content-Type: multipart/alternative;\r\n"
-                . " boundary=\"foo-bar\"\r\n"
+                . "Content-Type: multipart/alternative; boundary=\"foo-bar\"\r\n"
                 . "\r\n"
                 . $message->getBodyText(),
             $message->toString(),
@@ -392,8 +386,7 @@ final class MessageBodyTest extends TestCase
             self::FIXED_DATE
                 . "\r\n"
                 . "MIME-Version: 1.0\r\n"
-                . "Content-Type: text/plain;\r\n"
-                . " charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . 'Hello',

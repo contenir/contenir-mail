@@ -329,7 +329,7 @@ final class SendmailTest extends TestCase
     {
         return [
             'MIME-Version' => ["MIME-Version: 1.0\r\n"],
-            'Content-Type' => ["Content-Type: multipart/alternative;\r\n boundary=\"alt\"\r\n"],
+            'Content-Type' => ["Content-Type: multipart/alternative; boundary=\"alt\"\r\n"],
         ];
     }
 

@@ -700,9 +700,9 @@ final class SmtpTest extends TestCase
     {
         return [
             'MIME-Version'         => ["MIME-Version: 1.0\r\n"],
-            'Content-Type'         => ["Content-Type: multipart/mixed;\r\n boundary=\"mixed\"\r\n"],
+            'Content-Type'         => ["Content-Type: multipart/mixed; boundary=\"mixed\"\r\n"],
             'preamble after blank' => ["\r\n\r\nThis is a multi-part message in MIME format.\r\n\r\n--mixed\r\n"],
-            'alternative part'     => ["--mixed\r\nContent-Type: multipart/alternative;\r\n boundary=\"alt\"\r\n"],
+            'alternative part'     => ["--mixed\r\nContent-Type: multipart/alternative; boundary=\"alt\"\r\n"],
             'attachment part'      => ["Content-Disposition: attachment; filename=\"a.txt\"\r\n\r\nYWJj\r\n--mixed--"],
         ];
     }

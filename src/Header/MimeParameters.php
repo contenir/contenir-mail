@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use Contenir\Mail\Headers;
 use Contenir\Mail\Utf8;
 
+use function array_key_last;
 use function count;
+use function explode;
 use function implode;
 use function ord;
 use function preg_match;
@@ -28,6 +31,8 @@ use function trim;
  * sections. MimeParameterParser reads them back.
  *
  * @internal Used by ContentType and ContentDisposition.
+ *
+ * @mago-expect lint:cyclomatic-complexity Parameter names, values, RFC 2231 sections and the lines they are folded onto.
  */
 final class MimeParameters
 {
@@ -75,6 +80,24 @@ final class MimeParameters
             throw new Exception\InvalidArgumentException(
                 'Parameter value must be composed of printable US-ASCII or UTF-8 characters.',
             );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Append a parameter to a header value: on the current line when it is one
+     * segment that fits, otherwise folded, each segment on a line of its own.
+     */
+    public static function append(string $fieldName, string $value, string $name, string $parameter): string
+    {
+        $segments = self::segments($name, $parameter);
+        if (1 === count($segments) && self::fitsOnCurrentLine($fieldName, $value, $segments[0])) {
+            return "{$value}; {$segments[0]}";
+        }
+
+        foreach ($segments as $segment) {
+            $value .= ';' . Headers::FOLDING . $segment;
         }
 
         return $value;
@@ -167,5 +190,15 @@ final class MimeParameters
         }
 
         return $encoded;
+    }
+
+    private static function fitsOnCurrentLine(string $fieldName, string $value, string $segment): bool
+    {
+        $lines              = explode(Headers::FOLDING, $value);
+        $existingLineLength = 1 === count($lines)
+            ? strlen("{$fieldName}: {$value}")
+            : 1 + strlen($lines[array_key_last($lines)] ?? '');
+
+        return (2 + $existingLineLength + strlen($segment)) <= self::MAX_SEGMENT_LENGTH;
     }
 }

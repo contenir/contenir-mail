@@ -59,7 +59,7 @@ final class PartTest extends TestCase
         );
 
         static::assertSame(
-            "Content-Type: text/plain;\r\n charset=\"ISO-8859-1\"\r\n"
+            "Content-Type: text/plain; charset=\"ISO-8859-1\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "Content-ID: <part1@example.com>\r\n"
                 . "Content-Disposition: attachment; filename=\"notes.txt\"\r\n"
@@ -116,7 +116,7 @@ final class PartTest extends TestCase
     public function writesCharsetAsAContentTypeParameter(): void
     {
         static::assertSame(
-            "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 8bit\r\n",
+            "Content-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 8bit\r\n",
             (new Part('data', type: 'text/plain', encoding: TransferEncoding::EightBit, charset: 'UTF-8'))->getHeaders()
                 ->toString(),
         );
@@ -170,7 +170,7 @@ final class PartTest extends TestCase
     public function buildsQuotedPrintableUtf8Text(): void
     {
         static::assertSame(
-            "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            "Content-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
             Part::text('Hello')->getHeaders()->toString(),
         );
     }
@@ -179,7 +179,7 @@ final class PartTest extends TestCase
     public function buildsQuotedPrintableUtf8Html(): void
     {
         static::assertSame(
-            "Content-Type: text/html;\r\n charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+            "Content-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
             Part::html('<p>Hello</p>')->getHeaders()->toString(),
         );
     }

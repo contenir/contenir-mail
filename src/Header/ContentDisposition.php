@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
-use Contenir\Mail\Headers;
 use Override;
 
-use function array_key_last;
-use function count;
-use function explode;
 use function in_array;
 use function sprintf;
 use function strlen;
@@ -165,15 +161,7 @@ final readonly class ContentDisposition implements HeaderInterface
     {
         $result = $this->disposition;
         foreach ($this->parameters as $attribute => $value) {
-            $segments = MimeParameters::segments($attribute, $value);
-            if (1 === count($segments) && self::fitsOnCurrentLine($result, $segments[0])) {
-                $result .= "; {$segments[0]}";
-                continue;
-            }
-
-            foreach ($segments as $segment) {
-                $result .= ';' . Headers::FOLDING . $segment;
-            }
+            $result = MimeParameters::append('Content-Disposition', $result, $attribute, $value);
         }
 
         return $result;
@@ -183,15 +171,5 @@ final readonly class ContentDisposition implements HeaderInterface
     public function toString(): string
     {
         return "Content-Disposition: {$this->getEncodedFieldValue()}";
-    }
-
-    private static function fitsOnCurrentLine(string $result, string $line): bool
-    {
-        $lines              = explode(Headers::FOLDING, $result);
-        $existingLineLength = 1 === count($lines)
-            ? strlen("Content-Disposition: {$result}")
-            : 1 + strlen($lines[array_key_last($lines)] ?? '');
-
-        return (2 + $existingLineLength + strlen($line)) <= self::MAX_PARAMETER_LENGTH;
     }
 }
