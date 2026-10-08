@@ -6,6 +6,7 @@ namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Exception\RuntimeException;
+use Contenir\Mail\Utf8;
 
 use function is_array;
 use function is_int;
@@ -27,6 +28,11 @@ final readonly class HeaderParser
      * Parse a header block into headers, each with its text as written, or
      * null where that text cannot be written back as it is.
      *
+     * A header that is not UTF-8 holds raw bytes in some legacy charset, which
+     * RFC 5322 does not allow but many mailers still send. It is read as
+     * Windows-1252, as mail clients do, so one such header does not make the
+     * whole message unreadable.
+     *
      * @return list<array{HeaderInterface, string|null}>
      * @throws RuntimeException When the block is not a sequence of header lines, or a name is longer than HeaderName::MAX_LENGTH.
      */
@@ -34,6 +40,10 @@ final readonly class HeaderParser
     {
         $headers = [];
         foreach (HeaderBlock::fields($block, $eol) as [$line, $wireText]) {
+            if (! Utf8::isValid($line)) {
+                $line = self::fromLegacyCharset($line);
+            }
+
             $headers[] = [$this->parseLine($line), $wireText];
         }
 
@@ -67,6 +77,17 @@ final readonly class HeaderParser
         }
 
         return $parsed;
+    }
+
+    /**
+     * The line read as Windows-1252, or with its invalid bytes replaced where
+     * it uses one of the five bytes Windows-1252 leaves undefined.
+     */
+    private static function fromLegacyCharset(string $line): string
+    {
+        $converted = EncodedWordDecoder::toUtf8($line, charset: 'WINDOWS-1252');
+
+        return Utf8::isValid($converted) ? $converted : Utf8::scrub($line);
     }
 
     private function parseLine(string $line): HeaderInterface

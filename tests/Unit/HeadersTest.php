@@ -154,7 +154,7 @@ final class HeadersTest extends TestCase
 
     #[DataProvider('invalidRawHeaderProvider')]
     #[Test]
-    public function rejectsHeaderValueThatIsNotValidUtf8OrHasControls(string $block): void
+    public function rejectsHeaderValueWithControlCharacters(string $block): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header value detected');
@@ -770,13 +770,10 @@ final class HeadersTest extends TestCase
     public static function invalidRawHeaderProvider(): array
     {
         return [
-            'Latin-1 byte'       => ["Subject: Gr\xFC\xDFe\r\n"],
-            'truncated sequence' => ["Subject: Gr\xC3\r\n"],
-            'overlong encoding'  => ["Subject: \xC0\xAF\r\n"],
-            'NUL'                => ["Subject: a\x00b\r\n"],
-            'escape'             => ["Subject: a\x1Bb\r\n"],
-            'DEL'                => ["Subject: a\x7Fb\r\n"],
-            'C1 control'         => ["Subject: a\xC2\x9Bb\r\n"],
+            'NUL'        => ["Subject: a\x00b\r\n"],
+            'escape'     => ["Subject: a\x1Bb\r\n"],
+            'DEL'        => ["Subject: a\x7Fb\r\n"],
+            'C1 control' => ["Subject: a\xC2\x9Bb\r\n"],
         ];
     }
 
