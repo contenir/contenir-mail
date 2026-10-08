@@ -4,11 +4,35 @@ All notable changes to this project are documented in this file, in the
 format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.1.1 - TBD
+## 0.1.2 - TBD
 
 ### Added
 
 - Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.1.1 - 2026-10-08
+
+### Added
+
+- An integration suite that runs against Dovecot, Postfix and Mailpit in CI
+  (`tests/Integration`), and a smoke test for real providers with your own
+  account (`tests/Smoke`).
 
 ### Changed
 
