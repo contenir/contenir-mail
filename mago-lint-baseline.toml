@@ -163,6 +163,102 @@ message = "Insecure comparison of sensitive data."
 count = 1
 
 [[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "identity-comparison"
+message = "Use identity comparison `===` instead of equality comparison `==`."
+count = 7
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "identity-comparison"
+message = "Use identity inequality `!==` instead of inequality comparison `!=`."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "literal-named-argument"
+message = "Literal argument `2` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "literal-named-argument"
+message = "Literal argument `7` should be passed as a named argument for clarity."
+count = 3
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "no-else-clause"
+message = "Avoid `else` clauses."
+count = 2
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/ImapTest.php"
+code = "no-redundant-variable"
+message = "Variable `$message` is assigned but never used."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "identity-comparison"
+message = "Use identity comparison `===` instead of equality comparison `==`."
+count = 7
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "identity-comparison"
+message = "Use identity inequality `!==` instead of inequality comparison `!=`."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "literal-named-argument"
+message = "Literal argument `2` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "no-else-clause"
+message = "Avoid `else` clauses."
+count = 2
+
+[[issues]]
+file = "tests/Integration/Storage/Pop3Test.php"
+code = "no-redundant-variable"
+message = "Variable `$count` is assigned but never used."
+count = 1
+
+[[issues]]
 file = "tests/Unit/Protocol/HttpStatusService/index.php"
 code = "no-isset"
 message = "Use of the `isset` construct."
@@ -173,111 +269,3 @@ file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."
 count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "cyclomatic-complexity"
-message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "identity-comparison"
-message = "Use identity comparison `===` instead of equality comparison `==`."
-count = 7
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "identity-comparison"
-message = "Use identity inequality `!==` instead of inequality comparison `!=`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "kan-defect"
-message = "Class has a high kan defect score."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "literal-named-argument"
-message = "Literal argument `2` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "literal-named-argument"
-message = "Literal argument `7` should be passed as a named argument for clarity."
-count = 3
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "no-else-clause"
-message = "Avoid `else` clauses."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "no-isset"
-message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "no-redundant-variable"
-message = "Variable `$message` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/ImapTest.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "cyclomatic-complexity"
-message = "Class has high complexity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "identity-comparison"
-message = "Use identity comparison `===` instead of equality comparison `==`."
-count = 7
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "identity-comparison"
-message = "Use identity inequality `!==` instead of inequality comparison `!=`."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "kan-defect"
-message = "Class has a high kan defect score."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "literal-named-argument"
-message = "Literal argument `2` should be passed as a named argument for clarity."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "no-else-clause"
-message = "Avoid `else` clauses."
-count = 2
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "no-redundant-variable"
-message = "Variable `$count` is assigned but never used."
-count = 1
-
-[[issues]]
-file = "tests/Unit/Storage/Pop3Test.php"
-code = "strict-types"
-message = "Missing `declare(strict_types=1);` statement at the beginning of the file."
-count = 1

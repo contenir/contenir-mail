@@ -740,7 +740,9 @@ class Imap
      *                            last message, INF means last message available
      * @param  string|null $mode '+' to add flags, '-' to remove flags, everything else sets the flags as given
      * @param  bool $silent if false the return values are the new flags for the wanted messages
-     * @return array<mixed>|bool new flags if $silent is false, else true or false depending on success
+     * @return array<mixed>|bool if $silent is false, the new flags by message number, empty when the server
+     *     reports none (Dovecot sends none for flags that did not change), or false when refused;
+     *     else true or false depending on success
      * @throws Exception\ExceptionInterface
      *
      * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
@@ -764,8 +766,12 @@ class Imap
         $set    = self::sequenceSet($from, $to);
         $result = $this->requestAndResponse('STORE', [$set, $item, self::flagList($flags)], $silent);
 
-        if ($silent || ! is_array($result)) {
+        if ($silent) {
             return $this->succeeded($result);
+        }
+
+        if (! is_array($result)) {
+            return $this->succeeded($result) ? [] : false;
         }
 
         $flagsByMessage = [];

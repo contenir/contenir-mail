@@ -1,0 +1,60 @@
+name: "Integration"
+
+on:
+  push:
+    branches:
+      - "[0-9]+.[0-9]+.x"
+  pull_request:
+
+jobs:
+  integration:
+    name: "Real mail servers"
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Start Dovecot and Mailpit
+        id: servers
+        run: echo "cafile=$(tests/Integration/servers/start.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Integration tests
+        env:
+          TESTS_CONTENIR_MAIL_SERVER_TESTDIR: ${{ github.workspace }}/tests/Integration/servers/var/mail/test
+          TESTS_CONTENIR_MAIL_SERVER_FORMAT: mbox
+          TESTS_CONTENIR_MAIL_IMAP_ENABLED: "1"
+          TESTS_CONTENIR_MAIL_IMAP_HOST: localhost
+          TESTS_CONTENIR_MAIL_IMAP_USER: test
+          TESTS_CONTENIR_MAIL_IMAP_PASSWORD: secret
+          TESTS_CONTENIR_MAIL_IMAP_SSL: "1"
+          TESTS_CONTENIR_MAIL_IMAP_TLS: "1"
+          TESTS_CONTENIR_MAIL_IMAP_WRONG_PORT: "80"
+          TESTS_CONTENIR_MAIL_IMAP_INVALID_PORT: "3141"
+          TESTS_CONTENIR_MAIL_POP3_ENABLED: "1"
+          TESTS_CONTENIR_MAIL_POP3_HOST: localhost
+          TESTS_CONTENIR_MAIL_POP3_USER: test
+          TESTS_CONTENIR_MAIL_POP3_PASSWORD: secret
+          TESTS_CONTENIR_MAIL_POP3_SSL: "1"
+          TESTS_CONTENIR_MAIL_POP3_TLS: "1"
+          TESTS_CONTENIR_MAIL_POP3_WRONG_PORT: "80"
+          TESTS_CONTENIR_MAIL_POP3_INVALID_PORT: "3141"
+          TESTS_CONTENIR_MAIL_SMTP_ENABLED: "1"
+          TESTS_CONTENIR_MAIL_SMTP_HOST: localhost
+          TESTS_CONTENIR_MAIL_SMTP_PORT: "1025"
+          TESTS_CONTENIR_MAIL_SMTP_USER: test
+          TESTS_CONTENIR_MAIL_SMTP_PASSWORD: secret
+          TESTS_CONTENIR_MAIL_SMTP_API: http://localhost:8025
+        run: php -d openssl.cafile=${{ steps.servers.outputs.cafile }} vendor/bin/phpunit --testsuite integration --no-progress
+
+      - name: Server logs
+        if: always()
+        run: docker compose -f tests/Integration/servers/compose.yml logs --no-color
