@@ -77,11 +77,11 @@ final readonly class XOAuth2 implements AuthenticatorInterface
     #[Override]
     public function authenticate(ChannelInterface $channel): void
     {
-        $token = $this->accessToken instanceof Closure ? self::provide($this->accessToken) : $this->accessToken;
+        $response = $this->initialResponse();
 
         $channel->exchange('AUTH XOAUTH2', 334);
         try {
-            $channel->exchangeSecret(Encoder::encodeXoauth2Sasl($this->username, $token), 235);
+            $channel->exchangeSecret($response, 235);
         } catch (RuntimeException $e) {
             if (334 !== $e->getCode()) {
                 throw $e;
@@ -91,6 +91,20 @@ final readonly class XOAuth2 implements AuthenticatorInterface
 
             throw new RuntimeException(Encoder::refusal($e->getMessage(), $reply), 535, $e);
         }
+    }
+
+    /**
+     * The base64 SASL response that carries the token, taken from the provider when there is one.
+     * IMAP and POP3 send it too, so the same settings sign in to all three protocols.
+     *
+     * @throws InvalidArgumentException When a token provider returns an empty token or one with a control character.
+     * @throws RuntimeException When a token provider returns something other than a string.
+     */
+    public function initialResponse(): string
+    {
+        $token = $this->accessToken instanceof Closure ? self::provide($this->accessToken) : $this->accessToken;
+
+        return Encoder::encodeXoauth2Sasl($this->username, $token);
     }
 
     /**

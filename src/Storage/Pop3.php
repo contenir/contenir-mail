@@ -62,6 +62,12 @@ final class Pop3 extends AbstractStorage
         $this->protocol = $protocol ?? new Protocol\Pop3();
         $this->protocol->connect($config->connection);
         $this->open = true;
+        if (null !== $config->auth) {
+            $this->protocol->authenticate($config->auth);
+
+            return;
+        }
+
         $this->protocol->login($config->user, $config->password);
     }
 

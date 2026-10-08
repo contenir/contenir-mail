@@ -7,6 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use SensitiveParameter;
 
 /**
@@ -34,16 +35,21 @@ final readonly class Pop3Config
         'novalidatecert',
         'user',
         'password',
+        'auth',
     ];
 
     /** Shown instead of the password */
     private const string MASK = '********';
 
+    /**
+     * @param XOAuth2|null $auth An OAuth 2.0 access token to sign in with (XOAUTH2), used instead of the password.
+     */
     public function __construct(
         public ConnectionConfig $connection,
         public string $user,
         #[SensitiveParameter]
         public string $password = '',
+        public ?XOAuth2 $auth = null,
     ) {}
 
     /**
@@ -53,11 +59,13 @@ final readonly class Pop3Config
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
+        $auth   = $reader->section('auth', XOAuth2::class, XOAuth2::fromIterable(...));
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),
-            user: $reader->requiredString('user'),
+            user: null === $auth ? $reader->requiredString('user') : $reader->string('user', default: $auth->username),
             password: $reader->string('password', default: ''),
+            auth: $auth,
         );
     }
 
@@ -72,6 +80,7 @@ final readonly class Pop3Config
             'connection' => $this->connection,
             'user'       => $this->user,
             'password'   => self::MASK,
+            'auth'       => $this->auth,
         ];
     }
 }
