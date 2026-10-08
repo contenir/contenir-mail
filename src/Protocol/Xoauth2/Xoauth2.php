@@ -40,15 +40,18 @@ final class Xoauth2
     /**
      * The message for a refused token. A server refuses one with a challenge holding base64
      * JSON, such as {"status":"401","schemes":"bearer","scope":"…"}, which the client
-     * must answer with an empty response before the refusal itself.
+     * must answer with an empty response before the refusal itself. That refusal often
+     * says what to do, as Gmail does when POP is turned off, so it follows the status.
      */
-    public static function refusal(string $challenge): string
+    public static function refusal(string $challenge, string $reply = ''): string
     {
-        $status = self::status(json_decode((string) base64_decode($challenge, strict: true), associative: true));
-
-        return '' === $status
+        $status  = self::status(json_decode((string) base64_decode($challenge, strict: true), associative: true));
+        $message = '' === $status
             ? 'The server refused the access token'
             : sprintf('The server refused the access token (status %s)', $status);
+        $reply = SafeText::display($reply);
+
+        return '' === $reply ? $message : "{$message}: {$reply}";
     }
 
     private static function status(mixed $details): string
