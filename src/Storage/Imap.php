@@ -9,7 +9,10 @@ use Contenir\Mail\Mime\Exception\RuntimeException as MimeException;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage\Part\Content;
 use Contenir\Mail\Storage\Part\MimeParser;
+use Contenir\Mail\SystemClock;
+use Generator;
 use Override;
+use Psr\Clock\ClockInterface;
 use SensitiveParameter;
 
 use function array_map;
@@ -214,6 +217,58 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
         }
 
         return array_map(intval(...), $numbers);
+    }
+
+    /**
+     * Wait for changes to the current folder with IDLE (RFC 2177), for at most $timeout seconds,
+     * yielding each as an Idle\EventInterface: Exists when mail arrives, Expunge, Recent and FlagsChanged.
+     *
+     * ```php
+     * foreach ($mail->idle(timeout: 600) as $event) {
+     *     if ($event instanceof Idle\Exists && $event->count > $last) {
+     *         $new  = $mail->getMessages(...range($last + 1, $event->count));
+     *         $last = $event->count;
+     *     }
+     * }
+     * ```
+     *
+     * Nothing is sent until the first iteration. The loop ends once the timeout passes;
+     * RFC 2177 asks clients to end IDLE at least every 29 minutes, the default, so to keep
+     * listening, call idle() again. Breaking out of the loop ends IDLE, and so does the next
+     * command, so the mailbox can be used again right away. Other untagged responses are skipped.
+     *
+     * @param int $timeout Seconds to listen for, counted from the first iteration.
+     * @param ClockInterface $clock The time the timeout is counted by.
+     * @return Generator<int, Idle\EventInterface, mixed, void>
+     * @throws Exception\RuntimeException When no folder is selected.
+     * @throws Protocol\Exception\ExceptionInterface When the timeout is under one second, or the server
+     *     offers neither IDLE nor IMAP4rev2; while iterating, when the server refuses IDLE, says BYE
+     *     or cannot be reached.
+     */
+    public function idle(int $timeout = 1740, ClockInterface $clock = new SystemClock()): Generator
+    {
+        if ('' === $this->currentFolder) {
+            throw new Exception\RuntimeException('No folder is selected');
+        }
+
+        return $this->events($this->protocol->idle($timeout, $clock));
+    }
+
+    /**
+     * Not static, so the mailbox lives, and stays open, while the events are iterated.
+     *
+     * @param Generator<int, array<mixed>, mixed, void> $responses
+     * @return Generator<int, Idle\EventInterface, mixed, void>
+     * @throws Protocol\Exception\ExceptionInterface
+     */
+    private function events(Generator $responses): Generator
+    {
+        foreach ($responses as $tokens) {
+            $event = Idle\EventParser::fromResponse($tokens);
+            if (null !== $event) {
+                yield $event;
+            }
+        }
     }
 
     /**

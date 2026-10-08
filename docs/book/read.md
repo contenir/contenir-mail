@@ -293,6 +293,53 @@ it can, instead of receiving every matching number. At the protocol level,
 Storages hold open files or connections, so they cannot be serialized.
 `close()` releases them, and the destructor calls it.
 
+### Waiting for new mail (IDLE)
+
+An IMAP server that offers IDLE (RFC 2177), as most do, tells a listening
+client about changes to the selected folder as they happen. `idle()` returns a
+generator of events:
+
+```php
+use Contenir\Mail\Storage\Idle;
+
+$last = $mail->countMessages();
+
+foreach ($mail->idle(timeout: 600) as $event) {
+    if ($event instanceof Idle\Exists && $event->count > $last) {
+        $new  = $mail->getMessages(...range($last + 1, $event->count));
+        $last = $event->count;
+    }
+}
+```
+
+The events are `Idle\Exists` (the folder now holds `$count` messages),
+`Idle\Expunge` (message `$number` was removed, and the ones after it moved down),
+`Idle\Recent` and `Idle\FlagsChanged` (message `$number` now has `$flags`).
+They all implement `Idle\EventInterface`. Other responses are skipped.
+
+Nothing is sent until the loop starts. The loop ends once the timeout has
+passed, 29 minutes by default, as RFC 2177 asks clients to end IDLE at least
+that often. To keep listening, call `idle()` again:
+
+```php
+while (true) {
+    foreach ($mail->idle() as $event) {
+        // ...
+    }
+}
+```
+
+Breaking out of the loop ends IDLE, and so does the next command, so the
+mailbox can be used inside the loop, as above. If the server ends the
+connection with BYE, iterating throws a `Protocol\Exception\RuntimeException`.
+A server that offers neither IDLE nor IMAP4rev2 throws the same when `idle()`
+is called.
+
+At the protocol level, `Protocol\Imap::idle()` yields each untagged response
+as its tokens, such as `['3', 'EXISTS']`. Both take a PSR-20 clock as their
+second argument, for tests. Waiting uses `ConnectionInterface::waitForData()`,
+so a quiet server is not a timeout.
+
 ## Working with messages
 
 ```php

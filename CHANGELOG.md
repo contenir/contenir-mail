@@ -69,10 +69,24 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seeds, refuses RSA keys under 1024 bits, hides the key from dumps and gives
   the DNS record to publish. `Headers::withFirst()` adds a header before the
   others. (#23)
+- IMAP IDLE (RFC 2177): `Storage\Imap::idle($timeout)` is a generator of
+  `Storage\Idle` events for the selected folder: `Exists` when mail arrives,
+  `Expunge`, `Recent` and `FlagsChanged`, all `Idle\EventInterface`. It stops
+  after the timeout, 29 minutes by default, which RFC 2177 advises; call it
+  again to keep listening. DONE is sent and the reply read when the timeout
+  passes, when the loop is left early, or before the next command, so the
+  connection stays usable. BYE is thrown. `Protocol\Imap::idle()` yields the
+  raw untagged responses; both take a PSR-20 clock. Waiting uses the new
+  `ConnectionInterface::waitForData()`, which `StreamConnection` and
+  `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
+  script ends a wait, and `waits()` lists how long the client waited. (#52)
 
 ### Changed
 
-- Nothing.
+- `Protocol\ConnectionInterface` has a new method, `waitForData(int $seconds): bool`,
+  for IMAP IDLE. A connection implemented outside the package must add it:
+  return whether the server has sent something, or closed the connection,
+  within that many seconds. (#52)
 
 ### Deprecated
 

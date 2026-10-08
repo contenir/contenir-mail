@@ -9,7 +9,10 @@ use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
+use Contenir\Mail\SystemClock;
+use Generator;
 use LogicException;
+use Psr\Clock\ClockInterface;
 use SensitiveParameter;
 
 use function array_chunk;
@@ -117,6 +120,13 @@ class Imap
     private bool $utf8Mailboxes = false;
 
     private bool $imap4Rev2 = false;
+
+    /**
+     * The IDLE in progress, until its tagged reply is read: its tag, and whether DONE has been sent.
+     *
+     * @var array{string, bool}|null
+     */
+    private ?array $idle = null;
 
     /**
      * Public constructor
@@ -697,9 +707,13 @@ class Imap
 
     /**
      * A new tag for the next command, with the count of response bytes started again.
+     * An IDLE still in progress is ended first, so the command is not sent into it.
+     *
+     * @throws Exception\RuntimeException When an IDLE in progress cannot be ended.
      */
     private function nextTag(): string
     {
+        $this->endIdle();
         ++$this->tagCount;
 
         return $this->startResponse("TAG{$this->tagCount}");
@@ -1245,6 +1259,182 @@ class Imap
     public function noop(): array|bool
     {
         return $this->requestAndResponse('NOOP') ?? false;
+    }
+
+    /**
+     * Listen for changes to the selected mailbox with IDLE (RFC 2177), for at most $timeout seconds.
+     *
+     * Each untagged response the server sends is yielded as its tokens, such as
+     * ['3', 'EXISTS'] or ['4', 'FETCH', ['FLAGS', ['\\Seen']]]. IDLE is sent when the
+     * generator is first iterated. DONE is sent once the timeout has passed, and the
+     * responses the server sends before its tagged reply are yielded too. When the
+     * caller stops iterating early, DONE is sent and the reply read as the generator
+     * is destroyed, or else before the next command, so the connection stays usable.
+     *
+     * RFC 2177 asks clients to end IDLE at least every 29 minutes, the default
+     * timeout; to keep listening, call idle() again in a loop.
+     *
+     * @param int $timeout Seconds to listen for, counted from the first iteration.
+     * @param ClockInterface $clock The time the timeout is counted by.
+     * @return Generator<int, array<mixed>, mixed, void>
+     * @throws Exception\InvalidArgumentException When the timeout is under one second.
+     * @throws Exception\RuntimeException When the server offers neither IDLE nor IMAP4rev2. Iterating
+     *     throws it when the server refuses IDLE, ends it with an error, or says BYE.
+     * @throws Exception\ExceptionInterface When the capabilities cannot be read, or, while
+     *     iterating, when the connection fails.
+     */
+    public function idle(int $timeout = 1740, ClockInterface $clock = new SystemClock()): Generator
+    {
+        if ($timeout < 1) {
+            throw new Exception\InvalidArgumentException('The IDLE timeout must be at least one second');
+        }
+
+        if (! $this->imap4Rev2 && ! $this->hasCapability('IDLE')) {
+            throw new Exception\RuntimeException('The server does not offer IDLE');
+        }
+
+        return $this->listen($timeout, $clock);
+    }
+
+    /**
+     * Send IDLE, then yield untagged responses until the timeout passes or the server ends IDLE.
+     *
+     * Each pass reads one line, or waits until the deadline and sends DONE, so the loop
+     * ends with the tagged reply. Another command ends the IDLE through nextTag(), and
+     * this generator then yields nothing more.
+     *
+     * @return Generator<int, array<mixed>, mixed, void>
+     * @throws Exception\ExceptionInterface
+     */
+    private function listen(int $timeout, ClockInterface $clock): Generator
+    {
+        $tag = $this->nextTag();
+        $this->connection->write(CommandLine::terminate("{$tag} IDLE"));
+        $early    = $this->awaitIdle($tag);
+        $deadline = $clock->now()->getTimestamp() + $timeout;
+
+        $this->idle = [$tag, false];
+        try {
+            foreach ($early as $tokens) {
+                yield $tokens;
+            }
+
+            while (null !== $this->idle && $tag === $this->idle[0]) {
+                if (! $this->idle[1]) {
+                    $this->awaitNews($tag, $deadline, $clock);
+                }
+
+                $this->responseBytes = 0;
+                $line                = $this->nextLine();
+                if (str_starts_with($line, "{$tag} ")) {
+                    $this->idle = null;
+                    $this->idleEnded($tag, $line);
+                }
+
+                if (str_starts_with($line, '* ')) {
+                    yield $this->untagged(substr($line, offset: 2));
+                }
+            }
+        } finally {
+            if ($tag === ($this->idle[0] ?? null)) {
+                $this->endIdle();
+            }
+        }
+    }
+
+    /**
+     * Wait for the "+" that starts IDLE, returning the untagged responses that came before it.
+     *
+     * @return list<array<mixed>>
+     * @throws Exception\RuntimeException When the server refuses IDLE or says BYE.
+     */
+    private function awaitIdle(string $tag): array
+    {
+        $early = [];
+        $line  = $this->nextLine();
+        while (! str_starts_with($line, '+')) {
+            if (! str_starts_with($line, '* ')) {
+                $text = $this->taggedReply($tag, $line)[1];
+
+                throw new Exception\RuntimeException('' === $text ? 'The server refused IDLE' : $text);
+            }
+
+            $early[] = $this->untagged(substr($line, offset: 2));
+            $line    = $this->nextLine();
+        }
+
+        return $early;
+    }
+
+    /**
+     * Wait until the server sends something or the deadline passes, and send DONE if it passes:
+     * the server's next lines are then the last responses and the tagged reply.
+     *
+     * @throws Exception\RuntimeException When the connection fails.
+     */
+    private function awaitNews(string $tag, int $deadline, ClockInterface $clock): void
+    {
+        $remaining = $deadline - $clock->now()->getTimestamp();
+        if ($remaining > 0 && $this->connection->waitForData($remaining)) {
+            return;
+        }
+
+        $this->connection->write(CommandLine::terminate('DONE'));
+        $this->idle = [$tag, true];
+    }
+
+    /**
+     * The tokens of an untagged response, after "* ".
+     *
+     * @return array<mixed>
+     * @throws Exception\RuntimeException When it is BYE: the connection is closed, as the server closes it.
+     */
+    private function untagged(string $line): array
+    {
+        $tokens = $this->decodeLine($line);
+        if ('BYE' !== strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
+            return $tokens;
+        }
+
+        $this->idle = null;
+        $this->connection->close();
+        $text = SafeText::display(explode(' ', $line, limit: 2)[1] ?? '');
+
+        throw new Exception\RuntimeException(
+            '' === $text ? 'The server closed the connection' : "The server closed the connection: {$text}",
+        );
+    }
+
+    /**
+     * End the IDLE in progress, if any: send DONE unless it was sent, and read the tagged reply.
+     *
+     * @throws Exception\RuntimeException When the connection fails.
+     */
+    private function endIdle(): void
+    {
+        if (null === $this->idle) {
+            return;
+        }
+
+        [$tag, $done] = $this->idle;
+        $this->idle = null;
+        if (! $done) {
+            $this->connection->write(CommandLine::terminate('DONE'));
+        }
+
+        $this->responseBytes = 0;
+        $this->taggedReply($tag, $this->nextLine());
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the tagged reply to IDLE is not OK.
+     */
+    private function idleEnded(string $tag, string $line): void
+    {
+        [$status, $text] = $this->taggedReply($tag, $line);
+        if ('OK' !== $status) {
+            throw new Exception\RuntimeException('' === $text ? 'The server ended IDLE with an error' : $text);
+        }
     }
 
     /**
