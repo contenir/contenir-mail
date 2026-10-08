@@ -22,6 +22,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the transaction either way and the SMTP transport uses it. Every reply is
   read before a refusal is reported, and the transaction is then reset with
   RSET. (#19)
+- `Address::lenient()` builds an address real mail servers take but RFC 5322
+  refuses, such as one with consecutive or trailing dots in the local part, or
+  an underscore in the host. It still needs one `@` and a domain, and refuses
+  whitespace, control characters and the specials that could break a header
+  or an SMTP command. Only addresses built this way are lenient: strings and
+  reading stay strict. (#18)
 - SCRAM-SHA-256 authentication (RFC 5802, RFC 7677) for SMTP, IMAP and POP3.
   `Protocol\Smtp\Auth\ScramSha256` is an SMTP authenticator, with `type`
   `scram-sha-256` in settings, and `Imap::authenticate()` and

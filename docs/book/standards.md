@@ -12,8 +12,8 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 75 requirements below, 64 conform, 2 are
-partial, 2 deviate by design, and 7 optional extensions are not
+Summary: of the 79 requirements below, 66 conform, 3 are
+partial, 2 deviate by design, and 8 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
 ## Message format: RFC 5322 and RFC 6854

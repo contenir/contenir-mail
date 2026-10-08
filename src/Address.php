@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Contenir\Mail;
 
+use Contenir\Mail\Validator\DomainName;
 use Contenir\Mail\Validator\EmailAddressValidator;
+use ReflectionClass;
 
 use function addcslashes;
+use function idn_to_ascii;
 use function preg_match;
 use function sprintf;
 use function strpbrk;
 use function trim;
+
+use const INTL_IDNA_VARIANT_UTS46;
 
 /**
  * An e-mail address with an optional display name and comment.
@@ -42,6 +47,9 @@ final readonly class Address
      */
     private const string NAME_BIDI = '/[\x{202A}-\x{202E}\x{2066}-\x{2069}]/u';
 
+    /** A lenient address: one "@" between parts holding no whitespace or header specials */
+    private const string LENIENT_EMAIL = '/^[^\s@<>()\[\],;:"\\\\]+@(?<domain>[^\s@<>()\[\],;:"\\\\]+)$/uD';
+
     private string $email;
 
     private ?string $name;
@@ -52,6 +60,63 @@ final readonly class Address
      * @throws Exception\InvalidArgumentException When the address is invalid or a part contains CR or LF.
      */
     public function __construct(string $email, ?string $name = null, ?string $comment = null)
+    {
+        $email     = self::checkParts($email, $name, $comment);
+        $validator = new EmailAddressValidator();
+        if (! $validator->isValid($email)) {
+            throw new Exception\InvalidArgumentException($validator->getMessages()[0] ?? 'Invalid email address');
+        }
+
+        $this->initialise($email, $name, $comment);
+    }
+
+    /**
+     * An address real mail servers take but RFC 5322 refuses, such as one with
+     * consecutive or trailing dots in the local part, or a host name the strict
+     * check refuses, such as one with an underscore (contenir/contenir-mail#18).
+     *
+     * It still needs one "@" and a domain, and refuses what could break a header
+     * or an SMTP command: whitespace, control characters and the specials
+     * <>()[],;:"\. A domain that is not ASCII must still convert with IDNA, as it
+     * is written that way. Reading mail never applies this: use it only for
+     * addresses your own application gives.
+     *
+     * @throws Exception\InvalidArgumentException When the address is not usable even leniently.
+     *
+     * @mago-expect analysis:unhandled-thrown-type ReflectionException is thrown only for internal final classes, never for this one.
+     */
+    public static function lenient(string $email, ?string $name = null, ?string $comment = null): self
+    {
+        $email = self::checkParts($email, $name, $comment);
+        $parts = [];
+        if (1 !== preg_match(self::LENIENT_EMAIL, $email, $parts)) {
+            throw new Exception\InvalidArgumentException(
+                'An address needs one "@" and a domain, without whitespace or the characters <>()[],;:"\\',
+            );
+        }
+
+        $domain = $parts['domain'] ?? '';
+        if (
+            1 === preg_match('/[\x80-\xFF]/', $domain)
+            && false === idn_to_ascii($domain, DomainName::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46)
+        ) {
+            throw new Exception\InvalidArgumentException("The domain {$domain} cannot be written as ASCII");
+        }
+
+        $address = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $address->initialise($email, $name, $comment);
+
+        return $address;
+    }
+
+    /**
+     * The checks every address passes, strict or lenient: no line breaks, control
+     * characters or bidirectional overrides, and UTF-8 throughout.
+     *
+     * @return string The address, trimmed.
+     * @throws Exception\InvalidArgumentException When a check fails.
+     */
+    private static function checkParts(string $email, ?string $name, ?string $comment): string
     {
         // Checked before trimming, so a trailing line break is rejected rather than silently removed
         if (1 === preg_match("/[\r\n]/", $email . ($name ?? '') . ($comment ?? ''))) {
@@ -78,11 +143,11 @@ final readonly class Address
             throw new Exception\InvalidArgumentException('Address must not contain bidirectional overrides');
         }
 
-        $validator = new EmailAddressValidator();
-        if (! $validator->isValid($email)) {
-            throw new Exception\InvalidArgumentException($validator->getMessages()[0] ?? 'Invalid email address');
-        }
+        return $email;
+    }
 
+    private function initialise(string $email, ?string $name, ?string $comment): void
+    {
         $this->email   = $email;
         $this->name    = self::nonEmpty($name);
         $this->comment = self::nonEmpty($comment);
