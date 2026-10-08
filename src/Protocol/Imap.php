@@ -1118,7 +1118,7 @@ class Imap
      */
     public function namespace(): ?Imap\Namespaces
     {
-        if (! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
             return null;
         }
 
