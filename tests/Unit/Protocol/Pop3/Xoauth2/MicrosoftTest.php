@@ -18,6 +18,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SensitiveParameter;
 
+use function base64_encode;
+use function preg_quote;
+
 #[CoversClass(Microsoft::class)]
 #[Group('unit')]
 final class MicrosoftTest extends TestCase
@@ -51,6 +54,61 @@ final class MicrosoftTest extends TestCase
         $this->expectExceptionMessage('XOAUTH2 not available');
 
         $pop3->login('test@example.com', '123');
+    }
+
+    #[Test]
+    public function endsTheExchangeAndReportsTheStatusWhenTheTokenIsRefused(): void
+    {
+        $sasl   = Xoauth2::encodeXoauth2Sasl('test@example.com', 'expired');
+        $server = $this->greetingServer()
+            ->expect("AUTH XOAUTH2\r\n")
+            ->reply("+ \r\n")
+            ->expect("{$sasl}\r\n")
+            ->reply('+ ' . base64_encode('{"status":"401","schemes":"bearer"}') . "\r\n")
+            ->expect("\r\n")
+            ->reply("-ERR Authentication failed\r\n")
+            ->hangUp();
+        $pop3 = $this->connect($server);
+
+        try {
+            $pop3->login('test@example.com', 'expired');
+            static::fail('The refused token was not reported');
+        } catch (RuntimeException $e) {
+            static::assertSame(
+                ['The server refused the access token (status 401)', true],
+                [$e->getMessage(), $server->isScriptComplete()],
+            );
+        }
+    }
+
+    #[Test]
+    #[DataProvider('outrightRefusalProvider')]
+    public function reportsATokenRefusedOutright(string $reply, string $message): void
+    {
+        $sasl   = Xoauth2::encodeXoauth2Sasl('test@example.com', 'expired');
+        $server = $this->greetingServer()
+            ->expect("AUTH XOAUTH2\r\n")
+            ->reply("+ \r\n")
+            ->expect("{$sasl}\r\n")
+            ->reply($reply)
+            ->hangUp();
+        $pop3 = $this->connect($server);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/^' . preg_quote($message, delimiter: '/') . '$/D');
+
+        $pop3->login('test@example.com', 'expired');
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function outrightRefusalProvider(): array
+    {
+        return [
+            'with a reason'    => ["-ERR [AUTH] Authentication failed\r\n", '[AUTH] Authentication failed'],
+            'without a reason' => ["-ERR\r\n", 'The server refused the access token'],
+        ];
     }
 
     #[DataProvider('saslFieldInjectionProvider')]

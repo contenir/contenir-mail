@@ -8,6 +8,7 @@ use Closure;
 use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
+use Contenir\Mail\Protocol\Smtp\Auth\CallbackChannel;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Tests\Unit\TestAsset\ScriptedChannel;
@@ -51,6 +52,54 @@ final class XOAuth2Test extends TestCase
             ],
             $channel->steps(),
         );
+    }
+
+    /**
+     * @param list<array{string, int}> $lines
+     */
+    private static function refusingChannel(int $code, array &$lines): CallbackChannel
+    {
+        return new CallbackChannel(
+            static function (string $line, int $expect) use (&$lines): string {
+                $lines[] = [$line, $expect];
+
+                return '';
+            },
+            static function () use ($code): string {
+                throw new RuntimeException(base64_encode('{"status":"401","schemes":"bearer"}'), $code);
+            },
+        );
+    }
+
+    #[Test]
+    public function endsTheExchangeAndReportsTheStatusWhenTheTokenIsRefused(): void
+    {
+        $lines   = [];
+        $channel = self::refusingChannel(334, $lines);
+
+        try {
+            (new XOAuth2('jo@example.com', self::AUTH_VALUE))->authenticate($channel);
+            static::fail('The refused token was not reported');
+        } catch (RuntimeException $e) {
+            static::assertSame(
+                [[['AUTH XOAUTH2', 334], ['', 535]], 'The server refused the access token (status 401)', 535],
+                [$lines, $e->getMessage(), $e->getCode()],
+            );
+        }
+    }
+
+    #[Test]
+    public function passesOnOtherFailuresWithoutAnEmptyResponse(): void
+    {
+        $lines   = [];
+        $channel = self::refusingChannel(535, $lines);
+
+        try {
+            (new XOAuth2('jo@example.com', self::AUTH_VALUE))->authenticate($channel);
+            static::fail('The failure was not passed on');
+        } catch (RuntimeException $e) {
+            static::assertSame([[['AUTH XOAUTH2', 334]], 535], [$lines, $e->getCode()]);
+        }
     }
 
     #[Test]

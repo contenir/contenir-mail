@@ -30,6 +30,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Storage\Pop3::getCapabilities()` reports whether the server has TOP and UIDL,
   asking on the first call. Both stayed `null` since the magic `hasTop` and
   `hasUniqueId` properties were removed.
+- A refused XOAUTH2 token now ends the SASL exchange with the empty response
+  RFC 7628 requires, for SMTP and POP3, and is reported as "The server refused
+  the access token" with the status the server gave. The client used to stop at
+  the server's challenge, leaving the session waiting and reporting raw base64.
 
 ## 0.1.0 - 2026-10-08
 
@@ -39,7 +43,7 @@ PHP 8.3, 8.4 and 8.5, under the `Contenir\Mail` namespace.
 ### Added
 
 - `<Component>Config` objects for transports, protocols and storage, built from arrays or iterables.
-- XOAUTH2 for SMTP, IMAP and POP3, with a token provider.
+- XOAUTH2 for SMTP, with a token provider, and for POP3 through `Protocol\Pop3\Xoauth2\Microsoft`.
 - A `Failover` transport, which tries a list of transports in turn.
 - Address groups, read and written as `AddressGroup` values.
 - SMTPUTF8 and RFC 6532 UTF-8 headers.

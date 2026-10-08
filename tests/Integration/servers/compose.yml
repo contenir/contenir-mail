@@ -13,6 +13,15 @@ services:
       - ./var/certs:/certs:ro
       - ./var/mail:/srv/mail
 
+  postfix:
+    build: ./postfix
+    depends_on:
+      - dovecot
+    ports:
+      - "587:587"
+    volumes:
+      - ./var/certs:/certs:ro
+
   mailpit:
     image: axllent/mailpit:latest
     ports:
