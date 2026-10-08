@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\ConnectionInterface;
 use Contenir\Mail\Protocol\StreamConnection;
 use Override;
+use SensitiveParameter;
 
 use function rtrim;
 
@@ -45,7 +46,7 @@ final class RecordingConnection implements ConnectionInterface
     }
 
     #[Override]
-    public function write(string $data): void
+    public function write(#[SensitiveParameter] string $data): void
     {
         $this->transcript[] = 'C: ' . rtrim($data, characters: "\r\n");
         $this->connection->write($data);

@@ -700,4 +700,13 @@ final class ConfigReaderTest extends TestCase
 
         self::reader(['connection' => [self::class, 'missingProvider']])->stringOrCallable('connection');
     }
+
+    #[Test]
+    public function hidesEveryValueFromVarDump(): void
+    {
+        static::assertSame(
+            ['context' => 'Example', 'values' => ['host' => '[hidden]', 'connection' => '[hidden]']],
+            self::reader(['host' => 'mail.example.com', 'connection' => 'hunter2'])->__debugInfo(),
+        );
+    }
 }

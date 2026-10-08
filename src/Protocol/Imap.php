@@ -79,8 +79,11 @@ class Imap
      */
     public const int TIMEOUT_CONNECTION = 30;
 
-    /** RFC 3501 sequence-set: numbers or "*", ranges with ":", joined by "," */
-    private const string SEQUENCE_SET = '/^(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?(?:,(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?)*$/D';
+    /** One part of an RFC 3501 sequence-set, which joins them by ",": a number or "*", or a range of them with ":" */
+    private const string SEQUENCE_RANGE = '/^(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?$/D';
+
+    /** One part of the sequence set of an ESEARCH result: a 32-bit number, or a range of them */
+    private const string SEARCH_RANGE = '/^[1-9]\d{0,9}(?::[1-9]\d{0,9})?$/D';
 
     /** An RFC 3501 quoted string at the offset, with its backslash-escaped quotes and backslashes */
     private const string QUOTED_STRING = '/\\G"((?:[^"\\\\]|\\\\.)*+)"/s';
@@ -321,18 +324,17 @@ class Imap
         $tokens = [];
         $stack  = [];
 
-        $line = rtrim($line) . ' ';
-        while (($pos = strpos($line, needle: ' ')) !== false) {
-            $token   = substr($line, offset: 0, length: $pos);
+        $line   = rtrim($line) . ' ';
+        $offset = 0;
+        $space  = strpos($line, needle: ' ');
+        $split  = strpos($line, needle: ')(');
+        while (false !== ($space = self::nextFrom($line, ' ', $offset, $space))) {
+            $split   = self::nextFrom($line, ')(', $offset, $split);
+            $pos     = false === $split ? $space : min($space, $split + 1);
+            $token   = substr($line, $offset, $pos - $offset);
             $literal = [];
-            $next    = strpos($token, needle: ')(');
-            if (false !== $next) {
-                $pos   = $next + 1;
-                $token = substr($token, offset: 0, length: $pos);
-            }
-
             if ('' === $token) {
-                $line = substr($line, $pos + 1);
+                $offset = $pos + 1;
                 continue;
             }
 
@@ -342,19 +344,20 @@ class Imap
                 $token   = substr($token, offset: 1);
             }
 
+            $start  = $pos - strlen($token);
             $quoted = [];
-            if (
-                str_starts_with($token, '"')
-                && 1 === preg_match(self::QUOTED_STRING, $line, $quoted, offset: $pos - strlen($token))
-            ) {
+            if (str_starts_with($token, '"') && 1 === preg_match(self::QUOTED_STRING, $line, $quoted, offset: $start)) {
                 $tokens[] = preg_replace('/\\\\(.)/s', replacement: '$1', subject: $quoted[1] ?? '');
-                $line     = substr($line, offset: $pos - strlen($token) + strlen($quoted[0] ?? ''));
+                $offset   = $start + strlen($quoted[0] ?? '');
                 continue;
             }
 
             if (1 === preg_match('/^\{(\d+)\}$/', $token, $literal)) {
                 $tokens[] = $this->readLiteral($literal[1] ?? '0');
                 $line     = trim($this->nextLine()) . ' ';
+                $offset   = 0;
+                $space    = strpos($line, needle: ' ');
+                $split    = strpos($line, needle: ')(');
                 continue;
             }
 
@@ -377,7 +380,7 @@ class Imap
             }
 
             $tokens[] = $token;
-            $line     = substr($line, $pos);
+            $offset   = $pos;
         }
 
         // maybe the server forgot to send some closing braces
@@ -388,6 +391,21 @@ class Imap
         }
 
         return $tokens;
+    }
+
+    /**
+     * Where $needle next occurs in $line at or after $offset, given where it was last found.
+     *
+     * The last position is kept while the offset has not passed it, so each line is searched
+     * once however many tokens it holds.
+     */
+    private static function nextFrom(string $line, string $needle, int $offset, int|false $found): int|false
+    {
+        if (false === $found || $found >= $offset) {
+            return $found;
+        }
+
+        return strpos($line, $needle, $offset);
     }
 
     /**
@@ -453,8 +471,12 @@ class Imap
      *
      * @param-out string $tag
      */
-    public function sendRequest(string $command, array $tokens = [], ?string &$tag = null): void
-    {
+    public function sendRequest(
+        string $command,
+        #[SensitiveParameter]
+        array $tokens = [],
+        ?string &$tag = null,
+    ): void {
         $tag  = null === $tag || '' === $tag ? $this->nextTag() : $this->startResponse($tag);
         $line = "{$tag} {$command}";
 
@@ -491,7 +513,7 @@ class Imap
      *
      * @throws Exception\RuntimeException When the server refuses the literal or the connection fails.
      */
-    private function sendLiteralSize(string $line, int $size): void
+    private function sendLiteralSize(#[SensitiveParameter] string $line, int $size): void
     {
         $capabilities = $this->capabilities ?? [];
         if (
@@ -524,8 +546,12 @@ class Imap
      * @return ($dontParse is true ? list<string>|bool|null : list<array<mixed>>|bool|null) response as in readResponse()
      * @throws Exception\ExceptionInterface
      */
-    public function requestAndResponse(string $command, array $tokens = [], bool $dontParse = false): array|bool|null
-    {
+    public function requestAndResponse(
+        string $command,
+        #[SensitiveParameter]
+        array $tokens = [],
+        bool $dontParse = false,
+    ): array|bool|null {
         $tag = null;
         $this->sendRequest($command, $tokens, $tag);
 
@@ -1919,7 +1945,7 @@ class Imap
      */
     private static function expandSequenceSet(string $set): array
     {
-        if (1 !== preg_match('/^[1-9]\d{0,9}(?::[1-9]\d{0,9})?(?:,[1-9]\d{0,9}(?::[1-9]\d{0,9})?)*$/D', $set)) {
+        if (! self::isSetOf(self::SEARCH_RANGE, $set)) {
             throw new Exception\RuntimeException('The server sent a malformed search result');
         }
 
@@ -2033,13 +2059,30 @@ class Imap
             $set .= ':' . (INF === $to ? '*' : $to);
         }
 
-        if (1 !== preg_match(self::SEQUENCE_SET, $set)) {
+        if (! self::isSetOf(self::SEQUENCE_RANGE, $set)) {
             throw new Exception\InvalidArgumentException(
                 'Not a valid message sequence set: numbers from 1, "*", ":" and ","',
             );
         }
 
         return $set;
+    }
+
+    /**
+     * Whether every comma-separated part of the set matches $range.
+     *
+     * Each part is matched on its own: one pattern over the whole set runs out of PCRE's
+     * stack at a few thousand parts, and a valid set would then be refused.
+     */
+    private static function isSetOf(string $range, string $set): bool
+    {
+        foreach (explode(',', $set) as $part) {
+            if (1 !== preg_match($range, $part)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\Exception;
 use Contenir\Mail\Protocol\Security;
 use LogicException;
 use Override;
+use SensitiveParameter;
 
 use function array_shift;
 use function min;
@@ -237,7 +238,7 @@ final class InMemoryConnection implements ConnectionInterface
     }
 
     #[Override]
-    public function write(string $data): void
+    public function write(#[SensitiveParameter] string $data): void
     {
         $this->assertOpen();
 

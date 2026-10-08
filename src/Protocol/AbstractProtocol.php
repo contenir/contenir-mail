@@ -230,7 +230,7 @@ abstract class AbstractProtocol
     /**
      * The request as it may be logged: the arguments of credential commands replaced by "[redacted]".
      */
-    private static function redact(string $request): string
+    private static function redact(#[SensitiveParameter] string $request): string
     {
         if (1 !== preg_match(self::CREDENTIAL_COMMAND, $request, $matches) || '' === ($matches['secret'] ?? '')) {
             return $request;
@@ -294,7 +294,7 @@ abstract class AbstractProtocol
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
-    protected function _send($request)
+    protected function _send(#[SensitiveParameter] $request)
     {
         return $this->sendAndLog($request, self::redact($request));
     }
@@ -429,7 +429,7 @@ abstract class AbstractProtocol
     /**
      * @throws Exception\RuntimeException
      */
-    private function sendAndLog(string $request, string $loggedAs): int
+    private function sendAndLog(#[SensitiveParameter] string $request, string $loggedAs): int
     {
         $connection    = $this->connection();
         $this->request = $loggedAs;

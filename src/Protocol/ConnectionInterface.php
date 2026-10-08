@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use SensitiveParameter;
+
 /**
  * A byte stream to a mail server, as IMAP, POP3 and SMTP use it.
  *
@@ -36,7 +38,7 @@ interface ConnectionInterface
      *
      * @throws Exception\RuntimeException When the connection is closed or the bytes cannot be sent.
      */
-    public function write(string $data): void;
+    public function write(#[SensitiveParameter] string $data): void;
 
     /**
      * Read the next line, its line feed included.

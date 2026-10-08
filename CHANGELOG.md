@@ -128,17 +128,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Header\HeaderLocator`) carry `#[\NoDiscard]`, so PHP 8.5 warns when the
   copy they return is thrown away, as when one is mistaken for a setter.
   Earlier PHP versions ignore the attribute.
-
-### Changed
-
-- `WritableInterface::appendMessage()`, `copyMessage()` and `moveMessage()`
-  return `?int` instead of `void`: the UID the message has in the
-  destination folder when the storage reports one, and null otherwise.
-  `Storage\Writable\Maildir` returns null. Classes implementing the
-  interface must change their return types. `Storage\Imap` now calls
-  `Protocol\Imap::appendReturningUids()`, `copyReturningUids()` and
-  `moveReturningUids()`, so a protocol subclass that overrides `append()`,
-  `copy()` or `move()` must override those instead. (#52)
 - IMAP IDLE (RFC 2177): `Storage\Imap::idle($timeout)` is a generator of
   `Storage\Idle` events for the selected folder: `MessageCountChanged` when
   mail arrives, `MessageExpunged`, `RecentCountChanged` and `FlagsChanged`,
@@ -153,6 +142,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `WritableInterface::appendMessage()`, `copyMessage()` and `moveMessage()`
+  return `?int` instead of `void`: the UID the message has in the
+  destination folder when the storage reports one, and null otherwise.
+  `Storage\Writable\Maildir` returns null. Classes implementing the
+  interface must change their return types. `Storage\Imap` now calls
+  `Protocol\Imap::appendReturningUids()`, `copyReturningUids()` and
+  `moveReturningUids()`, so a protocol subclass that overrides `append()`,
+  `copy()` or `move()` must override those instead. (#52)
 - `Protocol\ConnectionInterface` has a new method,
   `waitUntilReadable(int $seconds): bool`, for IMAP IDLE. A connection implemented outside the package must add it:
   return whether the server has sent something, or closed the connection,
@@ -179,6 +176,28 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ESEARCH and UNSELECT), so after a password login `moveMessage()` copied and
   expunged instead of using MOVE. The capabilities are now asked for again,
   as they already were after AUTHENTICATE. (#52)
+- Secrets no longer show in exception traces. With
+  `zend.exception_ignore_args` off, as in development, a failed IMAP LOGIN
+  showed the password in three frames, and a rejected setting showed the
+  whole config array. Every parameter that can carry a password, token, key
+  or SASL response, from `ConnectionInterface::write()` and the command
+  builders to `ConfigReader` and the transport factory, is now marked
+  `#[SensitiveParameter]`, and `ConfigReader` hides its values from
+  `var_dump()`.
+- Unfolding a header took time quadratic in its continuation lines: one
+  folded over 80,000 lines took 17 seconds to read. It is now linear (40 ms).
+- The IMAP tokenizer copied the rest of the line for every token, so a SEARCH
+  reply of 200,000 ids took 9 seconds to read. It now reads each line in one
+  pass (100 ms), lists side by side included.
+- A sequence set of about 10,000 ranges or more exhausted PCRE's stack: an
+  ESEARCH result was refused as malformed, and `fetch()`, `store()`,
+  `copy()` and `move()` refused a valid set. Each range is now checked on its
+  own.
+- `Mime::CHARSET_REGEX` meant to allow `_` and `` ` `` in a charset name but
+  allowed the bytes `\x05`, `f` and `0`, so `mimeDetectCharset()` read
+  `=?ISO_8859-1?Q?caf=E9?=` as ASCII.
+- A MIME boundary is now 128 random bits from `random_bytes()`, instead of a
+  hash of `uniqid()`, which a sender could predict.
 
 ## 0.2.1 - TBD
 

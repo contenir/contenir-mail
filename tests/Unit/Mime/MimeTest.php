@@ -395,6 +395,13 @@ final class MimeTest extends TestCase
             ],
             'utf-8 with umlauts'         => ['UTF-8', '=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?='],
             'lower case charset'         => ['UTF-8', '=?utf-8?Q?test?='],
+            'underscore in the charset'  => ['ISO_8859-1', '=?ISO_8859-1?Q?caf=E9?='],
+            'backtick in the charset'    => ['X`Y', '=?x`y?Q?test?='],
+            'underscore in the encoding' => ['UTF-8', '=?UTF-8?Q_?test?='],
+            'backtick in the encoding'   => ['UTF-8', '=?UTF-8?Q`?test?='],
+            'f and 0 in the charset'     => ['F0', '=?f0?Q?test?='],
+            'control byte 05'            => ['ASCII', "=?A\x05B?Q?test?="],
+            'control byte 05 encoding'   => ['ASCII', "=?UTF-8?Q\x05?test?="],
         ];
     }
 

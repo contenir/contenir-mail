@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use SensitiveParameter;
+
 use function preg_match;
 
 /**
@@ -21,7 +23,7 @@ final class CommandLine
     /**
      * @throws Exception\InvalidArgumentException When the line contains CR, LF or NUL; the message never repeats the line, which may hold a password.
      */
-    public static function terminate(string $line): string
+    public static function terminate(#[SensitiveParameter] string $line): string
     {
         if (1 === preg_match('/[\r\n\0]/', $line)) {
             throw new Exception\InvalidArgumentException(
