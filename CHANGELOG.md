@@ -16,6 +16,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   any config, and they apply to TLS from the start and to STARTTLS. No other
   ssl context option can be passed, and peer verification stays on unless
   `verify_peer` turns it off. (#16)
+- `Address::lenient()` builds an address real mail servers take but RFC 5322
+  refuses, such as one with consecutive or trailing dots in the local part, or
+  an underscore in the host. It still needs one `@` and a domain, and refuses
+  whitespace, control characters and the specials that could break a header
+  or an SMTP command. Only addresses built this way are lenient: strings and
+  reading stay strict. (#18)
 
 ### Changed
 
