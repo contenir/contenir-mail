@@ -34,12 +34,12 @@ final readonly class HeaderParser
      * whole message unreadable.
      *
      * @return list<array{HeaderInterface, string|null}>
-     * @throws RuntimeException When the block is not a sequence of header lines, or a name is longer than HeaderName::MAX_LENGTH.
+     * @throws RuntimeException When a name is longer than HeaderName::MAX_LENGTH, or the block is too large.
      */
     public function parseBlock(string $block, string $eol): array
     {
         $headers = [];
-        foreach (HeaderBlock::fields($block, $eol) as [$line, $wireText]) {
+        foreach (HeaderBlock::readableFields($block, $eol) as [$line, $wireText]) {
             if (! Utf8::isValid($line)) {
                 $line = self::fromLegacyCharset($line);
             }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
+use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\PartWriter;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
@@ -392,7 +393,7 @@ final class PartTest extends TestCase
         $this->expectExceptionMessage('Cannot read the message headers');
         $this->expectExceptionCode(0);
 
-        Part::fromString("Subject: x\r\nnot a header\r\n\r\nbody");
+        Part::fromString(str_repeat('a', times: HeaderName::MAX_LENGTH + 1) . ": x\r\n\r\nbody");
     }
 
     #[Test]

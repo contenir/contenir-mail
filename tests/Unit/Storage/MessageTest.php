@@ -55,6 +55,18 @@ final class MessageTest extends TestCase
         static::assertNull(Message::fromString("To: a@example.com\r\n\r\nx")->getSubject());
     }
 
+    /**
+     * One malformed header line does not make the message unreadable (laminas/laminas-mail#76, #221).
+     */
+    #[Test]
+    public function readsMessageWithMalformedHeaderLine(): void
+    {
+        static::assertSame(
+            'Hi',
+            Message::fromString("Subject: Hi\r\nthis is not a header\r\nBad Name: x\r\n\r\nbody")->getSubject(),
+        );
+    }
+
     #[DataProvider('addressProvider')]
     #[Test]
     public function readsAddresses(string $method, string $expected): void
