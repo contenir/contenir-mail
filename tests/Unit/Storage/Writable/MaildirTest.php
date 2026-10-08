@@ -124,6 +124,18 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
+    public function returnsNoUidForAnAppendedMessage(): void
+    {
+        static::assertNull($this->maildir()->appendMessage(self::MESSAGE));
+    }
+
+    #[Test]
+    public function returnsNoUidForACopy(): void
+    {
+        static::assertNull($this->maildir()->copyMessage(1, 'subfolder.test'));
+    }
+
+    #[Test]
     public function appendsMessageAsSeenByDefault(): void
     {
         $maildir = $this->maildir();

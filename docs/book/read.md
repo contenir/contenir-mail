@@ -583,6 +583,30 @@ $mail->renameFolder('INBOX.Projects', 'INBOX.Work');
 $mail->removeFolder('INBOX.Work');
 ```
 
+`appendMessage()` and `copyMessage()` return the UID of the new message when
+the storage reports one, and null otherwise. IMAP servers with UIDPLUS
+(RFC 4315, part of IMAP4rev2) report it, as Dovecot and Cyrus do; Maildir
+has no UIDs and always returns null. Keep the UID to find the message
+again, for example with `getNumberByUniqueId((string) $uid)`:
+
+```php
+$uid = $imap->appendMessage($rawMessage, 'Sent');   // 3955, or null without UIDPLUS
+```
+
+At the protocol level, `Protocol\Imap::appendWithUid()` and `copyWithUid()`
+return a `Protocol\Imap\UidPlus` with the folder's UIDVALIDITY and the source
+and destination UIDs, true when the server reports none, or false when it
+refuses. `append()` and `copy()` still return a bool.
+
+IMAP literals, such as a message or a non-ASCII password, are sent without
+waiting for the server's go-ahead when it offers LITERAL+, or LITERAL- or
+IMAP4rev2 for literals up to 4096 bytes (RFC 7888), saving a round trip.
+
+`Storage\Imap` never sends CLOSE, which would expunge the messages flagged
+`\Deleted`: selecting another folder, and logging out, leave a folder without
+expunging it. To have no folder selected, `Protocol\Imap::unselect()` sends
+UNSELECT (RFC 3691) when the server offers it or IMAP4rev2 is enabled.
+
 The Maildir writer follows Maildir delivery: each message is written to a
 new file in `tmp/`, opened exclusively so no existing file or symbolic link of
 that name is followed, synced to disk, and only then linked into `cur/` (or

@@ -69,10 +69,29 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seeds, refuses RSA keys under 1024 bits, hides the key from dumps and gives
   the DNS record to publish. `Headers::withFirst()` adds a header before the
   others. (#23)
+- IMAP UIDPLUS (RFC 4315): `Storage\Imap::appendMessage()` and
+  `copyMessage()` return the UID the server gave the new message, from the
+  APPENDUID or COPYUID response code. New on `Protocol\Imap`:
+  `appendWithUid()` and `copyWithUid()`, which return a
+  `Protocol\Imap\UidPlus` with the UIDVALIDITY and the source and
+  destination UIDs. UID sets are validated strictly and bounded to
+  `UidPlus::MAX_UIDS`; a malformed code is ignored. (#52)
+- IMAP UNSELECT (RFC 3691): `Protocol\Imap::unselect()` leaves the selected
+  folder without expunging messages flagged `\Deleted`, when the server
+  offers UNSELECT or IMAP4rev2 is enabled. (#52)
+- IMAP LITERAL+ and LITERAL- (RFC 7888): literals are sent without waiting
+  for the server's `+` when it offers LITERAL+, or LITERAL- or IMAP4rev2 and
+  the literal is at most 4096 bytes. (#52)
 
 ### Changed
 
-- Nothing.
+- `WritableInterface::appendMessage()` and `copyMessage()` return `?int`
+  instead of `void`: the UID of the new message when the storage reports
+  one, and null otherwise. `Storage\Writable\Maildir` returns null.
+  Classes implementing the interface must change their return types.
+  `Storage\Imap` now calls `Protocol\Imap::appendWithUid()` and
+  `copyWithUid()`, so a protocol subclass that overrides `append()` or
+  `copy()` must override those instead. (#52)
 
 ### Deprecated
 

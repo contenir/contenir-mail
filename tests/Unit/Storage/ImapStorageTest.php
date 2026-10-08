@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
+use Contenir\Mail\Protocol\Imap\UidPlus;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
@@ -727,11 +728,20 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->expects($this->once())
-            ->method('append')
+            ->method('appendWithUid')
             ->with('INBOX', "Subject: x\r\n\r\nx", ['\Seen'])
             ->willReturn(true);
 
-        $this->imap($protocol)->appendMessage("Subject: x\r\n\r\nx");
+        static::assertNull($this->imap($protocol)->appendMessage("Subject: x\r\n\r\nx"));
+    }
+
+    #[Test]
+    public function returnsTheUidTheServerGaveTheAppendedMessage(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('appendWithUid')->willReturn(new UidPlus(38_505, [], [3955]));
+
+        static::assertSame(3955, $this->imap($protocol)->appendMessage('x'));
     }
 
     #[Test]
@@ -739,15 +749,15 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->expects($this->once())
-            ->method('append')
+            ->method('appendWithUid')
             ->with('Sent', "Subject: x\r\n\r\nx", ['\Draft', '$Forwarded', '$Junk'])
             ->willReturn(true);
 
-        $this->imap($protocol)->appendMessage(
+        static::assertNull($this->imap($protocol)->appendMessage(
             Message::fromString("Subject: x\r\n\r\nx"),
             'Sent',
             [Flag::Draft, Flag::Passed, '$Junk'],
-        );
+        ));
     }
 
     #[Test]
@@ -757,9 +767,9 @@ final class ImapStorageTest extends TestCase
         fwrite($stream, data: 'raw');
         rewind($stream);
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('append')->with('INBOX', 'raw', ['\Seen'])->willReturn(true);
+        $protocol->expects($this->once())->method('appendWithUid')->with('INBOX', 'raw', ['\Seen'])->willReturn(true);
 
-        $this->imap($protocol)->appendMessage($stream);
+        static::assertNull($this->imap($protocol)->appendMessage($stream));
     }
 
     #[Test]
@@ -775,7 +785,7 @@ final class ImapStorageTest extends TestCase
     public function reportsRefusedAppend(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('append')->willReturn(false);
+        $protocol->method('appendWithUid')->willReturn(false);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Cannot store the message');
@@ -787,16 +797,37 @@ final class ImapStorageTest extends TestCase
     public function copiesMessage(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('copy')->with('Archive', 2)->willReturn(true);
+        $protocol->expects($this->once())->method('copyWithUid')->with('Archive', 2)->willReturn(true);
 
-        $this->imap($protocol)->copyMessage(2, 'Archive');
+        static::assertNull($this->imap($protocol)->copyMessage(2, 'Archive'));
+    }
+
+    #[DataProvider('copyUidProvider')]
+    #[Test]
+    public function returnsTheUidTheServerGaveTheCopy(UidPlus $uids, ?int $uid): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('copyWithUid')->willReturn($uids);
+
+        static::assertSame($uid, $this->imap($protocol)->copyMessage(2, 'Archive'));
+    }
+
+    /**
+     * @return array<string, array{UidPlus, int|null}>
+     */
+    public static function copyUidProvider(): array
+    {
+        return [
+            'one copy'                => [new UidPlus(38_505, [304], [3956]), 3956],
+            'several copies reported' => [new UidPlus(38_505, [304, 305], [3956, 3957]), null],
+        ];
     }
 
     #[Test]
     public function reportsRefusedCopy(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('copy')->willReturn(false);
+        $protocol->method('copyWithUid')->willReturn(false);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Cannot copy the message; does the folder exist?');
@@ -808,7 +839,7 @@ final class ImapStorageTest extends TestCase
     public function movesMessageByCopyingAndRemoving(): void
     {
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('copy')->with('Archive', 2)->willReturn(true);
+        $protocol->expects($this->once())->method('copyWithUid')->with('Archive', 2)->willReturn(true);
         $protocol->method('store')->willReturn(true);
         $protocol->expects($this->once())->method('expunge')->willReturn(true);
 
@@ -821,7 +852,7 @@ final class ImapStorageTest extends TestCase
         $protocol = $this->protocol();
         $protocol->method('hasCapability')->with('MOVE')->willReturn(true);
         $protocol->expects($this->once())->method('move')->with('Archive', 2)->willReturn(true);
-        $protocol->expects($this->never())->method('copy');
+        $protocol->expects($this->never())->method('copyWithUid');
 
         $this->imap($protocol)->moveMessage(2, 'Archive');
     }
