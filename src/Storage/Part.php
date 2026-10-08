@@ -22,6 +22,7 @@ use Override;
 
 use function base64_decode;
 use function count;
+use function in_array;
 use function preg_replace;
 use function quoted_printable_decode;
 use function sprintf;
@@ -234,6 +235,23 @@ final class Part implements PartInterface, IteratorAggregate
     }
 
     /**
+     * The attachments and body of the first TNEF part, this part included, or null when there is none.
+     *
+     * A TNEF part is an application/ms-tnef or application/vnd.ms-tnef part,
+     * or a part whose file name is winmail.dat. Parts are searched depth
+     * first, in order. Pass a reader to change its limits.
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read, or the TNEF part is malformed
+     *     or exceeds the reader's limits.
+     */
+    public function getTnefContents(?Tnef\Reader $reader = null): ?Tnef\Contents
+    {
+        $part = self::findTnef($this);
+
+        return null === $part ? null : ($reader ?? new Tnef\Reader())->read($part->getContent());
+    }
+
+    /**
      * The content as transferred, with CRLF line breaks; empty for a multipart.
      *
      * @throws Exception\RuntimeException When the storage has been closed.
@@ -302,6 +320,33 @@ final class Part implements PartInterface, IteratorAggregate
         return null === $part
             ? null
             : Utf8::scrub(CharsetConverter::toUtf8($part->getContent(), $part->getCharset()));
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    private static function findTnef(self $part): ?self
+    {
+        if ($part->isTnef()) {
+            return $part;
+        }
+
+        foreach ($part->getParts() as $child) {
+            $found = self::findTnef($child);
+            if (null !== $found) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function isTnef(): bool
+    {
+        return (
+            in_array($this->getContentType(), ['application/ms-tnef', 'application/vnd.ms-tnef'], strict: true)
+                || 'winmail.dat' === strtolower($this->getSafeFilename() ?? '')
+        );
     }
 
     private function contentType(): ?ContentType
