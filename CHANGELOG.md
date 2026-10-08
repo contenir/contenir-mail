@@ -16,6 +16,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   any config, and they apply to TLS from the start and to STARTTLS. No other
   ssl context option can be passed, and peer verification stays on unless
   `verify_peer` turns it off. (#16)
+- Reading TNEF (`winmail.dat`) attachments: `Storage\Part::getTnefContents()`
+  and `Storage\Message::getTnefContents()` find a message's
+  `application/ms-tnef` part and return its attachments, its plain-text body
+  and its RTF body, decompressed. `Storage\Tnef\Reader` reads a container
+  directly. The container is parsed as hostile: lengths are bounds-checked,
+  checksums verified, and attachments and output limited (100 and 64 MiB by
+  default). (#22)
 
 ### Changed
 
