@@ -63,9 +63,18 @@ final class AddressListCodec
             return new Address(trim($entry, characters: " \t'"), comment: $comment);
         }
 
-        $email = trim($matches['email'] ?? '', characters: " \t'");
+        $email = self::withoutSourceRoute(trim($matches['email'] ?? '', characters: " \t'"));
 
         return new Address($email, self::decodePhrase($matches['phrase'] ?? ''), $comment);
+    }
+
+    /**
+     * The address without an obsolete source route ("@relay.example:" before it), which
+     * RFC 5322 section 4.4 says to ignore.
+     */
+    private static function withoutSourceRoute(string $email): string
+    {
+        return (string) preg_replace('/^(?:[\s,]*@[^\s,:@<>]+)+[\s,]*:\s*/', replacement: '', subject: $email);
     }
 
     /**

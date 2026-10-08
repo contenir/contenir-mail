@@ -45,6 +45,13 @@ final class ListParserTest extends TestCase
             'escaped quote does not open quote' => ['a\\"b,c', ['a\\"b', 'c']],
             'trailing delimiter'                => ['a,', ['a']],
             'empty'                             => ['', []],
+            'comma in a source route'           => [
+                'Jo <@a.example,@b.example:jo@example.com>, b',
+                ['Jo <@a.example,@b.example:jo@example.com>', ' b'],
+            ],
+            'delimiter after angle brackets'    => ['<a@x.example>,b', ['<a@x.example>', 'b']],
+            'angle bracket inside quotes'       => ['"x<y" <a@x.example>, b', ['"x<y" <a@x.example>', ' b']],
+            'closing bracket inside quotes'     => ['<"a>b"@x.example>, c', ['<"a>b"@x.example>', ' c']],
         ];
     }
 }
