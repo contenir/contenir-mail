@@ -28,6 +28,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   whitespace, control characters and the specials that could break a header
   or an SMTP command. Only addresses built this way are lenient: strings and
   reading stay strict. (#18)
+- IMAP4rev2 (RFC 9051): after signing in, `Protocol\Imap` turns on IMAP4rev2
+  when the server offers it, or else UTF8=ACCEPT (RFC 6855), with ENABLE
+  (RFC 5161). Mailbox names then travel as UTF-8. SEARCH reads ESEARCH
+  results, bounded to `Imap::MAX_SEARCH_RESULTS`. Folders listed as
+  `\NonExistent` can't be selected. `useImap4Rev2(false)` turns this off.
+  New: `enable()`, `hasCapability()`, `hasUtf8Mailboxes()`, and `move()`,
+  which `Storage\Imap::moveMessage()` uses when the server offers MOVE
+  (RFC 6851). (#14)
 
 ### Changed
 
@@ -43,7 +51,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Nothing.
+- IMAP mailbox names are written in modified UTF-7 (RFC 3501, section 5.1.3)
+  and decoded from LIST. Folder names outside ASCII, or with `&`, were sent
+  and returned raw, which IMAP4rev1 servers refuse or misread. Names are now
+  given and returned as UTF-8 throughout. (#14)
 
 ## 0.2.1 - TBD
 

@@ -373,7 +373,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     }
 
     /**
-     * Copy, then remove: IMAP4rev1 has no MOVE.
+     * MOVE when the server offers it (RFC 6851, part of IMAP4rev2), and copy then remove otherwise.
      *
      * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
@@ -381,8 +381,16 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     #[Override]
     public function moveMessage(int $id, Folder|string $folder): void
     {
-        $this->copyMessage($id, $folder);
-        $this->removeMessage($id);
+        if (! $this->protocol->hasCapability('MOVE')) {
+            $this->copyMessage($id, $folder);
+            $this->removeMessage($id);
+
+            return;
+        }
+
+        if (! $this->protocol->move(RemoteFolder::check((string) $folder), self::checkNumber($id))) {
+            throw new Exception\RuntimeException('Cannot move the message; does the folder exist?');
+        }
     }
 
     /**

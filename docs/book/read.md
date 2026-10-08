@@ -398,6 +398,12 @@ $flagged = $mail->countMessages(Flag::Flagged);
 All storages but POP3 have folders. `getFolders()` returns the folder tree as
 a `Contenir\Mail\Storage\Folder`, or the subtree of the folder named.
 
+IMAP folder names are always given and returned as UTF-8, such as
+`Entwürfe` or `R&D`. The client writes them in modified UTF-7 for an
+IMAP4rev1 server, and as they are once IMAP4rev2 or UTF8=ACCEPT is enabled.
+That happens after signing in, when the server offers it. Turn it off with
+`Protocol\Imap::useImap4Rev2(false)`.
+
 For local folders use `Storage\Folder\Mbox`, where each file in a directory
 tree is a folder, and `Storage\Folder\Maildir`, where each `.Name` maildir in
 a [Maildir++](https://en.wikipedia.org/wiki/Maildir#Maildir++) tree is, split

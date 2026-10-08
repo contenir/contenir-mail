@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Storage;
 
+use function array_intersect;
 use function count;
 use function explode;
-use function in_array;
 use function is_array;
 use function is_string;
 use function ksort;
@@ -23,6 +23,12 @@ use const SORT_STRING;
 final class ImapFolderTree
 {
     /**
+     * Attributes of a name that cannot be selected: \Noselect (RFC 3501), and
+     * \NonExistent, which IMAP4rev2 lists for a name that is only a parent (RFC 9051)
+     */
+    private const array UNSELECTABLE = ['\Noselect', '\NonExistent'];
+
+    /**
      * @param array<array-key, mixed> $folders Global name to ["delim" => string, "flags" => list<string>].
      * @return array{Folder, string|null} The root, and the delimiter the server uses.
      */
@@ -36,7 +42,7 @@ final class ImapFolderTree
             $delim      = $data['delim'] ?? null;
             $delimiter  = is_string($delim) && '' !== $delim ? $delim : $delimiter;
             $flags      = $data['flags'] ?? [];
-            $selectable = ! (is_array($flags) && in_array('\Noselect', $flags, strict: true));
+            $selectable = ! (is_array($flags) && [] !== array_intersect(self::UNSELECTABLE, $flags));
             self::add($root, (string) $globalName, is_string($delim) ? $delim : '', $selectable);
         }
 
