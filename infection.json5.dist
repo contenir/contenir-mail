@@ -52,9 +52,19 @@
             ]
         },
         "FunctionCallRemoval": {
-            // Without the 10 ms sleep the loop only polls faster; without proc_close() the
-            // process handle is released when it goes out of scope instead. Neither is observable.
-            "ignore": ["Contenir\\Mail\\Transport\\SendmailProcess::wait"]
+            "ignore": [
+                // Without the 10 ms sleep the loop only polls faster; without proc_close() the
+                // process handle is released when it goes out of scope instead. Neither is observable.
+                "Contenir\\Mail\\Transport\\SendmailProcess::wait",
+                // Writes are made non-blocking so the stream timeout bounds them where a blocking
+                // write would wait forever (macOS). On Linux, PHP already bounds blocking socket writes
+                // by the timeout (MSG_DONTWAIT and poll), so leaving the stream blocking behaves the same.
+                "Contenir\\Mail\\Protocol\\StreamConnection::write"
+            ]
+        },
+        "FalseValue": {
+            // As for FunctionCallRemoval above: a blocking write is bounded by the timeout on Linux too.
+            "ignore": ["Contenir\\Mail\\Protocol\\StreamConnection::write"]
         },
         "LessThan": {
             // Stopping at the deadline or one poll later cannot be told apart.
