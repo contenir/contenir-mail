@@ -30,7 +30,9 @@
         "symfony/process": "^7.3"
     },
     "suggest": {
-        "ext-intl": "Faster and stricter internationalised domain name handling than symfony/polyfill-intl-idn"
+        "ext-intl": "Faster and stricter internationalised domain name handling than symfony/polyfill-intl-idn",
+        "ext-openssl": "DKIM signing with RSA keys, and reading DKIM keys from PEM",
+        "ext-sodium": "DKIM signing with Ed25519 keys (RFC 8463)"
     },
     "autoload": {
         "psr-4": {

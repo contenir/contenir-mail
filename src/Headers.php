@@ -145,6 +145,14 @@ final readonly class Headers implements Countable, IteratorAggregate
         return $this->derive([...$this->headers, $header]);
     }
 
+    /**
+     * Add a header before the existing ones, keeping any of the same name, as for DKIM-Signature.
+     */
+    public function withFirst(HeaderInterface $header): self
+    {
+        return $this->derive([$header, ...$this->headers]);
+    }
+
     public function without(string $name): self
     {
         $key = self::normalise($name);
