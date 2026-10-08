@@ -81,6 +81,7 @@ final class StreamConnection implements ConnectionInterface
         $this->peer = "{$host}:{$port}";
         $context    = stream_context_create([
             'ssl' => [
+                ...$config->tls->contextOptions(),
                 'verify_peer'      => $config->verifyPeer,
                 'verify_peer_name' => $config->verifyPeer,
                 'crypto_method'    => self::CRYPTO_METHOD,

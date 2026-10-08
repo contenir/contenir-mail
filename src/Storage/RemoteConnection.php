@@ -46,6 +46,7 @@ final class RemoteConnection
             },
             verifyPeer: ! $reader->bool('novalidatecert', default: ! $connection->verifyPeer),
             timeout: $connection->timeout,
+            tls: $connection->tls,
         );
     }
 

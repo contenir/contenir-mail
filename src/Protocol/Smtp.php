@@ -511,6 +511,7 @@ final class Smtp extends AbstractProtocol
             security: $this->config->security,
             verifyPeer: $this->validateCert(),
             timeout: $this->config->timeout,
+            tls: $this->config->tls,
         );
     }
 
@@ -690,6 +691,7 @@ final class Smtp extends AbstractProtocol
                 ? $connection->verifyPeer
                 : ! $reader->bool('novalidatecert', default: false),
             timeout: $connection->timeout,
+            tls: $connection->tls,
         );
     }
 

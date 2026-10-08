@@ -14,16 +14,20 @@ use Contenir\Mail\Exception\InvalidArgumentException;
  * new ConnectionConfig(host: 'mail.example.com', security: Security::StartTls);
  * ConnectionConfig::fromIterable(['host' => 'mail.example.com', 'port' => '587', 'security' => 'starttls']);
  * ```
+ *
+ * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
  */
 final readonly class ConnectionConfig
 {
-    public const array KEYS = ['host', 'port', 'security', 'verify_peer', 'timeout'];
+    /** @var list<string> */
+    public const array KEYS = ['host', 'port', 'security', 'verify_peer', 'timeout', ...TlsOptions::KEYS];
 
     /**
      * @param int|null $port Null for the protocol's standard port for this security.
      * @param Security $security STARTTLS is required by default, so a server that cannot offer TLS
      *     is refused; set Security::None explicitly for a local relay without TLS.
      * @param int $timeout Seconds to wait for the connection and for each response.
+     * @param TlsOptions $tls Certificate authorities, peer name and client certificate; the system's by default.
      * @throws InvalidArgumentException When the port or timeout is out of range.
      */
     public function __construct(
@@ -32,6 +36,7 @@ final readonly class ConnectionConfig
         public Security $security = Security::StartTls,
         public bool $verifyPeer = true,
         public int $timeout = 30,
+        public TlsOptions $tls = new TlsOptions(),
     ) {
         if (null !== $port && ($port < 1 || $port > 65_535)) {
             throw new InvalidArgumentException("Port {$port} is out of range");
@@ -65,6 +70,7 @@ final readonly class ConnectionConfig
             security: $reader->enum('security', default: Security::StartTls),
             verifyPeer: $reader->bool('verify_peer', default: true),
             timeout: $reader->int('timeout', default: 30),
+            tls: TlsOptions::fromReader($reader),
         );
     }
 

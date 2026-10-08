@@ -33,6 +33,7 @@ Key                     | Argument              | Default        | Meaning
 `security`              | `security`            | `starttls`     | `starttls`: upgrade a plain connection, and refuse a server that cannot. `tls`: TLS from the start. `none`: no encryption.
 `verify_peer`           | `verifyPeer`          | `true`         | Verify the server's certificate and name. Turn it off only for a test server.
 `timeout`               | `timeout`             | `30`           | Seconds to wait for the connection.
+`cafile`, `capath`, `peer_name`, `allow_self_signed`, `local_cert`, `local_pk` | `tls: new TlsOptions(…)` | none | Trust a private certificate authority, check another name, or present a client certificate; see [Reading and Storing Mail](../read.md) and the security page.
 `name`                  | `name`                | `localhost`    | The client's own host name, sent with EHLO.
 `auth`                  | `auth`                | none           | An authenticator, or settings such as `['type' => 'login', 'username' => ..., 'password' => ...]`. See [SMTP authentication](smtp-authentication.md).
 `allow_insecure_auth`   | `allowInsecureAuth`   | `false`        | Allow `auth` with `security` set to `none`.

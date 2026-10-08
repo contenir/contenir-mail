@@ -11,6 +11,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Exception\TimeoutException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\StreamConnection;
+use Contenir\Mail\Protocol\TlsOptions;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\TlsServer;
 use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -447,6 +448,79 @@ final class StreamConnectionTest extends TestCase
         $this->expectExceptionMessage('certificate verify failed');
 
         $connection->enableTls();
+    }
+
+    /**
+     * The server's certificate is self-signed and issued to "localhost", while the
+     * client connects to 127.0.0.1: allowSelfSigned and peerName together let it
+     * through with verification on, and each is needed (contenir/contenir-mail#16).
+     */
+    #[Test]
+    #[Group('slow')]
+    public function acceptsASelfSignedCertificateForTheNamedPeerWhenAllowed(): void
+    {
+        $this->tlsServer = TlsServer::start('implicit');
+        $connection      = new StreamConnection();
+        $connection->open(
+            new ConnectionConfig(
+                host: '127.0.0.1',
+                security: Security::Tls,
+                timeout: 5,
+                tls: new TlsOptions(
+                    peerName: 'localhost',
+                    allowSelfSigned: true,
+                ),
+            ),
+            $this->tlsServer->port,
+        );
+
+        static::assertSame("secure\r\n", $connection->readLine(100));
+    }
+
+    #[Test]
+    #[Group('slow')]
+    public function stillChecksThePeerNameOfASelfSignedCertificate(): void
+    {
+        $this->tlsServer = TlsServer::start('implicit');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('did not match expected CN=`127.0.0.1\'');
+
+        (new StreamConnection())->open(
+            new ConnectionConfig(
+                host: '127.0.0.1',
+                security: Security::Tls,
+                timeout: 5,
+                tls: new TlsOptions(allowSelfSigned: true),
+            ),
+            $this->tlsServer->port,
+        );
+    }
+
+    #[Test]
+    #[Group('slow')]
+    public function trustsTheCertificateAuthorityGiven(): void
+    {
+        $this->tlsServer = TlsServer::start('starttls');
+        $connection      = new StreamConnection();
+        $connection->open(
+            new ConnectionConfig(
+                host: '127.0.0.1',
+                security: Security::StartTls,
+                timeout: 5,
+                tls: new TlsOptions(
+                    cafile: $this->tlsServer->certificate,
+                    peerName: 'localhost',
+                ),
+            ),
+            $this->tlsServer->port,
+        );
+        $connection->readLine(100);
+        $connection->write("STARTTLS\r\n");
+        $connection->enableTls();
+        $connection->write("NOOP\r\n");
+
+        static::assertSame("secure\r\n", $connection->readLine(100));
     }
 
     private function startTlsClient(bool $verifyPeer): StreamConnection

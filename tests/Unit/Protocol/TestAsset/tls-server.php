@@ -6,7 +6,8 @@
  *
  * Usage: php tls-server.php implicit|starttls|smtp
  *
- * Prints the port it listens on, then serves one client: "implicit"
+ * Prints the port it listens on and the path of its certificate, which a
+ * client may trust as its own certificate authority, then serves one client: "implicit"
  * negotiates TLS at once, "starttls" sends "OK" in plain text, reads one
  * line and then negotiates TLS. Once secure it sends "secure" and waits for
  * the client to close the connection. "smtp" greets, offers STARTTLS in its
@@ -34,7 +35,7 @@ $context = stream_context_create(['ssl' => [
 ]]);
 $server = stream_socket_server('tcp://127.0.0.1:0', $errorCode, $errorMessage, context: $context);
 $name   = stream_socket_get_name($server, remote: false);
-fwrite(STDOUT, substr($name, strrpos($name, needle: ':') + 1) . "\n");
+fwrite(STDOUT, substr($name, strrpos($name, needle: ':') + 1) . " {$file}\n");
 
 $client = stream_socket_accept($server, timeout: 10);
 if (false === $client) {

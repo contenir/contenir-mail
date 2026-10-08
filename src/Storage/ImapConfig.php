@@ -8,6 +8,7 @@ use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\TlsOptions;
 use SensitiveParameter;
 
 /**
@@ -24,7 +25,11 @@ use SensitiveParameter;
  */
 final readonly class ImapConfig
 {
-    /** ConnectionConfig::KEYS, the laminas-mail "ssl" and "novalidatecert", and the login */
+    /**
+     * The connection settings, the laminas-mail "ssl" and "novalidatecert", the TLS settings, and the login
+     *
+     * @var list<string>
+     */
     public const array KEYS = [
         'host',
         'port',
@@ -33,6 +38,7 @@ final readonly class ImapConfig
         'timeout',
         'ssl',
         'novalidatecert',
+        ...TlsOptions::KEYS,
         'user',
         'password',
         'folder',
