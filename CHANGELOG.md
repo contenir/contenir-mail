@@ -82,6 +82,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - IMAP LITERAL+ and LITERAL- (RFC 7888): literals are sent without waiting
   for the server's `+` when it offers LITERAL+, or LITERAL- or IMAP4rev2 and
   the literal is at most 4096 bytes. (#52)
+- IMAP folder metadata. SPECIAL-USE (RFC 6154): `Storage\Folder::getSpecialUse()`
+  returns the `Storage\SpecialUse` a server marks a folder with, such as
+  `SpecialUse::Sent`, and `Storage\Imap::getSpecialFolder()` finds the folder
+  with a use. NAMESPACE (RFC 2342): `Protocol\Imap::namespace()` and
+  `Storage\Imap::getNamespaces()` return the personal, other users' and shared
+  namespaces as `Protocol\Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
+  reads a mailbox's status without selecting it. `Storage\Imap::getFolderStatus()`
+  returns its message, unseen and next-UID counts as a `Storage\FolderStatus`.
+  `getFolderSize()` returns its size when the server offers STATUS=SIZE
+  (RFC 8438) or IMAP4rev2. New: `Protocol\Imap::hasImap4Rev2()`. Responses with
+  lists next to each other without a space, such as `(("" "/")("#shared/" "/"))`,
+  are now tokenised as separate lists. (#52)
 
 ### Changed
 

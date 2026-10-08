@@ -41,9 +41,15 @@ final class ImapFolderTree
             $data       = is_array($data) ? $data : [];
             $delim      = $data['delim'] ?? null;
             $delimiter  = is_string($delim) && '' !== $delim ? $delim : $delimiter;
-            $flags      = $data['flags'] ?? [];
-            $selectable = ! (is_array($flags) && [] !== array_intersect(self::UNSELECTABLE, $flags));
-            self::add($root, (string) $globalName, is_string($delim) ? $delim : '', $selectable);
+            $flags      = is_array($data['flags'] ?? null) ? $data['flags'] : [];
+            $selectable = [] === array_intersect(self::UNSELECTABLE, $flags);
+            self::add(
+                $root,
+                (string) $globalName,
+                is_string($delim) ? $delim : '',
+                $selectable,
+                SpecialUse::fromAttributes($flags),
+            );
         }
 
         return [$root, $delimiter];
@@ -52,8 +58,13 @@ final class ImapFolderTree
     /**
      * Add a folder by its global name, adding missing parents as folders that cannot be selected.
      */
-    private static function add(Folder $root, string $globalName, string $delimiter, bool $selectable): void
-    {
+    private static function add(
+        Folder $root,
+        string $globalName,
+        string $delimiter,
+        bool $selectable,
+        ?SpecialUse $specialUse,
+    ): void {
         $parts  = '' === $delimiter ? [$globalName] : explode($delimiter, $globalName);
         $last   = count($parts) - 1;
         $parent = $root;
@@ -61,7 +72,11 @@ final class ImapFolderTree
         foreach ($parts as $index => $part) {
             $path .= (0 === $index ? '' : $delimiter) . $part;
             if (! $parent->hasFolder($part)) {
-                $parent->addFolder(new Folder($part, $path, $index === $last && $selectable));
+                $parent->addFolder(
+                    $index === $last
+                        ? new Folder($part, $path, $selectable, specialUse: $specialUse)
+                        : new Folder($part, $path, selectable: false),
+                );
             }
 
             $parent = $parent->getFolder($part);

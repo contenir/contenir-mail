@@ -101,6 +101,14 @@ final class ResponseDecodingTest extends TestCase
             'list closed before an atom'     => ["* X ((a b)) c\r\n", ['X', [['a', 'b']], 'c']],
             'quoted string after an atom'    => ["* X a\"b c\" d\r\n", ['X', 'a"b', 'c"', 'd']],
             'quoted string then an atom'     => ["* X \"a\"b c\r\n", ['X', 'a', 'b', 'c']],
+            'lists next to each other'       => ["* X ((a b)(c d))\r\n", ['X', [['a', 'b'], ['c', 'd']]]],
+            'lists of strings side by side'  => [
+                "* X ((\"a\" \"b\")(\"c\" NIL)(\"e\" \"f\"))\r\n",
+                ['X', [['a', 'b'], ['c', 'NIL'], ['e', 'f']]],
+            ],
+            'nested lists side by side'      => ["* X (((a))(b)) c\r\n", ['X', [[['a']], ['b']], 'c']],
+            'top-level lists side by side'   => ["* X (a)(b)\r\n", ['X', ['a'], ['b']]],
+            'list marks inside a string'     => ["* X (\"a)(b c\" d)\r\n", ['X', ['a)(b c', 'd']]],
         ];
     }
 

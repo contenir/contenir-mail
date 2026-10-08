@@ -107,6 +107,9 @@ class Imap
      */
     private ?array $capabilities = null;
 
+    /** A STATUS item: RFC 3501, DELETED and SIZE (RFC 9051, RFC 8438), HIGHESTMODSEQ (RFC 7162) */
+    private const string STATUS_ITEM = '/^(?:MESSAGES|RECENT|UIDNEXT|UIDVALIDITY|UNSEEN|DELETED|SIZE|HIGHESTMODSEQ)$/Di';
+
     /** A sort key (RFC 5256, RFC 5957), optionally reversed */
     private const string SORT_KEY = '/^(?:REVERSE )?(?:ARRIVAL|CC|DATE|FROM|SIZE|SUBJECT|TO|DISPLAYFROM|DISPLAYTO)$/Di';
 
@@ -295,6 +298,7 @@ class Imap
      * "foo" baz {3}<NL>bar ("f\\\"oo" bar)
      * would be returned as:
      * array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
+     * Lists may follow each other without a space, as in ((a b)(c d)).
      *
      * @param  string $line line to decode
      * @return array<mixed> tokens, literals are returned as string, lists as array
@@ -311,6 +315,12 @@ class Imap
         while (($pos = strpos($line, needle: ' ')) !== false) {
             $token   = substr($line, offset: 0, length: $pos);
             $literal = [];
+            $next    = strpos($token, needle: ')(');
+            if (false !== $next) {
+                $pos   = $next + 1;
+                $token = substr($token, offset: 0, length: $pos);
+            }
+
             if ('' === $token) {
                 $line = substr($line, $pos + 1);
                 continue;
@@ -803,6 +813,14 @@ class Imap
     }
 
     /**
+     * Whether IMAP4rev2 (RFC 9051) is enabled, which brings ESEARCH, NAMESPACE and STATUS SIZE with it.
+     */
+    public function hasImap4Rev2(): bool
+    {
+        return $this->imap4Rev2;
+    }
+
+    /**
      * Whether the server advertises a capability, such as "MOVE"; asked once and kept.
      *
      * @throws Exception\ExceptionInterface When the server cannot be asked.
@@ -1089,6 +1107,142 @@ class Imap
         }
 
         return $result;
+    }
+
+    /**
+     * The server's namespaces (RFC 2342, part of IMAP4rev2), with their prefixes as UTF-8;
+     * null when the server offers neither NAMESPACE nor IMAP4rev2.
+     *
+     * @throws Exception\RuntimeException When the server refuses or its response is malformed.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function namespace(): ?Imap\Namespaces
+    {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
+            return null;
+        }
+
+        $response = $this->requestAndResponse('NAMESPACE');
+        if (null === $response || false === $response) {
+            throw new Exception\RuntimeException('The server refused NAMESPACE');
+        }
+
+        foreach (is_array($response) ? $response : [] as $tokens) {
+            if ('NAMESPACE' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
+                return new Imap\Namespaces(
+                    personal: $this->namespaceEntries($tokens[1] ?? null),
+                    otherUsers: $this->namespaceEntries($tokens[2] ?? null),
+                    shared: $this->namespaceEntries($tokens[3] ?? null),
+                );
+            }
+        }
+
+        throw new Exception\RuntimeException('The server sent no NAMESPACE response');
+    }
+
+    /**
+     * The namespaces of one kind: NIL for none, or a list of namespaces.
+     *
+     * @return list<Imap\NamespaceEntry>
+     * @throws Exception\RuntimeException When the namespaces are malformed.
+     */
+    private function namespaceEntries(mixed $namespaces): array
+    {
+        if (is_string($namespaces) && 'NIL' === strtoupper($namespaces)) {
+            return [];
+        }
+
+        if (! is_array($namespaces) || [] === $namespaces) {
+            throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
+        }
+
+        return array_values(array_map($this->namespaceEntry(...), $namespaces));
+    }
+
+    /**
+     * One namespace: its prefix and delimiter, or NIL for none, then any extension data, which is ignored.
+     *
+     * @throws Exception\RuntimeException When the namespace is malformed.
+     */
+    private function namespaceEntry(mixed $entry): Imap\NamespaceEntry
+    {
+        $prefix    = is_array($entry) ? $entry[0] ?? null : null;
+        $delimiter = is_array($entry) ? $entry[1] ?? null : null;
+        if (
+            ! is_string($prefix)
+            || ! is_string($delimiter)
+            || (
+                1 !== strlen($delimiter)
+                && 'NIL' !== strtoupper($delimiter)
+            )
+        ) {
+            throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
+        }
+
+        return new Imap\NamespaceEntry(
+            prefix: $this->utf8Mailboxes ? $prefix : MailboxName::decode($prefix),
+            delimiter: 1 === strlen($delimiter) ? $delimiter : null,
+        );
+    }
+
+    /**
+     * The status of a mailbox without selecting it, such as its MESSAGES and UNSEEN counts, or
+     * its SIZE in octets when the server offers STATUS=SIZE (RFC 8438) or has IMAP4rev2 enabled.
+     *
+     * @param list<string> $items MESSAGES, RECENT, UIDNEXT, UIDVALIDITY, UNSEEN, DELETED, SIZE or HIGHESTMODSEQ.
+     * @return array<string, int>|false The values by item name in upper case, or false when the server refuses.
+     * @throws Exception\InvalidArgumentException When there is no item, an item is not one of those,
+     *     or the name is not UTF-8 or contains NUL.
+     * @throws Exception\RuntimeException When a value is not a number.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function status(string $mailbox, array $items): array|false
+    {
+        if ([] === $items) {
+            throw new Exception\InvalidArgumentException('STATUS needs at least one item');
+        }
+
+        $names = [];
+        foreach ($items as $item) {
+            if (1 !== preg_match(self::STATUS_ITEM, $item)) {
+                throw new Exception\InvalidArgumentException("\"{$item}\" is not an IMAP status item");
+            }
+
+            $names[] = strtoupper($item);
+        }
+
+        $response = $this->requestAndResponse('STATUS', [$this->mailbox($mailbox), $this->escapeList($names)]);
+        if (null === $response || false === $response) {
+            return false;
+        }
+
+        foreach (is_array($response) ? $response : [] as $tokens) {
+            $values = $tokens[2] ?? null;
+            if ('STATUS' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '') && is_array($values)) {
+                return self::statusValues($values);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<mixed> $values
+     * @return array<string, int>
+     * @throws Exception\RuntimeException When a value is not a number.
+     */
+    private static function statusValues(array $values): array
+    {
+        $status = [];
+        foreach (self::itemMap($values) as $name => $value) {
+            if (! is_string($value) || 1 !== preg_match('/\A\d{1,18}\z/', $value)) {
+                throw new Exception\RuntimeException('The server sent a malformed STATUS response');
+            }
+
+            $status[strtoupper($name)] = (int) $value;
+        }
+
+        return $status;
     }
 
     /**
