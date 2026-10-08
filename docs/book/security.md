@@ -20,7 +20,7 @@ This document describes the state of the code reviewed on 8 October 2026
 ## Threat model
 
 **Assets:** the host the library runs on (through sendmail), mail server and
-mailbox credentials, the mailboxes themselves, and recipients' trust in what a
+mailbox credentials, DKIM private keys, the mailboxes themselves, and recipients' trust in what a
 message says about its sender and content.
 
 **Trust boundaries and the attackers on the far side:**
@@ -160,6 +160,20 @@ which escapes them again for a shell.
 | Unique names escape the host name | `escapesHostInUniqueName` |
 | Message numbers must be positive integers | `refusesMessageNumberBelowOne` |
 
+### DKIM signing
+
+| Protection | Evidence |
+| --- | --- |
+| The private key is shown as `[hidden]` by `var_dump()` and `print_r()`, and refuses to be serialized, so it can't reach a log, a queue or a cache | `hidesKeyFromDebugOutput`, `printsNoKeyMaterial`, `cannotBeSerialized` |
+| RSA keys under 1024 bits are refused, and `rsa-sha1` can't be chosen (RFC 8301); the docs ask for 2048 bits or more | `refusesRsaKeyUnder1024Bits`, `refusesRsaSha1` |
+| An Ed25519 secret key whose public half doesn't match its seed is refused | `refusesEd25519SecretKeyWhosePublicHalfDoesNotMatch` |
+| An encrypted key without its passphrase is refused; OpenSSL is never left to prompt for one on the terminal | `refusesPemItCannotRead` (missing passphrase) |
+| Key paths must be local files; stream wrappers are refused | `refusesStreamWrapperPath` |
+| Domains, selectors, identities and header names refuse white space, `;` and control characters, so a setting can't add a tag or a header | `refusesInvalidDomain`, `refusesInvalidSelector`, `refusesIdentityOutsideTheDomain`, `refusesHeaders` |
+| From is always signed, and a message without From is refused | `refusesHeaders` (without From), `refusesMessageWithoutFrom` |
+| `l=` is off by default, so content can't be appended to a signed body | `hasSafeDefaults` |
+| Headers are checked for unfolded line breaks before they're signed | `refusesHeaderWithLineBreakThatIsNotFolding` |
+
 ### Objects and serialization
 
 Protocol and storage objects refuse to be unserialized, so a crafted payload
@@ -219,7 +233,9 @@ There are no known open findings.
   mutation tests and by hand-written hostile inputs.
 - Behaviour against real servers (Postfix, Exim, Dovecot, Gmail, Microsoft 365) is
   tested only through scripted conversations and a local TLS server.
-- S/MIME, OpenPGP and DKIM signing are not implemented, so not assessed.
+- S/MIME and OpenPGP are not implemented, so not assessed. DKIM signatures are
+  checked against the RFC 8463 examples and a test verifier, not against
+  receiving servers.
 
 ## Process
 

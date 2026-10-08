@@ -8,7 +8,7 @@ $ composer require contenir/contenir-mail
 
 - [Introduction](intro.md)
 - Messages: [intro and usage](message/intro.md), [attachments](message/attachments.md),
-  [character sets](message/character-sets.md)
+  [character sets](message/character-sets.md), [DKIM signing](message/dkim.md)
 - Transports: [usage](transport/intro.md), [SMTP options](transport/smtp-options.md),
   [sending multiple messages](transport/smtp-multiple-send.md),
   [SMTP authentication](transport/smtp-authentication.md),

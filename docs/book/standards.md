@@ -12,8 +12,8 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 74 requirements below, 62 conform, 2 are
-partial, 2 deviate by design, and 8 optional extensions are not
+Summary: of the 82 requirements below, 69 conform, 2 are
+partial, 2 deviate by design, and 9 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
 ## Message format: RFC 5322 and RFC 6854
@@ -89,6 +89,19 @@ implemented. The gaps to close are listed at the end.
 | RFC 3461 Delivery status notifications | Not implemented | |
 | RFC 8689 REQUIRETLS | Not implemented | |
 | RFC 7628 OAUTHBEARER | Not implemented | XOAUTH2 covers Google and Microsoft. |
+
+## Signing: RFC 6376, RFC 8463, RFC 8301
+
+| Requirement | Verdict | Evidence and notes |
+| --- | --- | --- |
+| RFC 6376 §3.4 Simple and relaxed canonicalisation, headers and body | Conforms | Both, for headers and body; relaxed by default. The example of §3.4.6. `canonicalisesHeaderField`, `canonicalisesBody` |
+| RFC 6376 §3.5, §3.7 Signature tags; b= computed over the header with b= empty | Conforms | Tags in a fixed order, folded at 78 characters. The published signatures of RFC 8463 are reproduced byte for byte from their keys. `reproducesThePublishedSignatureFromItsKey`, `verifiesThePublishedSignature` |
+| RFC 6376 §5.3 Body signed as sent | Conforms | The signed message holds the CRLF body the transports write; SMTP dot-stuffing is undone by the receiver. `sendsOverSmtpABodyThatMatchesTheBodyHash` |
+| RFC 6376 §5.4 From signed (MUST) | Conforms | A header list without From and a message without From are refused. `refusesHeaders`, `refusesMessageWithoutFrom` |
+| RFC 6376 §5.4.2 Several instances of a header signed from the bottom up | Conforms | `signsEveryInstanceOfAListedHeaderFromTheBottomUp` |
+| RFC 8463 Ed25519-SHA256 | Conforms | `reproducesThePublishedSignatureFromItsKey` (Ed25519-SHA256) |
+| RFC 8301 No rsa-sha1; RSA keys of at least 1024 bits (MUST) | Conforms | `refusesRsaSha1`, `refusesRsaKeyUnder1024Bits`; the docs ask for 2048 bits. |
+| RFC 6376 §6 Verifying signatures | Not implemented | Signing only; incoming mail is verified by the receiving MTA. |
 
 ## IMAP: RFC 3501
 
