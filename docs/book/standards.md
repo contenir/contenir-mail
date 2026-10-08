@@ -12,7 +12,7 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 74 requirements below, 58 conform, 6 are
+Summary: of the 74 requirements below, 60 conform, 4 are
 partial, 2 deviate by design, and 8 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
@@ -30,7 +30,7 @@ implemented. The gaps to close are listed at the end.
 | §3.6.1 Date and From required | Partial | `Date` is added by default; `isValid()` requires From. Nothing stops a message without From being sent. |
 | §3.6.2 Sender required when there are several From addresses (MUST) | Conforms | The first From address is written as Sender when none is set. `namesFirstAuthorAsSenderWhenThereAreSeveral` |
 | §3.6.4 Message-ID (SHOULD) | Conforms | A new message gets one on its sender's domain; parsed messages keep what they had. `generatesMessageIdOnTheSendersDomain` |
-| §4 Obsolete syntax accepted on reading | Partial | Folding, dates, zones and quoted pairs are read. An obsolete source route (`<@relay:user@host>`) is kept as a generic header instead of an address. |
+| §4 Obsolete syntax accepted on reading | Conforms | Folding, dates, zones and quoted pairs are read, and an obsolete source route (`<@relay:user@host>`) is dropped from its address. `readsAddressWithoutItsSourceRoute` |
 | RFC 6854 Groups in From and Sender | Partial | Read as their addresses; group names are not kept. |
 
 ## MIME: RFC 2045 to RFC 2049, RFC 2183, RFC 2231, RFC 2387, RFC 2392
@@ -101,7 +101,7 @@ rev1 clients.
 | §4.3 Literals for strings a quoted string cannot carry | Conforms | `sendsStringsAQuotedStringCannotCarryAsLiterals`, `appendsAMessageAsALiteral` |
 | §9 Sequence sets, flags and atoms | Conforms | Validated before sending. `CommandInjectionTest` |
 | §6.2.1 STARTTLS, with capabilities re-read | Conforms | Required by default. `refusesToContinueInPlainTextWhenStartTlsIsNotOffered` |
-| §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Partial | Not checked; the server refuses the command instead. |
+| §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |
 | Response parsing, server literals by byte count | Conforms | `ResponseDecodingTest` |
 | RFC 9051 IMAP4rev2, IDLE, MOVE, UIDPLUS, NAMESPACE, ENABLE, LITERAL+ | Not implemented | |
 
@@ -148,6 +148,4 @@ These need real servers or mail clients and were not tested:
 | Priority | Gap | Size |
 | --- | --- | --- |
 | 1 | Keep group names when reading, and allow groups when writing (RFC 5322 §3.4, RFC 6854) | Medium |
-| 2 | Read obsolete source routes as their address (RFC 5322 §4.4) | Small |
-| 3 | Honour `LOGINDISABLED` (RFC 3501) | Small |
-| 4 | PIPELINING, and IMAP4rev2 when servers need it | Large |
+| 2 | PIPELINING, and IMAP4rev2 when servers need it | Large |
