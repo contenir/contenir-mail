@@ -84,7 +84,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `hasUniqueId` properties were removed.
 - A refused XOAUTH2 token now ends the SASL exchange with the empty response
   RFC 7628 requires, for SMTP and POP3, and is reported as "The server refused
-  the access token" with the status the server gave. The client used to stop at
+  the access token" with the status the server gave and its final reply, such as
+  Gmail's "Your account is not enabled for POP access". The client used to stop at
   the server's challenge, leaving the session waiting and reporting raw base64.
 
 ## 0.1.0 - 2026-10-08
