@@ -16,7 +16,7 @@ use const PHP_INT_MAX;
  * Measures how the time a piece of work takes grows with its input, so a test can tell
  * linear from quadratic work without depending on how fast the machine is.
  *
- * The input is built outside the timing, and each size is timed best of three, which
+ * The input is built outside the timing, and each size is timed best of five, which
  * keeps a stray pause from deciding the result.
  */
 final class Growth
@@ -45,7 +45,7 @@ final class Growth
     private static function fastest(Closure $run, mixed $input): int
     {
         $best = PHP_INT_MAX;
-        for ($i = 0; $i < 3; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $start = hrtime(true);
             $run($input);
             $best = min($best, hrtime(true) - $start);
