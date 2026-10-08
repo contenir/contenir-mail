@@ -18,3 +18,4 @@ $ composer require contenir/contenir-mail
 - [Security](security.md): threat model, protections and their tests, vulnerability history
 - [Standards](standards.md): the RFCs implemented and how closely each is followed
 - [laminas-mail issues](laminas-issues.md): the issues reported against laminas-mail, and how each one affects contenir-mail
+- [Naming conventions](conventions.md): how the public API is named, for contributors and reviewers
