@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function md5;
+use function preg_quote;
 use function str_repeat;
 
 #[CoversClass(Pop3::class)]
@@ -112,6 +113,36 @@ final class CommandTest extends TestCase
         $this->expectExceptionMessage('last request failed');
 
         $pop3->login('user', 'wrong');
+    }
+
+    /**
+     * The reason the server gives is part of the message (laminas/laminas-mail#187).
+     */
+    #[Test]
+    #[DataProvider('refusalProvider')]
+    public function reportsTheReasonTheServerGives(string $reply, string $expected): void
+    {
+        $pop3 = self::pop3("NOOP\r\n", $reply);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/^' . preg_quote($expected, delimiter: '/') . '$/D');
+
+        $pop3->request('NOOP');
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function refusalProvider(): array
+    {
+        return [
+            'reason'             => [
+                "-ERR [IN-USE] mailbox locked\r\n",
+                'last request failed: [IN-USE] mailbox locked',
+            ],
+            'no reason'          => ["-ERR\r\n", 'last request failed'],
+            'control characters' => ["-ERR a\x1B[31m\x00b\r\n", 'last request failed: a [31m b'],
+        ];
     }
 
     #[Test]
