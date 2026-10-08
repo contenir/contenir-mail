@@ -423,9 +423,77 @@ final class Pop3StorageTest extends TestCase
     }
 
     #[Test]
-    public function doesNotKnowAtFirstWhetherThereAreUniqueIds(): void
+    public function asksForUniqueIdsWhenCapabilitiesAreRead(): void
     {
-        static::assertNull($this->pop3()->getCapabilities()['uniqueid']);
+        $protocol = $this->protocol();
+        $protocol->method('uniqueid')->willReturn([1 => 'a']);
+
+        static::assertTrue($this->pop3($protocol)->getCapabilities()['uniqueid']);
+    }
+
+    private function protocolWithMessages(int $count): Protocol\Pop3&MockObject
+    {
+        $protocol = $this->protocol();
+        $protocol->method('status')
+            ->willReturnCallback(static function (&$messages, &$octets) use ($count): void {
+                $messages = (string) $count;
+                $octets   = '0';
+            });
+
+        return $protocol;
+    }
+
+    /**
+     * @mago-expect lint:no-boolean-flag-parameter Each provider case says whether the server answers TOP.
+     */
+    #[Test]
+    #[DataProvider('topProvider')]
+    public function triesTopOnTheFirstMessageWhenCapabilitiesAreRead(bool $answers, bool $expected): void
+    {
+        $protocol = $this->protocolWithMessages(2);
+        $protocol->expects($this->once())
+            ->method('top')
+            ->with(1, 0, false)
+            ->willReturnCallback(static function () use ($protocol, $answers): string {
+                $protocol->hasTop = $answers;
+                if (! $answers) {
+                    throw new ProtocolException('last request failed');
+                }
+
+                return '';
+            });
+
+        static::assertSame($expected, $this->pop3($protocol)->getCapabilities()['top']);
+    }
+
+    /**
+     * @return array<string, array{bool, bool}>
+     */
+    public static function topProvider(): array
+    {
+        return [
+            'server has TOP' => [true, true],
+            'server refuses' => [false, false],
+        ];
+    }
+
+    #[Test]
+    public function leavesTopUnknownForAnEmptyMailbox(): void
+    {
+        $protocol = $this->protocolWithMessages(0);
+        $protocol->expects($this->never())->method('top');
+
+        static::assertNull($this->pop3($protocol)->getCapabilities()['top']);
+    }
+
+    #[Test]
+    public function reportsTopAlreadyKnownWithoutAsking(): void
+    {
+        $protocol         = $this->protocolWithMessages(2);
+        $protocol->hasTop = false;
+        $protocol->expects($this->never())->method('top');
+
+        static::assertFalse($this->pop3($protocol)->getCapabilities()['top']);
     }
 
     /**

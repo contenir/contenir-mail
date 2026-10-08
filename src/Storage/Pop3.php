@@ -149,6 +149,27 @@ final class Pop3 extends AbstractStorage
         return $this->retrieveBody(self::checkNumber($id));
     }
 
+    /**
+     * The capabilities, with "uniqueid" and "top" asked of the server on the first call.
+     * POP3 servers do not reliably list TOP in CAPA, so TOP is tried on the first message;
+     * it stays unknown while the mailbox is empty.
+     *
+     * @return array<string, bool|null> Feature name to true, false, or null when not yet known.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    #[Override]
+    public function getCapabilities(): array
+    {
+        $this->supportsUniqueIds();
+        if (null === $this->protocol->hasTop && $this->countMessages() > 0) {
+            $this->probeTop();
+        }
+
+        $this->has['top'] = $this->protocol->hasTop;
+
+        return parent::getCapabilities();
+    }
+
     #[Override]
     public function close(): void
     {
@@ -255,6 +276,19 @@ final class Pop3 extends AbstractStorage
         }
 
         return $this->uniqueIds;
+    }
+
+    /**
+     * Try TOP on the first message, which records in the protocol whether the server has it.
+     *
+     * @mago-expect lint:no-empty-catch-clause A refused TOP is the answer: the protocol has recorded it.
+     */
+    private function probeTop(): void
+    {
+        try {
+            $this->protocol->top(1, 0, fallback: false);
+        } catch (Protocol\Exception\ExceptionInterface) {
+        }
     }
 
     private function probeUniqueIds(): bool

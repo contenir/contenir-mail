@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Integration\Storage;
 
 use ArrayObject;
+use Contenir\Mail\Exception\InvalidArgumentException as ConfigException;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
@@ -111,13 +112,13 @@ final class Pop3Test extends TestCase
     #[Test]
     public function connectOk(): void
     {
-        new Storage\Pop3($this->params);
+        static::assertSame(7, (new Storage\Pop3($this->params))->countMessages());
     }
 
     #[Test]
     public function connectConfig(): void
     {
-        new Storage\Pop3(new ArrayObject($this->params));
+        static::assertSame(7, (new Storage\Pop3(new ArrayObject($this->params)))->countMessages());
     }
 
     #[Test]
@@ -125,14 +126,16 @@ final class Pop3Test extends TestCase
     {
         $this->params['host'] = 'example.example';
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot connect to example.example');
         new Storage\Pop3($this->params);
     }
 
     #[Test]
     public function noParams(): void
     {
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(ConfigException::class);
+        $this->expectExceptionMessage('option "user" is required');
         new Storage\Pop3([]);
     }
 
@@ -140,37 +143,37 @@ final class Pop3Test extends TestCase
     public function connectSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_SSL')) {
-            return;
+            static::markTestSkipped('TESTS_CONTENIR_MAIL_POP3_SSL is not set');
         }
 
         $this->params['ssl'] = 'SSL';
 
-        new Storage\Pop3($this->params);
+        static::assertSame(7, (new Storage\Pop3($this->params))->countMessages());
     }
 
     #[Test]
     public function connectTLS(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_TLS')) {
-            return;
+            static::markTestSkipped('TESTS_CONTENIR_MAIL_POP3_TLS is not set');
         }
 
         $this->params['ssl'] = 'TLS';
 
-        new Storage\Pop3($this->params);
+        static::assertSame(7, (new Storage\Pop3($this->params))->countMessages());
     }
 
     #[Test]
     public function connectSelfSignedSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_SSL')) {
-            return;
+            static::markTestSkipped('TESTS_CONTENIR_MAIL_POP3_SSL is not set');
         }
 
         $this->params['ssl']            = 'SSL';
         $this->params['novalidatecert'] = true;
 
-        new Storage\Pop3($this->params);
+        static::assertSame(7, (new Storage\Pop3($this->params))->countMessages());
     }
 
     #[Test]
@@ -178,7 +181,8 @@ final class Pop3Test extends TestCase
     {
         $this->params['port'] = getenv('TESTS_CONTENIR_MAIL_POP3_INVALID_PORT');
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot connect to localhost:3141');
         new Storage\Pop3($this->params);
     }
 
@@ -187,7 +191,8 @@ final class Pop3Test extends TestCase
     {
         $this->params['port'] = getenv('TESTS_CONTENIR_MAIL_POP3_WRONG_PORT');
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot connect to localhost:80');
         new Storage\Pop3($this->params);
     }
 
@@ -195,8 +200,11 @@ final class Pop3Test extends TestCase
     public function close(): void
     {
         $mail = new Storage\Pop3($this->params);
-
         $mail->close();
+
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('No connection has been established to localhost:110');
+        $mail->countMessages();
     }
 
     #[Test]
@@ -219,8 +227,9 @@ final class Pop3Test extends TestCase
     public function noop(): void
     {
         $mail = new Storage\Pop3($this->params);
-
         $mail->noop();
+
+        static::assertSame(7, $mail->countMessages());
     }
 
     #[Test]
@@ -236,7 +245,7 @@ final class Pop3Test extends TestCase
     public function reportsMessageSizes(): void
     {
         $mail        = new Storage\Pop3($this->params);
-        $shouldSizes = [1 => 397, 89, 694, 452, 497, 101, 139];
+        $shouldSizes = [1 => 397, 89, 694, 452, 497, 103, 139];
 
         $sizes = $mail->getSizes();
         static::assertEquals($shouldSizes, $sizes);
@@ -285,7 +294,8 @@ final class Pop3Test extends TestCase
         $protocol = new Protocol\Pop3($this->params['host']);
         $mail     = new Storage\Pop3($protocol);
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('last request failed');
         // because we did no login this has to throw an exception
         $mail->getMessage(1);
     }
@@ -296,7 +306,8 @@ final class Pop3Test extends TestCase
         $mail = new Storage\Pop3($this->params);
         $mail->close();
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('No connection has been established to localhost:110');
         $mail->getMessage(1);
     }
 
@@ -304,7 +315,7 @@ final class Pop3Test extends TestCase
     public function serverCapa(): void
     {
         $mail = new Protocol\Pop3($this->params['host']);
-        static::assertInternalType('array', $mail->capa());
+        static::assertIsArray($mail->capa());
     }
 
     #[Test]
@@ -324,7 +335,7 @@ final class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        static::assertContains("\r\nSubject: Simple Message\r\n", $mail->getRawHeader(1));
+        static::assertStringContainsString("\r\nSubject: Simple Message\r\n", $mail->getRawHeader(1));
     }
 
     #[Test]
@@ -332,7 +343,7 @@ final class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        static::assertTrue($mail->hasUniqueId);
+        static::assertTrue($mail->getCapabilities()['uniqueid']);
         static::assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
 
         $ids = $mail->getUniqueIds();
@@ -357,7 +368,8 @@ final class Pop3Test extends TestCase
     {
         $mail = new Storage\Pop3($this->params);
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Exception\OutOfBoundsException::class);
+        $this->expectExceptionMessage('Unique ID not found');
         $mail->getNumberByUniqueId('this_is_an_invalid_id');
     }
 
@@ -367,7 +379,8 @@ final class Pop3Test extends TestCase
         $protocol = new Protocol\Pop3($this->params['host']);
         $protocol->logout();
 
-        $this->expectException(Exception\InvalidArgumentException::class);
+        $this->expectException(Protocol\Exception\RuntimeException::class);
+        $this->expectExceptionMessage('No connection has been established to localhost:110');
         $protocol->readResponse();
     }
 
