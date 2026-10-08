@@ -275,8 +275,10 @@ final class ConnectTest extends TestCase
     public function upgradesWithStartTlsBeforeAnyOtherCommand(): void
     {
         $server = $this->startTlsServer()
-            ->expect("TAG3 LOGIN \"user\" \"secret\"\r\n")
-            ->reply("TAG3 OK logged in\r\n")
+            ->expect("TAG3 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1\r\nTAG3 OK\r\n")
+            ->expect("TAG4 LOGIN \"user\" \"secret\"\r\n")
+            ->reply("TAG4 OK logged in\r\n")
             ->hangUp();
         $imap = new Imap('imap.example.com', connection: $server);
 
