@@ -292,7 +292,7 @@ final class SmokeChecks
             );
         } catch (RefusedException $e) {
             if (1 === preg_match('#^[A-Za-z0-9+/]{16,}={0,2}$#D', $e->getMessage())) {
-                throw new RuntimeException('refused, but the error is raw base64: ' . $e->getMessage(), previous: $e);
+                throw new RuntimeException("refused, but the error is raw base64: {$e->getMessage()}", previous: $e);
             }
 
             return sprintf('refused with "%s"', $e->getMessage());
