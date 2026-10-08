@@ -26,6 +26,9 @@ use function trim;
  */
 final class AddressListCodec
 {
+    /** A comment such as "(work)", skipping quoted strings, in which parentheses are only text */
+    private const string COMMENT = '/"(?:\\\\.|[^"\\\\])*+"(*SKIP)(*FAIL)|\\(((?:\\\\.|[^\\\\)])+)\\)/';
+
     private function __construct() {}
 
     /**
@@ -169,13 +172,13 @@ final class AddressListCodec
     private static function getComments(string $value): string
     {
         $matches = [];
-        preg_match_all('/\\(((?:\\\\.|[^\\\\)])+)\\)/', $value, $matches);
+        preg_match_all(self::COMMENT, $value, $matches);
 
         return implode(', ', $matches[1] ?? []);
     }
 
     private static function stripComments(string $value): string
     {
-        return (string) preg_replace('/\\((\\\\.|[^\\\\)])+\\)/', replacement: '', subject: $value);
+        return (string) preg_replace(self::COMMENT, replacement: '', subject: $value);
     }
 }
