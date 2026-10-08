@@ -156,6 +156,28 @@ final class UidPlusCommandTest extends TestCase
         static::assertTrue(ScriptedServer::imap($server)->unselect());
     }
 
+    /**
+     * Servers advertise more once signed in: Dovecot lists UNSELECT, MOVE and SORT only after LOGIN.
+     */
+    #[Test]
+    public function readsTheCapabilitiesAgainAfterLogin(): void
+    {
+        $server = ScriptedServer::imapGreeting()
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1 AUTH=PLAIN\r\nTAG1 OK\r\n")
+            ->expect("TAG2 LOGIN \"jo\" \"secret\"\r\n")
+            ->reply("TAG2 OK Logged in\r\n")
+            ->expect("TAG3 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1 UNSELECT\r\nTAG3 OK\r\n")
+            ->expect("TAG4 UNSELECT\r\n")
+            ->reply("TAG4 OK\r\n")
+            ->hangUp();
+        $imap = ScriptedServer::imap($server);
+        $imap->login('jo', 'secret');
+
+        static::assertSame([true, true], [$imap->unselect(), $server->isScriptComplete()]);
+    }
+
     #[Test]
     public function unselectsWithImap4Rev2Enabled(): void
     {

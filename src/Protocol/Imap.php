@@ -577,6 +577,7 @@ class Imap
             return false;
         }
 
+        $this->capabilities = null;
         $this->negotiate($capabilities);
 
         return true;

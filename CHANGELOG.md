@@ -107,6 +107,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and decoded from LIST. Folder names outside ASCII, or with `&`, were sent
   and returned raw, which IMAP4rev1 servers refuse or misread. Names are now
   given and returned as UTF-8 throughout. (#14)
+- `Protocol\Imap::login()` kept the capabilities the server listed before
+  signing in. Servers list more once signed in (Dovecot adds MOVE, SORT,
+  ESEARCH and UNSELECT), so after a password login `moveMessage()` copied and
+  expunged instead of using MOVE. The capabilities are now asked for again,
+  as they already were after AUTHENTICATE. (#52)
 
 ## 0.2.1 - TBD
 
