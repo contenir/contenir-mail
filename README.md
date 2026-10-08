@@ -316,6 +316,9 @@ message unreadable.
   invokable object, not a function name.
 - Messages, headers and parts can be serialized for queues; a part's stream is
   serialized as its content.
+- Addresses with an obsolete source route (`<@relay.example:jo@example.com>`) are
+  read as the address, and the IMAP client never sends a password to a server that
+  advertises `LOGINDISABLED`.
 - Raw UTF-8 header values (RFC 6532) in stored or received mail are read into
   their header classes. Header values refuse control characters other than tab.
 - A missing required storage setting (`dirname`, `filename`, `user`) throws
