@@ -58,20 +58,26 @@ Probes show contenir-mail behaves correctly for these issues:
   - [#247](https://github.com/laminas/laminas-mail/issues/247): recipients are passed as arguments, never read from the message with `-t`.
 - **Reported earlier, also not affected:** [#4](https://github.com/laminas/laminas-mail/issues/4), [#6](https://github.com/laminas/laminas-mail/issues/6), [#43](https://github.com/laminas/laminas-mail/issues/43), [#44](https://github.com/laminas/laminas-mail/issues/44), [#45](https://github.com/laminas/laminas-mail/issues/45), [#51](https://github.com/laminas/laminas-mail/issues/51), [#54](https://github.com/laminas/laminas-mail/issues/54), [#55](https://github.com/laminas/laminas-mail/issues/55), [#56](https://github.com/laminas/laminas-mail/issues/56), [#59](https://github.com/laminas/laminas-mail/issues/59), [#61](https://github.com/laminas/laminas-mail/issues/61), [#79](https://github.com/laminas/laminas-mail/issues/79), [#119](https://github.com/laminas/laminas-mail/issues/119), [#120](https://github.com/laminas/laminas-mail/issues/120).
 
-## Enhancements not yet offered
+## Enhancements since added
 
-These requests describe features contenir-mail does not have.
+These requests describe features laminas-mail lacked and contenir-mail has added.
+
+| Issue | Request | Added in |
+| --- | --- | --- |
+| [#73](https://github.com/laminas/laminas-mail/issues/73) | Text and HTML accessors on a stored message: `getTextBody()` and `getHtmlBody()`. | 0.2.0 |
+| [#205](https://github.com/laminas/laminas-mail/issues/205) | Adding or removing single flags in storage: `addFlags()` and `removeFlags()`. | 0.2.0 |
+| [#5](https://github.com/laminas/laminas-mail/issues/5), [#63](https://github.com/laminas/laminas-mail/issues/63), [#185](https://github.com/laminas/laminas-mail/issues/185), [#206](https://github.com/laminas/laminas-mail/issues/206) | TLS options beyond `verify_peer`, such as a private certificate authority, as typed settings. | 0.3.0 |
+| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address mode: `Address::lenient()`. Reading was already lenient. | 0.3.0 |
+| [#248](https://github.com/laminas/laminas-mail/issues/248) | SCRAM authentication: SCRAM-SHA-256 for SMTP, IMAP and POP3. | 0.3.0 |
+| [#157](https://github.com/laminas/laminas-mail/issues/157) | Reading TNEF (winmail.dat) attachments: `getTnefContents()`. | 0.3.0 |
+| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders: server-side SORT with `sortMessages()`, and a page in one FETCH with `getMessages()`. | 0.3.0 |
+| [#9](https://github.com/laminas/laminas-mail/issues/9) | DKIM signing, with RSA-SHA256 and Ed25519. | 0.3.0 |
+
+## Enhancements not yet offered
 
 | Issue | Request |
 | --- | --- |
-| [#5](https://github.com/laminas/laminas-mail/issues/5), [#63](https://github.com/laminas/laminas-mail/issues/63), [#185](https://github.com/laminas/laminas-mail/issues/185), [#206](https://github.com/laminas/laminas-mail/issues/206) | Custom TLS stream-context options beyond `verify_peer`, such as `allow_self_signed` or a CA file. Coming in 0.3.0 as typed settings (#16). |
-| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address validation mode. Reading is already lenient: an address header that fails is kept as a GenericHeader. `Address::lenient()` is coming in 0.3.0 (#18). |
-| [#73](https://github.com/laminas/laminas-mail/issues/73), [#229](https://github.com/laminas/laminas-mail/issues/229) | Text and HTML accessors on a stored message; extracting the reply from a thread. |
-| [#205](https://github.com/laminas/laminas-mail/issues/205) | Adding or removing single flags in storage. `Protocol\Imap::store()` supports `+` and `-`; `Storage\Imap` only replaces flags. |
-| [#9](https://github.com/laminas/laminas-mail/issues/9) | DKIM signing. |
-| [#248](https://github.com/laminas/laminas-mail/issues/248) | SCRAM authentication. |
-| [#157](https://github.com/laminas/laminas-mail/issues/157) | Reading TNEF (winmail.dat) attachments. Coming in 0.3.0 as `Storage\Part::getTnefContents()` and `Storage\Tnef\Reader` (#22). |
-| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders efficiently; IMAP SORT. Coming in 0.3.0: `sortMessages()` and `getMessages()` (#21). |
+| [#229](https://github.com/laminas/laminas-mail/issues/229) | Extracting the reply from a thread. |
 | [#33](https://github.com/laminas/laminas-mail/issues/33) | JMAP. |
 
 ## Out of scope
