@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
+use Contenir\Mail\AddressGroup;
 use Contenir\Mail\AddressList;
+use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 
+use function count;
 use function implode;
 use function preg_match;
 use function preg_match_all;
@@ -18,6 +21,8 @@ use function trim;
  * Reads RFC 5322 address lists.
  *
  * @internal Used by the address-list headers.
+ *
+ * @mago-expect lint:cyclomatic-complexity Address lists with groups, quoted names, comments, source routes and encoded words.
  */
 final class AddressListCodec
 {
@@ -30,7 +35,74 @@ final class AddressListCodec
     public static function decode(string $value): AddressList
     {
         $addresses = [];
-        foreach (ListParser::parse(self::flattenGroups(self::unfold($value))) as $entry) {
+        foreach (self::decodeEntries($value) as $entry) {
+            foreach ($entry instanceof AddressGroup ? $entry->getAddresses() : [$entry] as $address) {
+                $addresses[] = $address;
+            }
+        }
+
+        return new AddressList(...$addresses);
+    }
+
+    /**
+     * Parse an address-list header value into its addresses and groups, in order.
+     *
+     * Each group is swapped for a placeholder holding a NUL, which no header value can
+     * contain, before the list is split, then decoded on its own.
+     *
+     * @return list<Address|AddressGroup>
+     * @throws MailInvalidArgumentException When an address or group name is invalid.
+     */
+    public static function decodeEntries(string $value): array
+    {
+        $quoted = '"(?:\\\\.|[^"\\\\])*"';
+        /** @var array<string, AddressGroup> $groups */
+        $groups = [];
+        $rest   = (string) preg_replace_callback(
+            "/{$quoted}|(?<name>[^:\";,<>]+):(?<members>(?:{$quoted}|[^;\"])*);/",
+            /** @param array<array-key, string> $matches */
+            static function (array $matches) use (&$groups): string {
+                $members = $matches['members'] ?? null;
+                if (null === $members) {
+                    return $matches[0] ?? '';
+                }
+
+                $index                = count($groups);
+                $placeholder          = "\0{$index}";
+                $groups[$placeholder] = new AddressGroup(
+                    self::decodePhrase($matches['name'] ?? ''),
+                    new AddressList(...self::decodeAddresses($members)),
+                );
+
+                return "{$placeholder},";
+            },
+            self::unfold($value),
+        );
+
+        $entries = [];
+        foreach (ListParser::parse($rest) as $item) {
+            $group = $groups[$item] ?? null;
+            if (null !== $group) {
+                $entries[] = $group;
+                continue;
+            }
+
+            foreach (self::decodeAddresses($item) as $address) {
+                $entries[] = $address;
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return list<Address>
+     * @throws MailInvalidArgumentException When an address is invalid.
+     */
+    private static function decodeAddresses(string $value): array
+    {
+        $addresses = [];
+        foreach (ListParser::parse($value) as $entry) {
             $comments = self::getComments($entry);
             $entry    = trim(self::stripComments($entry));
             if ('' !== $entry) {
@@ -38,7 +110,7 @@ final class AddressListCodec
             }
         }
 
-        return new AddressList(...$addresses);
+        return $addresses;
     }
 
     /**
@@ -89,28 +161,6 @@ final class AddressListCodec
         );
 
         return HeaderWrap::mimeDecodeValue($unquoted);
-    }
-
-    /**
-     * Replace each RFC 5322 group ("name: a@b, c@d;") with its member list.
-     *
-     * Quoted strings are matched first and kept as they are, so a quoted
-     * display name containing ":" or ";" is never read as group syntax.
-     */
-    private static function flattenGroups(string $value): string
-    {
-        $quoted = '"(?:\\\\.|[^"\\\\])*"';
-
-        return (string) preg_replace_callback(
-            "/{$quoted}|[^:\";,]+:(?<members>(?:{$quoted}|[^;\"])*);/",
-            /** @param array<array-key, string> $matches */
-            static function (array $matches): string {
-                $members = $matches['members'] ?? null;
-
-                return null === $members ? $matches[0] ?? '' : "{$members},";
-            },
-            $value,
-        );
     }
 
     /**
