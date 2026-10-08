@@ -561,6 +561,45 @@ $folder = $mail->getFolders()->getFolder('Archive')->getFolder('2005');
 $mail->selectFolder($folder);
 ```
 
+### Special-use folders, namespaces and folder status (IMAP)
+
+Servers name their sent, drafts and trash folders differently: `Sent`,
+`Sent Items`, `INBOX.Sent`, or a translated name. A server that marks them
+(RFC 6154 SPECIAL-USE) tells you which is which. `getSpecialUse()` on an
+IMAP folder returns a `Storage\SpecialUse` case (`All`, `Archive`, `Drafts`,
+`Flagged`, `Junk`, `Sent` or `Trash`), or null. `getSpecialFolder()` finds
+the first folder in the tree with that use:
+
+```php
+use Contenir\Mail\Storage\SpecialUse;
+
+$sent = $mail->getSpecialFolder(SpecialUse::Sent);
+if (null !== $sent) {
+    $mail->appendMessage($message, $sent);
+}
+```
+
+`getNamespaces()` returns the server's namespaces (RFC 2342), or null when
+the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
+`shared` is a list of `Protocol\Imap\NamespaceEntry` with a `prefix`, such as
+`INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
+New folders belong under the first personal prefix on servers that have one.
+
+`getFolderStatus()` reads a folder's message count, unseen count and next
+unique ID without selecting it. It also reads the folder's size in octets
+when the server offers STATUS=SIZE (RFC 8438) or has IMAP4rev2 enabled.
+`getFolderSize()` reads only the size, and returns null when the server
+can't say:
+
+```php
+foreach ($folders as $folder) {
+    if ($folder->isSelectable()) {
+        $status = $mail->getFolderStatus($folder);
+        printf("%s: %d unread, %s octets\n", $folder, $status->unseen, $status->size ?? '?');
+    }
+}
+```
+
 ## Writing: Maildir and IMAP
 
 `Storage\Writable\Maildir` and `Storage\Imap` implement
