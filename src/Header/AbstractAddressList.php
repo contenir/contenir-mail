@@ -8,6 +8,7 @@ use Contenir\Mail\Address;
 use Contenir\Mail\AddressGroup;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Headers;
+use NoDiscard;
 use Override;
 
 use function array_filter;
@@ -93,6 +94,7 @@ abstract readonly class AbstractAddressList implements HeaderInterface
     /**
      * The same header with these addresses in place of the addresses outside groups; groups are kept.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAddressList(AddressList $addressList): static
     {
         return new static($addressList, ...$this->getGroups());
@@ -102,6 +104,7 @@ abstract readonly class AbstractAddressList implements HeaderInterface
      * The same header with a group, or addresses, added after its entries.
      * An address already in the header outside a group is not added again.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAdded(Address|AddressList|AddressGroup $entry): static
     {
         if ($entry instanceof AddressGroup) {

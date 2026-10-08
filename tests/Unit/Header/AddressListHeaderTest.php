@@ -157,7 +157,7 @@ final class AddressListHeaderTest extends TestCase
     public function withAddressListLeavesOriginalUnchanged(): void
     {
         $header = new Cc();
-        $header->withAddressList(self::makeAddressList());
+        static::assertNotSame($header, $header->withAddressList(self::makeAddressList()));
 
         static::assertTrue($header->getAddressList()->isEmpty());
     }

@@ -91,7 +91,7 @@ final class HeaderLocatorTest extends TestCase
     public function withLeavesOriginalLocatorUnchanged(): void
     {
         $locator = new HeaderLocator();
-        $locator->with('X-Custom', Header\GenericHeader::class);
+        static::assertNotSame($locator, $locator->with('X-Custom', Header\GenericHeader::class));
 
         static::assertFalse($locator->has('X-Custom'));
     }

@@ -235,7 +235,8 @@ final class ContentDispositionTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($message);
 
-        (new ContentDisposition('attachment'))->withParameter($name, value: 'value');
+        (new ContentDisposition('attachment'))->withParameter($name, value: 'value')
+            ->getParameters();
     }
 
     #[DataProvider('getParameterProvider')]
@@ -267,7 +268,7 @@ final class ContentDispositionTest extends TestCase
     public function withDispositionLeavesOriginalUnchanged(): void
     {
         $header = new ContentDisposition();
-        $header->withDisposition('attachment');
+        static::assertNotSame($header, $header->withDisposition('attachment'));
 
         static::assertSame('inline', $header->getDisposition());
     }
@@ -295,7 +296,7 @@ final class ContentDispositionTest extends TestCase
     public function withParameterLeavesOriginalUnchanged(): void
     {
         $header = new ContentDisposition();
-        $header->withParameter('name', value: 'value');
+        static::assertNotSame($header, $header->withParameter('name', value: 'value'));
 
         static::assertSame([], $header->getParameters());
     }
@@ -320,7 +321,7 @@ final class ContentDispositionTest extends TestCase
     public function withoutParameterLeavesOriginalUnchanged(): void
     {
         $header = new ContentDisposition('inline', ['name' => 'value']);
-        $header->withoutParameter('name');
+        static::assertNotSame($header, $header->withoutParameter('name'));
 
         static::assertSame(['name' => 'value'], $header->getParameters());
     }

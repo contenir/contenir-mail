@@ -12,6 +12,7 @@ use Contenir\Mail\Header\HeaderLocatorInterface;
 use Contenir\Mail\Header\HeaderParser;
 use Countable;
 use IteratorAggregate;
+use NoDiscard;
 use Override;
 use WeakMap;
 
@@ -113,6 +114,7 @@ final readonly class Headers implements Countable, IteratorAggregate
      *
      * The new header takes the position of the first one it replaces, or goes last.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(HeaderInterface $header): self
     {
         $key      = self::normalise($header->getFieldName());
@@ -140,6 +142,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     /**
      * Add a header after the existing ones, keeping any of the same name, as for Received.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAdded(HeaderInterface $header): self
     {
         return $this->derive([...$this->headers, $header]);
@@ -148,11 +151,13 @@ final readonly class Headers implements Countable, IteratorAggregate
     /**
      * Add a header before the existing ones, keeping any of the same name, as for DKIM-Signature.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withFirst(HeaderInterface $header): self
     {
         return $this->derive([$header, ...$this->headers]);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function without(string $name): self
     {
         $key = self::normalise($name);

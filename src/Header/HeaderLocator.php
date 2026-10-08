@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use NoDiscard;
 use Override;
 
 use function array_key_exists;
@@ -53,6 +54,7 @@ final readonly class HeaderLocator implements HeaderLocatorInterface
     /**
      * @param class-string<HeaderInterface> $class
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(string $name, string $class): self
     {
         return new self([...$this->classes, self::normalise($name) => $class]);

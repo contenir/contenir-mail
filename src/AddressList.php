@@ -7,6 +7,7 @@ namespace Contenir\Mail;
 use ArrayIterator;
 use Countable;
 use IteratorAggregate;
+use NoDiscard;
 use Override;
 
 use function array_key_exists;
@@ -67,6 +68,7 @@ final readonly class AddressList implements Countable, IteratorAggregate
      *
      * An address already in the list is left as it is.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(Address|string $emailOrAddress, ?string $name = null): self
     {
         $address = $emailOrAddress instanceof Address ? $emailOrAddress : new Address($emailOrAddress, $name);
@@ -77,11 +79,13 @@ final readonly class AddressList implements Countable, IteratorAggregate
     /**
      * Add every address in another list that is not already in this one.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withList(self $addressList): self
     {
         return new self(...[...array_values($this->addresses), ...$addressList->toArray()]);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function without(string $email): self
     {
         $addresses = $this->addresses;

@@ -199,7 +199,8 @@ final class ContentTypeTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid content-type parameter name detected');
 
-        (new ContentType('text/html'))->withParameter("b\r\na\rr\n", value: 'baz');
+        (new ContentType('text/html'))->withParameter("b\r\na\rr\n", value: 'baz')
+            ->getParameters();
     }
 
     #[Test]
@@ -280,7 +281,7 @@ final class ContentTypeTest extends TestCase
     public function withTypeLeavesOriginalUnchanged(): void
     {
         $header = new ContentType('text/plain');
-        $header->withType('text/html');
+        static::assertNotSame($header, $header->withType('text/html'));
 
         static::assertSame('text/plain', $header->getType());
     }
@@ -291,7 +292,8 @@ final class ContentTypeTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Content-Type expects a value in the format "type/subtype"; received "invalid"');
 
-        (new ContentType('text/plain'))->withType('invalid');
+        (new ContentType('text/plain'))->withType('invalid')
+            ->getType();
     }
 
     #[Test]
@@ -314,7 +316,7 @@ final class ContentTypeTest extends TestCase
     public function withParameterLeavesOriginalUnchanged(): void
     {
         $header = new ContentType('text/plain');
-        $header->withParameter('charset', value: 'UTF-8');
+        static::assertNotSame($header, $header->withParameter('charset', value: 'UTF-8'));
 
         static::assertSame([], $header->getParameters());
     }
@@ -339,7 +341,7 @@ final class ContentTypeTest extends TestCase
     public function withoutParameterLeavesOriginalUnchanged(): void
     {
         $header = ContentType::fromString('content-type: text/plain; level=top');
-        $header->withoutParameter('level');
+        static::assertNotSame($header, $header->withoutParameter('level'));
 
         static::assertSame(['level' => 'top'], $header->getParameters());
     }

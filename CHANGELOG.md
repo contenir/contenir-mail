@@ -122,6 +122,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (RFC 8438) or IMAP4rev2. New: `Protocol\Imap::isImap4Rev2Enabled()`. Responses with
   lists next to each other without a space, such as `(("" "/")("#shared/" "/"))`,
   are now tokenised as separate lists. (#52)
+- The `with*()` and `without*()` methods of the immutable classes
+  (`Headers`, `AddressList`, `Mime\Body`, `Header\ContentType`,
+  `Header\ContentDisposition`, the address-list headers and
+  `Header\HeaderLocator`) carry `#[\NoDiscard]`, so PHP 8.5 warns when the
+  copy they return is thrown away, as when one is mistaken for a setter.
+  Earlier PHP versions ignore the attribute.
 
 ### Changed
 
