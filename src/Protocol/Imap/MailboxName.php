@@ -15,7 +15,6 @@ use function is_string;
 use function preg_replace_callback;
 use function rtrim;
 use function str_replace;
-use function strlen;
 
 /**
  * Mailbox names in modified UTF-7 (RFC 3501, section 5.1.3), as IMAP4rev1
@@ -98,7 +97,7 @@ final class MailboxName
             replace: '/',
             subject: $base64,
         ), strict: true);
-        if (false === $bytes || 0 !== (strlen($bytes) % 2)) {
+        if (false === $bytes) {
             return $written;
         }
 

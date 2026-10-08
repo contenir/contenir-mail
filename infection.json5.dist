@@ -39,11 +39,7 @@
                 "\\$i \\+= 2;",
                 // Not stripping the "(" of a nested list leaves the tokenizer pushing lists forever;
                 // the mutant can only end by exhausting memory, never by a failing assertion.
-                "\\$token\\s+= substr\\(\\$token, offset: 1\\);",
-                // An odd UTF-16 byte count is refused before iconv, which on macOS would decode the
-                // whole units and drop the last byte. On Linux, glibc iconv refuses the odd count
-                // itself, so the name is kept as written either way.
-                "strlen\\(\\$bytes\\) % 2"
+                "\\$token\\s+= substr\\(\\$token, offset: 1\\);"
             ]
         },
         "IncrementInteger": {
