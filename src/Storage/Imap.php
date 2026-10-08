@@ -75,11 +75,28 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
         $this->protocol = $protocol ?? new Protocol\Imap();
         $this->protocol->connect($config->connection);
         $this->open = true;
+        $this->signIn($config);
+
+        $this->selectFolder($config->folder);
+    }
+
+    /**
+     * Sign in with the access token when there is one, and the password otherwise.
+     *
+     * @throws Exception\RuntimeException When the password is refused.
+     * @throws Protocol\Exception\ExceptionInterface When the token is refused or the server cannot be asked.
+     */
+    private function signIn(ImapConfig $config): void
+    {
+        if (null !== $config->auth) {
+            $this->protocol->authenticate($config->auth);
+
+            return;
+        }
+
         if (! $this->protocol->login($config->user, $config->password)) {
             throw new Exception\RuntimeException('Cannot log in: the user or password is wrong');
         }
-
-        $this->selectFolder($config->folder);
     }
 
     /**

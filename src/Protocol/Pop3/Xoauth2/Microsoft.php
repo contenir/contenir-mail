@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol\Pop3\Xoauth2;
 
-use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Exception\ExceptionInterface;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
-use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3;
-use Contenir\Mail\Protocol\Xoauth2\Xoauth2;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Override;
 use SensitiveParameter;
 
@@ -28,7 +26,7 @@ class Microsoft extends Pop3
 
     /**
      * @param string $user the target mailbox to access
-     * @param string $password OAUTH2 accessToken
+     * @param string $password OAUTH2 accessToken, as for authenticate()
      * @param bool $tryApop obsolete parameter not used here
      * @throws ExceptionInterface When the mechanism or the token is refused. A refused token is answered
      *     with the empty response that ends the exchange (RFC 7628, section 3.2.3) before this is thrown.
@@ -42,27 +40,6 @@ class Microsoft extends Pop3
             );
         }
 
-        $this->sendRequest(self::AUTH_INITIALIZE_REQUEST);
-
-        $response = $this->readRemoteResponse();
-
-        if (self::AUTH_RESPONSE_INITIALIZED_OK !== $response->status()) {
-            throw new RuntimeException($response->message());
-        }
-
-        $this->sendRequest(Xoauth2::encodeXoauth2Sasl($user, $password));
-        $response = $this->readRemoteResponse();
-        if (self::AUTH_RESPONSE_INITIALIZED_OK === $response->status()) {
-            $this->sendRequest('');
-            $final = $this->readRemoteResponse();
-
-            throw new RuntimeException(Xoauth2::refusal($response->message(), $final->message()));
-        }
-
-        if ('+OK' !== $response->status()) {
-            $reason = SafeText::display($response->message());
-
-            throw new RuntimeException('' === $reason ? 'The server refused the access token' : $reason);
-        }
+        $this->authenticate(new XOAuth2($user, $password));
     }
 }
