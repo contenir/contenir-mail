@@ -195,6 +195,26 @@ final class Message implements PartInterface, IteratorAggregate
     }
 
     /**
+     * The plain-text body as UTF-8, or null when there is none, see Part::getTextBody().
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function getTextBody(): ?string
+    {
+        return $this->part->getTextBody();
+    }
+
+    /**
+     * The HTML body as UTF-8, or null when there is none; not sanitised, see Part::getHtmlBody().
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function getHtmlBody(): ?string
+    {
+        return $this->part->getHtmlBody();
+    }
+
+    /**
      * The size of the body as stored, in bytes.
      *
      * @throws Exception\RuntimeException When the body cannot be read.

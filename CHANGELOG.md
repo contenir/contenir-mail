@@ -8,7 +8,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Nothing.
+- `Storage\Message` and `Storage\Part` gain `getTextBody()` and
+  `getHtmlBody()`, which return the first non-attachment `text/plain` or
+  `text/html` part as UTF-8, or null. Transfer encodings and allow-listed
+  charsets are decoded, and the last `multipart/alternative` part wins. The
+  HTML is returned as sent and is not sanitised.
 
 ### Changed
 
