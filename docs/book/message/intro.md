@@ -105,7 +105,14 @@ default; see [Character Sets](character-sets.md) for other character sets.
 
 If you wish to set other headers, you can do that as well. `addHeader()` adds a
 header alongside any others of the same name, while `setHeader()` replaces them.
-`removeHeader()` removes every header with the given name.
+`removeHeader()` removes every header with the given name. Headers RFC 5322 allows
+only once (Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To,
+References and Subject) can only be replaced: adding a second one throws.
+
+A new message gets a `Message-ID` on its sender's domain the first time its
+headers are read, and a message with several From addresses gets the first as
+its `Sender` unless one is set. Set your own `Message-ID` with `setHeader()`, or
+remove it with `removeHeader('Message-ID')` to send none.
 
 ```php
 use Contenir\Mail\Header\GenericHeader;
@@ -266,7 +273,9 @@ Set a header, replacing any headers with the same name.
 addHeader(Contenir\Mail\Header\HeaderInterface $header) : self
 ```
 
-Add a header, keeping any headers with the same name.
+Add a header, keeping any headers with the same name. Throws a
+`Contenir\Mail\Exception\InvalidArgumentException` for a second header that RFC 5322
+allows only once.
 
 ### removeHeader
 

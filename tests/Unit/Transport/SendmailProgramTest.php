@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
 use Contenir\Mail\Transport\Exception\RuntimeException;
@@ -159,12 +160,11 @@ final class SendmailProgramTest extends TestCase
     #[Test]
     public function writesMessageWithoutBccInLocalLineEndings(): void
     {
-        $message = (new Message())->setTo('a@example.com')
+        $message = (new Message(new Headers()))->setTo('a@example.com')
             ->setBcc('hidden@example.com')
             ->setFrom('b@example.com')
             ->setSubject('Hi')
-            ->setBody("Line 1\r\nLine 2")
-            ->removeHeader('Date');
+            ->setBody("Line 1\r\nLine 2");
 
         static::assertSame(
             "To: a@example.com\nFrom: b@example.com\nSubject: Hi\n\nLine 1\nLine 2",
@@ -262,7 +262,7 @@ final class SendmailProgramTest extends TestCase
 
     private static function message(): Message
     {
-        return (new Message())->addTo('test@example.com', 'Example Test')
+        return (new Message(new Headers()))->addTo('test@example.com', 'Example Test')
             ->addCc('matthew@example.com')
             ->addBcc('list@example.com', 'Example, List')
             ->addFrom(['test@example.com', 'matthew@example.com' => 'Matthew'])

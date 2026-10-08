@@ -306,6 +306,16 @@ message unreadable.
   bad header no longer stops a message being read.
 - Invalid UTF-8 in received header text is replaced with U+FFFD; laminas-mail
   replaced it with `?`.
+- A new message gets a Message-ID on its sender's domain, and a message with several
+  From addresses gets the first as its Sender. `addHeader()` refuses a second Date,
+  From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References or
+  Subject; use `setHeader()` to replace one.
+- SMTP refuses 8-bit content when the server does not offer 8BITMIME, and a
+  multipart refuses a part that contains its boundary.
+- Callable settings, such as the file transport's `callback`, accept a Closure or an
+  invokable object, not a function name.
+- Messages, headers and parts can be serialized for queues; a part's stream is
+  serialized as its content.
 - Raw UTF-8 header values (RFC 6532) in stored or received mail are read into
   their header classes. Header values refuse control characters other than tab.
 - A missing required storage setting (`dirname`, `filename`, `user`) throws

@@ -9,15 +9,22 @@ use Contenir\Mail\Header\Cc;
 use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\From;
 use Contenir\Mail\Header\HeaderInterface;
+use Contenir\Mail\Header\MessageId;
 use Contenir\Mail\Header\MimeVersion;
 use Contenir\Mail\Header\ReplyTo;
 use Contenir\Mail\Header\Sender;
 use Contenir\Mail\Header\Subject;
 use Contenir\Mail\Header\To;
 use Psr\Clock\ClockInterface;
+use Random\RandomException;
 use Stringable;
 
+use function count;
+use function in_array;
 use function is_string;
+use function preg_match;
+use function sprintf;
+use function strtolower;
 
 /**
  * An e-mail message, built step by step.
@@ -27,13 +34,32 @@ use function is_string;
  * the original.
  *
  * @mago-expect lint:too-many-methods The builder exposes set, add and get for each address header, as in Zend_Mail.
+ * @mago-expect lint:cyclomatic-complexity The RFC 5322 header rules (unique headers, Sender, Message-ID) sit with the builder that enforces them.
  */
 final class Message
 {
     /** Shown by mail readers that do not understand MIME, ahead of the first part */
     private const string PREAMBLE = 'This is a multi-part message in MIME format.';
 
+    /** Headers RFC 5322 (section 3.6) allows at most once in a message */
+    private const array UNIQUE_HEADERS = [
+        'date',
+        'from',
+        'sender',
+        'reply-to',
+        'to',
+        'cc',
+        'bcc',
+        'message-id',
+        'in-reply-to',
+        'references',
+        'subject',
+    ];
+
     private Headers $headers;
+
+    /** Whether a Message-ID is added when the headers are read: for new messages, not parsed ones */
+    private bool $addsMessageId;
 
     private string|Stringable|Mime\PartInterface|null $body = null;
 
@@ -47,8 +73,9 @@ final class Message
      */
     public function __construct(?Headers $headers = null, ClockInterface $clock = new SystemClock())
     {
-        $this->headers = $headers ?? new Headers(new Date($clock->now()));
-        $this->parts   = new Mime\Body();
+        $this->addsMessageId = null === $headers;
+        $this->headers       = $headers ?? new Headers(new Date($clock->now()));
+        $this->parts         = new Mime\Body();
     }
 
     /**
@@ -61,7 +88,8 @@ final class Message
 
     public function setHeaders(Headers $headers): self
     {
-        $this->headers = $headers;
+        $this->addsMessageId = false;
+        $this->headers       = $headers;
 
         return $this;
     }
@@ -73,12 +101,26 @@ final class Message
      */
     public function getHeaders(): Headers
     {
-        $body = $this->getBody();
-        if (! $body instanceof Mime\PartInterface) {
-            return $this->headers;
+        if ($this->addsMessageId && ! $this->headers->has('Message-ID')) {
+            $messageId = $this->generateMessageId();
+            if (null !== $messageId) {
+                $this->headers = $this->headers->with($messageId);
+            }
         }
 
-        $headers = $this->headers->with(new MimeVersion());
+        $headers = $this->headers;
+        $from    = $this->getFrom();
+        $first   = $from->first();
+        if (null !== $first && count($from) > 1 && ! $headers->has('Sender')) {
+            $headers = $headers->with(new Sender($first));
+        }
+
+        $body = $this->getBody();
+        if (! $body instanceof Mime\PartInterface) {
+            return $headers;
+        }
+
+        $headers = $headers->with(new MimeVersion());
         foreach ($body->getHeaders() as $header) {
             $headers = $headers->with($header);
         }
@@ -101,6 +143,14 @@ final class Message
      */
     public function addHeader(HeaderInterface $header): self
     {
+        $name = strtolower($header->getFieldName());
+        if (in_array($name, self::UNIQUE_HEADERS, strict: true) && $this->headers->has($name)) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'A message may have only one %s header; use setHeader() to replace it',
+                $header->getFieldName(),
+            ));
+        }
+
         $this->headers = $this->headers->withAdded($header);
 
         return $this;
@@ -108,6 +158,10 @@ final class Message
 
     public function removeHeader(string $name): self
     {
+        if ('message-id' === strtolower($name)) {
+            $this->addsMessageId = false;
+        }
+
         $this->headers = $this->headers->without($name);
 
         return $this;
@@ -342,6 +396,38 @@ final class Message
         Mime\Decode::splitMessage($rawMessage, $headers, $content, Headers::EOL);
 
         return (new self($headers))->setBody($content);
+    }
+
+    /**
+     * A Message-ID on the sender's domain, or null when the system has no
+     * source of randomness, since RFC 5322 only recommends one.
+     */
+    private function generateMessageId(): ?MessageId
+    {
+        try {
+            return MessageId::generate($this->messageIdDomain());
+
+            // @codeCoverageIgnoreStart
+            // Unreachable in tests: random_bytes() fails only on a system without a source of randomness
+        } catch (RandomException) {
+            return null;
+        }
+
+        // @codeCoverageIgnoreEnd
+    }
+
+    /**
+     * The domain of the Sender, or else the first From address, for a generated Message-ID;
+     * the reserved domain when there is neither, or it is not plain ASCII.
+     */
+    private function messageIdDomain(): string
+    {
+        $email   = ($this->getSender() ?? $this->getFrom()->first())?->getEmail() ?? '';
+        $matches = [];
+
+        return 1 === preg_match('/@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)$/', $email, $matches)
+            ? $matches[1] ?? MessageId::DEFAULT_DOMAIN
+            : MessageId::DEFAULT_DOMAIN;
     }
 
     private function setParts(Mime\Body $parts): self

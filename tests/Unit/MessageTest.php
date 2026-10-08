@@ -986,7 +986,7 @@ final class MessageTest extends TestCase
 
     private function makeMessage(): Message
     {
-        return new Message(clock: new TestAsset\FixedClock(new DateTimeImmutable('2024-01-01T00:00:00Z')));
+        return new Message(new Headers(new Date(new DateTimeImmutable('2024-01-01T00:00:00Z'))));
     }
 
     private function parseMultipartReport(): Message
