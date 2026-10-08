@@ -128,17 +128,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Header\HeaderLocator`) carry `#[\NoDiscard]`, so PHP 8.5 warns when the
   copy they return is thrown away, as when one is mistaken for a setter.
   Earlier PHP versions ignore the attribute.
-
-### Changed
-
-- `WritableInterface::appendMessage()`, `copyMessage()` and `moveMessage()`
-  return `?int` instead of `void`: the UID the message has in the
-  destination folder when the storage reports one, and null otherwise.
-  `Storage\Writable\Maildir` returns null. Classes implementing the
-  interface must change their return types. `Storage\Imap` now calls
-  `Protocol\Imap::appendReturningUids()`, `copyReturningUids()` and
-  `moveReturningUids()`, so a protocol subclass that overrides `append()`,
-  `copy()` or `move()` must override those instead. (#52)
 - IMAP IDLE (RFC 2177): `Storage\Imap::idle($timeout)` is a generator of
   `Storage\Idle` events for the selected folder: `MessageCountChanged` when
   mail arrives, `MessageExpunged`, `RecentCountChanged` and `FlagsChanged`,
@@ -153,6 +142,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `WritableInterface::appendMessage()`, `copyMessage()` and `moveMessage()`
+  return `?int` instead of `void`: the UID the message has in the
+  destination folder when the storage reports one, and null otherwise.
+  `Storage\Writable\Maildir` returns null. Classes implementing the
+  interface must change their return types. `Storage\Imap` now calls
+  `Protocol\Imap::appendReturningUids()`, `copyReturningUids()` and
+  `moveReturningUids()`, so a protocol subclass that overrides `append()`,
+  `copy()` or `move()` must override those instead. (#52)
 - `Protocol\ConnectionInterface` has a new method,
   `waitUntilReadable(int $seconds): bool`, for IMAP IDLE. A connection implemented outside the package must add it:
   return whether the server has sent something, or closed the connection,
@@ -191,7 +188,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   folded over 80,000 lines took 17 seconds to read. It is now linear (40 ms).
 - The IMAP tokenizer copied the rest of the line for every token, so a SEARCH
   reply of 200,000 ids took 9 seconds to read. It now reads each line in one
-  pass (65 ms), lists side by side included.
+  pass (100 ms), lists side by side included.
 - A sequence set of about 10,000 ranges or more exhausted PCRE's stack: an
   ESEARCH result was refused as malformed, and `fetch()`, `store()`,
   `copy()` and `move()` refused a valid set. Each range is now checked on its
