@@ -6,7 +6,7 @@ These tests run contenir-mail against real mail servers in Docker:
 - **[Postfix](https://www.postfix.org/)** for SMTP submission on port 587, with STARTTLS required. It checks logins against Dovecot, including XOAUTH2, and delivers to Dovecot over LMTP. The tests then read the message back over IMAP.
 - **[Mailpit](https://mailpit.axllent.org/)** for SMTP, with STARTTLS and AUTH required. Its HTTP API reads back what was received.
 
-Dovecot accepts XOAUTH2 and OAUTHBEARER, and checks the token as the user's password. That tests the client's side of the exchange; real Google and Microsoft tokens need their own servers.
+Dovecot accepts XOAUTH2 and OAUTHBEARER, and checks the token as the user's password. It also accepts SCRAM-SHA-256, deriving the keys from that password, over IMAP, POP3 and Postfix's submission port. That tests the client's side of the exchange; real Google and Microsoft tokens need their own servers.
 
 Each run creates a throwaway certificate authority, used for both servers' certificates. The certificates name `localhost` only, so connecting to `127.0.0.1` tests that a mismatched name is refused.
 

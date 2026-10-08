@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -56,6 +57,17 @@ final class Pop3StorageTest extends TestCase
     private function pop3(?Protocol\Pop3 $protocol = null): Pop3
     {
         return new Pop3($protocol ?? $this->protocol());
+    }
+
+    #[Test]
+    public function signsInWithScramSha256InsteadOfLogin(): void
+    {
+        $auth     = new ScramSha256('jo@example.com', 'secret');
+        $protocol = $this->protocol();
+        $protocol->expects($this->once())->method('authenticate')->with($auth);
+        $protocol->expects($this->never())->method('login');
+
+        static::assertTrue((new Pop3(['auth' => $auth], $protocol))->getCapabilities()['delete']);
     }
 
     #[Test]

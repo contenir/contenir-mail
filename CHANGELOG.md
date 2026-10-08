@@ -49,6 +49,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   directly. The container is parsed as hostile: lengths are bounds-checked,
   checksums verified, and attachments and output limited (100 and 64 MiB by
   default). (#22)
+- SCRAM-SHA-256 authentication (RFC 5802, RFC 7677) for SMTP, IMAP and POP3.
+  `Protocol\Smtp\Auth\ScramSha256` is an SMTP authenticator, with `type`
+  `scram-sha-256` in settings, and `Imap::authenticate()` and
+  `Pop3::authenticate()` take it as they take `XOAuth2`. `ImapConfig` and
+  `Pop3Config` accept it under `auth`, as an object or as settings with a
+  `type`; settings without one are still read as XOAUTH2. The server's
+  signature is verified, and the exchange fails closed without it. Iteration
+  counts outside 4096 to 1,000,000 are refused. Non-ASCII credentials are
+  normalised to NFKC when intl is installed. Channel binding (`-PLUS`) is not
+  supported, as PHP does not expose the TLS data it needs. (#20)
 
 ### Changed
 
