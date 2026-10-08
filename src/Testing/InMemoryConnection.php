@@ -27,6 +27,7 @@ use function var_export;
  * connection of Protocol\Imap, Protocol\Pop3 and Protocol\Smtp.
  * The script is a list of steps run in order: what the server replies, what
  * the client must send, and where the server stalls, hangs up or negotiates TLS.
+ * A stall times out the client's next read, or ends its next wait for data.
  *
  * ```php
  * $server = (new InMemoryConnection())
@@ -84,6 +85,9 @@ final class InMemoryConnection implements ConnectionInterface
 
     private ?int $timeout = null;
 
+    /** @var list<int> */
+    private array $waits = [];
+
     /**
      * The server sends these bytes.
      */
@@ -105,7 +109,7 @@ final class InMemoryConnection implements ConnectionInterface
     }
 
     /**
-     * The server sends nothing more: the client's next read times out.
+     * The server sends nothing more: the client's next read times out, or its next wait for data ends empty.
      */
     public function stall(): self
     {
@@ -195,6 +199,16 @@ final class InMemoryConnection implements ConnectionInterface
         return $this->timeout;
     }
 
+    /**
+     * The seconds the client asked to wait each time it waited for the server, in order.
+     *
+     * @return list<int>
+     */
+    public function waits(): array
+    {
+        return $this->waits;
+    }
+
     public function isTlsEnabled(): bool
     {
         return $this->tls;
@@ -271,6 +285,38 @@ final class InMemoryConnection implements ConnectionInterface
         $end = strpos($this->buffer, needle: "\n");
 
         return $this->take(min($maxLength, false === $end ? strlen($this->buffer) : $end + 1));
+    }
+
+    /**
+     * True when the server has replied or hung up. A stall is the quiet period: it is
+     * passed and reported as false, whatever the number of seconds.
+     *
+     * @throws Exception\RuntimeException When the connection is not open.
+     * @throws LogicException When the script expects the client to write or to enable TLS.
+     */
+    #[Override]
+    public function waitForData(int $seconds): bool
+    {
+        $this->assertOpen();
+        $this->waits[] = $seconds;
+        if ('' !== $this->buffer) {
+            return true;
+        }
+
+        $step = $this->steps[0] ?? [self::HANG_UP, ''];
+        if (self::STALL === $step[0]) {
+            array_shift($this->steps);
+
+            return false;
+        }
+
+        if (self::REPLY !== $step[0] && self::HANG_UP !== $step[0]) {
+            throw $this->scriptBroken(
+                'The client waits for the server, but the script expects ' . self::describe($step),
+            );
+        }
+
+        return true;
     }
 
     #[Override]

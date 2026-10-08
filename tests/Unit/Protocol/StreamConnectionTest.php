@@ -195,6 +195,59 @@ final class StreamConnectionTest extends TestCase
     }
 
     #[Test]
+    public function reportsBytesTheServerHasSent(): void
+    {
+        [$connection, $peer] = $this->pair();
+        fwrite($peer, data: "* 3 EXISTS\r\n");
+
+        static::assertTrue($connection->waitForData(1));
+    }
+
+    #[Test]
+    public function reportsAQuietServerWithoutFailing(): void
+    {
+        [$connection] = $this->pair();
+
+        static::assertSame([false, true], [$connection->waitForData(0), $connection->isConnected()]);
+    }
+
+    #[Test]
+    public function reportsBytesAlreadyBufferedFromAnEarlierRead(): void
+    {
+        [$connection, $peer] = $this->pair();
+        fwrite($peer, data: "* 3 EXISTS\r\n* 4 EXISTS\r\n");
+        $connection->readLine(100);
+
+        static::assertTrue($connection->waitForData(0));
+    }
+
+    #[Test]
+    public function reportsAClosedConnectionForTheNextReadToFail(): void
+    {
+        [$connection, $peer] = $this->pair();
+        fclose($peer);
+
+        static::assertTrue($connection->waitForData(0));
+    }
+
+    #[Test]
+    public function waitsForNothingOnAStreamThatCannotBeWaitedOn(): void
+    {
+        $connection = StreamConnection::fromStream($this->track(fopen('php://memory', mode: 'rb')));
+
+        static::assertTrue($connection->waitForData(0));
+    }
+
+    #[Test]
+    public function refusesToWaitBeforeOpening(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No connection has been established to the server');
+
+        (new StreamConnection())->waitForData(1);
+    }
+
+    #[Test]
     public function refusesTlsWhenPlainTextBytesAreBuffered(): void
     {
         [$connection, $peer] = $this->pair();

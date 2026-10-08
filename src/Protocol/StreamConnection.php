@@ -144,6 +144,28 @@ final class StreamConnection implements ConnectionInterface
         return $line;
     }
 
+    /**
+     * Bytes PHP has already buffered count as sent, since the socket no longer shows them.
+     * Streams other than sockets, such as php://memory, cannot be waited on and never block a read.
+     */
+    #[Override]
+    public function waitForData(int $seconds): bool
+    {
+        $stream = $this->stream();
+
+        $meta = stream_get_meta_data($stream);
+        if ($meta['unread_bytes'] > 0 || ! str_contains($meta['stream_type'], 'socket')) {
+            return true;
+        }
+
+        $read   = [$stream];
+        $write  = null;
+        $except = null;
+        [$ready] = ErrorCapture::run(static fn(): int|false => stream_select($read, $write, $except, $seconds));
+
+        return false !== $ready && $ready > 0;
+    }
+
     #[Override]
     public function read(int $length): string
     {

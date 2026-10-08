@@ -190,6 +190,12 @@ final class SmtpServer implements ConnectionInterface
     }
 
     #[Override]
+    public function waitForData(int $seconds): bool
+    {
+        throw new RuntimeException('SMTP never waits for news');
+    }
+
+    #[Override]
     public function read(int $length): string
     {
         throw new RuntimeException('SMTP reads only lines');

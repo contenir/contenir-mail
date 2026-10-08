@@ -51,6 +51,17 @@ interface ConnectionInterface
     public function readLine(int $maxLength): string;
 
     /**
+     * Wait at most $seconds for the server to send something, without reading it.
+     *
+     * A quiet server is not an error here, as it is for the reads: this is how
+     * a client waits for news, as with IMAP IDLE. True when bytes can be read,
+     * or when the server has closed the connection, which the next read reports.
+     *
+     * @throws Exception\RuntimeException When the connection is not open.
+     */
+    public function waitForData(int $seconds): bool;
+
+    /**
      * Read exactly $length bytes, as for an IMAP literal.
      *
      * @throws Exception\TimeoutException When the server sends nothing within the timeout.
