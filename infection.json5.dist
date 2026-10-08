@@ -9,7 +9,7 @@
         "text": "infection.log",
         "summary": "summary.log",
         "stryker": {
-            "badge": "/^(main|master)$/"
+            "badge": "/^(main|master|\\d+\\.\\d+\\.x)$/"
         }
     },
     "mutators": {
@@ -36,7 +36,10 @@
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a
                 // space or tab, so stepping onto it again only re-validates a valid character.
-                "\\$i \\+= 2;"
+                "\\$i \\+= 2;",
+                // Not stripping the "(" of a nested list leaves the tokenizer pushing lists forever;
+                // the mutant can only end by exhausting memory, never by a failing assertion.
+                "\\$token\\s+= substr\\(\\$token, offset: 1\\);"
             ]
         },
         "IncrementInteger": {
@@ -87,6 +90,20 @@
                 // Returning valid UTF-8 at once only saves time: scrubbing it changes nothing.
                 "Contenir\\Mail\\Utf8::scrub"
             ]
+        },
+        "UnwrapSubstr": {
+            // As for DecrementInteger above: a nested list that keeps its "(" is pushed forever.
+            "ignoreSourceCodeByRegex": ["\\$token\\s+= substr\\(\\$token, offset: 1\\);"]
+        },
+        "LogicalAndAllSubExprNegation": {
+            // Negating both bounds walks the cut point below zero until memory runs out;
+            // the mutant can only end in a crash, which Utf8Test cannot assert.
+            "ignore": ["Contenir\\Mail\\Utf8::cut"]
+        },
+        "ProtectedVisibility": {
+            // Protocol\Smtp overrides _disconnect() with #[Override], so a private parent
+            // method is a compile-time fatal error rather than a behaviour a test can observe.
+            "ignore": ["Contenir\\Mail\\Protocol\\AbstractProtocol::_disconnect"]
         },
         "Coalesce": {
             // Scrubbing by character gives the same result as scrubbing by run, only slower,
