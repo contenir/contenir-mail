@@ -111,6 +111,7 @@ Prefer `cafile` or `capath` for a private certificate authority, and `peer_name`
 | AUTH is refused over an unencrypted connection unless `allow_insecure_auth` is set, and only advertised mechanisms are used | `refusesToAuthenticateOverUnencryptedConnection`, `refusesMechanismServerDoesNotOffer` |
 | Credentials are kept out of the session log, the last request and `var_dump()` output | `keepsCredentialsOutOfSessionLog`, `keepsCredentialsOutOfLastRequest`, `keepsPasswordOutOfDumps`, `keepsTokenOutOfDumps` |
 | SASL fields refuse values that could rewrite them | `XOAuth2Test::rejectsValuesThatCouldRewriteSaslFields` |
+| SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256Test`, `Smtp\Auth\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
 | Replies are capped at 100 lines, and malformed replies are refused | `refusesReplyLongerThanLimit`, `refusesMalformedReply` |
 | SIZE and SMTPUTF8 are honoured: an oversized message or a non-ASCII address the server cannot take is refused before sending | `refusesMessageLargerThanServerAccepts`, `refusesInternationalSenderWithoutSmtpUtf8` |
 
@@ -149,6 +150,7 @@ which escapes them again for a shell.
 | Line and response sizes are limited (8 MiB and 64 MiB by default), and a literal larger than the limit is refused before it is read | `ResponseDecodingTest` limit cases |
 | A response with repeated spaces cannot loop | `skipsEmptyTokensBetweenRepeatedSpaces` |
 | Credentials are redacted in the log | `keepsCredentialsOutOfTheLog`, `logsASensitiveRequestAsItsRedactedForm` |
+| SCRAM-SHA-256 checks the server's signature before finishing, and cancels the exchange with `*` when it does not match. Without channel binding, which PHP cannot provide, it relies on TLS for the connection itself | `AuthenticateScramTest` (IMAP and POP3) |
 
 ### Storage
 

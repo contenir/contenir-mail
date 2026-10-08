@@ -123,6 +123,29 @@ final class PostfixTest extends TestCase
     }
 
     /**
+     * Postfix relays the exchange to Dovecot, whose server-final arrives in a 334 that the client checks.
+     */
+    #[Test]
+    public function deliversThroughPostfixWithScramSha256(): void
+    {
+        $subject = 'scram ' . bin2hex(random_bytes(4));
+        self::transport(['type' => 'scram-sha-256', 'username' => 'test', 'password' => self::secret()])
+            ->send(self::message($subject));
+
+        static::assertSame($subject, self::delivered($subject)?->getSubject());
+    }
+
+    #[Test]
+    public function refusesWrongPasswordWithScramSha256(): void
+    {
+        $this->expectException(ExceptionInterface::class);
+        $this->expectExceptionMessage('5.7.8 Error: authentication failed');
+
+        self::transport(['type' => 'scram-sha-256', 'username' => 'test', 'password' => bin2hex(random_bytes(8))])
+            ->send(self::message('refused proof'));
+    }
+
+    /**
      * Postfix refuses a token passed on to Dovecot with 535 at once, with no challenge first.
      */
     #[Test]

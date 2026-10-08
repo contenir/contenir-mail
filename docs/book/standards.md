@@ -12,8 +12,8 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 86 requirements below, 74 conform, 3 are
-partial, 2 deviate by design, and 7 optional extensions are not
+Summary: of the 90 requirements below, 76 conform, 4 are
+partial, 2 deviate by design, and 8 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
 ## Message format: RFC 5322 and RFC 6854
@@ -79,6 +79,9 @@ implemented. The gaps to close are listed at the end.
 | RFC 3207 STARTTLS, with capabilities discarded after it | Conforms | Required by default. `refusesServerThatDoesNotOfferStartTls`, `discardsCapabilitiesFromBeforeStartTls` |
 | RFC 4954 AUTH with an advertised mechanism | Conforms | Refused over plain text. `refusesMechanismServerDoesNotOffer`, `refusesToAuthenticateOverUnencryptedConnection` |
 | RFC 4616 PLAIN, LOGIN, RFC 2195 CRAM-MD5, Google XOAUTH2 | Conforms | `Protocol\Smtp\Auth` tests. CRAM-MD5 is kept for compatibility; the docs advise against it. |
+| RFC 5802 and RFC 7677 SCRAM-SHA-256 | Conforms | Tested against the RFC 7677 vector. The server's signature is verified; iteration counts outside 4096 to 1,000,000 are refused. `Protocol\Sasl\ScramSha256Test`, `Smtp\Auth\ScramSha256Test`, `authenticatesWithScramSha256`, and against Postfix and Dovecot in `PostfixTest` |
+| RFC 5802 SCRAM-SHA-256-PLUS channel binding | Not implemented | PHP exposes neither `tls-unique` nor `tls-exporter`. The gs2 header is `n,,`. |
+| RFC 4013 SASLprep | Partial | Printable ASCII is unchanged; other text is normalised to NFKC with intl, and refused without it. The prohibited-character and bidirectional tables are not applied. `SaslPrepTest` |
 | RFC 6409 Submission on port 587 | Conforms | The default with STARTTLS. `choosesSeparateStartTlsPortWhenGiven` |
 | RFC 8314 Implicit TLS on port 465 | Conforms | `Security::Tls`. |
 | RFC 8314 §3 Prefer implicit TLS for submission (SHOULD) | Deviates | STARTTLS on 587 is the default because it is the most widely deployed; it is required, never opportunistic, and implicit TLS is one setting away. |
@@ -117,6 +120,7 @@ and rev2 servers accept rev1 clients.
 | §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |
 | Response parsing, server literals by byte count | Conforms | `ResponseDecodingTest` |
 | §6.2.2 AUTHENTICATE with XOAUTH2, RFC 4959 SASL-IR | Conforms | The token goes with the command when SASL-IR is offered, and after the continuation otherwise. A refused token is answered with an empty response (RFC 7628). `AuthenticateTest`, and against Dovecot in `ImapXoauth2Test` |
+| §6.2.2 AUTHENTICATE with SCRAM-SHA-256 | Conforms | Client-first goes with the command when SASL-IR is offered. Server-final is checked before the empty response that ends the exchange; a refused step is cancelled with `*`. `AuthenticateScramTest`, and against Dovecot in `ImapScramTest` |
 | §5.1.3 Mailbox names in modified UTF-7 | Conforms | Names are encoded on the way out and decoded from LIST. A malformed run is kept as the server wrote it. `MailboxNameTest`, `writesNamesInModifiedUtf7WithoutUtf8Mailboxes`, and against Dovecot in `ImapMailboxNameTest` |
 | RFC 5161 ENABLE, RFC 9051 IMAP4rev2, RFC 6855 UTF8=ACCEPT | Partial | After signing in, IMAP4rev2 is enabled when it's offered, or else UTF8=ACCEPT. Names then travel as UTF-8. SEARCH reads ESEARCH results, bounded to `MAX_SEARCH_RESULTS`, and `\NonExistent` folders can't be selected. IDLE, NAMESPACE, UNSELECT, UIDPLUS, SPECIAL-USE, STATUS SIZE and LITERAL- aren't used yet (#52). `Imap4rev2Test` |
 | RFC 5256 SORT, RFC 5957 display sort, RFC 4731 ESEARCH counts | Conforms | `Storage\Imap::sortMessages()` sorts on the server, and `getMessages()` fetches a page in one FETCH. Sort keys are checked before sending. `countMessages()` counts with `SEARCH RETURN (COUNT)` when ESEARCH or IMAP4rev2 is on, and from the numbers otherwise. `SortAndCountTest`, `ImapPagingTest` |
@@ -129,7 +133,7 @@ and rev2 servers accept rev1 clients.
 | RFC 1939 Commands, multi-line responses, dot-unstuffing, APOP | Conforms | `retrievesAMessageAndRemovesDotStuffing`, `fallsBackToUserAndPassWhenApopIsRefused` |
 | RFC 2449 CAPA | Conforms | `refusesToContinueInPlainTextWhenCapaIsNotSupported` |
 | RFC 2595 STLS | Conforms | Required by default. `refusesToContinueInPlainTextWhenStlsIsNotOffered` |
-| RFC 5034 SASL | Partial | XOAUTH2, for Gmail and Microsoft 365, through the `auth` setting or `Pop3\Xoauth2\Microsoft`. No other mechanism. |
+| RFC 5034 SASL | Partial | XOAUTH2, for Gmail and Microsoft 365, through the `auth` setting or `Pop3\Xoauth2\Microsoft`, and SCRAM-SHA-256 (`AuthenticateScramTest`, and against Dovecot in `Pop3ScramTest`). No other mechanism. |
 
 ## TLS: RFC 8996, RFC 9325, RFC 9525
 

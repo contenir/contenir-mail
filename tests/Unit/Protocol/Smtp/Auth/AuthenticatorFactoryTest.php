@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use Contenir\Mail\Protocol\Smtp\Auth\CramMd5;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -56,7 +57,7 @@ final class AuthenticatorFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'SMTP authentication: option "type" must be one of plain, login, crammd5, xoauth2, got null',
+            'SMTP authentication: option "type" must be one of plain, login, crammd5, xoauth2, scramsha256, got null',
         );
 
         AuthenticatorFactory::fromIterable(['username' => 'orders', 'password' => self::AUTH_VALUE]);
@@ -67,7 +68,7 @@ final class AuthenticatorFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'SMTP authentication: unknown type "gssapi"; expected one of plain, login, crammd5, xoauth2',
+            'SMTP authentication: unknown type "gssapi"; expected one of plain, login, crammd5, xoauth2, scramsha256',
         );
 
         AuthenticatorFactory::fromIterable(['type' => 'gssapi']);
@@ -84,6 +85,8 @@ final class AuthenticatorFactoryTest extends TestCase
             'cram-md5'          => ['cram-md5', 'password', CramMd5::class],
             'cram_md5'          => ['CRAM_MD5', 'password', CramMd5::class],
             'xoauth2'           => ['xoauth2', 'access_token', XOAuth2::class],
+            'scram-sha-256'     => ['scram-sha-256', 'password', ScramSha256::class],
+            'SCRAM_SHA_256'     => ['SCRAM_SHA_256', 'password', ScramSha256::class],
         ];
     }
 }

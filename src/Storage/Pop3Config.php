@@ -7,6 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\TlsOptions;
 use SensitiveParameter;
@@ -48,14 +49,15 @@ final readonly class Pop3Config
     private const string MASK = '********';
 
     /**
-     * @param XOAuth2|null $auth An OAuth 2.0 access token to sign in with (XOAUTH2), used instead of the password.
+     * @param XOAuth2|ScramSha256|null $auth How to sign in with SASL instead of the password: an OAuth 2.0
+     *     access token (XOAUTH2), or a password proved without sending it (SCRAM-SHA-256).
      */
     public function __construct(
         public ConnectionConfig $connection,
         public string $user,
         #[SensitiveParameter]
         public string $password = '',
-        public ?XOAuth2 $auth = null,
+        public XOAuth2|ScramSha256|null $auth = null,
     ) {}
 
     /**
@@ -65,7 +67,7 @@ final readonly class Pop3Config
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
-        $auth   = $reader->section('auth', XOAuth2::class, XOAuth2::fromIterable(...));
+        $auth   = RemoteAuth::fromReader($reader, self::class);
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),

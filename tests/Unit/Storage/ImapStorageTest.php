@@ -8,6 +8,7 @@ use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
@@ -109,6 +110,17 @@ final class ImapStorageTest extends TestCase
         $this->expectExceptionCode(0);
 
         new Imap($protocol);
+    }
+
+    #[Test]
+    public function signsInWithScramSha256InsteadOfLogin(): void
+    {
+        $auth     = new ScramSha256('jo@example.com', 'secret');
+        $protocol = $this->protocol();
+        $protocol->expects($this->once())->method('authenticate')->with($auth);
+        $protocol->expects($this->never())->method('login');
+
+        static::assertSame('INBOX', (new Imap(['auth' => $auth], $protocol))->getCurrentFolder());
     }
 
     #[Test]

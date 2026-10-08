@@ -1,14 +1,15 @@
 # SMTP Authentication
 
 An SMTP transport logs in with an authenticator, given as the `auth` setting.
-contenir-mail ships four, in `Contenir\Mail\Protocol\Smtp\Auth`:
+contenir-mail ships five, in `Contenir\Mail\Protocol\Smtp\Auth`:
 
-Class      | `type`     | Mechanism | Settings
----------- | ---------- | --------- | --------
-`Plain`    | `plain`    | PLAIN     | `username`, `password`
-`Login`    | `login`    | LOGIN     | `username`, `password`
-`CramMd5`  | `cram-md5` | CRAM-MD5  | `username`, `password`
-`XOAuth2`  | `xoauth2`  | XOAUTH2   | `username`, `access_token`
+Class         | `type`          | Mechanism     | Settings
+------------- | --------------- | ------------- | --------
+`Plain`       | `plain`         | PLAIN         | `username`, `password`
+`Login`       | `login`         | LOGIN         | `username`, `password`
+`CramMd5`     | `cram-md5`      | CRAM-MD5      | `username`, `password`
+`ScramSha256` | `scram-sha-256` | SCRAM-SHA-256 | `username`, `password`
+`XOAuth2`     | `xoauth2`       | XOAUTH2       | `username`, `access_token`
 
 ```php
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
@@ -51,6 +52,49 @@ an HMAC-MD5 of a challenge instead, but MD5 is weak and the server must keep the
 password in a recoverable form; prefer PLAIN or LOGIN over TLS where both are
 offered.
 
+You choose the authenticator, not the server: a server that does not offer the
+configured mechanism is refused, never downgraded to another one.
+
+## SCRAM-SHA-256
+
+SCRAM-SHA-256 (RFC 5802, RFC 7677) proves the password without sending it, and
+the server proves in return that it knows the password too. Where the server
+offers it, prefer it to PLAIN and LOGIN.
+
+```php
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
+
+$transport = new Smtp(new SmtpConfig(
+    host: 'smtp.example.com',
+    port: 587,
+    auth: new ScramSha256('orders', $password),
+));
+
+$transport = new Smtp([
+    'host' => 'smtp.example.com',
+    'auth' => ['type' => 'scram-sha-256', 'username' => 'orders', 'password' => $password],
+]);
+```
+
+- The exchange fails closed. If the server's final message does not carry the
+  signature only the password's holder could compute, or the server reports
+  success without sending one, the exchange throws. A server message the client
+  refuses is answered with `*`, which cancels the exchange.
+- The server's iteration count must be between 4096 and 1,000,000, so a hostile
+  server cannot make the client spin. Its nonce must extend the client's, which
+  comes from `random_bytes()`.
+- Channel binding (`SCRAM-SHA-256-PLUS`) is not supported. It needs the
+  `tls-unique` or `tls-exporter` value of the TLS session, which PHP does not
+  expose. The client sends the gs2 header `n,,`, which says it does not support
+  binding. The exchange therefore does not prove which TLS connection it ran
+  over, so keep TLS on and the certificate verified.
+- Usernames and passwords in printable ASCII are sent as they are. Other text is
+  normalised to Unicode NFKC, the core of SASLprep (RFC 4013), with the intl
+  extension's `Normalizer`. Without intl, such credentials are refused rather
+  than sent unprepared. The rest of SASLprep, such as its tables of prohibited
+  and bidirectional characters, is not applied.
+- SCRAM-SHA-1 is not offered.
+
 ## Keeping credentials secret
 
 - Passwords and tokens are `#[SensitiveParameter]`, so they do not appear in
@@ -61,7 +105,8 @@ offered.
   `Protocol\Smtp::getLog()` and returned as such by `getRequest()`.
 - Usernames may not contain control characters; a PLAIN password may not contain
   NUL, and an XOAUTH2 token may not contain control characters, since these
-  separate the fields of the response.
+  separate the fields of the response. In a SCRAM username, `=` and `,` are
+  escaped as `=3D` and `=2C`.
 
 ## Writing an authenticator
 
