@@ -8,7 +8,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Nothing.
+- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
+  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
+  its other flags alone. They are not on `WritableInterface`, as Maildir has
+  no equivalent.
 
 ### Changed
 
@@ -30,10 +33,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
-  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
-  its other flags alone. They are not on `WritableInterface`, as Maildir has
-  no equivalent.
+- Nothing.
 
 ### Changed
 
