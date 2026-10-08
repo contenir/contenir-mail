@@ -72,11 +72,11 @@ final class Pop3Xoauth2Test extends TestCase
         } catch (ExceptionInterface $e) {
             $transcript = $connection->transcript();
             static::assertSame(
-                ['The server refused the access token', 'C: ', 'S: -ERR'],
+                ['The server refused the access token', 'C: ', 'S: -ERR [AUTH] Authentication failed.'],
                 [
                     substr($e->getMessage(), offset: 0, length: 35),
                     $transcript[count($transcript) - 2] ?? '',
-                    substr($transcript[count($transcript) - 1] ?? '', offset: 0, length: 7),
+                    $transcript[count($transcript) - 1] ?? '',
                 ],
                 implode("\n", $transcript),
             );
