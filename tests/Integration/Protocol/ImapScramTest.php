@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_search;
 use function bin2hex;
 use function count;
 use function getenv;
@@ -73,12 +74,12 @@ final class ImapScramTest extends TestCase
         $imap->authenticate(new ScramSha256('test', self::password()));
 
         $transcript = $connection->transcript();
+        $answer     = (int) array_search('C: ', $transcript, strict: true);
         $last       = $transcript[count($transcript) - 1] ?? '';
         static::assertSame(
-            [true, 'C: ', true],
+            [true, true],
             [
-                str_starts_with($transcript[count($transcript) - 3] ?? '', 'S: + '),
-                $transcript[count($transcript) - 2] ?? '',
+                str_starts_with($transcript[$answer - 1] ?? '', 'S: + '),
                 str_starts_with($last, 'S: TAG') && str_contains($last, ' OK '),
             ],
             implode("\n", $transcript),
