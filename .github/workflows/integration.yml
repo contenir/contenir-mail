@@ -58,6 +58,26 @@ jobs:
           TESTS_CONTENIR_MAIL_SMTP_API: http://localhost:8025
         run: php -d openssl.cafile=${{ steps.servers.outputs.cafile }} vendor/bin/phpunit --testsuite integration --no-progress
 
+      - name: Smoke test against Postfix and Dovecot, with a password
+        env:
+          SMOKE_PROVIDER: custom
+          SMOKE_USER: test@example.org
+          SMOKE_PASSWORD: secret
+          SMOKE_SMTP_HOST: localhost
+          SMOKE_IMAP_HOST: localhost
+          SMOKE_POP3_HOST: localhost
+        run: php -d openssl.cafile=${{ steps.servers.outputs.cafile }} tests/Smoke/smoke.php
+
+      - name: Smoke test against Postfix and Dovecot, with an access token
+        env:
+          SMOKE_PROVIDER: custom
+          SMOKE_USER: test@example.org
+          SMOKE_TOKEN: secret
+          SMOKE_SMTP_HOST: localhost
+          SMOKE_IMAP_HOST: localhost
+          SMOKE_POP3_HOST: localhost
+        run: php -d openssl.cafile=${{ steps.servers.outputs.cafile }} tests/Smoke/smoke.php
+
       - name: Server logs
         if: always()
         run: docker compose -f tests/Integration/servers/compose.yml logs --no-color
