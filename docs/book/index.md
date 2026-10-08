@@ -7,6 +7,7 @@ $ composer require contenir/contenir-mail
 ```
 
 - [Introduction](intro.md)
+- [Migrating from laminas-mail and laminas-mime](migrating.md): the silent changes first, then the full API mapping
 - Messages: [intro and usage](message/intro.md), [attachments](message/attachments.md),
   [character sets](message/character-sets.md), [DKIM signing](message/dkim.md)
 - Transports: [usage](transport/intro.md), [SMTP options](transport/smtp-options.md),

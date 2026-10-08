@@ -193,13 +193,6 @@ takes none.
 
 ## Migrating from laminas-mail
 
-laminas-mail                                  | contenir-mail
---------------------------------------------- | -------------
-`new SmtpOptions([...])`, `setOptions()`      | `new SmtpConfig(...)` or the array, given to the constructor
-`connection_class` + `connection_config`      | `auth`: an authenticator or `['type' => ..., 'username' => ..., ...]`
-`connection_config['ssl']`                    | `security`: `'tls'` (was `'ssl'`), `'starttls'` (was `'tls'`) or `'none'`
-`SmtpPluginManager`, `setPluginManager()`     | removed; implement `AuthenticatorInterface` for another mechanism
-`new FileOptions([...])`                      | `new FileConfig(...)` or the array
-`Transport\Factory::create($spec)`            | `Container\TransportFactory`, or construct the transport
-`MessageFactory::getInstance($options)`       | removed; build the `Message` with its setters
-`Sendmail::setCallable()`                     | the `mailer` constructor argument
+The [migration guide](../migrating.md) maps the laminas-mail transport settings
+to these. Note that `security: 'tls'` is TLS from the start, where laminas-mail's
+`ssl: 'tls'` meant STARTTLS, and that STARTTLS is now required by default.

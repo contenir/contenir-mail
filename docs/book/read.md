@@ -769,16 +769,6 @@ $mail = new Pop3(['host' => 'pop.example.com', 'user' => 'test', 'password' => $
 
 ## Migrating from laminas-mail
 
-laminas-mail                                   | contenir-mail
----------------------------------------------- | -------------
-`$message->subject`, `$message->getHeader()`   | `getSubject()`, `getFrom()`, … and `getHeaders()->get()`
-`isset($message->cc)`                          | `$message->getHeaders()->has('cc')`
-`$mail[3]`, `unset($mail[3])`                  | `getMessage(3)`, `removeMessage(3)`
-`$mail->getSize()` (all)                       | `getSizes()`
-`$mail->getUniqueId()` (all)                   | `getUniqueIds()`
-`$mail->hasTop`                                | `getCapabilities()['top']`
-`Storage::FLAG_SEEN`                           | `Storage\Flag::Seen`
-`$part->getContent()` (encoded)                | `getEncodedContent()`; `getContent()` now decodes
-`$folder->Archive`                             | `$folder->getFolder('Archive')`
-`messageEOL` setting                           | not needed: line breaks are detected
-`serialize($mbox)` to cache                    | not supported: storages hold open files
+The [migration guide](migrating.md) maps the laminas-mail storage API to this
+one. Check its silent changes first: message flags, decoded part content and
+IMAP folder names all behave differently without an error.
