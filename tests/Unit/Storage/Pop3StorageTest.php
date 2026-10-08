@@ -141,12 +141,17 @@ final class Pop3StorageTest extends TestCase
     #[Test]
     public function logsOutOnce(): void
     {
+        $logouts  = 0;
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('logout');
+        $protocol->method('logout')
+            ->willReturnCallback(static function () use (&$logouts): void {
+                $logouts++;
+            });
         $pop3 = $this->pop3($protocol);
         $pop3->close();
         $pop3->close();
-        unset($pop3);
+
+        static::assertSame(1, $logouts);
     }
 
     #[Test]

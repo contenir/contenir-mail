@@ -241,11 +241,19 @@ final class ImapStorageTest extends TestCase
     #[Test]
     public function logsOutWhenClosed(): void
     {
+        $logouts  = 0;
         $protocol = $this->protocol();
-        $protocol->expects($this->once())->method('logout');
+        $protocol->method('logout')
+            ->willReturnCallback(static function () use (&$logouts): bool {
+                $logouts++;
+
+                return true;
+            });
         $imap = $this->imap($protocol);
         $imap->close();
         $imap->close();
+
+        static::assertSame(1, $logouts);
     }
 
     #[Test]
