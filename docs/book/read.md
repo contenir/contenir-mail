@@ -414,6 +414,19 @@ Files and directories are created private to their owner (0600 and 0700) by
 default; set `file_mode` and `directory_mode` to share them, for example with
 a group. The process umask can only take permissions away from these modes.
 
+`Storage\Imap` can also change a single flag, without reading the flags
+first or replacing the others. Each call sends one `STORE` command with
+`+FLAGS.SILENT` or `-FLAGS.SILENT`:
+
+```php
+$mail->addFlags(1, [Flag::Seen]);       // mark Seen; Flagged is untouched
+$mail->removeFlags(1, [Flag::Flagged]); // clear Flagged only
+```
+
+These two methods are on `Storage\Imap` only, not on `WritableInterface`:
+Maildir would need its own semantics, and adding them to the interface would
+break other implementers.
+
 The `Recent` flag cannot be set: the storage sets it for messages in `new/`.
 Maildir stores the common flags and the keywords `a` to `z`; IMAP stores the
 common flags and any keyword atom.
