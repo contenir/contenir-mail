@@ -66,7 +66,7 @@ final class MicrosoftTest extends TestCase
             ->expect("{$sasl}\r\n")
             ->reply('+ ' . base64_encode('{"status":"401","schemes":"bearer"}') . "\r\n")
             ->expect("\r\n")
-            ->reply("-ERR Authentication failed\r\n")
+            ->reply("-ERR [SYS/PERM] Your account is not enabled for POP access.\r\n")
             ->hangUp();
         $pop3 = $this->connect($server);
 
@@ -75,7 +75,10 @@ final class MicrosoftTest extends TestCase
             static::fail('The refused token was not reported');
         } catch (RuntimeException $e) {
             static::assertSame(
-                ['The server refused the access token (status 401)', true],
+                [
+                    'The server refused the access token (status 401): [SYS/PERM] Your account is not enabled for POP access.',
+                    true,
+                ],
                 [$e->getMessage(), $server->isScriptComplete()],
             );
         }

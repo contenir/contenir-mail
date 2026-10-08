@@ -37,6 +37,28 @@ final class Xoauth2Test extends TestCase
     }
 
     #[Test]
+    #[DataProvider('replyProvider')]
+    public function addsTheServersFinalReply(string $reply, string $expected): void
+    {
+        static::assertSame($expected, Xoauth2::refusal(base64_encode('{"status":"400"}'), $reply));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function replyProvider(): array
+    {
+        return [
+            'reason'             => [
+                '[SYS/PERM] Your account is not enabled for POP access.',
+                'The server refused the access token (status 400): [SYS/PERM] Your account is not enabled for POP access.',
+            ],
+            'control characters' => ["a\x1B[31mb", 'The server refused the access token (status 400): a [31mb'],
+            'blank'              => ['  ', 'The server refused the access token (status 400)'],
+        ];
+    }
+
+    #[Test]
     #[DataProvider('refusalProvider')]
     public function describesARefusedToken(string $challenge, string $expected): void
     {

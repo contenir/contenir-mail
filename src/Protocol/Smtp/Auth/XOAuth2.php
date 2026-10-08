@@ -87,9 +87,9 @@ final readonly class XOAuth2 implements AuthenticatorInterface
                 throw $e;
             }
 
-            $channel->exchange('', 535);
+            $reply = $channel->exchange('', 535);
 
-            throw new RuntimeException(Encoder::refusal($e->getMessage()), 535, $e);
+            throw new RuntimeException(Encoder::refusal($e->getMessage(), $reply), 535, $e);
         }
     }
 
