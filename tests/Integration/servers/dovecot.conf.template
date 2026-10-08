@@ -11,8 +11,9 @@ ssl_dh = </certs/dh.pem
 
 disable_plaintext_auth = no
 # XOAUTH2 and OAUTHBEARER check the token as the passdb password, so the
-# token is the same secret as the password.
-auth_mechanisms = plain login xoauth2 oauthbearer
+# token is the same secret as the password. SCRAM-SHA-256 derives its keys
+# from that plaintext password.
+auth_mechanisms = plain login xoauth2 oauthbearer scram-sha-256
 # LMTP recipients such as inbox@example.org are the user "inbox".
 auth_username_format = %Ln
 postmaster_address = postmaster@example.org

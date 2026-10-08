@@ -198,6 +198,36 @@ then throws an error with the server's reason, such as "The server refused the
 access token (status 400): [AUTHENTICATIONFAILED] Invalid credentials". An
 expired token or a mailbox with IMAP turned off shows up there.
 
+### Signing in with SCRAM-SHA-256
+
+A server that offers SCRAM-SHA-256, such as Dovecot, can check the password
+without it crossing the wire, and proves in return that it knows the password.
+Give the `ScramSha256` authenticator, or its settings with `type`, under `auth`.
+Settings without a `type` are read as XOAUTH2, as before.
+
+```php
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
+use Contenir\Mail\Storage\Imap;
+use Contenir\Mail\Storage\Pop3;
+
+$mail = new Imap([
+    'host' => 'imap.example.com',
+    'auth' => ['type' => 'scram-sha-256', 'username' => 'jo', 'password' => $password],
+]);
+
+$mail = new Pop3([
+    'host' => 'pop.example.com',
+    'auth' => new ScramSha256('jo', $password),
+]);
+```
+
+IMAP requires `AUTH=SCRAM-SHA-256` among the server's capabilities, and sends
+the first message with the command when SASL-IR is offered. The client checks
+the server's signature before it finishes the exchange, and throws if the
+signature is wrong or missing. Channel binding (`-PLUS`) is not supported; see
+[SMTP authentication](transport/smtp-authentication.md#scram-sha-256) for the
+reasons and for how non-ASCII credentials are prepared.
+
 Connection errors throw `Contenir\Mail\Protocol\Exception\ExceptionInterface`;
 a failed login throws `Contenir\Mail\Storage\Exception\RuntimeException`.
 

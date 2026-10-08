@@ -79,6 +79,9 @@ implemented. The gaps to close are listed at the end.
 | RFC 3207 STARTTLS, with capabilities discarded after it | Conforms | Required by default. `refusesServerThatDoesNotOfferStartTls`, `discardsCapabilitiesFromBeforeStartTls` |
 | RFC 4954 AUTH with an advertised mechanism | Conforms | Refused over plain text. `refusesMechanismServerDoesNotOffer`, `refusesToAuthenticateOverUnencryptedConnection` |
 | RFC 4616 PLAIN, LOGIN, RFC 2195 CRAM-MD5, Google XOAUTH2 | Conforms | `Protocol\Smtp\Auth` tests. CRAM-MD5 is kept for compatibility; the docs advise against it. |
+| RFC 5802 and RFC 7677 SCRAM-SHA-256 | Conforms | Tested against the RFC 7677 vector. The server's signature is verified; iteration counts outside 4096 to 1,000,000 are refused. `Protocol\Sasl\ScramSha256Test`, `Smtp\Auth\ScramSha256Test`, `authenticatesWithScramSha256`, and against Postfix and Dovecot in `PostfixTest` |
+| RFC 5802 SCRAM-SHA-256-PLUS channel binding | Not implemented | PHP exposes neither `tls-unique` nor `tls-exporter`. The gs2 header is `n,,`. |
+| RFC 4013 SASLprep | Partial | Printable ASCII is unchanged; other text is normalised to NFKC with intl, and refused without it. The prohibited-character and bidirectional tables are not applied. `SaslPrepTest` |
 | RFC 6409 Submission on port 587 | Conforms | The default with STARTTLS. `choosesSeparateStartTlsPortWhenGiven` |
 | RFC 8314 Implicit TLS on port 465 | Conforms | `Security::Tls`. |
 | RFC 8314 §3 Prefer implicit TLS for submission (SHOULD) | Deviates | STARTTLS on 587 is the default because it is the most widely deployed; it is required, never opportunistic, and implicit TLS is one setting away. |
@@ -104,6 +107,7 @@ rev1 clients.
 | §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |
 | Response parsing, server literals by byte count | Conforms | `ResponseDecodingTest` |
 | §6.2.2 AUTHENTICATE with XOAUTH2, RFC 4959 SASL-IR | Conforms | The token goes with the command when SASL-IR is offered, and after the continuation otherwise. A refused token is answered with an empty response (RFC 7628). `AuthenticateTest`, and against Dovecot in `ImapXoauth2Test` |
+| §6.2.2 AUTHENTICATE with SCRAM-SHA-256 | Conforms | Client-first goes with the command when SASL-IR is offered. Server-final is checked before the empty response that ends the exchange; a refused step is cancelled with `*`. `AuthenticateScramTest`, and against Dovecot in `ImapScramTest` |
 | RFC 9051 IMAP4rev2, IDLE, MOVE, UIDPLUS, NAMESPACE, ENABLE, LITERAL+ | Not implemented | |
 
 ## POP3: RFC 1939, RFC 2449, RFC 2595, RFC 5034
@@ -113,7 +117,7 @@ rev1 clients.
 | RFC 1939 Commands, multi-line responses, dot-unstuffing, APOP | Conforms | `retrievesAMessageAndRemovesDotStuffing`, `fallsBackToUserAndPassWhenApopIsRefused` |
 | RFC 2449 CAPA | Conforms | `refusesToContinueInPlainTextWhenCapaIsNotSupported` |
 | RFC 2595 STLS | Conforms | Required by default. `refusesToContinueInPlainTextWhenStlsIsNotOffered` |
-| RFC 5034 SASL | Partial | XOAUTH2, for Gmail and Microsoft 365, through the `auth` setting or `Pop3\Xoauth2\Microsoft`. No other mechanism. |
+| RFC 5034 SASL | Partial | XOAUTH2, for Gmail and Microsoft 365, through the `auth` setting or `Pop3\Xoauth2\Microsoft`, and SCRAM-SHA-256 (`AuthenticateScramTest`, and against Dovecot in `Pop3ScramTest`). No other mechanism. |
 
 ## TLS: RFC 8996, RFC 9325, RFC 9525
 
