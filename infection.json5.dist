@@ -101,7 +101,11 @@
             "ignore": [
                 "Contenir\\Mail\\Mime\\Part::getEncodedContent",
                 // Returning valid UTF-8 at once only saves time: scrubbing it changes nothing.
-                "Contenir\\Mail\\Utf8::scrub"
+                "Contenir\\Mail\\Utf8::scrub",
+                // Returning the cached position only saves searching the line again: a fresh
+                // search from the same offset finds the same position. TokenizerScalingTest
+                // guards the time it saves.
+                "Contenir\\Mail\\Protocol\\Imap::nextFrom"
             ]
         },
         "UnwrapSubstr": {
