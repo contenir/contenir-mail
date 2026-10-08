@@ -129,7 +129,7 @@ final class SignerTest extends TestCase
             'mail',
             PrivateKey::fromFile(DkimKeys::path('test-only-rsa-2048.pem')),
             identity: 'news@example.com',
-            bodyLength: true,
+            signBodyLength: true,
             expiresAfter: 86_400,
         ));
         $header  = $signer->sign(self::mimeMessage())->getHeaders()->get('DKIM-Signature')?->toString() ?? '';
@@ -142,7 +142,7 @@ final class SignerTest extends TestCase
     #[DataProvider('firstLines')]
     public function foldsBeforeATagThatWouldTakeTheLinePast78Characters(string $domain, string $firstLine): void
     {
-        $signer = new Signer(new DkimConfig($domain, 'mail', PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED)));
+        $signer = new Signer(new DkimConfig($domain, 'mail', PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED)));
         $header = $signer->sign(self::message())->getHeaders()->get('DKIM-Signature')?->toString() ?? '';
 
         static::assertSame($firstLine, explode("\r\n", $header)[0]);
@@ -168,10 +168,10 @@ final class SignerTest extends TestCase
             new DkimConfig(
                 'example.com',
                 'mail',
-                PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
+                PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
                 headers: ['From'],
                 identity: '@example.com',
-                bodyLength: true,
+                signBodyLength: true,
                 expiresAfter: 3600,
             ),
             new FixedClock(new DateTimeImmutable('@' . self::SIGNED_AT)),
@@ -192,8 +192,8 @@ final class SignerTest extends TestCase
             new DkimConfig(
                 'example.com',
                 'mail',
-                PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
-                timestamp: false,
+                PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
+                includeTimestamp: false,
             ),
         );
         $tags = DkimVerifier::signatureTags($signer->sign(self::message())->toString());
@@ -208,8 +208,8 @@ final class SignerTest extends TestCase
             new DkimConfig(
                 'example.com',
                 'mail',
-                PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
-                bodyLength: true,
+                PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
+                signBodyLength: true,
             ),
         );
         $signed = $signer->sign(self::message())->toString();
@@ -229,7 +229,7 @@ final class SignerTest extends TestCase
         $signer = new Signer(new DkimConfig(
             'example.com',
             'mail',
-            PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
+            PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
             headers: ['From', 'X-Tag', 'X-Absent'],
         ));
         $signed = $signer->sign($message)->toString();
@@ -259,7 +259,7 @@ final class SignerTest extends TestCase
         $signer  = new Signer(new DkimConfig(
             'example.com',
             'mail',
-            PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
+            PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
             headers: ['From', 'To'],
         ));
         $signed = $signer->sign($message);
@@ -442,7 +442,7 @@ final class SignerTest extends TestCase
             new DkimConfig(
                 'football.example.com',
                 'brisbane',
-                PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
+                PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
             ),
             new FixedClock(new DateTimeImmutable('@' . self::SIGNED_AT)),
         );

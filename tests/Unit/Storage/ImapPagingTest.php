@@ -78,7 +78,7 @@ final class ImapPagingTest extends TestCase
             ->hangUp();
         $mailbox = self::mailbox($server);
 
-        $newest = $mailbox->sortMessages('REVERSE ARRIVAL');
+        $newest = $mailbox->getSortedNumbers('REVERSE ARRIVAL');
         $page   = $mailbox->getMessages(...array_slice($newest, offset: 0, length: 3));
 
         static::assertSame(
@@ -160,7 +160,7 @@ final class ImapPagingTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('The server refused the sort');
 
-        $mailbox->sortMessages('DATE');
+        $mailbox->getSortedNumbers('DATE');
     }
 
     #[Test]
@@ -178,6 +178,6 @@ final class ImapPagingTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No folder is selected');
 
-        $mailbox->sortMessages('DATE');
+        $mailbox->getSortedNumbers('DATE');
     }
 }

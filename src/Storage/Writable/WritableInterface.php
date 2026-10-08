@@ -57,9 +57,11 @@ interface WritableInterface
     public function copyMessage(int $id, Folder|string $folder): ?int;
 
     /**
+     * @return int|null The UID the message has in the destination folder when the storage reports
+     *     one, as IMAP servers with UIDPLUS do (RFC 4315), and null otherwise.
      * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function moveMessage(int $id, Folder|string $folder): void;
+    public function moveMessage(int $id, Folder|string $folder): ?int;
 
     /**
      * Replace a message's flags. Recent cannot be set.

@@ -241,7 +241,7 @@ final class PrivateKeyTest extends TestCase
     #[DataProvider('ed25519Keys')]
     public function readsEd25519Key(string $key): void
     {
-        static::assertSame(DkimKeys::RFC8463_ED25519_RECORD, PrivateKey::ed25519($key)->dnsRecord());
+        static::assertSame(DkimKeys::RFC8463_ED25519_RECORD, PrivateKey::fromEd25519($key)->dnsRecord());
     }
 
     /**
@@ -263,7 +263,10 @@ final class PrivateKeyTest extends TestCase
     #[Test]
     public function ed25519KeyHasItsAlgorithm(): void
     {
-        static::assertSame(Algorithm::Ed25519Sha256, PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED)->algorithm);
+        static::assertSame(
+            Algorithm::Ed25519Sha256,
+            PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED)->algorithm,
+        );
     }
 
     #[Test]
@@ -275,7 +278,7 @@ final class PrivateKeyTest extends TestCase
             'An Ed25519 DKIM key must be a 32-byte seed or a 64-byte secret key, raw or in base64',
         );
 
-        PrivateKey::ed25519($key);
+        PrivateKey::fromEd25519($key);
     }
 
     /**
@@ -303,13 +306,13 @@ final class PrivateKeyTest extends TestCase
             'The Ed25519 DKIM secret key does not hold the public key of its seed; it is corrupt',
         );
 
-        PrivateKey::ed25519($seed . str_repeat("\0", times: 32));
+        PrivateKey::fromEd25519($seed . str_repeat("\0", times: 32));
     }
 
     #[Test]
     public function signsEd25519OverTheSha256OfTheData(): void
     {
-        $key       = PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED);
+        $key       = PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED);
         $signature = $key->sign('data');
         $public    = (string) base64_decode(
             DkimVerifier::tags(DkimKeys::RFC8463_ED25519_RECORD)['p'] ?? '',
@@ -348,7 +351,7 @@ final class PrivateKeyTest extends TestCase
     {
         return [
             'RSA'     => [PrivateKey::fromPem(DkimKeys::RFC8463_RSA_PEM), 'rsa-sha256'],
-            'Ed25519' => [PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED), 'ed25519-sha256'],
+            'Ed25519' => [PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED), 'ed25519-sha256'],
         ];
     }
 
@@ -358,7 +361,7 @@ final class PrivateKeyTest extends TestCase
         $seed = (string) base64_decode(DkimKeys::RFC8463_ED25519_SEED, strict: true);
 
         static::assertFalse(str_contains(
-            print_r(PrivateKey::ed25519($seed), return: true),
+            print_r(PrivateKey::fromEd25519($seed), return: true),
             substr($seed, offset: 0, length: 8),
         ));
     }
@@ -369,6 +372,6 @@ final class PrivateKeyTest extends TestCase
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage(PrivateKey::class . ' cannot be serialized');
 
-        serialize(PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED));
+        serialize(PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED));
     }
 }

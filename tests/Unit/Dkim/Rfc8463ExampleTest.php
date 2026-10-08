@@ -94,7 +94,7 @@ final class Rfc8463ExampleTest extends TestCase
             'Ed25519-SHA256' => [
                 0,
                 DkimKeys::RFC8463_ED25519_RECORD,
-                PrivateKey::ed25519(DkimKeys::RFC8463_ED25519_SEED),
+                PrivateKey::fromEd25519(DkimKeys::RFC8463_ED25519_SEED),
             ],
             'RSA-SHA256'     => [1, DkimKeys::RFC8463_RSA_RECORD, PrivateKey::fromPem(DkimKeys::RFC8463_RSA_PEM)],
         ];

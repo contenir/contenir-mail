@@ -67,10 +67,10 @@ These requests describe features laminas-mail lacked and contenir-mail has added
 | [#73](https://github.com/laminas/laminas-mail/issues/73) | Text and HTML accessors on a stored message: `getTextBody()` and `getHtmlBody()`. | 0.2.0 |
 | [#205](https://github.com/laminas/laminas-mail/issues/205) | Adding or removing single flags in storage: `addFlags()` and `removeFlags()`. | 0.2.0 |
 | [#5](https://github.com/laminas/laminas-mail/issues/5), [#63](https://github.com/laminas/laminas-mail/issues/63), [#185](https://github.com/laminas/laminas-mail/issues/185), [#206](https://github.com/laminas/laminas-mail/issues/206) | TLS options beyond `verify_peer`, such as a private certificate authority, as typed settings. | 0.3.0 |
-| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address mode: `Address::lenient()`. Reading was already lenient. | 0.3.0 |
+| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address mode: `new Address($email, strict: false)`. Reading was already lenient. | 0.3.0 |
 | [#248](https://github.com/laminas/laminas-mail/issues/248) | SCRAM authentication: SCRAM-SHA-256 for SMTP, IMAP and POP3. | 0.3.0 |
 | [#157](https://github.com/laminas/laminas-mail/issues/157) | Reading TNEF (winmail.dat) attachments: `getTnefContents()`. | 0.3.0 |
-| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders: server-side SORT with `sortMessages()`, and a page in one FETCH with `getMessages()`. | 0.3.0 |
+| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders: server-side SORT with `getSortedNumbers()`, and a page in one FETCH with `getMessages()`. | 0.3.0 |
 | [#9](https://github.com/laminas/laminas-mail/issues/9) | DKIM signing, with RSA-SHA256 and Ed25519. | 0.3.0 |
 
 ## Enhancements not yet offered

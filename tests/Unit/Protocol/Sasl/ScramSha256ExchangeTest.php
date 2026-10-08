@@ -7,7 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Sasl;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Sasl\SaslPrep;
-use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\ScramSha256Exchange;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
 use Contenir\Mail\Tests\Unit\TestAsset\ScramVector;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -24,10 +24,10 @@ use function substr;
 /**
  * The SCRAM-SHA-256 client exchange, against the test vector of RFC 7677.
  */
-#[CoversClass(ScramSha256::class)]
+#[CoversClass(ScramSha256Exchange::class)]
 #[CoversClass(SaslPrep::class)]
 #[Group('unit')]
-final class ScramSha256Test extends TestCase
+final class ScramSha256ExchangeTest extends TestCase
 {
     #[Test]
     public function completesTheRfc7677Exchange(): void
@@ -88,7 +88,7 @@ final class ScramSha256Test extends TestCase
     #[Test]
     public function escapesCommasAndEqualsSignsInTheUsername(): void
     {
-        $scram = new ScramSha256('a=b,c', 'secret', 'nonce');
+        $scram = new ScramSha256Exchange('a=b,c', 'secret', 'nonce');
 
         static::assertSame('n,,n=a=3Db=2Cc,r=nonce', ScramVector::decode($scram->initialResponse()));
     }
@@ -97,7 +97,7 @@ final class ScramSha256Test extends TestCase
     #[RequiresPhpExtension('intl')]
     public function normalisesTheUsername(): void
     {
-        $scram = new ScramSha256("\u{2168}", 'secret', 'nonce');
+        $scram = new ScramSha256Exchange("\u{2168}", 'secret', 'nonce');
 
         static::assertSame('n,,n=IX,r=nonce', ScramVector::decode($scram->initialResponse()));
     }
@@ -106,8 +106,8 @@ final class ScramSha256Test extends TestCase
     #[RequiresPhpExtension('intl')]
     public function normalisesThePassword(): void
     {
-        $plain       = new ScramSha256(ScramVector::USER, 'IX', ScramVector::CLIENT_NONCE);
-        $compatible  = new ScramSha256(ScramVector::USER, "\u{2168}", ScramVector::CLIENT_NONCE);
+        $plain       = new ScramSha256Exchange(ScramVector::USER, 'IX', ScramVector::CLIENT_NONCE);
+        $compatible  = new ScramSha256Exchange(ScramVector::USER, "\u{2168}", ScramVector::CLIENT_NONCE);
         $serverFirst = ScramVector::b64(ScramVector::SERVER_FIRST);
 
         static::assertSame($plain->respond($serverFirst), $compatible->respond($serverFirst));
@@ -120,7 +120,7 @@ final class ScramSha256Test extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The SCRAM password must be UTF-8 text without control characters');
 
-        new ScramSha256(ScramVector::USER, "pen\u{0085}cil");
+        new ScramSha256Exchange(ScramVector::USER, "pen\u{0085}cil");
     }
 
     #[Test]
@@ -130,14 +130,14 @@ final class ScramSha256Test extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The SCRAM username must be UTF-8 text without control characters');
 
-        new ScramSha256("\xFF", ScramVector::PASSWORD);
+        new ScramSha256Exchange("\xFF", ScramVector::PASSWORD);
     }
 
     #[Test]
     public function makesARandomNonceForEachExchange(): void
     {
-        $first  = ScramVector::decode((new ScramSha256('jo', 'secret'))->initialResponse());
-        $second = ScramVector::decode((new ScramSha256('jo', 'secret'))->initialResponse());
+        $first  = ScramVector::decode((new ScramSha256Exchange('jo', 'secret'))->initialResponse());
+        $second = ScramVector::decode((new ScramSha256Exchange('jo', 'secret'))->initialResponse());
 
         static::assertSame(
             [1, 1, 42, true],
@@ -157,7 +157,7 @@ final class ScramSha256Test extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The SCRAM nonce must be printable ASCII without ","');
 
-        new ScramSha256('jo', 'secret', $nonce);
+        new ScramSha256Exchange('jo', 'secret', $nonce);
     }
 
     /**

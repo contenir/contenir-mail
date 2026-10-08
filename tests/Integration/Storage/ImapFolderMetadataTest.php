@@ -81,7 +81,7 @@ final class ImapFolderMetadataTest extends TestCase
     #[Test]
     public function readsTheStatusOfTheInbox(): void
     {
-        static::assertSame($this->mailbox()->countMessages(), $this->mailbox()->getFolderStatus('INBOX')->messages);
+        static::assertSame($this->mailbox()->countMessages(), $this->mailbox()->getFolderStatus('INBOX')->messageCount);
     }
 
     #[Test]

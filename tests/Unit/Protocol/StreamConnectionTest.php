@@ -11,7 +11,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Exception\TimeoutException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\StreamConnection;
-use Contenir\Mail\Protocol\TlsOptions;
+use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\TlsServer;
 use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -200,7 +200,7 @@ final class StreamConnectionTest extends TestCase
         [$connection, $peer] = $this->pair();
         fwrite($peer, data: "* 3 EXISTS\r\n");
 
-        static::assertTrue($connection->waitForData(1));
+        static::assertTrue($connection->waitUntilReadable(1));
     }
 
     #[Test]
@@ -208,7 +208,7 @@ final class StreamConnectionTest extends TestCase
     {
         [$connection] = $this->pair();
 
-        static::assertSame([false, true], [$connection->waitForData(0), $connection->isConnected()]);
+        static::assertSame([false, true], [$connection->waitUntilReadable(0), $connection->isConnected()]);
     }
 
     #[Test]
@@ -218,7 +218,7 @@ final class StreamConnectionTest extends TestCase
         fwrite($peer, data: "* 3 EXISTS\r\n* 4 EXISTS\r\n");
         $connection->readLine(100);
 
-        static::assertTrue($connection->waitForData(0));
+        static::assertTrue($connection->waitUntilReadable(0));
     }
 
     #[Test]
@@ -227,7 +227,7 @@ final class StreamConnectionTest extends TestCase
         [$connection, $peer] = $this->pair();
         fclose($peer);
 
-        static::assertTrue($connection->waitForData(0));
+        static::assertTrue($connection->waitUntilReadable(0));
     }
 
     #[Test]
@@ -235,7 +235,7 @@ final class StreamConnectionTest extends TestCase
     {
         $connection = StreamConnection::fromStream($this->track(fopen('php://memory', mode: 'rb')));
 
-        static::assertTrue($connection->waitForData(0));
+        static::assertTrue($connection->waitUntilReadable(0));
     }
 
     #[Test]
@@ -244,7 +244,7 @@ final class StreamConnectionTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No connection has been established to the server');
 
-        (new StreamConnection())->waitForData(1);
+        (new StreamConnection())->waitUntilReadable(1);
     }
 
     #[Test]
@@ -519,7 +519,7 @@ final class StreamConnectionTest extends TestCase
                 host: '127.0.0.1',
                 security: Security::Tls,
                 timeout: 5,
-                tls: new TlsOptions(
+                tls: new TlsConfig(
                     peerName: 'localhost',
                     allowSelfSigned: true,
                 ),
@@ -544,7 +544,7 @@ final class StreamConnectionTest extends TestCase
                 host: '127.0.0.1',
                 security: Security::Tls,
                 timeout: 5,
-                tls: new TlsOptions(allowSelfSigned: true),
+                tls: new TlsConfig(allowSelfSigned: true),
             ),
             $this->tlsServer->port,
         );
@@ -561,8 +561,8 @@ final class StreamConnectionTest extends TestCase
                 host: '127.0.0.1',
                 security: Security::StartTls,
                 timeout: 5,
-                tls: new TlsOptions(
-                    cafile: $this->tlsServer->certificate,
+                tls: new TlsConfig(
+                    caFile: $this->tlsServer->certificate,
                     peerName: 'localhost',
                 ),
             ),

@@ -89,6 +89,7 @@ final class SafeText
                 $address->getEmail(),
                 self::displayOrNull($address->getName()),
                 self::displayOrNull($address->getComment()),
+                $address->isStrict(),
             ),
             $addresses->toArray(),
         ));

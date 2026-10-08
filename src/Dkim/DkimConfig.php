@@ -49,13 +49,13 @@ final readonly class DkimConfig
         'private_key',
         'private_key_path',
         'private_key_passphrase',
-        'algorithm',
+        'expected_algorithm',
         'headers',
         'header_canonicalization',
         'body_canonicalization',
         'identity',
-        'body_length',
-        'timestamp',
+        'sign_body_length',
+        'include_timestamp',
         'expires_after',
     ];
 
@@ -91,14 +91,14 @@ final readonly class DkimConfig
      * @param string $domain The signing domain (d=), which the key's DNS record is published under.
      * @param string $selector The selector (s=): the key's record is at "selector._domainkey.domain".
      * @param PrivateKey $privateKey An RSA key of at least 2048 bits, or an Ed25519 key.
-     * @param Algorithm|null $algorithm The key's algorithm; given only to check the key is the one expected.
+     * @param Algorithm|null $expectedAlgorithm The key's algorithm; given only to check the key is the one expected.
      * @param list<string> $headers The headers to sign when the message has them. From is required.
      * @param Canonicalization $headerCanonicalization Relaxed by default, which survives refolding by relays.
      * @param Canonicalization $bodyCanonicalization Relaxed by default, which survives changed white space.
      * @param string|null $identity The agent or user signed for (i=), at the domain or a subdomain of it, such as "@example.com".
-     * @param bool $bodyLength Write the length of the signed body (l=). Off by default: anyone could then
+     * @param bool $signBodyLength Write the length of the signed body (l=). Off by default: anyone could then
      *     append content to the message, such as a new MIME part, and the signature would still verify.
-     * @param bool $timestamp Write the signing time (t=), from the signer's clock.
+     * @param bool $includeTimestamp Write the signing time (t=), from the signer's clock.
      * @param int|null $expiresAfter Seconds after signing that the signature expires (x=); none by default.
      * @throws InvalidArgumentException When a value is invalid.
      */
@@ -107,13 +107,13 @@ final readonly class DkimConfig
         public string $selector,
         #[SensitiveParameter]
         public PrivateKey $privateKey,
-        ?Algorithm $algorithm = null,
+        ?Algorithm $expectedAlgorithm = null,
         public array $headers = self::DEFAULT_HEADERS,
         public Canonicalization $headerCanonicalization = Canonicalization::Relaxed,
         public Canonicalization $bodyCanonicalization = Canonicalization::Relaxed,
         public ?string $identity = null,
-        public bool $bodyLength = false,
-        public bool $timestamp = true,
+        public bool $signBodyLength = false,
+        public bool $includeTimestamp = true,
         public ?int $expiresAfter = null,
     ) {
         self::checkName('domain', $domain);
@@ -126,10 +126,10 @@ final readonly class DkimConfig
             ));
         }
 
-        if (null !== $algorithm && $algorithm !== $privateKey->algorithm) {
+        if (null !== $expectedAlgorithm && $expectedAlgorithm !== $privateKey->algorithm) {
             throw new InvalidArgumentException(sprintf(
                 'The DKIM algorithm is %s, but the private key is for %s',
-                $algorithm->value,
+                $expectedAlgorithm->value,
                 $privateKey->algorithm->value,
             ));
         }
@@ -157,19 +157,19 @@ final readonly class DkimConfig
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader    = ConfigReader::read(self::class, $config, self::KEYS);
-        $algorithm = $reader->nullableString('algorithm');
+        $algorithm = $reader->nullableString('expected_algorithm');
 
         return new self(
             domain: $reader->requiredString('domain'),
             selector: $reader->requiredString('selector'),
             privateKey: self::readKey($reader),
-            algorithm: null === $algorithm ? null : Algorithm::fromName($algorithm),
+            expectedAlgorithm: null === $algorithm ? null : Algorithm::fromName($algorithm),
             headers: $reader->stringOrList('headers', default: self::DEFAULT_HEADERS),
             headerCanonicalization: $reader->enum('header_canonicalization', default: Canonicalization::Relaxed),
             bodyCanonicalization: $reader->enum('body_canonicalization', default: Canonicalization::Relaxed),
             identity: $reader->nullableString('identity'),
-            bodyLength: $reader->bool('body_length', default: false),
-            timestamp: $reader->bool('timestamp', default: true),
+            signBodyLength: $reader->bool('sign_body_length', default: false),
+            includeTimestamp: $reader->bool('include_timestamp', default: true),
             expiresAfter: $reader->nullableInt('expires_after'),
         );
     }
@@ -195,7 +195,7 @@ final readonly class DkimConfig
 
         return str_starts_with((string) $key, '-----BEGIN')
             ? PrivateKey::fromPem((string) $key, $passphrase)
-            : PrivateKey::ed25519((string) $key);
+            : PrivateKey::fromEd25519((string) $key);
     }
 
     /**

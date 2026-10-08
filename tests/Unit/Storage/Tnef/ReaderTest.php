@@ -6,7 +6,6 @@ namespace Contenir\Mail\Tests\Unit\Storage\Tnef;
 
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
-use Contenir\Mail\Storage\Tnef\Attachment;
 use Contenir\Mail\Storage\Tnef\AttachmentRecord;
 use Contenir\Mail\Storage\Tnef\ByteReader;
 use Contenir\Mail\Storage\Tnef\CompressedRtf;
@@ -17,6 +16,7 @@ use Contenir\Mail\Storage\Tnef\Parser;
 use Contenir\Mail\Storage\Tnef\Properties;
 use Contenir\Mail\Storage\Tnef\Reader;
 use Contenir\Mail\Storage\Tnef\Text;
+use Contenir\Mail\Storage\Tnef\TnefAttachment;
 use Contenir\Mail\Tests\Unit\TestAsset\RtfBuilder;
 use Contenir\Mail\Tests\Unit\TestAsset\TnefBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -34,7 +34,7 @@ use function substr;
 #[CoversClass(Reader::class)]
 #[CoversClass(Parser::class)]
 #[CoversClass(AttachmentRecord::class)]
-#[CoversClass(Attachment::class)]
+#[CoversClass(TnefAttachment::class)]
 #[CoversClass(Contents::class)]
 #[CoversClass(ByteReader::class)]
 #[CoversClass(MapiProperties::class)]
@@ -665,7 +665,7 @@ final class ReaderTest extends TestCase
     private static function describe(Contents $contents): array
     {
         return array_map(
-            static fn(Attachment $attachment): array => [
+            static fn(TnefAttachment $attachment): array => [
                 $attachment->filename,
                 $attachment->content,
                 $attachment->type,

@@ -12,7 +12,7 @@ namespace Contenir\Mail\Storage\Tnef;
 final readonly class Contents
 {
     /**
-     * @param list<Attachment> $attachments The files, in the order the container holds them.
+     * @param list<TnefAttachment> $attachments The files, in the order the container holds them.
      * @param string|null $text The plain-text body as UTF-8, from attBody or else PR_BODY; null when there is none.
      * @param string|null $rtf The RTF body, decompressed from PR_RTF_COMPRESSED; null when there is none.
      *     It is returned as sent and is not safe to render as it is.

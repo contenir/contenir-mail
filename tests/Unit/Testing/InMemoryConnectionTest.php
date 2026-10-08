@@ -272,7 +272,7 @@ final class InMemoryConnectionTest extends TestCase
     #[DataProvider('waitProvider')]
     public function reportsWhetherTheServerHasSentSomething(InMemoryConnection $script, bool $expected): void
     {
-        static::assertSame($expected, self::opened($script)->waitForData(5));
+        static::assertSame($expected, self::opened($script)->waitUntilReadable(5));
     }
 
     /**
@@ -301,7 +301,7 @@ final class InMemoryConnectionTest extends TestCase
         );
         $connection->readLine(10);
 
-        static::assertTrue($connection->waitForData(5));
+        static::assertTrue($connection->waitUntilReadable(5));
     }
 
     #[Test]
@@ -313,8 +313,8 @@ final class InMemoryConnectionTest extends TestCase
         );
 
         static::assertSame([false, true, "late\r\n"], [
-            $connection->waitForData(5),
-            $connection->waitForData(5),
+            $connection->waitUntilReadable(5),
+            $connection->waitUntilReadable(5),
             $connection->readLine(10),
         ]);
     }
@@ -323,8 +323,8 @@ final class InMemoryConnectionTest extends TestCase
     public function recordsHowLongTheClientWaited(): void
     {
         $connection = self::opened((new InMemoryConnection())->stall()->stall());
-        $connection->waitForData(30);
-        $connection->waitForData(12);
+        $connection->waitUntilReadable(30);
+        $connection->waitUntilReadable(12);
 
         static::assertSame([30, 12], $connection->waits());
     }
@@ -339,7 +339,7 @@ final class InMemoryConnectionTest extends TestCase
             "The client waits for the server, but the script expects the client to send 'DONE",
         );
 
-        $connection->waitForData(1);
+        $connection->waitUntilReadable(1);
     }
 
     #[Test]
@@ -352,7 +352,7 @@ final class InMemoryConnectionTest extends TestCase
             'The client waits for the server, but the script expects the client to enable TLS',
         );
 
-        $connection->waitForData(1);
+        $connection->waitUntilReadable(1);
     }
 
     #[Test]
@@ -492,7 +492,7 @@ final class InMemoryConnectionTest extends TestCase
             'write'    => $connection->write('x'),
             'readLine' => $connection->readLine(1),
             'read'     => $connection->read(1),
-            'wait'     => $connection->waitForData(1),
+            'wait'     => $connection->waitUntilReadable(1),
             default    => $connection->enableTls(),
         };
     }
@@ -680,7 +680,7 @@ final class InMemoryConnectionTest extends TestCase
                 'write'     => $connection->write("WRONG\r\n"),
                 'read'      => $connection->readLine(1024),
                 'enableTls' => $connection->enableTls(),
-                'wait'      => $connection->waitForData(1),
+                'wait'      => $connection->waitUntilReadable(1),
             };
         } catch (LogicException) {
             static::assertFalse($connection->isConnected());

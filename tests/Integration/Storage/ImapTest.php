@@ -650,6 +650,17 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    public function moveReturnsTheUidTheMessageHasInTheDestination(): void
+    {
+        $mail = new Storage\Imap($this->params);
+
+        $uid = $mail->moveMessage(1, 'subfolder/test');
+        $mail->selectFolder('subfolder/test');
+
+        static::assertSame((string) $uid, $mail->getUniqueId($mail->countMessages()));
+    }
+
+    #[Test]
     public function unselectLeavesTheFolderWithoutExpunging(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);

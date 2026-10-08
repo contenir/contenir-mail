@@ -197,7 +197,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
     /**
      * The numbers of the messages in the current folder, sorted by the server (RFC 5256),
-     * such as sortMessages('REVERSE DATE') for the newest first.
+     * such as getSortedNumbers('REVERSE DATE') for the newest first.
      *
      * @param string ...$keys Sort keys: ARRIVAL, CC, DATE, FROM, SIZE, SUBJECT, TO, DISPLAYFROM
      *     or DISPLAYTO, each optionally after REVERSE.
@@ -206,7 +206,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When a key is not valid, the server does not
      *     offer SORT, or it cannot be asked.
      */
-    public function sortMessages(string ...$keys): array
+    public function getSortedNumbers(string ...$keys): array
     {
         if ('' === $this->currentFolder) {
             throw new Exception\RuntimeException('No folder is selected');
@@ -222,11 +222,12 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
     /**
      * Wait for changes to the current folder with IDLE (RFC 2177), for at most $timeout seconds,
-     * yielding each as an Idle\EventInterface: Exists when mail arrives, Expunge, Recent and FlagsChanged.
+     * yielding each as an Idle\EventInterface: MessageCountChanged when mail arrives, MessageExpunged,
+     * RecentCountChanged and FlagsChanged.
      *
      * ```php
      * foreach ($mail->idle(timeout: 600) as $event) {
-     *     if ($event instanceof Idle\Exists && $event->count > $last) {
+     *     if ($event instanceof Idle\MessageCountChanged && $event->count > $last) {
      *         $new  = $mail->getMessages(...range($last + 1, $event->count));
      *         $last = $event->count;
      *     }
@@ -479,14 +480,16 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     {
         $folder = RemoteFolder::check((string) ($folder ?? $this->currentFolder));
         $flags  = ImapFlags::toStore($flags ?? [Flag::Seen]);
-        $result = $this->protocol->appendWithUid($folder, RawMessage::toString($message), $flags);
-        if (false === $result) {
+        try {
+            $uids = $this->protocol->appendReturningUids($folder, RawMessage::toString($message), $flags);
+        } catch (Protocol\Exception\CommandRefusedException $refused) {
             throw new Exception\RuntimeException(
                 'Cannot store the message; check that the folder exists and the flags',
+                previous: $refused,
             );
         }
 
-        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
+        return $uids?->uid();
     }
 
     /**
@@ -497,33 +500,40 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     #[Override]
     public function copyMessage(int $id, Folder|string $folder): ?int
     {
-        $result = $this->protocol->copyWithUid(RemoteFolder::check((string) $folder), self::checkNumber($id));
-        if (false === $result) {
-            throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?');
+        try {
+            $uids = $this->protocol->copyReturningUids(RemoteFolder::check((string) $folder), self::checkNumber($id));
+        } catch (Protocol\Exception\CommandRefusedException $refused) {
+            throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?', previous: $refused);
         }
 
-        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
+        return $uids?->uid();
     }
 
     /**
      * MOVE when the server offers it (RFC 6851, part of IMAP4rev2), and copy then remove otherwise.
      *
+     * @return int|null The UID the message has in the destination folder, from the COPYUID response
+     *     code (RFC 4315) that MOVE, or the COPY in its place, is answered with; null without one.
      * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function moveMessage(int $id, Folder|string $folder): void
+    public function moveMessage(int $id, Folder|string $folder): ?int
     {
         if (! $this->protocol->hasCapability('MOVE')) {
-            $this->copyMessage($id, $folder);
+            $uid = $this->copyMessage($id, $folder);
             $this->removeMessage($id);
 
-            return;
+            return $uid;
         }
 
-        if (! $this->protocol->move(RemoteFolder::check((string) $folder), self::checkNumber($id))) {
-            throw new Exception\RuntimeException('Cannot move the message; does the folder exist?');
+        try {
+            $uids = $this->protocol->moveReturningUids(RemoteFolder::check((string) $folder), self::checkNumber($id));
+        } catch (Protocol\Exception\CommandRefusedException $refused) {
+            throw new Exception\RuntimeException('Cannot move the message; does the folder exist?', previous: $refused);
         }
+
+        return $uids?->uid();
     }
 
     /**
@@ -633,8 +643,8 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     }
 
     /**
-     * How many messages a folder holds and how many are unseen, its next unique ID, and its
-     * size when the server can say, read with STATUS without selecting it.
+     * How many messages a folder holds and how many are unseen, its UIDNEXT and UIDVALIDITY, and
+     * its size when the server can say, read with STATUS without selecting it.
      *
      * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
@@ -644,13 +654,16 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
         $withSize = $this->offersStatusSize();
         $status   = $this->folderStatus(
             $folder,
-            $withSize ? ['MESSAGES', 'UNSEEN', 'UIDNEXT', 'SIZE'] : ['MESSAGES', 'UNSEEN', 'UIDNEXT'],
+            $withSize
+                ? ['MESSAGES', 'UNSEEN', 'UIDNEXT', 'UIDVALIDITY', 'SIZE']
+                : ['MESSAGES', 'UNSEEN', 'UIDNEXT', 'UIDVALIDITY'],
         );
 
         return new FolderStatus(
-            messages: self::statusValue($status, 'MESSAGES'),
-            unseen: self::statusValue($status, 'UNSEEN'),
+            messageCount: self::statusValue($status, 'MESSAGES'),
+            unseenCount: self::statusValue($status, 'UNSEEN'),
             uidNext: self::statusValue($status, 'UIDNEXT'),
+            uidValidity: self::statusValue($status, 'UIDVALIDITY'),
             size: $withSize ? self::statusValue($status, 'SIZE') : null,
         );
     }
@@ -660,7 +673,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      */
     private function offersStatusSize(): bool
     {
-        return $this->protocol->hasImap4Rev2() || $this->protocol->hasCapability('STATUS=SIZE');
+        return $this->protocol->isImap4Rev2Enabled() || $this->protocol->hasCapability('STATUS=SIZE');
     }
 
     /**

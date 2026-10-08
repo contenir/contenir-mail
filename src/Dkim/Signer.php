@@ -140,9 +140,9 @@ final readonly class Signer
             'd' => $config->domain,
             's' => $config->selector,
             'i' => $config->identity,
-            't' => $config->timestamp ? $now : null,
+            't' => $config->includeTimestamp ? $now : null,
             'x' => null === $config->expiresAfter ? null : $now + $config->expiresAfter,
-            'l' => $config->bodyLength ? strlen($canonicalBody) : null,
+            'l' => $config->signBodyLength ? strlen($canonicalBody) : null,
         ];
 
         $pieces = [];

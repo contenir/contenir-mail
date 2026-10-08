@@ -6,7 +6,6 @@ namespace Contenir\Mail;
 
 use Contenir\Mail\Validator\DomainName;
 use Contenir\Mail\Validator\EmailAddressValidator;
-use ReflectionClass;
 
 use function addcslashes;
 use function idn_to_ascii;
@@ -57,37 +56,62 @@ final readonly class Address
     private ?string $comment;
 
     /**
+     * With $strict, the default, the address must be valid RFC 5322. Without it, it may be one
+     * real mail servers take but RFC 5322 refuses, such as one with consecutive or trailing dots
+     * in the local part, or a host name the strict check refuses, such as one with an underscore
+     * (contenir/contenir-mail#18): `new Address('jo..bloggs@example.org', strict: false)`.
+     *
+     * Even then it needs one "@" and a domain, and refuses what could break a header or an SMTP
+     * command: whitespace, control characters and the specials <>()[],;:"\. A domain that is not
+     * ASCII must still convert with IDNA, as it is written that way. Reading mail is always strict:
+     * turn strictness off only for addresses your own application gives.
+     *
      * @throws Exception\InvalidArgumentException When the address is invalid or a part contains CR or LF.
      */
-    public function __construct(string $email, ?string $name = null, ?string $comment = null)
+    public function __construct(
+        string $email,
+        ?string $name = null,
+        ?string $comment = null,
+        private bool $strict = true,
+    ) {
+        $email = self::checkParts($email, $name, $comment);
+        if ($strict) {
+            self::checkStrictly($email);
+        }
+
+        if (! $strict) {
+            self::checkLeniently($email);
+        }
+
+        $this->email   = $email;
+        $this->name    = self::nonEmpty($name);
+        $this->comment = self::nonEmpty($comment);
+    }
+
+    /**
+     * Whether the address was checked as RFC 5322, rather than built with strict: false.
+     */
+    public function isStrict(): bool
     {
-        $email     = self::checkParts($email, $name, $comment);
+        return $this->strict;
+    }
+
+    /**
+     * @throws Exception\InvalidArgumentException When the address is not valid RFC 5322.
+     */
+    private static function checkStrictly(string $email): void
+    {
         $validator = new EmailAddressValidator();
         if (! $validator->isValid($email)) {
             throw new Exception\InvalidArgumentException($validator->getMessages()[0] ?? 'Invalid email address');
         }
-
-        $this->initialise($email, $name, $comment);
     }
 
     /**
-     * An address real mail servers take but RFC 5322 refuses, such as one with
-     * consecutive or trailing dots in the local part, or a host name the strict
-     * check refuses, such as one with an underscore (contenir/contenir-mail#18).
-     *
-     * It still needs one "@" and a domain, and refuses what could break a header
-     * or an SMTP command: whitespace, control characters and the specials
-     * <>()[],;:"\. A domain that is not ASCII must still convert with IDNA, as it
-     * is written that way. Reading mail never applies this: use it only for
-     * addresses your own application gives.
-     *
      * @throws Exception\InvalidArgumentException When the address is not usable even leniently.
-     *
-     * @mago-expect analysis:unhandled-thrown-type ReflectionException is thrown only for internal final classes, never for this one.
      */
-    public static function lenient(string $email, ?string $name = null, ?string $comment = null): self
+    private static function checkLeniently(string $email): void
     {
-        $email = self::checkParts($email, $name, $comment);
         $parts = [];
         if (1 !== preg_match(self::LENIENT_EMAIL, $email, $parts)) {
             throw new Exception\InvalidArgumentException(
@@ -102,11 +126,6 @@ final readonly class Address
         ) {
             throw new Exception\InvalidArgumentException("The domain {$domain} cannot be written as ASCII");
         }
-
-        $address = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
-        $address->initialise($email, $name, $comment);
-
-        return $address;
     }
 
     /**
@@ -144,13 +163,6 @@ final readonly class Address
         }
 
         return $email;
-    }
-
-    private function initialise(string $email, ?string $name, ?string $comment): void
-    {
-        $this->email   = $email;
-        $this->name    = self::nonEmpty($name);
-        $this->comment = self::nonEmpty($comment);
     }
 
     /**
