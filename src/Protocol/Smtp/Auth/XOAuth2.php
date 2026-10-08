@@ -71,7 +71,8 @@ final readonly class XOAuth2 implements AuthenticatorInterface
 
     /**
      * @throws InvalidArgumentException When a token provider returns an empty token or one with a control character.
-     * @throws RuntimeException When a token provider returns something other than a string.
+     * @throws RuntimeException When a token provider returns something other than a string, or the server
+     *     refuses the token, after the empty response that ends the exchange (RFC 7628, section 3.2.3).
      */
     #[Override]
     public function authenticate(ChannelInterface $channel): void
@@ -79,7 +80,17 @@ final readonly class XOAuth2 implements AuthenticatorInterface
         $token = $this->accessToken instanceof Closure ? self::provide($this->accessToken) : $this->accessToken;
 
         $channel->exchange('AUTH XOAUTH2', 334);
-        $channel->exchangeSecret(Encoder::encodeXoauth2Sasl($this->username, $token), 235);
+        try {
+            $channel->exchangeSecret(Encoder::encodeXoauth2Sasl($this->username, $token), 235);
+        } catch (RuntimeException $e) {
+            if (334 !== $e->getCode()) {
+                throw $e;
+            }
+
+            $channel->exchange('', 535);
+
+            throw new RuntimeException(Encoder::refusal($e->getMessage()), 535, $e);
+        }
     }
 
     /**

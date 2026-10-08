@@ -53,6 +53,7 @@ final class Pop3Xoauth2Test extends TestCase
     public function refusesAWrongAccessToken(): void
     {
         $this->expectException(ExceptionInterface::class);
+        $this->expectExceptionMessage('The server refused the access token');
 
         self::pop3()->login('test', 'wrong');
     }

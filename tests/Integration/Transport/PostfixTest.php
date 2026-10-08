@@ -123,6 +123,16 @@ final class PostfixTest extends TestCase
     }
 
     #[Test]
+    public function refusesWrongAccessToken(): void
+    {
+        $this->expectException(ExceptionInterface::class);
+        $this->expectExceptionMessage('The server refused the access token');
+
+        self::transport(['type' => 'xoauth2', 'username' => 'test', 'access_token' => bin2hex(random_bytes(8))])
+            ->send(self::message('refused token'));
+    }
+
+    #[Test]
     public function refusesWrongPassword(): void
     {
         $this->expectException(ExceptionInterface::class);
