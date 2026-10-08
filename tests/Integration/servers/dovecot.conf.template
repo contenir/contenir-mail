@@ -1,0 +1,32 @@
+# IMAP and POP3 for the integration suite: one static user whose mbox
+# folders are the test fixtures, copied in by the tests themselves.
+protocols = imap pop3
+listen = *
+log_path = /dev/stderr
+
+ssl = yes
+ssl_cert = </certs/server.crt
+ssl_key = </certs/server.key
+ssl_dh = </certs/dh.pem
+
+disable_plaintext_auth = no
+auth_mechanisms = plain login
+
+first_valid_uid = 1
+first_valid_gid = 1
+mail_location = mbox:/srv/mail/%u:INBOX=/srv/mail/%u/INBOX
+mbox_write_locks = fcntl
+
+passdb {
+  driver = static
+  args = password=${MAIL_PASSWORD}
+}
+
+userdb {
+  driver = static
+  args = uid=${MAIL_UID} gid=${MAIL_GID} home=/srv/mail/%u
+}
+
+protocol pop3 {
+  pop3_uidl_format = %08Xu%08Xv
+}

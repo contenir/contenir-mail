@@ -1,6 +1,8 @@
 <?php
 
-namespace Contenir\Mail\Tests\Unit\Storage;
+declare(strict_types=1);
+
+namespace Contenir\Mail\Tests\Integration\Storage;
 
 use ArrayObject;
 use Contenir\Mail\Protocol;
@@ -34,7 +36,8 @@ use const DIRECTORY_SEPARATOR;
 use const INF;
 
 #[CoversClass(Imap::class)]
-class ImapTest extends TestCase
+#[Group('integration')]
+final class ImapTest extends TestCase
 {
     /** @var array */
     protected $params;
@@ -65,7 +68,7 @@ class ImapTest extends TestCase
 
             $this->cleanDir(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'));
             $this->copyDir(
-                __DIR__ . '/../_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
+                __DIR__ . '/../../Unit/_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
                 getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'),
             );
         }

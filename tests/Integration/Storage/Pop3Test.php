@@ -1,6 +1,8 @@
 <?php
 
-namespace Contenir\Mail\Tests\Unit\Storage;
+declare(strict_types=1);
+
+namespace Contenir\Mail\Tests\Integration\Storage;
 
 use ArrayObject;
 use Contenir\Mail\Protocol;
@@ -8,6 +10,7 @@ use Contenir\Mail\Storage;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Pop3;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +31,8 @@ use function unlink;
 use const DIRECTORY_SEPARATOR;
 
 #[CoversClass(Pop3::class)]
-class Pop3Test extends TestCase
+#[Group('integration')]
+final class Pop3Test extends TestCase
 {
     /** @var array */
     protected $params;
@@ -61,7 +65,7 @@ class Pop3Test extends TestCase
 
             $this->cleanDir(getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'));
             $this->copyDir(
-                __DIR__ . '/../_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
+                __DIR__ . '/../../Unit/_files/test.' . getenv('TESTS_CONTENIR_MAIL_SERVER_FORMAT'),
                 getenv('TESTS_CONTENIR_MAIL_SERVER_TESTDIR'),
             );
         }

@@ -9,3 +9,4 @@
 /infection.log
 /summary.log
 /infection.json5
+/tests/Integration/servers/var/

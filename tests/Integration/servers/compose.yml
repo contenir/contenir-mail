@@ -1,0 +1,27 @@
+# Real mail servers for the integration suite. start.sh prepares the
+# certificates, the Dovecot configuration and the mail directory first.
+services:
+  dovecot:
+    image: dovecot/dovecot:2.3.21
+    ports:
+      - "143:143"
+      - "993:993"
+      - "110:110"
+      - "995:995"
+    volumes:
+      - ./var/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./var/certs:/certs:ro
+      - ./var/mail:/srv/mail
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_TLS_CERT: /certs/server.crt
+      MP_SMTP_TLS_KEY: /certs/server.key
+      MP_SMTP_REQUIRE_STARTTLS: "true"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+    volumes:
+      - ./var/certs:/certs:ro
