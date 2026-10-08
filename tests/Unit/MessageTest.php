@@ -410,7 +410,7 @@ final class MessageTest extends TestCase
                 . "Bcc: Laminas CR Team <devs@example.com>\r\n"
                 . "Subject: This is a subject\r\n"
                 . "MIME-Version: 1.0\r\n"
-                . "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n",
             $message->getHeaders()->toString(),
         );

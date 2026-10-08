@@ -21,6 +21,7 @@ use function is_float;
 use function is_int;
 use function is_string;
 use function preg_match;
+use function preg_replace;
 use function rtrim;
 use function str_contains;
 use function str_ends_with;
@@ -64,6 +65,9 @@ class Imap
 
     /** RFC 3501 sequence-set: numbers or "*", ranges with ":", joined by "," */
     private const string SEQUENCE_SET = '/^(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?(?:,(?:[1-9]\d*|\*)(?::(?:[1-9]\d*|\*))?)*$/D';
+
+    /** An RFC 3501 quoted string at the offset, with its backslash-escaped quotes and backslashes */
+    private const string QUOTED_STRING = '/\\G"((?:[^"\\\\]|\\\\.)*+)"/s';
 
     /** RFC 3501 flag: an atom, optionally after a backslash */
     private const string FLAG = '/^\\\\?[^\x00-\x20\x7F-\xFF(){%*"\\\\\]]+$/D';
@@ -290,11 +294,13 @@ class Imap
                 $token   = substr($token, offset: 1);
             }
 
-            $quote = $pos - strlen($token) + 1;
-            $close = str_starts_with($token, '"') ? strpos($line, needle: '"', offset: $quote) : false;
-            if (false !== $close) {
-                $tokens[] = substr($line, offset: $quote, length: $close - $quote);
-                $line     = substr($line, offset: $close + 1);
+            $quoted = [];
+            if (
+                str_starts_with($token, '"')
+                && 1 === preg_match(self::QUOTED_STRING, $line, $quoted, offset: $pos - strlen($token))
+            ) {
+                $tokens[] = preg_replace('/\\\\(.)/s', replacement: '$1', subject: $quoted[1] ?? '');
+                $line     = substr($line, offset: $pos - strlen($token) + strlen($quoted[0] ?? ''));
                 continue;
             }
 

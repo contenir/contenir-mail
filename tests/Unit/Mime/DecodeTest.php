@@ -52,6 +52,16 @@ final class DecodeTest extends TestCase
     }
 
     #[Test]
+    public function keepsHeaderLikeBodyLineOutOfTheHeaders(): void
+    {
+        $headers = null;
+        $body    = null;
+        Decode::splitMessage("Subject: x\r\n\r\nX-Body: y", $headers, $body);
+
+        static::assertSame("Subject: x\r\n", $headers?->toString());
+    }
+
+    #[Test]
     public function readsTextWithColonLaterOnAsBody(): void
     {
         $headers = null;

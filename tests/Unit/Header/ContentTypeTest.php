@@ -119,7 +119,7 @@ final class ContentTypeTest extends TestCase
     public function encodedFieldValueEncodesNonAsciiParameter(): void
     {
         static::assertSame(
-            "foo/baz;\r\n name*=UTF-8''%C3%93",
+            "foo/baz; name*=UTF-8''%C3%93",
             (new ContentType('foo/baz', ['name' => 'Ó']))->getEncodedFieldValue(),
         );
     }
@@ -128,7 +128,7 @@ final class ContentTypeTest extends TestCase
     public function encodedFieldValueLeavesAsciiParameterPlain(): void
     {
         static::assertSame(
-            "text/plain;\r\n charset=\"UTF-8\"",
+            'text/plain; charset="UTF-8"',
             (new ContentType('text/plain', ['charset' => 'UTF-8']))->getEncodedFieldValue(),
         );
     }
@@ -391,7 +391,7 @@ final class ContentTypeTest extends TestCase
     public function escapesQuoteInCharset(): void
     {
         static::assertSame(
-            "Content-Type: text/plain;\r\n charset=\"x\\\"; boundary=\\\"y\"",
+            "Content-Type: text/plain; charset=\"x\\\"; boundary=\\\"y\"",
             (new ContentType('text/plain', ['charset' => 'x"; boundary="y']))->toString(),
         );
     }
@@ -493,26 +493,37 @@ final class ContentTypeTest extends TestCase
     {
         return [
             // @group #2728
-            'foo/a.b-c'                    => ['foo/a.b-c', [], 'foo/a.b-c', 'Content-Type: foo/a.b-c'],
-            'foo/a+b'                      => ['foo/a+b', [], 'foo/a+b', 'Content-Type: foo/a+b'],
-            'foo/baz'                      => ['foo/baz', [], 'foo/baz', 'Content-Type: foo/baz'],
-            'parameter use header folding' => [
+            'foo/a.b-c'                  => ['foo/a.b-c', [], 'foo/a.b-c', 'Content-Type: foo/a.b-c'],
+            'foo/a+b'                    => ['foo/a+b', [], 'foo/a+b', 'Content-Type: foo/a+b'],
+            'foo/baz'                    => ['foo/baz', [], 'foo/baz', 'Content-Type: foo/baz'],
+            'one parameter'              => [
                 'foo/baz',
                 ['charset' => 'us-ascii'],
                 'foo/baz; charset="us-ascii"',
-                "Content-Type: foo/baz;\r\n charset=\"us-ascii\"",
+                'Content-Type: foo/baz; charset="us-ascii"',
             ],
-            'two parameters'               => [
+            'two parameters'             => [
                 'multipart/mixed',
                 ['boundary' => 'xyz', 'charset' => 'UTF-8'],
                 'multipart/mixed; boundary="xyz"; charset="UTF-8"',
-                "Content-Type: multipart/mixed;\r\n boundary=\"xyz\";\r\n charset=\"UTF-8\"",
+                'Content-Type: multipart/mixed; boundary="xyz"; charset="UTF-8"',
             ],
-            'encoded characters'           => [
+            'folds past the line length' => [
+                'multipart/mixed',
+                [
+                    'boundary' => 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                    'charset'  => 'UTF-8',
+                    'name'     => 'report.pdf',
+                ],
+                'multipart/mixed; boundary="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"; charset="UTF-8"; name="report.pdf"',
+                "Content-Type: multipart/mixed;\r\n boundary=\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"; charset=\"UTF-8\";\r\n"
+                    . ' name="report.pdf"',
+            ],
+            'encoded characters'         => [
                 'foo/baz',
                 ['name' => 'Ó'],
                 'foo/baz; name="Ó"',
-                "Content-Type: foo/baz;\r\n name*=UTF-8''%C3%93",
+                "Content-Type: foo/baz; name*=UTF-8''%C3%93",
             ],
         ];
     }

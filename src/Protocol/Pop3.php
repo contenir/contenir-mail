@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Pop3\Response;
 use LogicException;
 use SensitiveParameter;
@@ -196,7 +197,7 @@ class Pop3
         $response = $this->readRemoteResponse();
 
         if ('+OK' !== $response->status()) {
-            throw new Exception\RuntimeException('last request failed');
+            throw new Exception\RuntimeException(self::failure($response->message()));
         }
 
         if (! $multiline) {
@@ -221,6 +222,17 @@ class Pop3
         }
 
         return $message;
+    }
+
+    /**
+     * The failure message, with the reason the server gave, such as "[IN-USE] mailbox locked",
+     * made safe to display.
+     */
+    private static function failure(string $reason): string
+    {
+        $reason = SafeText::display($reason);
+
+        return '' === $reason ? 'last request failed' : "last request failed: {$reason}";
     }
 
     /**

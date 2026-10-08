@@ -75,10 +75,11 @@ final readonly class Headers implements Countable, IteratorAggregate
      * Parse a header block, as found at the start of a message or MIME part.
      *
      * Each header is parsed by the class the locator names for it. A header
-     * that class rejects is kept as a GenericHeader, so one malformed header
-     * does not make the whole message unreadable.
+     * that class rejects is kept as a GenericHeader, and a line that is not a
+     * header at all is dropped, so one malformed header does not make the
+     * whole message unreadable.
      *
-     * @throws Exception\RuntimeException When the block is not a sequence of header lines, or a name is longer than HeaderName::MAX_LENGTH.
+     * @throws Exception\RuntimeException When a name is longer than HeaderName::MAX_LENGTH, or the block is too large.
      */
     public static function fromString(
         string $string,

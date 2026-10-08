@@ -154,7 +154,7 @@ final class HeadersTest extends TestCase
 
     #[DataProvider('invalidRawHeaderProvider')]
     #[Test]
-    public function rejectsHeaderValueThatIsNotValidUtf8OrHasControls(string $block): void
+    public function rejectsHeaderValueWithControlCharacters(string $block): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid header value detected');
@@ -325,12 +325,43 @@ final class HeadersTest extends TestCase
 
     #[DataProvider('lineNotMatchingHeaderFormatProvider')]
     #[Test]
-    public function rejectsLineNotMatchingHeaderFormat(string $block, string $message): void
+    public function strictFieldsRejectLineNotMatchingHeaderFormat(string $block, string $message): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage($message);
 
-        Headers::fromString($block);
+        HeaderBlock::fields($block, Headers::EOL);
+    }
+
+    /**
+     * A line that is not a header is dropped when reading, with its continuation lines,
+     * so it does not make the message unreadable (laminas/laminas-mail#76, #221).
+     */
+    #[DataProvider('skippedLineProvider')]
+    #[Test]
+    public function skipsLineNotMatchingHeaderFormatWhenReading(string $block, string $expected): void
+    {
+        static::assertSame($expected, Headers::fromString($block)->toString());
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function skippedLineProvider(): array
+    {
+        return [
+            'no colon'                           => ["Fake = foo-bar\r\nSubject: x", "Subject: x\r\n"],
+            'continuation first'                 => [" leading: x\r\nSubject: x", "Subject: x\r\n"],
+            'space in name'                      => ["Subject: x\r\nFake Name: y", "Subject: x\r\n"],
+            'with its continuation lines'        => [
+                "Subject: x\r\nnot a header\r\n more of it\r\nTo: jo@example.org",
+                "Subject: x\r\nTo: jo@example.org\r\n",
+            ],
+            'keeping the header before it whole' => [
+                "Subject: one\r\n two\r\nnot a header",
+                "Subject: one\r\n two\r\n",
+            ],
+        ];
     }
 
     #[DataProvider('malformedBlockProvider')]
@@ -345,12 +376,9 @@ final class HeadersTest extends TestCase
 
     #[Group('ZF2015-04')]
     #[Test]
-    public function rejectsContentAfterBlankLineInBlock(): void
+    public function dropsContentAfterBlankLineInBlock(): void
     {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Line "evilContent" does not match header format!');
-
-        Headers::fromString("Fake: foo-bar\r\n\r\nevilContent");
+        static::assertSame("Fake: foo-bar\r\n", Headers::fromString("Fake: foo-bar\r\n\r\nevilContent")->toString());
     }
 
     /**
@@ -770,13 +798,10 @@ final class HeadersTest extends TestCase
     public static function invalidRawHeaderProvider(): array
     {
         return [
-            'Latin-1 byte'       => ["Subject: Gr\xFC\xDFe\r\n"],
-            'truncated sequence' => ["Subject: Gr\xC3\r\n"],
-            'overlong encoding'  => ["Subject: \xC0\xAF\r\n"],
-            'NUL'                => ["Subject: a\x00b\r\n"],
-            'escape'             => ["Subject: a\x1Bb\r\n"],
-            'DEL'                => ["Subject: a\x7Fb\r\n"],
-            'C1 control'         => ["Subject: a\xC2\x9Bb\r\n"],
+            'NUL'        => ["Subject: a\x00b\r\n"],
+            'escape'     => ["Subject: a\x1Bb\r\n"],
+            'DEL'        => ["Subject: a\x7Fb\r\n"],
+            'C1 control' => ["Subject: a\xC2\x9Bb\r\n"],
         ];
     }
 
@@ -961,15 +986,6 @@ final class HeadersTest extends TestCase
         $line = 'x-a:  ' . str_repeat('a', times: 992);
 
         static::assertSame("{$line}\r\n", Headers::fromString($line)->toString());
-    }
-
-    #[Test]
-    public function refusesLineThatIsNeitherHeaderNorContinuation(): void
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Line "not a header" does not match header format!');
-
-        Headers::fromString("Subject: x\r\nnot a header");
     }
 
     #[Test]

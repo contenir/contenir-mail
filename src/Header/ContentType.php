@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
-use Contenir\Mail\Headers;
 use Override;
 
 use function in_array;
@@ -125,16 +124,15 @@ final readonly class ContentType implements HeaderInterface
     }
 
     /**
-     * Each parameter, or continuation section, on its own folded line.
+     * Parameters on the first line while they fit, then each parameter, or
+     * continuation section, on its own folded line.
      */
     #[Override]
     public function getEncodedFieldValue(): string
     {
         $value = $this->type;
         foreach ($this->parameters as $name => $parameter) {
-            foreach (MimeParameters::segments($name, $parameter) as $segment) {
-                $value .= ';' . Headers::FOLDING . $segment;
-            }
+            $value = MimeParameters::append('Content-Type', $value, $name, $parameter);
         }
 
         return $value;

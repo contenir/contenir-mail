@@ -316,17 +316,30 @@ final class AddressListTest extends TestCase
         AddressList::fromIterable(['not-an-address']);
     }
 
+    /**
+     * Parentheses in a quoted string are text, not a comment (laminas/laminas-mail#70).
+     */
     #[Test]
-    public function separatesNameAndCommentFromParenthesesInName(): void
+    public function keepsParenthesesInQuotedNameAsText(): void
     {
         $address = To::fromString('To:"Supports (E-mail)" <support@example.org>')
             ->getAddressList()
             ->get('support@example.org');
 
         static::assertSame(
-            ['support@example.org', 'Supports', 'E-mail'],
+            ['support@example.org', 'Supports (E-mail)', null],
             [$address?->getEmail(), $address?->getName(), $address?->getComment()],
         );
+    }
+
+    #[Test]
+    public function readsCommentAfterQuotedNameHoldingEscapedQuote(): void
+    {
+        $address = To::fromString('To: "Jo \"x\" (a)" (b) <jo@example.org>')
+            ->getAddressList()
+            ->get('jo@example.org');
+
+        static::assertSame(['Jo "x" (a)', 'b'], [$address?->getName(), $address?->getComment()]);
     }
 
     /**

@@ -39,6 +39,32 @@ final class HeaderBlock
      */
     public static function fields(string $block, string $eol): array
     {
+        return self::collect($block, $eol, skipMalformed: false);
+    }
+
+    /**
+     * Split a header block read from a message into fields, as fields() does,
+     * but dropping a line that is neither a header nor a continuation, with
+     * any continuation lines of its own, as mail clients do. One such line
+     * then does not make the whole message unreadable.
+     *
+     * @return list<array{string, string|null}>
+     * @throws RuntimeException When a name is too long, or the block is too large.
+     */
+    public static function readableFields(string $block, string $eol): array
+    {
+        return self::collect($block, $eol, skipMalformed: true);
+    }
+
+    /**
+     * @return list<array{string, string|null}>
+     * @throws RuntimeException When a line is neither a header nor a continuation and is not skipped,
+     *     a name is too long, or the block is too large.
+     *
+     * @mago-expect lint:no-boolean-flag-parameter Private; fields() and readableFields() name the two modes.
+     */
+    private static function collect(string $block, string $eol, bool $skipMalformed): array
+    {
         $fields = [];
         /** @var array{string, list<string>, bool}|null $field unfolded line, written lines, whether those are complete */
         $field = null;
@@ -57,7 +83,13 @@ final class HeaderBlock
             }
 
             if (null === $field || 1 !== preg_match('/^\s/', $line)) {
-                throw new RuntimeException(sprintf('Line "%s" does not match header format!', $line));
+                if (! $skipMalformed) {
+                    throw new RuntimeException(sprintf('Line "%s" does not match header format!', $line));
+                }
+
+                $fields[] = $field;
+                $field    = null;
+                continue;
             }
 
             $field = [$field[0] . ' ' . trim($line), [...$field[1], $line], $field[2]];

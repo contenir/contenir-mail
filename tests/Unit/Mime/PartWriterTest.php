@@ -40,12 +40,12 @@ final class PartWriterTest extends TestCase
 
         static::assertSame(
             "--frontier\r\n"
-                . "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "Hello\r\n"
                 . "--frontier\r\n"
-                . "Content-Type: text/html;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/html; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "<p>Hello</p>\r\n"
@@ -81,15 +81,15 @@ final class PartWriterTest extends TestCase
 
         static::assertSame(
             "--outer\r\n"
-                . "Content-Type: multipart/alternative;\r\n boundary=\"inner\"\r\n"
+                . "Content-Type: multipart/alternative; boundary=\"inner\"\r\n"
                 . "\r\n"
                 . "--inner\r\n"
-                . "Content-Type: text/plain;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "Hi\r\n"
                 . "--inner\r\n"
-                . "Content-Type: text/html;\r\n charset=\"UTF-8\"\r\n"
+                . "Content-Type: text/html; charset=\"UTF-8\"\r\n"
                 . "Content-Transfer-Encoding: quoted-printable\r\n"
                 . "\r\n"
                 . "<b>Hi</b>\r\n"

@@ -40,14 +40,14 @@ final class MultipartTest extends TestCase
     public static function typeProvider(): array
     {
         return [
-            'mixed'       => [MultipartType::Mixed, "Content-Type: multipart/mixed;\r\n boundary=\"frontier\"\r\n"],
+            'mixed'       => [MultipartType::Mixed, "Content-Type: multipart/mixed; boundary=\"frontier\"\r\n"],
             'alternative' => [
                 MultipartType::Alternative,
-                "Content-Type: multipart/alternative;\r\n boundary=\"frontier\"\r\n",
+                "Content-Type: multipart/alternative; boundary=\"frontier\"\r\n",
             ],
             'related'     => [
                 MultipartType::Related,
-                "Content-Type: multipart/related;\r\n boundary=\"frontier\";\r\n type=\"application/octet-stream\"\r\n",
+                "Content-Type: multipart/related; boundary=\"frontier\";\r\n type=\"application/octet-stream\"\r\n",
             ],
         ];
     }
