@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
 use LogicException;
@@ -14,18 +15,24 @@ use function array_chunk;
 use function array_map;
 use function array_pop;
 use function array_shift;
+use function array_slice;
 use function array_values;
 use function count;
 use function explode;
 use function implode;
 use function in_array;
+use function intval;
 use function is_array;
 use function is_float;
 use function is_int;
 use function is_string;
+use function max;
+use function min;
 use function preg_match;
 use function preg_replace;
+use function range;
 use function rtrim;
+use function sprintf;
 use function str_contains;
 use function str_ends_with;
 use function str_replace;
@@ -96,6 +103,13 @@ class Imap
      * @var list<string>|null
      */
     private ?array $capabilities = null;
+
+    /** The most ids an ESEARCH result may expand to */
+    public const int MAX_SEARCH_RESULTS = 1_000_000;
+
+    private bool $useImap4Rev2 = true;
+
+    private bool $utf8Mailboxes = false;
 
     /**
      * Public constructor
@@ -519,7 +533,14 @@ class Imap
             );
         }
 
-        return $this->succeeded($this->requestAndResponse('LOGIN', $arguments));
+        $capabilities = $this->capabilities ?? [];
+        if (! $this->succeeded($this->requestAndResponse('LOGIN', $arguments))) {
+            return false;
+        }
+
+        $this->negotiate($capabilities);
+
+        return true;
     }
 
     /**
@@ -566,6 +587,7 @@ class Imap
         }
 
         $this->capabilities = null;
+        $this->negotiate($capabilities);
     }
 
     /**
@@ -623,9 +645,107 @@ class Imap
     }
 
     /**
-     * logout of imap server; sends nothing when not connected
+     * Whether to turn on IMAP4rev2 (RFC 9051) after signing in, when the server offers it.
+     * On by default; UTF8=ACCEPT (RFC 6855) is turned on instead when only that is offered.
+     */
+    public function useImap4Rev2(bool $use): static
+    {
+        $this->useImap4Rev2 = $use;
+
+        return $this;
+    }
+
+    /**
+     * Whether mailbox names travel as UTF-8, because IMAP4rev2 or UTF8=ACCEPT is enabled,
+     * rather than as modified UTF-7.
+     */
+    public function hasUtf8Mailboxes(): bool
+    {
+        return $this->utf8Mailboxes;
+    }
+
+    /**
+     * Whether the server advertises a capability, such as "MOVE"; asked once and kept.
      *
-     * @return bool success
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function hasCapability(string $capability): bool
+    {
+        return in_array(
+            strtoupper($capability),
+            $this->capabilities ?? $this->upperCaseCapabilities(),
+            strict: true,
+        );
+    }
+
+    /**
+     * Turn on extensions (RFC 5161), returning the ones the server enabled, in upper case.
+     *
+     * @return list<string>
+     * @throws Exception\ExceptionInterface When the server refuses or cannot be asked.
+     */
+    public function enable(string ...$extensions): array
+    {
+        $response = $this->requestAndResponse('ENABLE', $extensions);
+        if (false === $response || null === $response) {
+            throw new Exception\RuntimeException('The server refused ENABLE');
+        }
+
+        $enabled = [];
+        foreach (is_array($response) ? $response : [] as $line) {
+            if ('ENABLED' !== strtoupper(is_string($line[0] ?? null) ? $line[0] : '')) {
+                continue;
+            }
+
+            foreach (array_slice($line, offset: 1) as $extension) {
+                $enabled[] = strtoupper(is_string($extension) ? $extension : '');
+            }
+        }
+
+        return $enabled;
+    }
+
+    /**
+     * After signing in, turn on IMAP4rev2, or else UTF8=ACCEPT, if the server offered it
+     * before signing in; either lets mailbox names travel as UTF-8. A server that then
+     * refuses ENABLE is used as an IMAP4rev1 server, rather than failing the sign-in.
+     *
+     * @param list<string> $capabilities
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    private function negotiate(array $capabilities): void
+    {
+        $extension = match (true) {
+            ! $this->useImap4Rev2 => null,
+            in_array('IMAP4REV2', $capabilities, strict: true)   => 'IMAP4rev2',
+            in_array('UTF8=ACCEPT', $capabilities, strict: true) => 'UTF8=ACCEPT',
+            default                                              => null,
+        };
+        if (null === $extension) {
+            return;
+        }
+
+        try {
+            $this->utf8Mailboxes = in_array(strtoupper($extension), $this->enable($extension), strict: true);
+        } catch (Exception\RuntimeException) {
+            $this->utf8Mailboxes = false;
+        }
+    }
+
+    /**
+     * A mailbox name ready to send: UTF-8 when the server takes it, modified UTF-7 otherwise.
+     *
+     * @return string|array{string, string}
+     * @throws Exception\InvalidArgumentException When the name is not UTF-8 or contains NUL.
+     */
+    private function mailbox(string $name): string|array
+    {
+        return $this->escapeOne($this->utf8Mailboxes ? $name : MailboxName::encode($name));
+    }
+
+    /**
+     * logout of imap server; sends nothing when not connected
+     *     * @return bool success
      */
     public function logout(): bool
     {
@@ -682,7 +802,7 @@ class Imap
         }
 
         $tag = null;
-        $this->sendRequest($command, [$this->escapeOne($box)], $tag);
+        $this->sendRequest($command, [$this->mailbox($box)], $tag);
 
         $result = [];
         $tokens = [];
@@ -809,7 +929,7 @@ class Imap
     public function listMailbox(string $reference = '', string $mailbox = '*'): array
     {
         $result = [];
-        $list   = $this->requestAndResponse('LIST', [$this->escapeOne($reference), $this->escapeOne($mailbox)]);
+        $list   = $this->requestAndResponse('LIST', [$this->mailbox($reference), $this->mailbox($mailbox)]);
         if (! is_array($list)) {
             return $result;
         }
@@ -823,7 +943,8 @@ class Imap
                 continue;
             }
 
-            $result[$item[3]] = ['delim' => $item[2], 'flags' => $item[1]];
+            $name          = $this->utf8Mailboxes ? $item[3] : MailboxName::decode($item[3]);
+            $result[$name] = ['delim' => $item[2], 'flags' => $item[1]];
         }
 
         return $result;
@@ -898,7 +1019,7 @@ class Imap
     public function append(string $folder, string $message, ?array $flags = null, ?string $date = null): bool
     {
         $tokens   = [];
-        $tokens[] = $this->escapeOne($folder);
+        $tokens[] = $this->mailbox($folder);
         if (null !== $flags) {
             $tokens[] = self::flagList($flags);
         }
@@ -926,7 +1047,25 @@ class Imap
     {
         $set = self::sequenceSet($from, $to);
 
-        return $this->succeeded($this->requestAndResponse('COPY', [$set, $this->escapeOne($folder)]));
+        return $this->succeeded($this->requestAndResponse('COPY', [$set, $this->mailbox($folder)]));
+    }
+
+    /**
+     * Move messages to another folder (RFC 6851), when the server offers MOVE.
+     *
+     * @param int|float|null $to The last message, INF for the last one there is, or null for $from alone.
+     * @throws Exception\ExceptionInterface When the server does not offer MOVE or cannot be asked.
+     */
+    public function move(string $folder, int|string $from, int|float|null $to = null): bool
+    {
+        if (! $this->hasCapability('MOVE')) {
+            throw new Exception\RuntimeException('The server does not offer MOVE');
+        }
+
+        return $this->succeeded($this->requestAndResponse('MOVE', [
+            self::sequenceSet($from, $to),
+            $this->mailbox($folder),
+        ]));
     }
 
     /**
@@ -938,7 +1077,7 @@ class Imap
      */
     public function create(string $folder): bool
     {
-        return $this->succeeded($this->requestAndResponse('CREATE', [$this->escapeOne($folder)]));
+        return $this->succeeded($this->requestAndResponse('CREATE', [$this->mailbox($folder)]));
     }
 
     /**
@@ -951,7 +1090,7 @@ class Imap
      */
     public function rename(string $old, string $new): bool
     {
-        return $this->succeeded($this->requestAndResponse('RENAME', [$this->escapeOne($old), $this->escapeOne($new)]));
+        return $this->succeeded($this->requestAndResponse('RENAME', [$this->mailbox($old), $this->mailbox($new)]));
     }
 
     /**
@@ -963,7 +1102,7 @@ class Imap
      */
     public function delete(string $folder): bool
     {
-        return $this->succeeded($this->requestAndResponse('DELETE', [$this->escapeOne($folder)]));
+        return $this->succeeded($this->requestAndResponse('DELETE', [$this->mailbox($folder)]));
     }
 
     /**
@@ -975,7 +1114,7 @@ class Imap
      */
     public function subscribe(string $folder): bool
     {
-        return $this->succeeded($this->requestAndResponse('SUBSCRIBE', [$this->escapeOne($folder)]));
+        return $this->succeeded($this->requestAndResponse('SUBSCRIBE', [$this->mailbox($folder)]));
     }
 
     /**
@@ -1006,9 +1145,13 @@ class Imap
      * The parameters are sent as they are, apart from the checks every
      * request gets: pass any string from outside through escapeString().
      *
+     * An IMAP4rev2 server answers with ESEARCH (RFC 4731, RFC 9051) rather than
+     * SEARCH; its ALL sequence set is expanded to the same list of ids, up to
+     * MAX_SEARCH_RESULTS, so a server cannot make the client build an endless list.
+     *
      * @param array<mixed> $params
      * @return array<mixed>|false message ids, or false on failure
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\ExceptionInterface When the server cannot be asked, or an ESEARCH result is malformed or too long.
      */
     public function search(array $params): array|false
     {
@@ -1017,19 +1160,73 @@ class Imap
             return false;
         }
 
-        if (is_array($response)) {
-            foreach ($response as $ids) {
-                if ('SEARCH' !== ($ids[0] ?? null)) {
-                    continue;
-                }
-
+        foreach (is_array($response) ? $response : [] as $ids) {
+            $kind = strtoupper(is_string($ids[0] ?? null) ? $ids[0] : '');
+            if ('SEARCH' === $kind) {
                 array_shift($ids);
 
                 return $ids;
             }
+
+            if ('ESEARCH' === $kind) {
+                return self::esearchIds($ids);
+            }
         }
 
         return [];
+    }
+
+    /**
+     * The ids of an ESEARCH response: its ALL sequence set, expanded, or none.
+     *
+     * @param array<mixed> $tokens
+     * @return list<string>
+     * @throws Exception\RuntimeException When the set is malformed or holds more than MAX_SEARCH_RESULTS ids.
+     */
+    private static function esearchIds(array $tokens): array
+    {
+        $tokens = array_values($tokens);
+        foreach ($tokens as $index => $token) {
+            if (! is_string($token) || 'ALL' !== strtoupper($token)) {
+                continue;
+            }
+
+            $set = $tokens[$index + 1] ?? null;
+
+            return self::expandSequenceSet(is_string($set) ? $set : '');
+        }
+
+        return [];
+    }
+
+    /**
+     * @return list<string>
+     * @throws Exception\RuntimeException When the set is malformed or holds more than MAX_SEARCH_RESULTS ids.
+     */
+    private static function expandSequenceSet(string $set): array
+    {
+        if (1 !== preg_match('/^[1-9]\d{0,9}(?::[1-9]\d{0,9})?(?:,[1-9]\d{0,9}(?::[1-9]\d{0,9})?)*$/D', $set)) {
+            throw new Exception\RuntimeException('The server sent a malformed search result');
+        }
+
+        $ids = [];
+        foreach (explode(',', $set) as $range) {
+            $bounds = array_map(intval(...), explode(':', $range));
+            $low    = min($bounds);
+            $high   = max($bounds);
+            if ((count($ids) + $high - $low + 1) > self::MAX_SEARCH_RESULTS) {
+                throw new Exception\RuntimeException(sprintf(
+                    'The server sent more than %d search results',
+                    self::MAX_SEARCH_RESULTS,
+                ));
+            }
+
+            foreach (range($low, $high) as $id) {
+                $ids[] = (string) $id;
+            }
+        }
+
+        return $ids;
     }
 
     /**

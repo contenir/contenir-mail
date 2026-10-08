@@ -583,6 +583,23 @@ final class ImapStorageTest extends TestCase
         );
     }
 
+    /**
+     * IMAP4rev2 lists a parent that holds no messages as \\NonExistent (RFC 9051).
+     */
+    #[Test]
+    public function cannotSelectAFolderListedAsNonExistent(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('listMailbox')
+            ->willReturn([
+                'Archive'      => ['delim' => '/', 'flags' => ['\\NonExistent', '\\HasChildren']],
+                'Archive/2024' => ['delim' => '/', 'flags' => ['\\HasNoChildren']],
+            ]);
+        $archive = $this->imap($protocol)->getFolders()->getFolder('Archive');
+
+        static::assertSame([false, true], [$archive->isSelectable(), $archive->getFolder('2024')->isSelectable()]);
+    }
+
     #[Test]
     public function hasRootThatCannotBeSelected(): void
     {
@@ -780,6 +797,30 @@ final class ImapStorageTest extends TestCase
         $protocol->expects($this->once())->method('copy')->with('Archive', 2)->willReturn(true);
         $protocol->method('store')->willReturn(true);
         $protocol->expects($this->once())->method('expunge')->willReturn(true);
+
+        $this->imap($protocol)->moveMessage(2, 'Archive');
+    }
+
+    #[Test]
+    public function movesMessageWithMoveWhenTheServerOffersIt(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('hasCapability')->with('MOVE')->willReturn(true);
+        $protocol->expects($this->once())->method('move')->with('Archive', 2)->willReturn(true);
+        $protocol->expects($this->never())->method('copy');
+
+        $this->imap($protocol)->moveMessage(2, 'Archive');
+    }
+
+    #[Test]
+    public function reportsAMoveTheServerRefuses(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('hasCapability')->willReturn(true);
+        $protocol->method('move')->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot move the message; does the folder exist?');
 
         $this->imap($protocol)->moveMessage(2, 'Archive');
     }
