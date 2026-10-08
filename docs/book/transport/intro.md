@@ -1,7 +1,7 @@
 # Transports
 
 Transports deliver mail. `Contenir\Mail\Transport\TransportInterface` defines one
-method, `send(Message $message): void`, and four transports implement it:
+method, `send(Message $message): void`, and five transports implement it:
 
 Transport   | Delivers by                                   | Settings
 ----------- | --------------------------------------------- | --------
@@ -9,6 +9,7 @@ Transport   | Delivers by                                   | Settings
 `Sendmail`  | The local sendmail program, run directly or through PHP's `mail()` | `SendmailConfig`
 `File`      | Writing each message to a new file            | [`FileConfig`](file-options.md)
 `InMemory`  | Keeping the last message, for tests           | none
+`Failover`  | The first of several transports that succeeds | the transports
 
 Each transport keeps its settings in a read-only `*Config` object. A constructor
 takes either that object or the same settings as an array, as in laminas-mail.
@@ -116,6 +117,27 @@ $transport->send($message);
 $sent = $transport->getLastMessage();
 ```
 
+## Failover
+
+`Failover` sends through the first of its transports that succeeds, trying each
+in turn, for example a second SMTP relay when the first is down:
+
+```php
+use Contenir\Mail\Transport\Failover;
+use Contenir\Mail\Transport\Smtp;
+
+$transport = new Failover(
+    new Smtp(['host' => 'smtp1.example.com']),
+    new Smtp(['host' => 'smtp2.example.com']),
+);
+$transport->send($message);
+```
+
+A transport that fails with one of this package's exceptions is skipped. When
+every transport fails, the send throws `Transport\Exception\RuntimeException`
+naming each transport and its reason, with the last failure as its previous
+exception. Other errors, such as a bug in a custom transport, are not caught.
+
 ## Headers on the wire
 
 Before a transport writes a message it checks every header for a line break that
@@ -150,6 +172,17 @@ return [
 
 `type` is required. Without it the factory throws rather than quietly sending
 through the local sendmail. The other keys are the chosen transport's settings.
+A `failover` lists its transports, each configured the same way:
+
+```php
+'transport' => [
+    'type'       => 'failover',
+    'transports' => [
+        ['type' => 'smtp', 'host' => 'smtp1.example.com'],
+        ['type' => 'smtp', 'host' => 'smtp2.example.com'],
+    ],
+],
+```
 
 ```php
 $transport = $container->get(Contenir\Mail\Transport\TransportInterface::class);

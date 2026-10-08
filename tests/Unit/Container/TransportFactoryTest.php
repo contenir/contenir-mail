@@ -9,6 +9,7 @@ use Contenir\Mail\Container\TransportFactory;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Tests\Unit\TestAsset\ArrayContainer;
+use Contenir\Mail\Transport\Failover;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\InMemory;
 use Contenir\Mail\Transport\Sendmail;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function sys_get_temp_dir;
 
 #[CoversClass(TransportFactory::class)]
@@ -47,7 +49,7 @@ final class TransportFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'config["mail"]["transport"]["type"] is required; set it to one of smtp, sendmail, file, inmemory',
+            'config["mail"]["transport"]["type"] is required; set it to one of smtp, sendmail, file, inmemory, failover',
         );
 
         (new TransportFactory())(new ArrayContainer($services));
@@ -123,7 +125,7 @@ final class TransportFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'config["mail"]["transport"]["type"] "pigeon" is unknown; expected one of smtp, sendmail, file, inmemory',
+            'config["mail"]["transport"]["type"] "pigeon" is unknown; expected one of smtp, sendmail, file, inmemory, failover',
         );
 
         self::create(['type' => 'pigeon']);
@@ -134,7 +136,7 @@ final class TransportFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'config["mail"]["transport"]["type"] must be one of smtp, sendmail, file, inmemory, got int',
+            'config["mail"]["transport"]["type"] must be one of smtp, sendmail, file, inmemory, failover, got int',
         );
 
         self::create(['type' => 1]);
@@ -191,6 +193,75 @@ final class TransportFactoryTest extends TestCase
             'transport' => [
                 ['mail' => ['transport' => 'smtp']],
                 'config["mail"]["transport"] must be an array, got string',
+            ],
+        ];
+    }
+
+    #[Test]
+    public function createsFailoverOfConfiguredTransports(): void
+    {
+        $failover = self::create([
+            'type'       => 'failover',
+            'transports' => [['type' => 'in-memory'], ['type' => 'sendmail']],
+        ]);
+
+        static::assertSame(
+            [InMemory::class, Sendmail::class],
+            $failover instanceof Failover
+                ? array_map(static fn(object $transport): string => $transport::class, $failover->getTransports())
+                : [],
+        );
+    }
+
+    #[Test]
+    public function createsNestedFailover(): void
+    {
+        $failover = self::create([
+            'type'       => 'failover',
+            'transports' => [['type' => 'failover', 'transports' => [['type' => 'in-memory']]]],
+        ]);
+
+        static::assertInstanceOf(Failover::class, $failover instanceof Failover ? $failover->getTransports()[0] : null);
+    }
+
+    /**
+     * @param array<string, mixed> $transport
+     */
+    #[Test]
+    #[DataProvider('invalidFailoverProvider')]
+    public function refusesInvalidFailover(array $transport, string $message): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        self::create($transport);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, string}>
+     */
+    public static function invalidFailoverProvider(): array
+    {
+        return [
+            'no transports'           => [
+                ['type' => 'failover'],
+                'config["mail"]["transport"]["transports"] needs at least one transport',
+            ],
+            'transports not a list'   => [
+                ['type' => 'failover', 'transports' => 'smtp'],
+                'config["mail"]["transport"]["transports"] must be an array, got string',
+            ],
+            'another setting'         => [
+                ['type' => 'failover', 'transports' => [['type' => 'in-memory']], 'host' => 'x'],
+                'config["mail"]["transport"] takes only "type" and "transports"',
+            ],
+            'transport without type'  => [
+                ['type' => 'failover', 'transports' => [['type' => 'in-memory'], ['host' => 'x']]],
+                'config["mail"]["transport"]["transports"][1]["type"] is required',
+            ],
+            'named transport invalid' => [
+                ['type' => 'failover', 'transports' => ['backup' => ['type' => 7]]],
+                'config["mail"]["transport"]["transports"][\'backup\']["type"] must be one of',
             ],
         ];
     }
