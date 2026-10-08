@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\TestAsset;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
+use function explode;
 use function str_ends_with;
 use function trim;
 
@@ -22,6 +23,8 @@ final class TlsServer
     private function __construct(
         private readonly Process $process,
         public readonly int $port,
+        /** The server's certificate, which a client may trust as its certificate authority */
+        public readonly string $certificate,
     ) {}
 
     /**
@@ -43,7 +46,9 @@ final class TlsServer
             throw new RuntimeException("The TLS server did not start: {$process->getErrorOutput()}");
         }
 
-        return new self($process, (int) trim($port));
+        [$number, $certificate] = explode(' ', trim($port), limit: 2) + [1 => ''];
+
+        return new self($process, (int) $number, $certificate);
     }
 
     public function stop(): void

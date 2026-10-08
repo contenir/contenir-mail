@@ -8,7 +8,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Nothing.
+- TLS settings beyond `verify_peer`, for SMTP, IMAP and POP3: `cafile` and
+  `capath` to trust a private certificate authority, `peer_name` to check a
+  name other than the host, `allow_self_signed`, and `local_cert` and
+  `local_pk` for a client certificate. They're typed fields of the new
+  `Protocol\TlsOptions`, given as `ConnectionConfig::$tls` or as settings in
+  any config, and they apply to TLS from the start and to STARTTLS. No other
+  ssl context option can be passed, and peer verification stays on unless
+  `verify_peer` turns it off. (#16)
 
 ### Changed
 

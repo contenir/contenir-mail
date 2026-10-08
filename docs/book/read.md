@@ -117,6 +117,13 @@ Key           | Default        | Meaning
 `security`    | `starttls`     | `starttls`, `tls` (TLS from the start) or `none`
 `verify_peer` | `true`         | Check the server's certificate
 `timeout`     | `30`           | Seconds
+`cafile`, `capath` | none | Certificate authorities to trust, in place of the system's
+`peer_name`         | the host       | The name the server's certificate must carry
+`allow_self_signed` | `false`        | Accept a self-signed certificate; weakens verification
+`local_cert`, `local_pk` | none     | A client certificate, and its key if in a separate file
+
+The TLS settings apply to TLS from the start and to STARTTLS. See the security
+page for their risks.
 
 Connections use STARTTLS unless told otherwise. The laminas-mail keys still
 work: `ssl` set to `SSL` means `tls`, `TLS` means `starttls`, and `false` or

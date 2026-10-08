@@ -74,6 +74,27 @@ their own server. Everything else is not.
 | Invalid UTF-8 in decoded text is replaced with U+FFFD | `Utf8Test`, `SafeTextTest` |
 | Attachment filenames read from mail are available sanitised: path components, controls and bidi characters removed | `SafeTextTest`, `Storage\Part::getSafeFilename()` |
 
+### TLS settings
+
+SMTP, IMAP and POP3 connections share these settings:
+
+- `cafile` and `capath`: certificate authorities to trust, in place of the system's;
+- `peer_name`: the name the certificate must carry;
+- `allow_self_signed`;
+- `local_cert` and `local_pk`: a client certificate.
+
+They're typed fields of `TlsOptions`. There's no pass-through for other `ssl` context options, so nothing else reaches the stream context.
+
+| Protection | Evidence |
+| --- | --- |
+| Peer verification and name checking stay on unless `verify_peer` is set to false. No TLS setting changes `verify_peer` or `verify_peer_name`, because they're written after the TLS settings | `TlsOptionsTest`, `StreamConnection::open()` |
+| `allow_self_signed` is the only setting that weakens verification, and it's off unless set to true. Even then, the certificate's name is still checked | `leavesSelfSignedCertificatesRefusedUnlessAllowed`, `stillChecksThePeerNameOfASelfSignedCertificate` |
+| Misspelt or unknown setting names are refused, not ignored, so a typo can't silently leave a CA untrusted | `refusesAnInvalidSetting` (misspelt setting) |
+| Paths and names that are empty or hold a control character are refused, and so is a private key without its certificate | `refusesAnInvalidSetting` |
+| The settings reach the handshake for TLS from the start and for STARTTLS | `acceptsASelfSignedCertificateForTheNamedPeerWhenAllowed`, `trustsTheCertificateAuthorityGiven` |
+
+Prefer `cafile` or `capath` for a private certificate authority, and `peer_name` when connecting by address. Both keep full verification. `allow_self_signed` accepts any certificate that signs itself for the right name, including an attacker's on the network path. Use it only for a test server, or a pinned internal host on a trusted network.
+
 ### SMTP
 
 | Protection | Evidence |

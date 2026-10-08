@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
+use Contenir\Mail\Protocol\TlsOptions;
 use Contenir\Mail\Validator\HostnameValidator;
 use SensitiveParameter;
 
@@ -58,6 +59,7 @@ final readonly class SmtpConfig
      * @param int|null $connectionTimeLimit Seconds after which the transport reconnects rather than
      *     reusing the connection; when set, QUIT is not sent.
      * @param bool $useCompleteQuit Send QUIT before closing the connection.
+     * @param TlsOptions $tls Certificate authorities, peer name and client certificate; the system's by default.
      * @throws InvalidArgumentException When a value is out of range, or credentials would be sent unencrypted.
      */
     public function __construct(
@@ -71,8 +73,9 @@ final readonly class SmtpConfig
         public bool $allowInsecureAuth = false,
         public ?int $connectionTimeLimit = null,
         public bool $useCompleteQuit = true,
+        TlsOptions $tls = new TlsOptions(),
     ) {
-        $this->connection = new ConnectionConfig($host, $port, $security, $verifyPeer, $timeout);
+        $this->connection = new ConnectionConfig($host, $port, $security, $verifyPeer, $timeout, $tls);
 
         $validator = HostnameValidator::forConnection();
         if (! $validator->isValid($name)) {
@@ -115,6 +118,7 @@ final readonly class SmtpConfig
             allowInsecureAuth: $reader->bool('allow_insecure_auth', default: false),
             connectionTimeLimit: $reader->nullableInt('connection_time_limit'),
             useCompleteQuit: $reader->bool('use_complete_quit', default: true),
+            tls: TlsOptions::fromReader($reader),
         );
     }
 }
