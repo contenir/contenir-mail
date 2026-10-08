@@ -30,7 +30,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Nothing.
+- `Storage\Message` and `Storage\Part` gain `getTextBody()` and
+  `getHtmlBody()`, which return the first non-attachment `text/plain` or
+  `text/html` part as UTF-8, or null. Transfer encodings and allow-listed
+  charsets are decoded, and the last `multipart/alternative` part wins. The
+  HTML is returned as sent and is not sanitised.
+- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
+  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
+  its other flags alone. They are not on `WritableInterface`, as Maildir has
+  no equivalent.
 
 ### Changed
 
@@ -68,7 +76,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Nothing.
+- `Protocol\Imap::store()` returns an empty array when it is not silent and the server
+  reports no changed flags, as Dovecot does for flags a message already has. It
+  returned `true`, which callers reading the new flags could not use.
+- `Storage\Pop3::getCapabilities()` reports whether the server has TOP and UIDL,
+  asking on the first call. Both stayed `null` since the magic `hasTop` and
+  `hasUniqueId` properties were removed.
 
 ## 0.1.0 - 2026-10-08
 

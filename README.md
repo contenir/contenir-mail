@@ -90,6 +90,9 @@ foreach (new Maildir(['dirname' => '/var/mail/jo']) as $number => $message) {
 }
 ```
 
+`getTextBody()` and `getHtmlBody()` return a message's bodies as UTF-8. The
+HTML is returned as sent, so sanitise it before showing it.
+
 See the [documentation](docs/book/index.md) for transports, attachments,
 character sets and reading mail.
 

@@ -255,6 +255,28 @@ foreach (new RecursiveIteratorIterator($mail->getMessage(1)) as $part) {
 }
 ```
 
+### Text and HTML bodies
+
+`getTextBody()` and `getHtmlBody()` return the body of a message or part as
+UTF-8, or null when it has no such part:
+
+```php
+$text = $message->getTextBody();
+$html = $message->getHtmlBody();
+```
+
+Each finds the first `text/plain` (or `text/html`) part, searching depth
+first through `multipart/mixed` and `multipart/related`. Parts with a
+`Content-Disposition` of `attachment` are skipped, so an attached text file
+is never taken for the body. In `multipart/alternative` the last matching
+part wins, as the richest. The transfer encoding is decoded, and the text is
+converted to UTF-8 from the declared charset when it is one mail is written
+in. Text with no charset, an unlisted one, or one that does not convert is
+returned with invalid bytes replaced by U+FFFD.
+
+The HTML is returned exactly as sent. It is neither sanitised nor safe to
+show: sanitise it, for example with an HTML purifier, before rendering it.
+
 Bodies load lazily: headers are read with the message, and the body is read
 from the file, or fetched from the server, only when content or parts are
 asked for. A multipart is split into its parts once, on first use.
@@ -413,6 +435,19 @@ characters, empty parts, or `.` and `..` parts.
 Files and directories are created private to their owner (0600 and 0700) by
 default; set `file_mode` and `directory_mode` to share them, for example with
 a group. The process umask can only take permissions away from these modes.
+
+`Storage\Imap` can also change a single flag, without reading the flags
+first or replacing the others. Each call sends one `STORE` command with
+`+FLAGS.SILENT` or `-FLAGS.SILENT`:
+
+```php
+$mail->addFlags(1, [Flag::Seen]);       // mark Seen; Flagged is untouched
+$mail->removeFlags(1, [Flag::Flagged]); // clear Flagged only
+```
+
+These two methods are on `Storage\Imap` only, not on `WritableInterface`:
+Maildir would need its own semantics, and adding them to the interface would
+break other implementers.
 
 The `Recent` flag cannot be set: the storage sets it for messages in `new/`.
 Maildir stores the common flags and the keywords `a` to `z`; IMAP stores the

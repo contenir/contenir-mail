@@ -382,6 +382,38 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     }
 
     /**
+     * Adds flags to a message, leaving its other flags as they are.
+     *
+     * Not part of WritableInterface: Maildir has no equivalent operation.
+     *
+     * @param iterable<Flag|string> $flags
+     * @throws Exception\ExceptionInterface When the number or a flag is not valid, or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function addFlags(int $id, iterable $flags): void
+    {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id), null, '+')) {
+            throw new Exception\RuntimeException('Cannot add the flags');
+        }
+    }
+
+    /**
+     * Removes flags from a message, leaving its other flags as they are.
+     *
+     * Not part of WritableInterface: Maildir has no equivalent operation.
+     *
+     * @param iterable<Flag|string> $flags
+     * @throws Exception\ExceptionInterface When the number or a flag is not valid, or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function removeFlags(int $id, iterable $flags): void
+    {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id), null, '-')) {
+            throw new Exception\RuntimeException('Cannot remove the flags');
+        }
+    }
+
+    /**
      * The server's folder delimiter, asked for once; empty when the server has none.
      *
      * @throws Exception\ExceptionInterface When the folders cannot be listed.
