@@ -41,6 +41,7 @@ use function strlen;
 use function strpos;
 use function strtolower;
 use function strtoupper;
+use function strval;
 use function substr;
 use function trim;
 
@@ -104,12 +105,17 @@ class Imap
      */
     private ?array $capabilities = null;
 
+    /** A sort key (RFC 5256, RFC 5957), optionally reversed */
+    private const string SORT_KEY = '/^(?:REVERSE )?(?:ARRIVAL|CC|DATE|FROM|SIZE|SUBJECT|TO|DISPLAYFROM|DISPLAYTO)$/Di';
+
     /** The most ids an ESEARCH result may expand to */
     public const int MAX_SEARCH_RESULTS = 1_000_000;
 
     private bool $useImap4Rev2 = true;
 
     private bool $utf8Mailboxes = false;
+
+    private bool $imap4Rev2 = false;
 
     /**
      * Public constructor
@@ -726,10 +732,13 @@ class Imap
         }
 
         try {
-            $this->utf8Mailboxes = in_array(strtoupper($extension), $this->enable($extension), strict: true);
+            $enabled = $this->enable($extension);
         } catch (Exception\RuntimeException) {
-            $this->utf8Mailboxes = false;
+            return;
         }
+
+        $this->utf8Mailboxes = in_array(strtoupper($extension), $enabled, strict: true);
+        $this->imap4Rev2     = in_array('IMAP4REV2', $enabled, strict: true);
     }
 
     /**
@@ -1137,6 +1146,124 @@ class Imap
     public function noop(): array|bool
     {
         return $this->requestAndResponse('NOOP') ?? false;
+    }
+
+    /**
+     * The numbers of the messages matching a search, in the order of the sort keys
+     * (RFC 5256), such as ["REVERSE DATE"] or ["FROM", "SUBJECT"], when the server offers SORT.
+     *
+     * The search parameters are sent as for search(): pass any string from outside
+     * through escapeString().
+     *
+     * @param list<string> $keys Sort keys: ARRIVAL, CC, DATE, FROM, SIZE, SUBJECT, TO, DISPLAYFROM
+     *     or DISPLAYTO (RFC 5957), each optionally after REVERSE.
+     * @param array<mixed> $search
+     * @param bool $uid Return UIDs rather than message numbers.
+     * @return list<string>|false message numbers or UIDs in order, or false when the server refuses
+     * @throws Exception\InvalidArgumentException When there is no key, or a key is not one of those.
+     * @throws Exception\ExceptionInterface When the server does not offer SORT or cannot be asked.
+     *
+     * @mago-expect lint:no-boolean-flag-parameter Matches fetch(), which picks UIDs the same way.
+     */
+    public function sort(array $keys, array $search = ['ALL'], bool $uid = false): array|false
+    {
+        if ([] === $keys) {
+            throw new Exception\InvalidArgumentException('SORT needs at least one sort key');
+        }
+
+        $criteria = [];
+        foreach ($keys as $key) {
+            if (1 !== preg_match(self::SORT_KEY, $key)) {
+                throw new Exception\InvalidArgumentException("\"{$key}\" is not an IMAP sort key");
+            }
+
+            foreach (explode(' ', strtoupper($key)) as $word) {
+                $criteria[] = $word;
+            }
+        }
+
+        if (! $this->hasCapability('SORT')) {
+            throw new Exception\RuntimeException('The server does not offer SORT');
+        }
+
+        $response = $this->requestAndResponse(
+            ($uid ? 'UID ' : '') . 'SORT',
+            [$this->escapeList($criteria), 'UTF-8', ...$search],
+        );
+        if (null === $response || false === $response) {
+            return false;
+        }
+
+        foreach (is_array($response) ? $response : [] as $ids) {
+            if ('SORT' === strtoupper(is_string($ids[0] ?? null) ? $ids[0] : '')) {
+                return array_values(array_map(strval(...), array_slice($ids, offset: 1)));
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * How many messages match a search: counted by the server with ESEARCH
+     * (RFC 4731), which IMAP4rev2 includes, rather than by sending every matching
+     * number.
+     *
+     * @param array<mixed> $params Search parameters, as for search().
+     * @throws Exception\ExceptionInterface When the server refuses or cannot be asked.
+     */
+    public function searchCount(array $params): int
+    {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('ESEARCH')) {
+            $ids = $this->search($params);
+            if (false === $ids) {
+                throw new Exception\RuntimeException('The server refused the search');
+            }
+
+            return count($ids);
+        }
+
+        $response = $this->requestAndResponse('SEARCH', ['RETURN', '(COUNT)', ...$params]);
+        if (null === $response || false === $response) {
+            throw new Exception\RuntimeException('The server refused the search');
+        }
+
+        foreach (is_array($response) ? $response : [] as $tokens) {
+            $count = self::esearchCount($tokens);
+            if (null !== $count) {
+                return $count;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * The COUNT of an ESEARCH response, or null for any other response.
+     *
+     * @param array<mixed> $tokens
+     * @throws Exception\RuntimeException When the count is not a number.
+     */
+    private static function esearchCount(array $tokens): ?int
+    {
+        $tokens = array_values($tokens);
+        if ('ESEARCH' !== strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
+            return null;
+        }
+
+        foreach ($tokens as $index => $token) {
+            if (! is_string($token) || 'COUNT' !== strtoupper($token)) {
+                continue;
+            }
+
+            $count = $tokens[$index + 1] ?? null;
+            if (! is_string($count) || 1 !== preg_match('/\A\d{1,10}\z/', $count)) {
+                throw new Exception\RuntimeException('The server sent a malformed search count');
+            }
+
+            return (int) $count;
+        }
+
+        return 0;
     }
 
     /**

@@ -234,6 +234,32 @@ IDs, so their numbers serve; a POP3 server without UIDL does the same.
 `getRawHeader()` and `getRawContent()` return a message's header block and
 body as stored. `getCapabilities()` lists what the storage supports.
 
+### Paging through a large IMAP folder
+
+Iterating a folder fetches messages one at a time. To show a page of a large
+folder, let the server sort the numbers, then fetch the page in one request:
+
+```php
+$newest = $mail->sortMessages('REVERSE ARRIVAL');           // list of numbers
+$page   = $mail->getMessages(...array_slice($newest, 0, 50)); // [number => Message]
+
+foreach ($page as $number => $message) {
+    echo $number, ' ', $message->getSubject(), "\n";
+}
+```
+
+`getMessages()` fetches the flags and headers of every message asked for in
+one FETCH, and each body only when it's read. A number the server sends no
+headers for is left out. `sortMessages()` takes sort keys from RFC 5256
+(`ARRIVAL`, `CC`, `DATE`, `FROM`, `SIZE`, `SUBJECT`, `TO`) and RFC 5957
+(`DISPLAYFROM`, `DISPLAYTO`), each optionally after `REVERSE`, and needs a
+server that offers SORT. Without it, use number ranges: the highest numbers
+are the most recently added.
+
+`countMessages()` asks the server for the count with ESEARCH (RFC 4731) when
+it can, instead of receiving every matching number. At the protocol level,
+`Protocol\Imap::sort()` and `searchCount()` take any search criteria.
+
 Storages hold open files or connections, so they cannot be serialized.
 `close()` releases them, and the destructor calls it.
 
