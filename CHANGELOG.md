@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file, in the
 format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.1.1 - TBD
+## 0.2.0 - TBD
 
 ### Added
 
@@ -13,6 +13,31 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `text/html` part as UTF-8, or null. Transfer encodings and allow-listed
   charsets are decoded, and the last `multipart/alternative` part wins. The
   HTML is returned as sent and is not sanitised.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.1.1 - TBD
+
+### Added
+
+- `Storage\Imap::addFlags()` and `removeFlags()` add or remove flags on a
+  message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
+  its other flags alone. They are not on `WritableInterface`, as Maildir has
+  no equivalent.
 
 ### Changed
 
