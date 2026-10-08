@@ -17,7 +17,9 @@ final class ListParser
     public const string CHAR_ESCAPE = '\\';
 
     /**
-     * Split a list on its delimiters, ignoring delimiters inside quotes or after a backslash.
+     * Split a list on its delimiters, ignoring delimiters inside quotes, inside angle
+     * brackets (an obsolete source route such as "<@a,@b:jo@example.com>" holds commas)
+     * or after a backslash.
      *
      * @param list<string> $delims
      * @return list<string>
@@ -30,6 +32,7 @@ final class ListParser
         $inEscape          = false;
         $inQuote           = false;
         $currentQuoteDelim = null;
+        $inAngle           = false;
 
         for ($i = 0; $i < $length; $i += 1) {
             $char = $value[$i];
@@ -43,7 +46,7 @@ final class ListParser
 
             // If we are not in a quoted string, and have a delimiter, append
             // the current value to the list, and reset the current value.
-            if (in_array($char, $delims, strict: true) && ! $inQuote) {
+            if (in_array($char, $delims, strict: true) && ! $inQuote && ! $inAngle) {
                 $values[]     = $currentValue;
                 $currentValue = '';
                 continue;
@@ -55,6 +58,11 @@ final class ListParser
             // Escape sequence discovered.
             if (self::CHAR_ESCAPE === $char) {
                 $inEscape = true;
+                continue;
+            }
+
+            if (! $inQuote && ('<' === $char || '>' === $char)) {
+                $inAngle = '<' === $char;
                 continue;
             }
 

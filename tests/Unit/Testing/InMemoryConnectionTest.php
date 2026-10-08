@@ -576,4 +576,55 @@ final class InMemoryConnectionTest extends TestCase
 
         static::assertSame('a', $connection->read(1));
     }
+
+    /**
+     * After the client strays from the script, the connection is closed, so a later call such
+     * as a destructor logging out gets an ordinary protocol error rather than a second mismatch.
+     */
+    #[Test]
+    #[DataProvider('strayProvider')]
+    public function closesOnceTheClientStraysFromTheScript(InMemoryConnection $script, string $call): void
+    {
+        $connection = self::opened($script);
+        try {
+            match ($call) {
+                'write'     => $connection->write("WRONG\r\n"),
+                'read'      => $connection->readLine(1024),
+                'enableTls' => $connection->enableTls(),
+            };
+        } catch (LogicException) {
+            static::assertFalse($connection->isConnected());
+
+            return;
+        }
+
+        static::fail('The script mismatch was not reported');
+    }
+
+    /**
+     * @return array<string, array{InMemoryConnection, string}>
+     */
+    public static function strayProvider(): array
+    {
+        return [
+            'unexpected command'     => [(new InMemoryConnection())->expect("RIGHT\r\n"), 'write'],
+            'command after the end'  => [new InMemoryConnection(), 'write'],
+            'read instead of write'  => [(new InMemoryConnection())->expect("RIGHT\r\n"), 'read'],
+            'TLS instead of a write' => [(new InMemoryConnection())->expect("RIGHT\r\n"), 'enableTls'],
+        ];
+    }
+
+    #[Test]
+    public function reportsAClosedConnectionAfterAMismatch(): void
+    {
+        $connection = self::opened((new InMemoryConnection())->expect("RIGHT\r\n"));
+        try {
+            $connection->write("WRONG\r\n");
+        } catch (LogicException) {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('No connection has been established');
+
+            $connection->write("LOGOUT\r\n");
+        }
+    }
 }

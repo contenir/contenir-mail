@@ -31,10 +31,25 @@ final class CommandTest extends TestCase
         return ScriptedServer::imap(ScriptedServer::imapGreeting()->expect($request)->reply($response)->hangUp());
     }
 
+    /**
+     * A client that first reads the capabilities, as LOGIN does to honour LOGINDISABLED, then sends $request.
+     */
+    private static function loginImap(string $request, string $response): Imap
+    {
+        return ScriptedServer::imap(
+            ScriptedServer::imapGreeting()
+                ->expect("TAG1 CAPABILITY\r\n")
+                ->reply("* CAPABILITY IMAP4rev1\r\nTAG1 OK\r\n")
+                ->expect($request)
+                ->reply($response)
+                ->hangUp(),
+        );
+    }
+
     #[Test]
     public function logsIn(): void
     {
-        $imap = self::imap("TAG1 LOGIN \"user\" \"pass\\\"word\"\r\n", "TAG1 OK done\r\n");
+        $imap = self::loginImap("TAG2 LOGIN \"user\" \"pass\\\"word\"\r\n", "TAG2 OK done\r\n");
 
         static::assertTrue($imap->login('user', 'pass"word'));
     }
@@ -42,7 +57,7 @@ final class CommandTest extends TestCase
     #[Test]
     public function logsInWithUntaggedCapabilitiesInTheResponse(): void
     {
-        $imap = self::imap("TAG1 LOGIN \"user\" \"secret\"\r\n", "* CAPABILITY IMAP4rev1\r\nTAG1 OK done\r\n");
+        $imap = self::loginImap("TAG2 LOGIN \"user\" \"secret\"\r\n", "* CAPABILITY IMAP4rev1\r\nTAG2 OK done\r\n");
 
         static::assertTrue($imap->login('user', 'secret'));
     }
@@ -51,7 +66,7 @@ final class CommandTest extends TestCase
     #[Test]
     public function reportsAFailedLogin(string $response): void
     {
-        $imap = self::imap("TAG1 LOGIN \"user\" \"wrong\"\r\n", $response);
+        $imap = self::loginImap("TAG2 LOGIN \"user\" \"wrong\"\r\n", $response);
 
         static::assertFalse($imap->login('user', 'wrong'));
     }
@@ -62,8 +77,8 @@ final class CommandTest extends TestCase
     public static function failedResponseProvider(): array
     {
         return [
-            'NO'  => ["TAG1 NO [AUTHENTICATIONFAILED] invalid\r\n"],
-            'BAD' => ["TAG1 BAD syntax\r\n"],
+            'NO'  => ["TAG2 NO [AUTHENTICATIONFAILED] invalid\r\n"],
+            'BAD' => ["TAG2 BAD syntax\r\n"],
         ];
     }
 
@@ -481,10 +496,12 @@ final class CommandTest extends TestCase
     public function sendsALiteralAfterTheServerInvitesIt(): void
     {
         $server = ScriptedServer::imapGreeting()
-            ->expect("TAG1 LOGIN {9}\r\n")
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1\r\nTAG1 OK\r\n")
+            ->expect("TAG2 LOGIN {9}\r\n")
             ->reply("+\r\n")
             ->expect("us\r\ner\"\\x \"secret\"\r\n")
-            ->reply("TAG1 OK\r\n")
+            ->reply("TAG2 OK\r\n")
             ->hangUp();
 
         static::assertTrue(ScriptedServer::imap($server)->login("us\r\ner\"\\x", 'secret'));
@@ -591,5 +608,54 @@ final class CommandTest extends TestCase
         );
 
         static::assertSame([1 => ['\\Seen']], $imap->store(['\\Seen'], 1, null, null, false));
+    }
+
+    /**
+     * RFC 3501 section 6.2.3: a server that advertises LOGINDISABLED refuses LOGIN, so no password is sent.
+     */
+    #[Test]
+    #[DataProvider('loginDisabledProvider')]
+    public function refusesToSendPasswordWhenLoginIsDisabled(string $capabilities): void
+    {
+        $server = ScriptedServer::imapGreeting()
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY {$capabilities}\r\nTAG1 OK\r\n")
+            ->hangUp();
+        $imap = ScriptedServer::imap($server);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'The server does not allow LOGIN on this connection (LOGINDISABLED); connect with TLS or STARTTLS',
+        );
+
+        $imap->login('user', 'secret');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function loginDisabledProvider(): array
+    {
+        return [
+            'upper case' => ['IMAP4rev1 LOGINDISABLED'],
+            'lower case' => ['imap4rev1 logindisabled'],
+        ];
+    }
+
+    #[Test]
+    public function readsCapabilitiesOnceForSeveralLogins(): void
+    {
+        $server = ScriptedServer::imapGreeting()
+            ->expect("TAG1 CAPABILITY\r\n")
+            ->reply("* CAPABILITY IMAP4rev1\r\nTAG1 OK\r\n")
+            ->expect("TAG2 LOGIN \"user\" \"wrong\"\r\n")
+            ->reply("TAG2 NO invalid\r\n")
+            ->expect("TAG3 LOGIN \"user\" \"secret\"\r\n")
+            ->reply("TAG3 OK done\r\n")
+            ->hangUp();
+        $imap = ScriptedServer::imap($server);
+        $imap->login('user', 'wrong');
+
+        static::assertTrue($imap->login('user', 'secret'));
     }
 }
