@@ -33,6 +33,9 @@ final class MailboxName
     /** A shifted run: "&", modified base64, "-" */
     private const string SHIFTED = '/&([A-Za-z0-9+,]*)-/';
 
+    /**
+     * @codeCoverageIgnore Never called: it only stops the class of static methods being instantiated.
+     */
     private function __construct() {}
 
     /**
