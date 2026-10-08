@@ -12,8 +12,8 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 79 requirements below, 66 conform, 3 are
-partial, 2 deviate by design, and 8 optional extensions are not
+Summary: of the 82 requirements below, 69 conform, 4 are
+partial, 2 deviate by design, and 7 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
 ## Message format: RFC 5322 and RFC 6854
@@ -95,9 +95,9 @@ implemented. The gaps to close are listed at the end.
 
 ## IMAP: RFC 3501
 
-The client implements IMAP4rev1 (RFC 3501), which RFC 9051 (IMAP4rev2)
-replaced in 2021. IMAP4rev1 servers remain the norm, and rev2 servers accept
-rev1 clients.
+The client implements IMAP4rev1 (RFC 3501), and turns on IMAP4rev2 (RFC 9051)
+after signing in when the server offers it. IMAP4rev1 servers remain the norm,
+and rev2 servers accept rev1 clients.
 
 | Requirement | Verdict | Evidence and notes |
 | --- | --- | --- |
@@ -108,7 +108,10 @@ rev1 clients.
 | Response parsing, server literals by byte count | Conforms | `ResponseDecodingTest` |
 | §6.2.2 AUTHENTICATE with XOAUTH2, RFC 4959 SASL-IR | Conforms | The token goes with the command when SASL-IR is offered, and after the continuation otherwise. A refused token is answered with an empty response (RFC 7628). `AuthenticateTest`, and against Dovecot in `ImapXoauth2Test` |
 | §6.2.2 AUTHENTICATE with SCRAM-SHA-256 | Conforms | Client-first goes with the command when SASL-IR is offered. Server-final is checked before the empty response that ends the exchange; a refused step is cancelled with `*`. `AuthenticateScramTest`, and against Dovecot in `ImapScramTest` |
-| RFC 9051 IMAP4rev2, IDLE, MOVE, UIDPLUS, NAMESPACE, ENABLE, LITERAL+ | Not implemented | |
+| §5.1.3 Mailbox names in modified UTF-7 | Conforms | Names are encoded on the way out and decoded from LIST. A malformed run is kept as the server wrote it. `MailboxNameTest`, `writesNamesInModifiedUtf7WithoutUtf8Mailboxes`, and against Dovecot in `ImapMailboxNameTest` |
+| RFC 5161 ENABLE, RFC 9051 IMAP4rev2, RFC 6855 UTF8=ACCEPT | Partial | After signing in, IMAP4rev2 is enabled when it's offered, or else UTF8=ACCEPT. Names then travel as UTF-8. SEARCH reads ESEARCH results, bounded to `MAX_SEARCH_RESULTS`, and `\NonExistent` folders can't be selected. IDLE, NAMESPACE, UNSELECT, UIDPLUS, SPECIAL-USE, STATUS SIZE and LITERAL- aren't used yet (#52). `Imap4rev2Test` |
+| RFC 5256 SORT, RFC 5957 display sort, RFC 4731 ESEARCH counts | Conforms | `Storage\Imap::sortMessages()` sorts on the server, and `getMessages()` fetches a page in one FETCH. Sort keys are checked before sending. `countMessages()` counts with `SEARCH RETURN (COUNT)` when ESEARCH or IMAP4rev2 is on, and from the numbers otherwise. `SortAndCountTest`, `ImapPagingTest` |
+| RFC 6851 MOVE | Conforms | `Storage\Imap::moveMessage()` uses MOVE when it's offered, and copy then expunge otherwise. `movesMessagesWhenTheServerOffersMove` |
 
 ## POP3: RFC 1939, RFC 2449, RFC 2595, RFC 5034
 

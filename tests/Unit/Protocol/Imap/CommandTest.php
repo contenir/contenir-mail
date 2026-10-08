@@ -566,14 +566,11 @@ final class CommandTest extends TestCase
     }
 
     #[Test]
-    public function sendsAFolderNameWithALineBreakAsALiteral(): void
+    public function sendsAFolderNameWithALineBreakInModifiedUtf7(): void
     {
-        $imap = self::imap("TAG1 SELECT {4}\r\n", "+ go\r\n");
+        $imap = self::imap("TAG1 SELECT \"a&AA0ACg-b\"\r\n", "* 1 EXISTS\r\nTAG1 OK\r\n");
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('the connection is closed');
-
-        $imap->select("a\r\nb");
+        static::assertSame(['exists' => '1'], $imap->select("a\r\nb"));
     }
 
     #[Test]

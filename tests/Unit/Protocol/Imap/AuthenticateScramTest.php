@@ -99,6 +99,25 @@ final class AuthenticateScramTest extends TestCase
     }
 
     #[Test]
+    public function enablesImap4Rev2AfterSigningIn(): void
+    {
+        $server = self::server('IMAP4rev1 IMAP4rev2 SASL-IR AUTH=SCRAM-SHA-256')
+            ->expect('TAG2 AUTHENTICATE SCRAM-SHA-256 ' . ScramVector::b64(ScramVector::CLIENT_FIRST) . "\r\n")
+            ->reply('+ ' . ScramVector::b64(ScramVector::SERVER_FIRST) . "\r\n")
+            ->expect(ScramVector::b64(ScramVector::CLIENT_FINAL) . "\r\n")
+            ->reply('+ ' . ScramVector::b64(ScramVector::SERVER_FINAL) . "\r\n")
+            ->expect("\r\n")
+            ->reply("TAG2 OK Logged in\r\n")
+            ->expect("TAG3 ENABLE IMAP4rev2\r\n")
+            ->reply("* ENABLED IMAP4rev2\r\nTAG3 OK\r\n")
+            ->hangUp();
+        $imap = ScriptedServer::imap($server);
+        $imap->authenticate(ScramVector::authenticator());
+
+        static::assertSame([true, true], [$imap->hasUtf8Mailboxes(), $server->isScriptComplete()]);
+    }
+
+    #[Test]
     public function asksForCapabilitiesAgainAfterSigningIn(): void
     {
         $server = self::afterServerFinal()
