@@ -6,6 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Pop3\Response;
+use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
 use LogicException;
@@ -315,16 +316,25 @@ class Pop3
     }
 
     /**
-     * Sign in with an OAuth 2.0 access token (XOAUTH2), as Gmail and Microsoft 365 require.
+     * Sign in with SASL (RFC 5034): an OAuth 2.0 access token (XOAUTH2), as Gmail and
+     * Microsoft 365 require, or a password proved without sending it (SCRAM-SHA-256).
      *
      * A refused token is answered with the empty response that ends the exchange
      * (RFC 7628, section 3.2.3) before this throws, with the server's reason.
      *
-     * @throws Exception\RuntimeException When the server refuses the mechanism or the token.
+     * @throws Exception\RuntimeException When the server refuses the mechanism or the credentials,
+     *     or a SCRAM server cannot prove it knows the password.
      * @throws Exception\InvalidArgumentException When a token provider returns an invalid token.
+     * @throws Exception\ExceptionInterface When the connection fails.
      */
-    public function authenticate(XOAuth2 $auth): void
+    public function authenticate(XOAuth2|ScramSha256 $auth): void
     {
+        if ($auth instanceof ScramSha256) {
+            $this->authenticateScram($auth);
+
+            return;
+        }
+
         $initial = $auth->initialResponse();
         $this->sendRequest('AUTH XOAUTH2');
         $response = $this->readRemoteResponse();
@@ -346,6 +356,73 @@ class Pop3
 
             throw new Exception\RuntimeException('' === $reason ? 'The server refused the access token' : $reason);
         }
+    }
+
+    /**
+     * SCRAM-SHA-256: server-first and server-final arrive in "+" continuations, and the second
+     * is answered with an empty response before "+OK". A step the client refuses is cancelled
+     * with "*" (RFC 5034, section 4) before this throws.
+     *
+     * @throws Exception\ExceptionInterface
+     */
+    private function authenticateScram(ScramSha256 $auth): void
+    {
+        $scram = $auth->start();
+        $this->sendRequest("AUTH {$auth->mechanism()}");
+        $this->saslChallenge();
+        $this->sendRequest($scram->initialResponse());
+        $challenge = $this->saslChallenge();
+        try {
+            $response = $scram->respond($challenge);
+        } catch (Exception\RuntimeException $e) {
+            $this->cancelSasl($e);
+        }
+
+        $this->sendRequest($response);
+        $challenge = $this->saslChallenge();
+        try {
+            $scram->verify($challenge);
+        } catch (Exception\RuntimeException $e) {
+            $this->cancelSasl($e);
+        }
+
+        $this->sendRequest('');
+        $response = $this->readRemoteResponse();
+        if ('+OK' !== $response->status()) {
+            throw new Exception\RuntimeException(self::failure($response->message()));
+        }
+    }
+
+    /**
+     * The base64 text of the next "+" continuation, refusing any other reply in its place.
+     *
+     * @throws Exception\RuntimeException When the server refuses the mechanism or the credentials, or ends
+     *     the exchange without the server-final message that proves it knows the password.
+     */
+    private function saslChallenge(): string
+    {
+        $response = $this->readRemoteResponse();
+
+        return match ($response->status()) {
+            '+'     => $response->message(),
+            '+OK' => throw new Exception\RuntimeException(
+                'The server ended SCRAM-SHA-256 without proving it knows the password',
+            ),
+            default => throw new Exception\RuntimeException(self::failure($response->message())),
+        };
+    }
+
+    /**
+     * Cancel the exchange with "*", read the server's reply, and throw $reason.
+     *
+     * @throws Exception\ExceptionInterface
+     */
+    private function cancelSasl(Exception\RuntimeException $reason): never
+    {
+        $this->sendRequest('*');
+        $this->readRemoteResponse();
+
+        throw $reason;
     }
 
     /**

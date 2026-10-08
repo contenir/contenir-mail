@@ -14,6 +14,7 @@ use Contenir\Mail\Protocol\Smtp\Auth\ChannelInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\CramMd5;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
+use Contenir\Mail\Tests\Unit\TestAsset\ScramVector;
 use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 use SensitiveParameter;
 
 use function base64_encode;
+use function strrpos;
+use function substr;
 
 /**
  * Opening a session: greeting, EHLO, STARTTLS and AUTH.
@@ -471,6 +474,41 @@ final class SmtpSessionTest extends TestCase
         $smtp = self::session(Security::Tls, new Login('orders', self::AUTH_VALUE));
 
         static::assertStringNotContainsString($secret, $smtp->getLog());
+    }
+
+    /**
+     * The RFC 7677 test vector over SMTP: server-final arrives in a 334 and is answered with an empty line.
+     */
+    #[Test]
+    public function authenticatesWithScramSha256(): void
+    {
+        $server = new SmtpServer();
+        $server->setCapabilities('AUTH SCRAM-SHA-256');
+        $server->reply(
+            ScramVector::b64(ScramVector::CLIENT_FIRST),
+            '334 ' . ScramVector::b64(ScramVector::SERVER_FIRST),
+        );
+        $server->reply(
+            ScramVector::b64(ScramVector::CLIENT_FINAL),
+            '334 ' . ScramVector::b64(ScramVector::SERVER_FINAL),
+        );
+        $smtp = self::session(Security::Tls, ScramVector::authenticator(), $server);
+
+        static::assertSame(
+            [
+                true,
+                "AUTH SCRAM-SHA-256\r\n334 \r\n"
+                    . Smtp::HIDDEN_LINE
+                    . "\r\n334 "
+                    . ScramVector::b64(ScramVector::SERVER_FIRST)
+                    . "\r\n"
+                    . Smtp::HIDDEN_LINE
+                    . "\r\n334 "
+                    . ScramVector::b64(ScramVector::SERVER_FINAL)
+                    . "\r\n\r\n235 2.7.0 Accepted\r\n",
+            ],
+            [$smtp->isAuthenticated(), substr($smtp->getLog(), (int) strrpos($smtp->getLog(), needle: "\nAUTH ") + 1)],
+        );
     }
 
     #[Test]

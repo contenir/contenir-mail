@@ -22,8 +22,8 @@ use function strtolower;
  */
 final readonly class AuthenticatorFactory
 {
-    /** The accepted "type" values; "-" and "_" are ignored, so "cram-md5" also works */
-    public const array TYPES = ['plain', 'login', 'crammd5', 'xoauth2'];
+    /** The accepted "type" values; "-" and "_" are ignored, so "cram-md5" and "scram-sha-256" also work */
+    public const array TYPES = ['plain', 'login', 'crammd5', 'xoauth2', 'scramsha256'];
 
     /**
      * @param iterable<mixed, mixed> $config The "type" key and the chosen authenticator's own keys.
@@ -55,11 +55,12 @@ final readonly class AuthenticatorFactory
             replace: '',
             subject: strtolower($type),
         )) {
-            'plain'   => Plain::fromIterable($settings),
-            'login'   => Login::fromIterable($settings),
-            'crammd5' => CramMd5::fromIterable($settings),
-            'xoauth2' => XOAuth2::fromIterable($settings),
-            default   => throw new InvalidArgumentException(sprintf(
+            'plain'       => Plain::fromIterable($settings),
+            'login'       => Login::fromIterable($settings),
+            'crammd5'     => CramMd5::fromIterable($settings),
+            'xoauth2'     => XOAuth2::fromIterable($settings),
+            'scramsha256' => ScramSha256::fromIterable($settings),
+            default       => throw new InvalidArgumentException(sprintf(
                 'SMTP authentication: unknown type "%s"; expected one of %s',
                 $type,
                 implode(', ', self::TYPES),
