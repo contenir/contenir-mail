@@ -23,9 +23,11 @@ first_valid_gid = 1
 mail_location = mbox:/srv/mail/%u:INBOX=/srv/mail/%u/INBOX
 mbox_write_locks = fcntl
 
+# Every test connects from the same address, so the wrong-password tests would
+# build up an auth penalty of up to 15 seconds and outlast the Postfix SASL timeout.
 passdb {
   driver = static
-  args = password=${MAIL_PASSWORD}
+  args = password=${MAIL_PASSWORD} nopenalty
 }
 
 userdb {
