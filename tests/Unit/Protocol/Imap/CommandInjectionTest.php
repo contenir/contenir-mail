@@ -332,13 +332,15 @@ final class CommandInjectionTest extends TestCase
         static::assertFalse(ScriptedServer::imap($server)->login('user', "pw\r\nTAG2 DELETE INBOX"));
     }
 
+    /**
+     * A control character in a mailbox name is written in modified UTF-7
+     * (RFC 3501, section 5.1.3), so it never reaches the wire to end the command.
+     */
     #[Test]
-    public function sendsAFolderNameWithABareCarriageReturnAsALiteral(): void
+    public function sendsAControlCharacterInAFolderNameEncoded(): void
     {
         $server = ScriptedServer::imapGreeting()
-            ->expect("TAG1 CREATE {15}\r\n")
-            ->reply("+ go\r\n")
-            ->expect("a\rTAG2 LOGOUT x\r\n")
+            ->expect("TAG1 CREATE \"a&AA0-TAG2 LOGOUT x\"\r\n")
             ->reply("TAG1 OK\r\n")
             ->hangUp();
 

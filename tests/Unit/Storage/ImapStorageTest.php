@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
@@ -301,7 +302,7 @@ final class ImapStorageTest extends TestCase
     public function countsMessages(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('search')->with(['ALL'])->willReturn([1, 2, 3]);
+        $protocol->method('searchCount')->with(['ALL'])->willReturn(3);
 
         static::assertSame(3, $this->imap($protocol)->countMessages());
     }
@@ -310,7 +311,8 @@ final class ImapStorageTest extends TestCase
     public function reportsRefusedSearch(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('search')->willReturn(false);
+        $protocol->method('searchCount')
+            ->willThrowException(new ProtocolRuntimeException('The server refused the search'));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('The server refused the search');
@@ -324,7 +326,7 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->method('escapeString')->willReturnCallback(static fn(string $text): string => "\"{$text}\"");
-        $protocol->expects($this->once())->method('search')->with($criteria)->willReturn([1]);
+        $protocol->expects($this->once())->method('searchCount')->with($criteria)->willReturn(1);
 
         $this->imap($protocol)->countMessages(...$flags);
     }
@@ -347,7 +349,7 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->method('escapeString')->willReturn(['x']);
-        $protocol->expects($this->once())->method('search')->with(['KEYWORD', ''])->willReturn([]);
+        $protocol->expects($this->once())->method('searchCount')->with(['KEYWORD', ''])->willReturn(0);
 
         $this->imap($protocol)->countMessages('$Junk');
     }
@@ -583,6 +585,23 @@ final class ImapStorageTest extends TestCase
         );
     }
 
+    /**
+     * IMAP4rev2 lists a parent that holds no messages as \\NonExistent (RFC 9051).
+     */
+    #[Test]
+    public function cannotSelectAFolderListedAsNonExistent(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('listMailbox')
+            ->willReturn([
+                'Archive'      => ['delim' => '/', 'flags' => ['\\NonExistent', '\\HasChildren']],
+                'Archive/2024' => ['delim' => '/', 'flags' => ['\\HasNoChildren']],
+            ]);
+        $archive = $this->imap($protocol)->getFolders()->getFolder('Archive');
+
+        static::assertSame([false, true], [$archive->isSelectable(), $archive->getFolder('2024')->isSelectable()]);
+    }
+
     #[Test]
     public function hasRootThatCannotBeSelected(): void
     {
@@ -780,6 +799,30 @@ final class ImapStorageTest extends TestCase
         $protocol->expects($this->once())->method('copy')->with('Archive', 2)->willReturn(true);
         $protocol->method('store')->willReturn(true);
         $protocol->expects($this->once())->method('expunge')->willReturn(true);
+
+        $this->imap($protocol)->moveMessage(2, 'Archive');
+    }
+
+    #[Test]
+    public function movesMessageWithMoveWhenTheServerOffersIt(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('hasCapability')->with('MOVE')->willReturn(true);
+        $protocol->expects($this->once())->method('move')->with('Archive', 2)->willReturn(true);
+        $protocol->expects($this->never())->method('copy');
+
+        $this->imap($protocol)->moveMessage(2, 'Archive');
+    }
+
+    #[Test]
+    public function reportsAMoveTheServerRefuses(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('hasCapability')->willReturn(true);
+        $protocol->method('move')->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot move the message; does the folder exist?');
 
         $this->imap($protocol)->moveMessage(2, 'Archive');
     }

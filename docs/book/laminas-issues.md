@@ -71,7 +71,7 @@ These requests describe features contenir-mail does not have.
 | [#9](https://github.com/laminas/laminas-mail/issues/9) | DKIM signing. |
 | [#248](https://github.com/laminas/laminas-mail/issues/248) | SCRAM authentication. |
 | [#157](https://github.com/laminas/laminas-mail/issues/157) | Reading TNEF (winmail.dat) attachments. Coming in 0.3.0 as `Storage\Part::getTnefContents()` and `Storage\Tnef\Reader` (#22). |
-| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders efficiently; IMAP SORT. |
+| [#177](https://github.com/laminas/laminas-mail/issues/177), [#216](https://github.com/laminas/laminas-mail/issues/216) | Paging large folders efficiently; IMAP SORT. Coming in 0.3.0: `sortMessages()` and `getMessages()` (#21). |
 | [#33](https://github.com/laminas/laminas-mail/issues/33) | JMAP. |
 
 ## Out of scope
