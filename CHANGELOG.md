@@ -4,7 +4,29 @@ All notable changes to this project are documented in this file, in the
 format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.2.0 - TBD
+## 0.2.1 - TBD
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.2.0 - 2026-10-08
 
 ### Added
 
