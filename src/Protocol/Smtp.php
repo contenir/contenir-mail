@@ -281,6 +281,141 @@ final class Smtp extends AbstractProtocol
      */
     public function mail(string $from, ?int $size = null, bool $smtpUtf8 = false, bool $eightBit = false): void
     {
+        [$command, $utf8] = $this->mailCommand($from, $size, $smtpUtf8, $eightBit);
+        $this->command($command);
+        $this->_expect(250, 300);
+
+        $this->mail = true;
+        $this->utf8 = $utf8;
+        $this->rcpt = false;
+    }
+
+    /**
+     * @throws Exception\ExceptionInterface When MAIL has not been sent, the address is unsafe or not
+     *     ASCII outside an SMTPUTF8 transaction, or the server refuses it.
+     */
+    public function rcpt(string $to): void
+    {
+        if (! $this->mail) {
+            throw new Exception\RuntimeException('No sender reverse path has been supplied');
+        }
+
+        $this->command($this->rcptCommand($to, $this->utf8));
+        $this->_expect([250, 251], 300);
+        $this->rcpt = true;
+    }
+
+    /**
+     * Start a transaction: MAIL, then RCPT for each recipient, ready for data().
+     *
+     * When the server offers PIPELINING (RFC 2920), the commands are sent together and
+     * the replies read after, which saves a round trip for each recipient; DATA stays a
+     * step of its own, so a refusal never leaves a message half sent. Otherwise each
+     * command waits for its reply.
+     *
+     * Every reply is read before a refusal is reported, so the session stays in step,
+     * and the transaction is then abandoned with RSET, so the session is ready for the
+     * next message. A refusal throws as mail() and rcpt() do, with the server's reply.
+     *
+     * @param non-empty-list<string> $recipients
+     * @throws Exception\ExceptionInterface When there is no session, an address is unsafe, the
+     *     message is larger than the server accepts, SMTPUTF8 is needed but not offered, or the
+     *     server refuses the sender or a recipient.
+     */
+    public function envelope(
+        string $from,
+        array $recipients,
+        ?int $size = null,
+        bool $smtpUtf8 = false,
+        bool $eightBit = false,
+    ): void {
+        [$command, $utf8] = $this->mailCommand($from, $size, $smtpUtf8, $eightBit);
+        $commands = [$command];
+        foreach ($recipients as $recipient) {
+            $commands[] = $this->rcptCommand($recipient, $utf8);
+        }
+
+        $refusal = $this->hasCapability('PIPELINING') ? $this->pipeline($commands) : $this->stepByStep($commands);
+        if (null !== $refusal) {
+            $this->rset();
+
+            throw $refusal;
+        }
+
+        $this->mail = true;
+        $this->utf8 = $utf8;
+        $this->rcpt = true;
+    }
+
+    /**
+     * Send every command, then read every reply, keeping the first refusal.
+     *
+     * @param list<string> $commands
+     * @throws Exception\ExceptionInterface When a command cannot be sent or a reply is malformed.
+     */
+    private function pipeline(array $commands): ?Exception\RuntimeException
+    {
+        foreach ($commands as $command) {
+            $this->command($command);
+        }
+
+        $refusal = null;
+        foreach ($commands as $command) {
+            $refusal = $this->replyTo($command, $refusal);
+        }
+
+        return $refusal;
+    }
+
+    /**
+     * Send each command and read its reply, stopping at the first refusal.
+     *
+     * @param list<string> $commands
+     * @throws Exception\ExceptionInterface When a command cannot be sent or a reply is malformed.
+     */
+    private function stepByStep(array $commands): ?Exception\RuntimeException
+    {
+        foreach ($commands as $command) {
+            $this->command($command);
+            $refusal = $this->replyTo($command, null);
+            if (null !== $refusal) {
+                return $refusal;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Read the reply to MAIL or RCPT, keeping the first refusal; anything other than a
+     * refusal, such as a malformed reply, is thrown at once.
+     *
+     * @throws Exception\RuntimeException When the reply is not a reply at all.
+     */
+    private function replyTo(string $command, ?Exception\RuntimeException $refusal): ?Exception\RuntimeException
+    {
+        try {
+            $this->_expect(str_starts_with($command, 'MAIL') ? 250 : [250, 251], 300);
+        } catch (Exception\RuntimeException $e) {
+            if (0 === $e->getCode()) {
+                throw $e;
+            }
+
+            return $refusal ?? $e;
+        }
+
+        return $refusal;
+    }
+
+    /**
+     * The MAIL command for a sender, and whether the transaction needs SMTPUTF8.
+     *
+     * @return array{string, bool}
+     * @throws Exception\ExceptionInterface When there is no session, the address is unsafe, the
+     *     message is larger than the server accepts, or SMTPUTF8 or 8BITMIME is needed but not offered.
+     */
+    private function mailCommand(string $from, ?int $size, bool $smtpUtf8, bool $eightBit): array
+    {
         if (! $this->sess) {
             throw new Exception\RuntimeException('A valid session has not been started');
         }
@@ -322,33 +457,21 @@ final class Smtp extends AbstractProtocol
             $command .= ' SMTPUTF8';
         }
 
-        $this->command($command);
-        $this->_expect(250, 300);
-
-        $this->mail = true;
-        $this->utf8 = $utf8;
-        $this->rcpt = false;
+        return [$command, $utf8];
     }
 
     /**
-     * @throws Exception\ExceptionInterface When MAIL has not been sent, the address is unsafe or not
-     *     ASCII outside an SMTPUTF8 transaction, or the server refuses it.
+     * @throws Exception\ExceptionInterface When the address is unsafe, or not ASCII outside an SMTPUTF8 transaction.
      */
-    public function rcpt(string $to): void
+    private function rcptCommand(string $to, bool $utf8): string
     {
-        if (! $this->mail) {
-            throw new Exception\RuntimeException('No sender reverse path has been supplied');
-        }
-
-        if (! $this->utf8 && self::isUtf8($to)) {
+        if (! $utf8 && self::isUtf8($to)) {
             throw new Exception\RuntimeException(
                 'A recipient that is not ASCII needs a transaction started with SMTPUTF8',
             );
         }
 
-        $this->command('RCPT TO:<' . self::path($to) . '>');
-        $this->_expect([250, 251], 300);
-        $this->rcpt = true;
+        return 'RCPT TO:<' . self::path($to) . '>';
     }
 
     /**
