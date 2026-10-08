@@ -193,15 +193,13 @@ final class Smtp implements TransportInterface
             ));
         }
 
-        $connection->mail(
+        $connection->envelope(
             $from,
+            $recipients,
             strlen($data),
             smtpUtf8: [] !== preg_grep('/[\x80-\xFF]/', $recipients),
             eightBit: 1 === preg_match('/[\x80-\xFF]/', $data),
         );
-        foreach ($recipients as $recipient) {
-            $connection->rcpt($recipient);
-        }
 
         $connection->data($data);
     }

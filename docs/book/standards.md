@@ -12,8 +12,8 @@ probe scripts where they do not; rows without a test say so.
 - **Deviates**: intentionally different, for the reason given.
 - **Not implemented**: an optional feature the package does not offer.
 
-Summary: of the 77 requirements below, 65 conform, 3 are
-partial, 2 deviate by design, and 7 optional extensions are not
+Summary: of the 77 requirements below, 66 conform, 3 are
+partial, 2 deviate by design, and 6 optional extensions are not
 implemented. The gaps to close are listed at the end.
 
 ## Message format: RFC 5322 and RFC 6854
@@ -84,7 +84,7 @@ implemented. The gaps to close are listed at the end.
 | RFC 8314 §3 Prefer implicit TLS for submission (SHOULD) | Deviates | STARTTLS on 587 is the default because it is the most widely deployed; it is required, never opportunistic, and implicit TLS is one setting away. |
 | RFC 1870 SIZE | Conforms | Declared, and an oversized message refused before sending. `declaresMessageSize`, `refusesMessageLargerThanServerAccepts` |
 | RFC 6152 8BITMIME | Conforms | `BODY=8BITMIME` is declared when the server offers it, and 8-bit content is refused when it does not. `declaresEightBitBody`, `refusesEightBitBodyWithoutEightBitMime` |
-| RFC 2920 PIPELINING | Not implemented | Commands are sent one at a time. |
+| RFC 2920 PIPELINING | Conforms | When offered, MAIL and every RCPT go together and the replies are read after. DATA stays a step of its own. Every reply is read before a refusal is reported, then the transaction is reset. `SmtpPipeliningTest`, and against Postfix in `PostfixTest` |
 | RFC 3030 CHUNKING and BINARYMIME | Not implemented | |
 | RFC 3461 Delivery status notifications | Not implemented | |
 | RFC 8689 REQUIRETLS | Not implemented | |
@@ -150,4 +150,4 @@ These need real servers or mail clients and were not tested:
 
 | Priority | Gap | Size |
 | --- | --- | --- |
-| 1 | PIPELINING, and IMAP4rev2 when servers need it | Large |
+| 1 | IMAP4rev2 when servers need it (#14) | Large |

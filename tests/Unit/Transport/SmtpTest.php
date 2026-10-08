@@ -56,6 +56,16 @@ final class SmtpTest extends TestCase
     private const string AUTH_VALUE = 'not-a-real-credential';
 
     #[Test]
+    public function pipelinesTheEnvelopeWhenTheServerOffersIt(): void
+    {
+        [$transport, , $server] = self::transport();
+        $server->setCapabilities('STARTTLS', 'PIPELINING', 'SIZE 1000');
+        $transport->send(self::message());
+
+        static::assertCount(3, self::recipients($server));
+    }
+
+    #[Test]
     public function sendsMinimalMessageWithSender(): void
     {
         [$transport, , $server] = self::transport();

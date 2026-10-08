@@ -16,6 +16,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   any config, and they apply to TLS from the start and to STARTTLS. No other
   ssl context option can be passed, and peer verification stays on unless
   `verify_peer` turns it off. (#16)
+- SMTP PIPELINING (RFC 2920): when the server offers it, MAIL and every RCPT
+  are sent together and the replies read after, saving a round trip for each
+  recipient. DATA stays a step of its own. `Protocol\Smtp::envelope()` starts
+  the transaction either way and the SMTP transport uses it. Every reply is
+  read before a refusal is reported, and the transaction is then reset with
+  RSET. (#19)
 - IMAP4rev2 (RFC 9051): after signing in, `Protocol\Imap` turns on IMAP4rev2
   when the server offers it, or else UTF8=ACCEPT (RFC 6855), with ENABLE
   (RFC 5161). Mailbox names then travel as UTF-8. SEARCH reads ESEARCH
