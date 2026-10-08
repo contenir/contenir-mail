@@ -26,7 +26,29 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Nothing.
 
-## 0.2.0 - TBD
+## 0.2.1 - TBD
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.2.0 - 2026-10-08
 
 ### Added
 
