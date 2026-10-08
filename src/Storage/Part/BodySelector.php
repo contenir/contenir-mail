@@ -21,6 +21,9 @@ use function array_reverse;
  */
 final class BodySelector
 {
+    /**
+     * @codeCoverageIgnore Never called: it only stops the class of static methods being instantiated.
+     */
     private function __construct() {}
 
     /**

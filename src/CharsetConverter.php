@@ -74,6 +74,9 @@ final class CharsetConverter
         'BIG5-HKSCS',
     ];
 
+    /**
+     * @codeCoverageIgnore Never called: it only stops the class of static methods being instantiated.
+     */
     private function __construct() {}
 
     /**

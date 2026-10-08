@@ -173,7 +173,7 @@ final class BodyTest extends TestCase
             'undeclared charset scrubs' => ['Content-Type: text/plain' . "\r\n", "caf\xE9", "caf\u{FFFD}"],
             'unknown charset scrubs'    => [sprintf($type, 'x-unknown'), "caf\xE9", "caf\u{FFFD}"],
             'disallowed charset scrubs' => [sprintf($type, 'ISO-2022-CN-EXT'), "caf\xE9", "caf\u{FFFD}"],
-            'wrong charset scrubs'      => [sprintf($type, 'UTF-16'), "\x00\xD8", "\x00\u{FFFD}"],
+            'wrong charset scrubs'      => [sprintf($type, 'UTF-16LE'), "\x00\xD8", "\x00\u{FFFD}"],
             'invalid UTF-8 scrubs'      => [sprintf($type, 'UTF-8'), "a\xFFb", "a\u{FFFD}b"],
         ];
     }
