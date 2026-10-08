@@ -157,6 +157,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `waitUntilReadable(int $seconds): bool`, for IMAP IDLE. A connection implemented outside the package must add it:
   return whether the server has sent something, or closed the connection,
   within that many seconds. (#52)
+- The migration guide moved to `docs/book/migrating.md` and lists the silent
+  changes first.
 
 ### Deprecated
 
