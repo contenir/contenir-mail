@@ -54,9 +54,9 @@ class Microsoft extends Pop3
         $response = $this->readRemoteResponse();
         if (self::AUTH_RESPONSE_INITIALIZED_OK === $response->status()) {
             $this->sendRequest('');
-            $this->readRemoteResponse();
+            $final = $this->readRemoteResponse();
 
-            throw new RuntimeException(Xoauth2::refusal($response->message()));
+            throw new RuntimeException(Xoauth2::refusal($response->message(), $final->message()));
         }
 
         if ('+OK' !== $response->status()) {

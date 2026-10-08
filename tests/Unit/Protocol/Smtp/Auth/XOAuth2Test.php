@@ -63,7 +63,7 @@ final class XOAuth2Test extends TestCase
             static function (string $line, int $expect) use (&$lines): string {
                 $lines[] = [$line, $expect];
 
-                return '';
+                return '' === $line ? '5.7.8 Username and Password not accepted' : '';
             },
             static function () use ($code): string {
                 throw new RuntimeException(base64_encode('{"status":"401","schemes":"bearer"}'), $code);
@@ -82,7 +82,11 @@ final class XOAuth2Test extends TestCase
             static::fail('The refused token was not reported');
         } catch (RuntimeException $e) {
             static::assertSame(
-                [[['AUTH XOAUTH2', 334], ['', 535]], 'The server refused the access token (status 401)', 535],
+                [
+                    [['AUTH XOAUTH2', 334], ['', 535]],
+                    'The server refused the access token (status 401): 5.7.8 Username and Password not accepted',
+                    535,
+                ],
                 [$lines, $e->getMessage(), $e->getCode()],
             );
         }
