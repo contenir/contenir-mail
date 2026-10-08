@@ -414,32 +414,40 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     /**
      * @param string|resource|Message|ComposedMessage $message
      * @param iterable<Flag|string>|null $flags Seen when null.
+     * @return int|null The UID the server gave the message in an APPENDUID response code (RFC 4315), or null.
      * @throws Exception\ExceptionInterface When a flag or the folder is not valid, or the server refuses.
      * @throws MimeException When a composed message cannot be written.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): void
+    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): ?int
     {
         $folder = RemoteFolder::check((string) ($folder ?? $this->currentFolder));
         $flags  = ImapFlags::toStore($flags ?? [Flag::Seen]);
-        if (! $this->protocol->append($folder, RawMessage::toString($message), $flags)) {
+        $result = $this->protocol->appendWithUid($folder, RawMessage::toString($message), $flags);
+        if (false === $result) {
             throw new Exception\RuntimeException(
                 'Cannot store the message; check that the folder exists and the flags',
             );
         }
+
+        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
     }
 
     /**
+     * @return int|null The UID the server gave the copy in a COPYUID response code (RFC 4315), or null.
      * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function copyMessage(int $id, Folder|string $folder): void
+    public function copyMessage(int $id, Folder|string $folder): ?int
     {
-        if (! $this->protocol->copy(RemoteFolder::check((string) $folder), self::checkNumber($id))) {
+        $result = $this->protocol->copyWithUid(RemoteFolder::check((string) $folder), self::checkNumber($id));
+        if (false === $result) {
             throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?');
         }
+
+        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
     }
 
     /**

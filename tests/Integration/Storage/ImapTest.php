@@ -629,6 +629,39 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    public function appendReturnsTheUidTheServerGaveTheMessage(): void
+    {
+        $mail = new Storage\Imap($this->params);
+
+        $uid = $mail->appendMessage("Subject: uidplus test\r\n\r\nThis is a test\r\n");
+
+        static::assertSame((string) $uid, $mail->getUniqueId($mail->countMessages()));
+    }
+
+    #[Test]
+    public function copyReturnsTheUidTheServerGaveTheCopy(): void
+    {
+        $mail = new Storage\Imap($this->params);
+
+        $uid = $mail->copyMessage(1, 'subfolder/test');
+        $mail->selectFolder('subfolder/test');
+
+        static::assertSame((string) $uid, $mail->getUniqueId($mail->countMessages()));
+    }
+
+    #[Test]
+    public function unselectLeavesTheFolderWithoutExpunging(): void
+    {
+        $protocol = new Protocol\Imap($this->params['host']);
+        $protocol->login($this->params['user'], $this->params['password']);
+        $protocol->select('INBOX');
+        $protocol->store(['\Deleted'], 1, null, '+');
+
+        static::assertTrue($protocol->unselect());
+        static::assertSame(7, (new Storage\Imap($protocol))->countMessages());
+    }
+
+    #[Test]
     public function setFlags(): void
     {
         $mail = new Storage\Imap($this->params);

@@ -6,6 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Imap\MailboxName;
+use Contenir\Mail\Protocol\Imap\UidPlus;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
@@ -111,6 +112,9 @@ class Imap
 
     /** A sort key (RFC 5256, RFC 5957), optionally reversed */
     private const string SORT_KEY = '/^(?:REVERSE )?(?:ARRIVAL|CC|DATE|FROM|SIZE|SUBJECT|TO|DISPLAYFROM|DISPLAYTO)$/Di';
+
+    /** The largest literal sent without waiting for the server under LITERAL- (RFC 7888) */
+    public const int LITERAL_MINUS_MAX = 4096;
 
     /** The most ids an ESEARCH result may expand to */
     public const int MAX_SEARCH_RESULTS = 1_000_000;
@@ -447,11 +451,7 @@ class Imap
         foreach ($tokens as $token) {
             if (is_array($token)) {
                 $literal = self::literal($token);
-                $this->connection->write(CommandLine::terminate("{$line} {" . strlen($literal) . '}'));
-                if (! $this->assumedNextLine('+')) {
-                    throw new Exception\RuntimeException('cannot send literal string');
-                }
-
+                $this->sendLiteralSize($line, strlen($literal));
                 $this->connection->write($literal);
                 $line = '';
                 continue;
@@ -471,6 +471,38 @@ class Imap
         }
 
         $this->connection->write(CommandLine::terminate($line));
+    }
+
+    /**
+     * End the line with the size of the literal that follows: non-synchronising ({size+}, RFC 7888)
+     * when the server offers LITERAL+, or LITERAL- or IMAP4rev2 and the literal is at most
+     * LITERAL_MINUS_MAX bytes; otherwise synchronising, waiting for the server's "+".
+     * Only capabilities already read are consulted, so no command is sent in the middle of another.
+     *
+     * @throws Exception\RuntimeException When the server refuses the literal or the connection fails.
+     */
+    private function sendLiteralSize(string $line, int $size): void
+    {
+        $capabilities = $this->capabilities ?? [];
+        if (
+            in_array('LITERAL+', $capabilities, strict: true)
+            || (
+                $size <= self::LITERAL_MINUS_MAX
+                && (
+                    $this->imap4Rev2
+                    || in_array('LITERAL-', $capabilities, strict: true)
+                )
+            )
+        ) {
+            $this->connection->write(CommandLine::terminate("{$line} {{$size}+}"));
+
+            return;
+        }
+
+        $this->connection->write(CommandLine::terminate("{$line} {{$size}}"));
+        if (! $this->assumedNextLine('+')) {
+            throw new Exception\RuntimeException('cannot send literal string');
+        }
     }
 
     /**
@@ -555,6 +587,7 @@ class Imap
             return false;
         }
 
+        $this->capabilities = null;
         $this->negotiate($capabilities);
 
         return true;
@@ -1280,6 +1313,23 @@ class Imap
      */
     public function append(string $folder, string $message, ?array $flags = null, ?string $date = null): bool
     {
+        return false !== $this->appendWithUid($folder, $message, $flags, $date);
+    }
+
+    /**
+     * Append a message as append() does, and read the UID the server gave it (RFC 4315, UIDPLUS).
+     *
+     * @param array<mixed>|null $flags
+     * @return UidPlus|bool false when the server refuses, the UIDs when it reports them in an
+     *     APPENDUID response code, and true otherwise.
+     * @throws Exception\ExceptionInterface
+     */
+    public function appendWithUid(
+        string $folder,
+        string $message,
+        ?array $flags = null,
+        ?string $date = null,
+    ): UidPlus|bool {
         $tokens   = [];
         $tokens[] = $this->mailbox($folder);
         if (null !== $flags) {
@@ -1292,7 +1342,7 @@ class Imap
 
         $tokens[] = $this->escapeOne($message);
 
-        return $this->succeeded($this->requestAndResponse('APPEND', $tokens));
+        return $this->withUids('APPEND', $tokens);
     }
 
     /**
@@ -1307,9 +1357,56 @@ class Imap
      */
     public function copy(string $folder, int|string $from, int|float|null $to = null): bool
     {
-        $set = self::sequenceSet($from, $to);
+        return false !== $this->copyWithUid($folder, $from, $to);
+    }
 
-        return $this->succeeded($this->requestAndResponse('COPY', [$set, $this->mailbox($folder)]));
+    /**
+     * Copy messages as copy() does, and read the UIDs the server gave the copies (RFC 4315, UIDPLUS).
+     *
+     * @param int|float|null $to The last message, INF for the last one there is, or null for $from alone.
+     * @return UidPlus|bool false when the server refuses, the source and destination UIDs when it
+     *     reports them in a COPYUID response code, and true otherwise.
+     * @throws Exception\ExceptionInterface
+     */
+    public function copyWithUid(string $folder, int|string $from, int|float|null $to = null): UidPlus|bool
+    {
+        return $this->withUids('COPY', [self::sequenceSet($from, $to), $this->mailbox($folder)]);
+    }
+
+    /**
+     * Send APPEND or COPY, and read the APPENDUID or COPYUID response code of its tagged reply.
+     *
+     * @param array<mixed> $tokens
+     * @throws Exception\ExceptionInterface
+     */
+    private function withUids(string $command, array $tokens): UidPlus|bool
+    {
+        $tag = null;
+        $this->sendRequest($command, $tokens, $tag);
+        $reply = $this->skipToTag($tag);
+        if ('OK' !== ($reply[0] ?? null)) {
+            return false;
+        }
+
+        return UidPlus::fromTaggedReply($reply) ?? true;
+    }
+
+    /**
+     * Leave the selected folder without expunging the messages flagged \Deleted (RFC 3691,
+     * part of IMAP4rev2), when the server offers UNSELECT or IMAP4rev2 is enabled.
+     *
+     * CLOSE would expunge them; SELECT, EXAMINE and LOGOUT leave a folder without expunging
+     * (RFC 3501, section 6.4.2), so this is only needed to have no folder selected.
+     *
+     * @throws Exception\ExceptionInterface When the server does not offer UNSELECT or cannot be asked.
+     */
+    public function unselect(): bool
+    {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('UNSELECT')) {
+            throw new Exception\RuntimeException('The server does not offer UNSELECT');
+        }
+
+        return $this->succeeded($this->requestAndResponse('UNSELECT'));
     }
 
     /**
@@ -1770,16 +1867,19 @@ class Imap
     }
 
     /**
-     * Read the rest of a response up to its tagged line.
+     * Read the rest of a response up to its tagged line, returning that line's tokens.
      *
+     * @return array<mixed>
      * @throws Exception\RuntimeException
      */
-    private function skipToTag(string $tag): void
+    private function skipToTag(string $tag): array
     {
         do {
-            $tokens = null;
+            $tokens = [];
             $done   = $this->readLine($tokens, $tag);
         } while (! $done);
+
+        return $tokens;
     }
 
     /**
