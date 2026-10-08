@@ -8,12 +8,16 @@ use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function count;
 use function getenv;
+use function implode;
+use function substr;
 
 /**
  * POP3 XOAUTH2 against Dovecot, which checks the token as the user's secret.
@@ -49,12 +53,33 @@ final class Pop3Xoauth2Test extends TestCase
         static::assertIsNumeric($messages);
     }
 
+    /**
+     * Dovecot refuses with a challenge, which must be answered with an empty response
+     * before the final -ERR; the transcript shows the exchange was finished.
+     */
     #[Test]
-    public function refusesAWrongAccessToken(): void
+    public function finishesTheExchangeWhenTheTokenIsRefused(): void
     {
-        $this->expectException(ExceptionInterface::class);
-        $this->expectExceptionMessage('The server refused the access token');
+        $connection = new RecordingConnection();
+        $pop3       = new Microsoft(connection: $connection);
+        $pop3->connect(
+            new ConnectionConfig((string) getenv('TESTS_CONTENIR_MAIL_POP3_HOST'), security: Security::StartTls),
+        );
 
-        self::pop3()->login('test', 'wrong');
+        try {
+            $pop3->login('test', 'wrong');
+            static::fail('The wrong token was accepted');
+        } catch (ExceptionInterface $e) {
+            $transcript = $connection->transcript();
+            static::assertSame(
+                ['The server refused the access token', 'C: ', 'S: -ERR'],
+                [
+                    substr($e->getMessage(), offset: 0, length: 35),
+                    $transcript[count($transcript) - 2] ?? '',
+                    substr($transcript[count($transcript) - 1] ?? '', offset: 0, length: 7),
+                ],
+                implode("\n", $transcript),
+            );
+        }
     }
 }

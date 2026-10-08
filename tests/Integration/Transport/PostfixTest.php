@@ -122,11 +122,14 @@ final class PostfixTest extends TestCase
         static::assertSame($subject, self::delivered($subject)?->getSubject());
     }
 
+    /**
+     * Postfix refuses a token passed on to Dovecot with 535 at once, with no challenge first.
+     */
     #[Test]
     public function refusesWrongAccessToken(): void
     {
         $this->expectException(ExceptionInterface::class);
-        $this->expectExceptionMessage('The server refused the access token');
+        $this->expectExceptionMessage('5.7.8 Error: authentication failed');
 
         self::transport(['type' => 'xoauth2', 'username' => 'test', 'access_token' => bin2hex(random_bytes(8))])
             ->send(self::message('refused token'));
