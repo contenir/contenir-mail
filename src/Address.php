@@ -13,7 +13,6 @@ use function idn_to_ascii;
 use function preg_match;
 use function sprintf;
 use function strpbrk;
-use function strrpos;
 use function substr;
 use function trim;
 
@@ -50,7 +49,7 @@ final readonly class Address
     private const string NAME_BIDI = '/[\x{202A}-\x{202E}\x{2066}-\x{2069}]/u';
 
     /** A lenient address: one "@" between parts holding no whitespace or header specials */
-    private const string LENIENT_EMAIL = '/^[^\s@<>()\[\],;:"\\\\]+@[^\s@<>()\[\],;:"\\\\]+$/uD';
+    private const string LENIENT_EMAIL = '/^[^\s@<>()\[\],;:"\\\\]+@(?<domain>[^\s@<>()\[\],;:"\\\\]+)$/uD';
 
     private string $email;
 
@@ -90,13 +89,14 @@ final readonly class Address
     public static function lenient(string $email, ?string $name = null, ?string $comment = null): self
     {
         $email = self::checkParts($email, $name, $comment);
-        if (1 !== preg_match(self::LENIENT_EMAIL, $email)) {
+        $parts = [];
+        if (1 !== preg_match(self::LENIENT_EMAIL, $email, $parts)) {
             throw new Exception\InvalidArgumentException(
                 'An address needs one "@" and a domain, without whitespace or the characters <>()[],;:"\\',
             );
         }
 
-        $domain = substr($email, (int) strrpos($email, needle: '@') + 1);
+        $domain = $parts['domain'] ?? '';
         if (
             1 === preg_match('/[\x80-\xFF]/', $domain)
             && false === idn_to_ascii($domain, DomainName::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46)
