@@ -7,12 +7,6 @@ message = "Class has high complexity."
 count = 1
 
 [[issues]]
-file = "src/Address.php"
-code = "no-redundant-use"
-message = "Unused import: `substr`."
-count = 1
-
-[[issues]]
 file = "src/Exception/BadMethodCallException.php"
 code = "no-fully-qualified-global-class-like"
 message = "Fully-qualified class-like reference detected."

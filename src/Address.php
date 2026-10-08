@@ -13,7 +13,6 @@ use function idn_to_ascii;
 use function preg_match;
 use function sprintf;
 use function strpbrk;
-use function substr;
 use function trim;
 
 use const INTL_IDNA_VARIANT_UTS46;
