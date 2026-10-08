@@ -6,6 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Imap\MailboxName;
+use Contenir\Mail\Protocol\Imap\UidPlus;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
@@ -109,8 +110,14 @@ class Imap
      */
     private ?array $capabilities = null;
 
+    /** A STATUS item: RFC 3501, DELETED and SIZE (RFC 9051, RFC 8438), HIGHESTMODSEQ (RFC 7162) */
+    private const string STATUS_ITEM = '/^(?:MESSAGES|RECENT|UIDNEXT|UIDVALIDITY|UNSEEN|DELETED|SIZE|HIGHESTMODSEQ)$/Di';
+
     /** A sort key (RFC 5256, RFC 5957), optionally reversed */
     private const string SORT_KEY = '/^(?:REVERSE )?(?:ARRIVAL|CC|DATE|FROM|SIZE|SUBJECT|TO|DISPLAYFROM|DISPLAYTO)$/Di';
+
+    /** The largest literal sent without waiting for the server under LITERAL- (RFC 7888) */
+    public const int LITERAL_MINUS_MAX = 4096;
 
     /** The most ids an ESEARCH result may expand to */
     public const int MAX_SEARCH_RESULTS = 1_000_000;
@@ -301,6 +308,7 @@ class Imap
      * "foo" baz {3}<NL>bar ("f\\\"oo" bar)
      * would be returned as:
      * array('foo', 'baz', 'bar', array('f\\\"oo', 'bar'));
+     * Lists may follow each other without a space, as in ((a b)(c d)).
      *
      * @param  string $line line to decode
      * @return array<mixed> tokens, literals are returned as string, lists as array
@@ -317,6 +325,12 @@ class Imap
         while (($pos = strpos($line, needle: ' ')) !== false) {
             $token   = substr($line, offset: 0, length: $pos);
             $literal = [];
+            $next    = strpos($token, needle: ')(');
+            if (false !== $next) {
+                $pos   = $next + 1;
+                $token = substr($token, offset: 0, length: $pos);
+            }
+
             if ('' === $token) {
                 $line = substr($line, $pos + 1);
                 continue;
@@ -447,11 +461,7 @@ class Imap
         foreach ($tokens as $token) {
             if (is_array($token)) {
                 $literal = self::literal($token);
-                $this->connection->write(CommandLine::terminate("{$line} {" . strlen($literal) . '}'));
-                if (! $this->assumedNextLine('+')) {
-                    throw new Exception\RuntimeException('cannot send literal string');
-                }
-
+                $this->sendLiteralSize($line, strlen($literal));
                 $this->connection->write($literal);
                 $line = '';
                 continue;
@@ -471,6 +481,38 @@ class Imap
         }
 
         $this->connection->write(CommandLine::terminate($line));
+    }
+
+    /**
+     * End the line with the size of the literal that follows: non-synchronising ({size+}, RFC 7888)
+     * when the server offers LITERAL+, or LITERAL- or IMAP4rev2 and the literal is at most
+     * LITERAL_MINUS_MAX bytes; otherwise synchronising, waiting for the server's "+".
+     * Only capabilities already read are consulted, so no command is sent in the middle of another.
+     *
+     * @throws Exception\RuntimeException When the server refuses the literal or the connection fails.
+     */
+    private function sendLiteralSize(string $line, int $size): void
+    {
+        $capabilities = $this->capabilities ?? [];
+        if (
+            in_array('LITERAL+', $capabilities, strict: true)
+            || (
+                $size <= self::LITERAL_MINUS_MAX
+                && (
+                    $this->imap4Rev2
+                    || in_array('LITERAL-', $capabilities, strict: true)
+                )
+            )
+        ) {
+            $this->connection->write(CommandLine::terminate("{$line} {{$size}+}"));
+
+            return;
+        }
+
+        $this->connection->write(CommandLine::terminate("{$line} {{$size}}"));
+        if (! $this->assumedNextLine('+')) {
+            throw new Exception\RuntimeException('cannot send literal string');
+        }
     }
 
     /**
@@ -555,6 +597,7 @@ class Imap
             return false;
         }
 
+        $this->capabilities = null;
         $this->negotiate($capabilities);
 
         return true;
@@ -781,6 +824,14 @@ class Imap
     public function hasUtf8Mailboxes(): bool
     {
         return $this->utf8Mailboxes;
+    }
+
+    /**
+     * Whether IMAP4rev2 (RFC 9051) is enabled, which brings ESEARCH, NAMESPACE and STATUS SIZE with it.
+     */
+    public function hasImap4Rev2(): bool
+    {
+        return $this->imap4Rev2;
     }
 
     /**
@@ -1073,6 +1124,142 @@ class Imap
     }
 
     /**
+     * The server's namespaces (RFC 2342, part of IMAP4rev2), with their prefixes as UTF-8;
+     * null when the server offers neither NAMESPACE nor IMAP4rev2.
+     *
+     * @throws Exception\RuntimeException When the server refuses or its response is malformed.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function namespace(): ?Imap\Namespaces
+    {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
+            return null;
+        }
+
+        $response = $this->requestAndResponse('NAMESPACE');
+        if (null === $response || false === $response) {
+            throw new Exception\RuntimeException('The server refused NAMESPACE');
+        }
+
+        foreach (is_array($response) ? $response : [] as $tokens) {
+            if ('NAMESPACE' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
+                return new Imap\Namespaces(
+                    personal: $this->namespaceEntries($tokens[1] ?? null),
+                    otherUsers: $this->namespaceEntries($tokens[2] ?? null),
+                    shared: $this->namespaceEntries($tokens[3] ?? null),
+                );
+            }
+        }
+
+        throw new Exception\RuntimeException('The server sent no NAMESPACE response');
+    }
+
+    /**
+     * The namespaces of one kind: NIL for none, or a list of namespaces.
+     *
+     * @return list<Imap\NamespaceEntry>
+     * @throws Exception\RuntimeException When the namespaces are malformed.
+     */
+    private function namespaceEntries(mixed $namespaces): array
+    {
+        if (is_string($namespaces) && 'NIL' === strtoupper($namespaces)) {
+            return [];
+        }
+
+        if (! is_array($namespaces) || [] === $namespaces) {
+            throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
+        }
+
+        return array_values(array_map($this->namespaceEntry(...), $namespaces));
+    }
+
+    /**
+     * One namespace: its prefix and delimiter, or NIL for none, then any extension data, which is ignored.
+     *
+     * @throws Exception\RuntimeException When the namespace is malformed.
+     */
+    private function namespaceEntry(mixed $entry): Imap\NamespaceEntry
+    {
+        $prefix    = is_array($entry) ? $entry[0] ?? null : null;
+        $delimiter = is_array($entry) ? $entry[1] ?? null : null;
+        if (
+            ! is_string($prefix)
+            || ! is_string($delimiter)
+            || (
+                1 !== strlen($delimiter)
+                && 'NIL' !== strtoupper($delimiter)
+            )
+        ) {
+            throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
+        }
+
+        return new Imap\NamespaceEntry(
+            prefix: $this->utf8Mailboxes ? $prefix : MailboxName::decode($prefix),
+            delimiter: 1 === strlen($delimiter) ? $delimiter : null,
+        );
+    }
+
+    /**
+     * The status of a mailbox without selecting it, such as its MESSAGES and UNSEEN counts, or
+     * its SIZE in octets when the server offers STATUS=SIZE (RFC 8438) or has IMAP4rev2 enabled.
+     *
+     * @param list<string> $items MESSAGES, RECENT, UIDNEXT, UIDVALIDITY, UNSEEN, DELETED, SIZE or HIGHESTMODSEQ.
+     * @return array<string, int>|false The values by item name in upper case, or false when the server refuses.
+     * @throws Exception\InvalidArgumentException When there is no item, an item is not one of those,
+     *     or the name is not UTF-8 or contains NUL.
+     * @throws Exception\RuntimeException When a value is not a number.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function status(string $mailbox, array $items): array|false
+    {
+        if ([] === $items) {
+            throw new Exception\InvalidArgumentException('STATUS needs at least one item');
+        }
+
+        $names = [];
+        foreach ($items as $item) {
+            if (1 !== preg_match(self::STATUS_ITEM, $item)) {
+                throw new Exception\InvalidArgumentException("\"{$item}\" is not an IMAP status item");
+            }
+
+            $names[] = strtoupper($item);
+        }
+
+        $response = $this->requestAndResponse('STATUS', [$this->mailbox($mailbox), $this->escapeList($names)]);
+        if (null === $response || false === $response) {
+            return false;
+        }
+
+        foreach (is_array($response) ? $response : [] as $tokens) {
+            $values = $tokens[2] ?? null;
+            if ('STATUS' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '') && is_array($values)) {
+                return self::statusValues($values);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<mixed> $values
+     * @return array<string, int>
+     * @throws Exception\RuntimeException When a value is not a number.
+     */
+    private static function statusValues(array $values): array
+    {
+        $status = [];
+        foreach (self::itemMap($values) as $name => $value) {
+            if (! is_string($value) || 1 !== preg_match('/\A\d{1,18}\z/', $value)) {
+                throw new Exception\RuntimeException('The server sent a malformed STATUS response');
+            }
+
+            $status[strtoupper($name)] = (int) $value;
+        }
+
+        return $status;
+    }
+
+    /**
      * set flags
      *
      * @param  array<mixed> $flags flags to set, add or remove - see $mode
@@ -1140,6 +1327,23 @@ class Imap
      */
     public function append(string $folder, string $message, ?array $flags = null, ?string $date = null): bool
     {
+        return false !== $this->appendWithUid($folder, $message, $flags, $date);
+    }
+
+    /**
+     * Append a message as append() does, and read the UID the server gave it (RFC 4315, UIDPLUS).
+     *
+     * @param array<mixed>|null $flags
+     * @return UidPlus|bool false when the server refuses, the UIDs when it reports them in an
+     *     APPENDUID response code, and true otherwise.
+     * @throws Exception\ExceptionInterface
+     */
+    public function appendWithUid(
+        string $folder,
+        string $message,
+        ?array $flags = null,
+        ?string $date = null,
+    ): UidPlus|bool {
         $tokens   = [];
         $tokens[] = $this->mailbox($folder);
         if (null !== $flags) {
@@ -1152,7 +1356,7 @@ class Imap
 
         $tokens[] = $this->escapeOne($message);
 
-        return $this->succeeded($this->requestAndResponse('APPEND', $tokens));
+        return $this->withUids('APPEND', $tokens);
     }
 
     /**
@@ -1167,9 +1371,56 @@ class Imap
      */
     public function copy(string $folder, int|string $from, int|float|null $to = null): bool
     {
-        $set = self::sequenceSet($from, $to);
+        return false !== $this->copyWithUid($folder, $from, $to);
+    }
 
-        return $this->succeeded($this->requestAndResponse('COPY', [$set, $this->mailbox($folder)]));
+    /**
+     * Copy messages as copy() does, and read the UIDs the server gave the copies (RFC 4315, UIDPLUS).
+     *
+     * @param int|float|null $to The last message, INF for the last one there is, or null for $from alone.
+     * @return UidPlus|bool false when the server refuses, the source and destination UIDs when it
+     *     reports them in a COPYUID response code, and true otherwise.
+     * @throws Exception\ExceptionInterface
+     */
+    public function copyWithUid(string $folder, int|string $from, int|float|null $to = null): UidPlus|bool
+    {
+        return $this->withUids('COPY', [self::sequenceSet($from, $to), $this->mailbox($folder)]);
+    }
+
+    /**
+     * Send APPEND or COPY, and read the APPENDUID or COPYUID response code of its tagged reply.
+     *
+     * @param array<mixed> $tokens
+     * @throws Exception\ExceptionInterface
+     */
+    private function withUids(string $command, array $tokens): UidPlus|bool
+    {
+        $tag = null;
+        $this->sendRequest($command, $tokens, $tag);
+        $reply = $this->skipToTag($tag);
+        if ('OK' !== ($reply[0] ?? null)) {
+            return false;
+        }
+
+        return UidPlus::fromTaggedReply($reply) ?? true;
+    }
+
+    /**
+     * Leave the selected folder without expunging the messages flagged \Deleted (RFC 3691,
+     * part of IMAP4rev2), when the server offers UNSELECT or IMAP4rev2 is enabled.
+     *
+     * CLOSE would expunge them; SELECT, EXAMINE and LOGOUT leave a folder without expunging
+     * (RFC 3501, section 6.4.2), so this is only needed to have no folder selected.
+     *
+     * @throws Exception\ExceptionInterface When the server does not offer UNSELECT or cannot be asked.
+     */
+    public function unselect(): bool
+    {
+        if (! $this->imap4Rev2 && ! $this->hasCapability('UNSELECT')) {
+            throw new Exception\RuntimeException('The server does not offer UNSELECT');
+        }
+
+        return $this->succeeded($this->requestAndResponse('UNSELECT'));
     }
 
     /**
@@ -1806,16 +2057,19 @@ class Imap
     }
 
     /**
-     * Read the rest of a response up to its tagged line.
+     * Read the rest of a response up to its tagged line, returning that line's tokens.
      *
+     * @return array<mixed>
      * @throws Exception\RuntimeException
      */
-    private function skipToTag(string $tag): void
+    private function skipToTag(string $tag): array
     {
         do {
-            $tokens = null;
+            $tokens = [];
             $done   = $this->readLine($tokens, $tag);
         } while (! $done);
+
+        return $tokens;
     }
 
     /**

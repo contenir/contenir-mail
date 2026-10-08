@@ -194,6 +194,7 @@ final class Maildir extends Folder\Maildir implements WritableInterface
      * @param string|resource|Message|ComposedMessage $message
      * @param iterable<Flag|string>|null $flags Seen when null.
      * @param bool $recent Deliver to new/ as a recent message, without flags, as a delivery agent would.
+     * @return null Maildir has no UIDs.
      * @throws Exception\ExceptionInterface When the storage is over quota, a flag cannot be stored, or writing fails.
      * @throws MimeException When a composed message cannot be written.
      *
@@ -205,7 +206,7 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         Folder|string|null $folder = null,
         ?iterable $flags = null,
         bool $recent = false,
-    ): void {
+    ): ?int {
         $this->refuseOverQuota();
         $local = $this->selectableFolder($folder ?? $this->currentFolder);
         [$info, $named] = MaildirName::info($flags ?? [Flag::Seen]);
@@ -216,16 +217,19 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         $target = $this->targetDirectory($local, $recent ? 'new' : 'cur') . DIRECTORY_SEPARATOR . $name;
         MaildirDelivery::deliver($path, $target);
         $this->track($local, $uniq, $recent ? [Flag::Recent] : $named, $target, $size);
+
+        return null;
     }
 
     /**
      * Copy a message to a folder, without its Recent flag.
      *
+     * @return null Maildir has no UIDs.
      * @throws Exception\ExceptionInterface When there is no such message or folder, or writing fails.
      * @throws MimeException Never: the copy is written from a file.
      */
     #[Override]
-    public function copyMessage(int $id, Folder|string $folder): void
+    public function copyMessage(int $id, Folder|string $folder): ?int
     {
         $this->refuseOverQuota();
         $file  = $this->file($id);
@@ -242,6 +246,8 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         $target = $this->targetDirectory($local, 'cur') . DIRECTORY_SEPARATOR . "{$uniq},S={$size}:{$info}";
         MaildirDelivery::deliver($path, $target);
         $this->track($local, $uniq, $named, $target, $size);
+
+        return null;
     }
 
     /**

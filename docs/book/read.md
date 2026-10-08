@@ -608,6 +608,45 @@ $folder = $mail->getFolders()->getFolder('Archive')->getFolder('2005');
 $mail->selectFolder($folder);
 ```
 
+### Special-use folders, namespaces and folder status (IMAP)
+
+Servers name their sent, drafts and trash folders differently: `Sent`,
+`Sent Items`, `INBOX.Sent`, or a translated name. A server that marks them
+(RFC 6154 SPECIAL-USE) tells you which is which. `getSpecialUse()` on an
+IMAP folder returns a `Storage\SpecialUse` case (`All`, `Archive`, `Drafts`,
+`Flagged`, `Junk`, `Sent` or `Trash`), or null. `getSpecialFolder()` finds
+the first folder in the tree with that use:
+
+```php
+use Contenir\Mail\Storage\SpecialUse;
+
+$sent = $mail->getSpecialFolder(SpecialUse::Sent);
+if (null !== $sent) {
+    $mail->appendMessage($message, $sent);
+}
+```
+
+`getNamespaces()` returns the server's namespaces (RFC 2342), or null when
+the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
+`shared` is a list of `Protocol\Imap\NamespaceEntry` with a `prefix`, such as
+`INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
+New folders belong under the first personal prefix on servers that have one.
+
+`getFolderStatus()` reads a folder's message count, unseen count and next
+unique ID without selecting it. It also reads the folder's size in octets
+when the server offers STATUS=SIZE (RFC 8438) or has IMAP4rev2 enabled.
+`getFolderSize()` reads only the size, and returns null when the server
+can't say:
+
+```php
+foreach ($folders as $folder) {
+    if ($folder->isSelectable()) {
+        $status = $mail->getFolderStatus($folder);
+        printf("%s: %d unread, %s octets\n", $folder, $status->unseen, $status->size ?? '?');
+    }
+}
+```
+
 ## Writing: Maildir and IMAP
 
 `Storage\Writable\Maildir` and `Storage\Imap` implement
@@ -629,6 +668,30 @@ $mail->createFolder('Projects', 'INBOX');
 $mail->renameFolder('INBOX.Projects', 'INBOX.Work');
 $mail->removeFolder('INBOX.Work');
 ```
+
+`appendMessage()` and `copyMessage()` return the UID of the new message when
+the storage reports one, and null otherwise. IMAP servers with UIDPLUS
+(RFC 4315, part of IMAP4rev2) report it, as Dovecot and Cyrus do; Maildir
+has no UIDs and always returns null. Keep the UID to find the message
+again, for example with `getNumberByUniqueId((string) $uid)`:
+
+```php
+$uid = $imap->appendMessage($rawMessage, 'Sent');   // 3955, or null without UIDPLUS
+```
+
+At the protocol level, `Protocol\Imap::appendWithUid()` and `copyWithUid()`
+return a `Protocol\Imap\UidPlus` with the folder's UIDVALIDITY and the source
+and destination UIDs, true when the server reports none, or false when it
+refuses. `append()` and `copy()` still return a bool.
+
+IMAP literals, such as a message or a non-ASCII password, are sent without
+waiting for the server's go-ahead when it offers LITERAL+, or LITERAL- or
+IMAP4rev2 for literals up to 4096 bytes (RFC 7888), saving a round trip.
+
+`Storage\Imap` never sends CLOSE, which would expunge the messages flagged
+`\Deleted`: selecting another folder, and logging out, leave a folder without
+expunging it. To have no folder selected, `Protocol\Imap::unselect()` sends
+UNSELECT (RFC 3691) when the server offers it or IMAP4rev2 is enabled.
 
 The Maildir writer follows Maildir delivery: each message is written to a
 new file in `tmp/`, opened exclusively so no existing file or symbolic link of

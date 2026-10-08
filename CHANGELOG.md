@@ -69,6 +69,41 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seeds, refuses RSA keys under 1024 bits, hides the key from dumps and gives
   the DNS record to publish. `Headers::withFirst()` adds a header before the
   others. (#23)
+- IMAP UIDPLUS (RFC 4315): `Storage\Imap::appendMessage()` and
+  `copyMessage()` return the UID the server gave the new message, from the
+  APPENDUID or COPYUID response code. New on `Protocol\Imap`:
+  `appendWithUid()` and `copyWithUid()`, which return a
+  `Protocol\Imap\UidPlus` with the UIDVALIDITY and the source and
+  destination UIDs. UID sets are validated strictly and bounded to
+  `UidPlus::MAX_UIDS`; a malformed code is ignored. (#52)
+- IMAP UNSELECT (RFC 3691): `Protocol\Imap::unselect()` leaves the selected
+  folder without expunging messages flagged `\Deleted`, when the server
+  offers UNSELECT or IMAP4rev2 is enabled. (#52)
+- IMAP LITERAL+ and LITERAL- (RFC 7888): literals are sent without waiting
+  for the server's `+` when it offers LITERAL+, or LITERAL- or IMAP4rev2 and
+  the literal is at most 4096 bytes. (#52)
+- IMAP folder metadata. SPECIAL-USE (RFC 6154): `Storage\Folder::getSpecialUse()`
+  returns the `Storage\SpecialUse` a server marks a folder with, such as
+  `SpecialUse::Sent`, and `Storage\Imap::getSpecialFolder()` finds the folder
+  with a use. NAMESPACE (RFC 2342): `Protocol\Imap::namespace()` and
+  `Storage\Imap::getNamespaces()` return the personal, other users' and shared
+  namespaces as `Protocol\Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
+  reads a mailbox's status without selecting it. `Storage\Imap::getFolderStatus()`
+  returns its message, unseen and next-UID counts as a `Storage\FolderStatus`.
+  `getFolderSize()` returns its size when the server offers STATUS=SIZE
+  (RFC 8438) or IMAP4rev2. New: `Protocol\Imap::hasImap4Rev2()`. Responses with
+  lists next to each other without a space, such as `(("" "/")("#shared/" "/"))`,
+  are now tokenised as separate lists. (#52)
+
+### Changed
+
+- `WritableInterface::appendMessage()` and `copyMessage()` return `?int`
+  instead of `void`: the UID of the new message when the storage reports
+  one, and null otherwise. `Storage\Writable\Maildir` returns null.
+  Classes implementing the interface must change their return types.
+  `Storage\Imap` now calls `Protocol\Imap::appendWithUid()` and
+  `copyWithUid()`, so a protocol subclass that overrides `append()` or
+  `copy()` must override those instead. (#52)
 - IMAP IDLE (RFC 2177): `Storage\Imap::idle($timeout)` is a generator of
   `Storage\Idle` events for the selected folder: `Exists` when mail arrives,
   `Expunge`, `Recent` and `FlagsChanged`, all `Idle\EventInterface`. It stops
@@ -102,6 +137,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and decoded from LIST. Folder names outside ASCII, or with `&`, were sent
   and returned raw, which IMAP4rev1 servers refuse or misread. Names are now
   given and returned as UTF-8 throughout. (#14)
+- `Protocol\Imap::login()` kept the capabilities the server listed before
+  signing in. Servers list more once signed in (Dovecot adds MOVE, SORT,
+  ESEARCH and UNSELECT), so after a password login `moveMessage()` copied and
+  expunged instead of using MOVE. The capabilities are now asked for again,
+  as they already were after AUTHENTICATE. (#52)
 
 ## 0.2.1 - TBD
 

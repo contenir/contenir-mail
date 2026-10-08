@@ -14,7 +14,8 @@ use Stringable;
  * The local name is the folder's name within its parent; the global name
  * is its full name from the root, with the storage's delimiters, and is
  * what selectFolder() takes. A folder that is not selectable only holds
- * other folders.
+ * other folders. An IMAP folder may also be marked with what it is for,
+ * such as the folder sent mail is kept in (RFC 6154).
  *
  * @implements IteratorAggregate<string, Folder>
  *
@@ -30,12 +31,14 @@ final class Folder implements IteratorAggregate, Stringable
     /**
      * @param string $globalName The full name; the local name when empty.
      * @param iterable<Folder> $folders
+     * @param SpecialUse|null $specialUse What the folder is for, when the server says.
      */
     public function __construct(
         private readonly string $localName,
         string $globalName = '',
         private readonly bool $selectable = true,
         iterable $folders = [],
+        private readonly ?SpecialUse $specialUse = null,
     ) {
         $this->globalName = '' === $globalName ? $localName : $globalName;
         foreach ($folders as $folder) {
@@ -56,6 +59,14 @@ final class Folder implements IteratorAggregate, Stringable
     public function isSelectable(): bool
     {
         return $this->selectable;
+    }
+
+    /**
+     * What the folder is for, such as SpecialUse::Sent, when the server marks it (RFC 6154); null otherwise.
+     */
+    public function getSpecialUse(): ?SpecialUse
+    {
+        return $this->specialUse;
     }
 
     /**

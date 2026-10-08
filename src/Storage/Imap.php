@@ -13,6 +13,7 @@ use Contenir\Mail\SystemClock;
 use Generator;
 use Override;
 use Psr\Clock\ClockInterface;
+use RecursiveIteratorIterator;
 use SensitiveParameter;
 
 use function array_map;
@@ -468,32 +469,40 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     /**
      * @param string|resource|Message|ComposedMessage $message
      * @param iterable<Flag|string>|null $flags Seen when null.
+     * @return int|null The UID the server gave the message in an APPENDUID response code (RFC 4315), or null.
      * @throws Exception\ExceptionInterface When a flag or the folder is not valid, or the server refuses.
      * @throws MimeException When a composed message cannot be written.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): void
+    public function appendMessage(mixed $message, Folder|string|null $folder = null, ?iterable $flags = null): ?int
     {
         $folder = RemoteFolder::check((string) ($folder ?? $this->currentFolder));
         $flags  = ImapFlags::toStore($flags ?? [Flag::Seen]);
-        if (! $this->protocol->append($folder, RawMessage::toString($message), $flags)) {
+        $result = $this->protocol->appendWithUid($folder, RawMessage::toString($message), $flags);
+        if (false === $result) {
             throw new Exception\RuntimeException(
                 'Cannot store the message; check that the folder exists and the flags',
             );
         }
+
+        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
     }
 
     /**
+     * @return int|null The UID the server gave the copy in a COPYUID response code (RFC 4315), or null.
      * @throws Exception\ExceptionInterface When the number or folder is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function copyMessage(int $id, Folder|string $folder): void
+    public function copyMessage(int $id, Folder|string $folder): ?int
     {
-        if (! $this->protocol->copy(RemoteFolder::check((string) $folder), self::checkNumber($id))) {
+        $result = $this->protocol->copyWithUid(RemoteFolder::check((string) $folder), self::checkNumber($id));
+        if (false === $result) {
             throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?');
         }
+
+        return $result instanceof Protocol\Imap\UidPlus ? $result->uid() : null;
     }
 
     /**
@@ -575,6 +584,110 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
         }
 
         return $this->delimiter;
+    }
+
+    /**
+     * The folder the server marks with a special use (RFC 6154), such as SpecialUse::Sent;
+     * the first in the tree when several are, and null when none is.
+     *
+     * @throws Exception\ExceptionInterface When the folders cannot be listed.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function getSpecialFolder(SpecialUse $use): ?Folder
+    {
+        $folders = new RecursiveIteratorIterator($this->getFolders(), RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($folders as $folder) {
+            if ($folder->getSpecialUse() === $use) {
+                return $folder;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The server's namespaces (RFC 2342), such as a prefix for shared folders; null when
+     * the server offers neither NAMESPACE nor IMAP4rev2.
+     *
+     * @throws Protocol\Exception\ExceptionInterface When the server refuses or cannot be asked.
+     */
+    public function getNamespaces(): ?Protocol\Imap\Namespaces
+    {
+        return $this->protocol->namespace();
+    }
+
+    /**
+     * The total size of a folder's messages in octets, read with STATUS without selecting it;
+     * null when the server offers neither STATUS=SIZE (RFC 8438) nor IMAP4rev2.
+     *
+     * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function getFolderSize(Folder|string $folder): ?int
+    {
+        if (! $this->offersStatusSize()) {
+            return null;
+        }
+
+        return self::statusValue($this->folderStatus($folder, ['SIZE']), 'SIZE');
+    }
+
+    /**
+     * How many messages a folder holds and how many are unseen, its next unique ID, and its
+     * size when the server can say, read with STATUS without selecting it.
+     *
+     * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function getFolderStatus(Folder|string $folder): FolderStatus
+    {
+        $withSize = $this->offersStatusSize();
+        $status   = $this->folderStatus(
+            $folder,
+            $withSize ? ['MESSAGES', 'UNSEEN', 'UIDNEXT', 'SIZE'] : ['MESSAGES', 'UNSEEN', 'UIDNEXT'],
+        );
+
+        return new FolderStatus(
+            messages: self::statusValue($status, 'MESSAGES'),
+            unseen: self::statusValue($status, 'UNSEEN'),
+            uidNext: self::statusValue($status, 'UIDNEXT'),
+            size: $withSize ? self::statusValue($status, 'SIZE') : null,
+        );
+    }
+
+    /**
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    private function offersStatusSize(): bool
+    {
+        return $this->protocol->hasImap4Rev2() || $this->protocol->hasCapability('STATUS=SIZE');
+    }
+
+    /**
+     * @param list<string> $items
+     * @return array<string, int>
+     * @throws Exception\ExceptionInterface When the name is not valid or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    private function folderStatus(Folder|string $folder, array $items): array
+    {
+        $status = $this->protocol->status(RemoteFolder::check((string) $folder), $items);
+        if (false === $status) {
+            throw new Exception\RuntimeException('Cannot read the status of the folder; it may not exist');
+        }
+
+        return $status;
+    }
+
+    /**
+     * @param array<string, int> $status
+     * @throws Exception\RuntimeException When the server left the item out.
+     */
+    private static function statusValue(array $status, string $item): int
+    {
+        return $status[$item] ?? throw new Exception\RuntimeException(
+            "The server sent no {$item} in the folder status",
+        );
     }
 
     /**

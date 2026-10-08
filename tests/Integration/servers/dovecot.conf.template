@@ -23,6 +23,16 @@ first_valid_gid = 1
 mail_location = mbox:/srv/mail/%u:INBOX=/srv/mail/%u/INBOX
 mbox_write_locks = fcntl
 
+# The default namespace, written out so a folder can be given a special use
+# (RFC 6154). Trash is not created: ImapFolderMetadataTest creates it.
+namespace inbox {
+  inbox = yes
+  separator = /
+  mailbox Trash {
+    special_use = \Trash
+  }
+}
+
 # Every test connects from the same address, so the wrong-password tests would
 # build up an auth penalty of up to 15 seconds and outlast the Postfix SASL timeout.
 passdb {

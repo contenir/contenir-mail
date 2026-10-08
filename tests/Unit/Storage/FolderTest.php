@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Folder;
+use Contenir\Mail\Storage\SpecialUse;
 use Contenir\Mail\Storage\TreeIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -64,6 +65,18 @@ final class FolderTest extends TestCase
     public function knowsWhenItCannotBeSelected(): void
     {
         static::assertFalse(self::tree()->getFolder('Archive')->isSelectable());
+    }
+
+    #[Test]
+    public function hasNoSpecialUseByDefault(): void
+    {
+        static::assertNull((new Folder('INBOX'))->getSpecialUse());
+    }
+
+    #[Test]
+    public function keepsItsSpecialUse(): void
+    {
+        static::assertSame(SpecialUse::Sent, (new Folder('Sent', specialUse: SpecialUse::Sent))->getSpecialUse());
     }
 
     #[Test]
