@@ -236,7 +236,7 @@ final class InMemoryConnection implements ConnectionInterface
         while ('' !== $data) {
             $step = $this->steps[0] ?? null;
             if (null === $step || self::EXPECT !== $step[0]) {
-                throw new LogicException(sprintf(
+                throw $this->scriptBroken(sprintf(
                     'The client sent %s, but the script expects %s',
                     var_export($data, return: true),
                     self::describe($step),
@@ -246,7 +246,7 @@ final class InMemoryConnection implements ConnectionInterface
             $wanted = substr($step[1], strlen($this->partial));
             $taken  = substr($data, offset: 0, length: strlen($wanted));
             if (! str_starts_with($wanted, $taken)) {
-                throw new LogicException(sprintf(
+                throw $this->scriptBroken(sprintf(
                     'The client sent %s, but the script expects %s',
                     var_export($this->partial . $data, return: true),
                     self::describe($step),
@@ -303,7 +303,7 @@ final class InMemoryConnection implements ConnectionInterface
 
         $step = array_shift($this->steps);
         if (null === $step || (self::START_TLS !== $step[0] && self::FAIL_TLS !== $step[0])) {
-            throw new LogicException('The client enabled TLS, but the script expects ' . self::describe($step));
+            throw $this->scriptBroken('The client enabled TLS, but the script expects ' . self::describe($step));
         }
 
         if (self::FAIL_TLS === $step[0]) {
@@ -345,7 +345,7 @@ final class InMemoryConnection implements ConnectionInterface
             }
 
             if (self::REPLY !== $step[0]) {
-                throw new LogicException('The client reads, but the script expects ' . self::describe($step));
+                throw $this->scriptBroken('The client reads, but the script expects ' . self::describe($step));
             }
 
             array_shift($this->steps);
@@ -381,6 +381,18 @@ final class InMemoryConnection implements ConnectionInterface
         $this->buffer = substr($this->buffer, $length);
 
         return $bytes;
+    }
+
+    /**
+     * Close the connection as the script breaks, so later calls, such as a
+     * destructor logging out, get an ordinary closed-connection error and only
+     * the first mismatch is reported.
+     */
+    private function scriptBroken(string $message): LogicException
+    {
+        $this->connected = false;
+
+        return new LogicException($message);
     }
 
     /**
