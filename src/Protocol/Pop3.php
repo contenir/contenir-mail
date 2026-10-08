@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Pop3\Response;
 use LogicException;
 use SensitiveParameter;
@@ -13,7 +14,6 @@ use function explode;
 use function in_array;
 use function md5;
 use function preg_match;
-use function preg_replace;
 use function rtrim;
 use function str_ends_with;
 use function str_starts_with;
@@ -226,11 +226,11 @@ class Pop3
 
     /**
      * The failure message, with the reason the server gave, such as "[IN-USE] mailbox locked",
-     * its control characters removed.
+     * made safe to display.
      */
     private static function failure(string $reason): string
     {
-        $reason = (string) preg_replace('/[\x00-\x1F\x7F]+/', replacement: ' ', subject: $reason);
+        $reason = SafeText::display($reason);
 
         return '' === $reason ? 'last request failed' : "last request failed: {$reason}";
     }
