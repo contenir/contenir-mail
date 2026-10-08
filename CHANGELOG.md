@@ -54,7 +54,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Nothing.
+- `Protocol\Imap::store()` returns an empty array when it is not silent and the server
+  reports no changed flags, as Dovecot does for flags a message already has. It
+  returned `true`, which callers reading the new flags could not use.
+- `Storage\Pop3::getCapabilities()` reports whether the server has TOP and UIDL,
+  asking on the first call. Both stayed `null` since the magic `hasTop` and
+  `hasUniqueId` properties were removed.
 
 ## 0.1.0 - 2026-10-08
 

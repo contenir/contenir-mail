@@ -233,11 +233,22 @@ final class CommandTest extends TestCase
     }
 
     #[Test]
+    public function reportsRefusedStoreWhenNotSilent(): void
+    {
+        $imap = self::imap("TAG1 STORE 1 FLAGS (\\Seen)\r\n", "TAG1 NO\r\n");
+
+        static::assertFalse($imap->store(['\\Seen'], 1, null, null, false));
+    }
+
+    /**
+     * Dovecot sends no FETCH for a message whose flags did not change.
+     */
+    #[Test]
     public function returnsNoFlagsWhenNotSilentAndTheServerSendsNone(): void
     {
         $imap = self::imap("TAG1 STORE 1 FLAGS (\\Seen)\r\n", "TAG1 OK\r\n");
 
-        static::assertTrue($imap->store(['\\Seen'], 1, null, null, false));
+        static::assertSame([], $imap->store(['\\Seen'], 1, null, null, false));
     }
 
     #[Test]
