@@ -141,6 +141,17 @@ final class SortAndCountTest extends TestCase
     }
 
     #[Test]
+    public function countsNoneWhenTheServerSendsNoEsearchResponse(): void
+    {
+        $server = self::server('ESEARCH')
+            ->expect("TAG2 SEARCH RETURN (COUNT) ALL\r\n")
+            ->reply("* OK still here\r\nTAG2 OK\r\n")
+            ->hangUp();
+
+        static::assertSame(0, ScriptedServer::imap($server)->searchCount(['ALL']));
+    }
+
+    #[Test]
     public function countsTheNumbersWithoutEsearch(): void
     {
         $server = self::server('SORT')
