@@ -18,6 +18,7 @@ use function iterator_to_array;
 use function sprintf;
 use function str_replace;
 use function strtolower;
+use function var_export;
 
 /**
  * Creates the TransportInterface service from `$config['mail']['transport']`:
@@ -40,7 +41,7 @@ use function strtolower;
 final readonly class TransportFactory
 {
     /** The accepted "type" values; "-" and "_" are ignored, so "in-memory" also works */
-    public const array TYPES = ['smtp', 'sendmail', 'file', 'inmemory'];
+    public const array TYPES = ['smtp', 'sendmail', 'file', 'inmemory', 'failover'];
 
     /**
      * @throws InvalidArgumentException When the configuration is not an array, the type is missing or
@@ -52,20 +53,33 @@ final readonly class TransportFactory
         $config    = $container->has('config') ? $container->get('config') : [];
         $mail      = self::array($config, 'config')['mail'] ?? [];
         $transport = self::array($mail, 'config["mail"]')['transport'] ?? [];
-        $transport = self::array($transport, 'config["mail"]["transport"]');
 
-        $type = $transport['type'] ?? null;
+        return self::create($transport, 'config["mail"]["transport"]');
+    }
+
+    /**
+     * Build the transport a configuration names, a failover's transports included.
+     *
+     * @throws InvalidArgumentException When the configuration is not an array, the type is missing or
+     *     unknown, or the transport's settings are invalid.
+     */
+    private static function create(mixed $settings, string $path): Transport\TransportInterface
+    {
+        $transport = self::array($settings, $path);
+        $type      = $transport['type'] ?? null;
         unset($transport['type']);
         if (null === $type) {
             throw new InvalidArgumentException(sprintf(
-                'config["mail"]["transport"]["type"] is required; set it to one of %s',
+                '%s["type"] is required; set it to one of %s',
+                $path,
                 implode(', ', self::TYPES),
             ));
         }
 
         if (! is_string($type)) {
             throw new InvalidArgumentException(sprintf(
-                'config["mail"]["transport"]["type"] must be one of %s, got %s',
+                '%s["type"] must be one of %s, got %s',
+                $path,
                 implode(', ', self::TYPES),
                 get_debug_type($type),
             ));
@@ -80,12 +94,43 @@ final readonly class TransportFactory
             'sendmail' => new Transport\Sendmail(Transport\SendmailConfig::fromIterable($transport)),
             'file'     => new Transport\File(Transport\FileConfig::fromIterable($transport)),
             'inmemory' => self::inMemory($transport),
+            'failover' => self::failover($transport, $path),
             default    => throw new InvalidArgumentException(sprintf(
-                'config["mail"]["transport"]["type"] "%s" is unknown; expected one of %s',
+                '%s["type"] "%s" is unknown; expected one of %s',
+                $path,
                 $type,
                 implode(', ', self::TYPES),
             )),
         };
+    }
+
+    /**
+     * @param array<array-key, mixed> $settings
+     * @throws InvalidArgumentException When "transports" is missing or empty, another setting is given,
+     *     or a transport's configuration is invalid.
+     */
+    private static function failover(array $settings, string $path): Transport\Failover
+    {
+        $list = self::array($settings['transports'] ?? [], "{$path}[\"transports\"]");
+        unset($settings['transports']);
+        if ([] !== $settings) {
+            throw new InvalidArgumentException(sprintf('%s takes only "type" and "transports"', $path));
+        }
+
+        if ([] === $list) {
+            throw new InvalidArgumentException(sprintf('%s["transports"] needs at least one transport', $path));
+        }
+
+        $transports = [];
+        foreach ($list as $key => $transport) {
+            $transports[] = self::create($transport, sprintf(
+                '%s["transports"][%s]',
+                $path,
+                var_export($key, return: true),
+            ));
+        }
+
+        return new Transport\Failover(...$transports);
     }
 
     /**

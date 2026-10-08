@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
+use Contenir\Mail\AddressGroup;
 use Contenir\Mail\AddressList;
 use Contenir\Mail\Headers;
 use Override;
 
+use function array_filter;
 use function array_map;
+use function array_values;
 use function implode;
 use function in_array;
 use function sprintf;
@@ -28,11 +31,23 @@ abstract readonly class AbstractAddressList implements HeaderInterface
     /** @var list<string> lower-cased spellings accepted when parsing */
     protected const array FIELD_NAMES = [];
 
-    private AddressList $addressList;
+    /** @var list<Address|AddressGroup> */
+    private array $entries;
 
-    final public function __construct(?AddressList $addressList = null)
+    /**
+     * Addresses and groups in the order they are written; an address list
+     * stands for its addresses.
+     */
+    final public function __construct(Address|AddressList|AddressGroup ...$entries)
     {
-        $this->addressList = $addressList ?? new AddressList();
+        $list = [];
+        foreach ($entries as $entry) {
+            foreach ($entry instanceof AddressList ? $entry->toArray() : [$entry] as $item) {
+                $list[] = $item;
+            }
+        }
+
+        $this->entries = $list;
     }
 
     #[Override]
@@ -46,17 +61,68 @@ abstract readonly class AbstractAddressList implements HeaderInterface
             ));
         }
 
-        return new static(AddressListCodec::decode($fieldValue));
+        return new static(...AddressListCodec::decodeEntries($fieldValue));
     }
 
+    /**
+     * Every address, including the members of groups, in order: the recipients the header names.
+     */
     public function getAddressList(): AddressList
     {
-        return $this->addressList;
+        $addresses = [];
+        foreach ($this->entries as $entry) {
+            foreach ($entry instanceof AddressGroup ? $entry->getAddresses() : [$entry] as $address) {
+                $addresses[] = $address;
+            }
+        }
+
+        return new AddressList(...$addresses);
     }
 
+    /**
+     * @return list<AddressGroup>
+     */
+    public function getGroups(): array
+    {
+        return array_values(array_filter(
+            $this->entries,
+            static fn(Address|AddressGroup $entry): bool => $entry instanceof AddressGroup,
+        ));
+    }
+
+    /**
+     * The same header with these addresses in place of the addresses outside groups; groups are kept.
+     */
     public function withAddressList(AddressList $addressList): static
     {
-        return new static($addressList);
+        return new static($addressList, ...$this->getGroups());
+    }
+
+    /**
+     * The same header with a group, or addresses, added after its entries.
+     * An address already in the header outside a group is not added again.
+     */
+    public function withAdded(Address|AddressList|AddressGroup $entry): static
+    {
+        if ($entry instanceof AddressGroup) {
+            return new static(...[...$this->entries, $entry]);
+        }
+
+        $present = new AddressList(...array_filter(
+            $this->entries,
+            static fn(Address|AddressGroup $existing): bool => $existing instanceof Address,
+        ));
+        $added = [];
+        foreach ($entry instanceof AddressList ? $entry : [$entry] as $address) {
+            if ($present->has($address->getEmail())) {
+                continue;
+            }
+
+            $present = $present->with($address);
+            $added[] = $address;
+        }
+
+        return new static(...[...$this->entries, ...$added]);
     }
 
     #[Override]
@@ -70,23 +136,28 @@ abstract readonly class AbstractAddressList implements HeaderInterface
     {
         return implode(
             ', ',
-            array_map(static fn(Address $address): string => $address->toString(), $this->addressList->toArray()),
+            array_map(static fn(Address|AddressGroup $entry): string => $entry->toString(), $this->entries),
         );
     }
 
     #[Override]
     public function getEncodedFieldValue(): string
     {
-        return implode(',' . Headers::FOLDING, array_map(AddressEncoder::encode(...), $this->addressList->toArray()));
+        return implode(',' . Headers::FOLDING, array_map(
+            static fn(Address|AddressGroup $entry): string => $entry instanceof AddressGroup
+                ? AddressEncoder::encodeGroup($entry)
+                : AddressEncoder::encode($entry),
+            $this->entries,
+        ));
     }
 
     /**
-     * An empty list writes no header at all.
+     * A header with no addresses and no groups writes nothing at all; an empty group is written.
      */
     #[Override]
     public function toString(): string
     {
-        if ($this->addressList->isEmpty()) {
+        if ([] === $this->entries) {
             return '';
         }
 

@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace Contenir\Mail\Header;
 
 use Contenir\Mail\Address;
+use Contenir\Mail\AddressGroup;
+use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Mime;
+use Contenir\Mail\Validator\DomainName;
 
 use function idn_to_ascii;
+use function implode;
 use function sprintf;
 use function strlen;
 use function strrpos;
 use function substr;
 
-use const IDNA_DEFAULT;
 use const INTL_IDNA_VARIANT_UTS46;
 
 /**
@@ -56,6 +59,24 @@ final class AddressEncoder
     }
 
     /**
+     * A group as it is written: its name as a display name would be, then its members, then ";".
+     */
+    public static function encodeGroup(AddressGroup $group): string
+    {
+        $name    = $group->getName();
+        $members = [];
+        foreach ($group->getAddresses() as $address) {
+            $members[] = self::encode($address);
+        }
+
+        return sprintf(
+            '%s:%s;',
+            Mime::isPrintable($name) ? Address::quoteDisplayName($name) : HeaderWrap::encodePhrase($name),
+            [] === $members ? '' : ' ' . implode(',' . Headers::FOLDING, $members),
+        );
+    }
+
+    /**
      * The address with its domain in ASCII (punycode) form.
      *
      * Address has already validated the domain through the same UTS #46
@@ -72,7 +93,7 @@ final class AddressEncoder
         return (
             substr($email, offset: 0, length: $at)
                 . '@'
-                . (string) idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46)
+                . (string) idn_to_ascii($domain, DomainName::IDNA_OPTIONS, INTL_IDNA_VARIANT_UTS46)
         );
     }
 }

@@ -14,7 +14,8 @@ every contributor keeps their authorship in `git log` and `git blame`.
 
 - **Messages:** `Message`, `Headers` and the `Header\*` classes, `Address` and `AddressList`.
 - **MIME:** `Mime\Part`, `Mime\Multipart`, `Mime\Attachment`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
-- **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`, each configured with a typed `*Config`.
+- **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`, each configured with a typed `*Config`,
+  and `Failover` to try several in turn.
 - **Protocols:** SMTP, IMAP and POP3 clients over a small connection layer, with a scripted
   `Testing\InMemoryConnection` for testing code that sends or reads mail.
 - **Storage:** read and write `Mbox` and `Maildir`, and read over `Imap` and `Pop3`.
@@ -316,6 +317,9 @@ message unreadable.
   invokable object, not a function name.
 - Messages, headers and parts can be serialized for queues; a part's stream is
   serialized as its content.
+- Address groups (`Team: a@example.org, b@example.org;`, `undisclosed-recipients:;`)
+  are read with their names and can be written with `AddressGroup`; laminas-mail
+  flattened them into their members.
 - Addresses with an obsolete source route (`<@relay.example:jo@example.com>`) are
   read as the address, and the IMAP client never sends a password to a server that
   advertises `LOGINDISABLED`.
