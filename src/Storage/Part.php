@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Storage;
 
+use Contenir\Mail\CharsetConverter;
 use Contenir\Mail\Header\ContentDisposition;
 use Contenir\Mail\Header\ContentTransferEncoding;
 use Contenir\Mail\Header\ContentType;
@@ -11,9 +12,11 @@ use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\PartInterface;
 use Contenir\Mail\Mime\TransferEncoding;
+use Contenir\Mail\Storage\Part\BodySelector;
 use Contenir\Mail\Storage\Part\Content;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
+use Contenir\Mail\Utf8;
 use IteratorAggregate;
 use Override;
 
@@ -203,6 +206,34 @@ final class Part implements PartInterface, IteratorAggregate
     }
 
     /**
+     * The plain-text body as UTF-8, or null when there is no text/plain part.
+     *
+     * This is the first text/plain part that is not an attachment, found
+     * through multipart/mixed, related and alternative parts. The text is
+     * returned as sent; it is not sanitised.
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function getTextBody(): ?string
+    {
+        return $this->body('text/plain');
+    }
+
+    /**
+     * The HTML body as UTF-8, or null when there is no text/html part.
+     *
+     * Found as getTextBody() finds the text, preferring the last of the
+     * alternatives. The HTML is returned as sent and is neither sanitised
+     * nor safe to show: sanitise it before rendering.
+     *
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    public function getHtmlBody(): ?string
+    {
+        return $this->body('text/html');
+    }
+
+    /**
      * The content as transferred, with CRLF line breaks; empty for a multipart.
      *
      * @throws Exception\RuntimeException When the storage has been closed.
@@ -259,6 +290,18 @@ final class Part implements PartInterface, IteratorAggregate
         }
 
         return $numbered;
+    }
+
+    /**
+     * @throws Exception\RuntimeException When the parts cannot be read.
+     */
+    private function body(string $contentType): ?string
+    {
+        $part = BodySelector::find($this, $contentType);
+
+        return null === $part
+            ? null
+            : Utf8::scrub(CharsetConverter::toUtf8($part->getContent(), $part->getCharset()));
     }
 
     private function contentType(): ?ContentType
