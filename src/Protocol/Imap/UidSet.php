@@ -15,7 +15,7 @@ use function range;
 /**
  * The UIDs of an RFC 4315 uid-set the server sent, bounded in value and number.
  *
- * @internal Used by Contenir\Mail\Protocol\Imap\UidPlus.
+ * @internal Used by Contenir\Mail\Protocol\Imap\UidMapping.
  */
 final class UidSet
 {
@@ -26,7 +26,7 @@ final class UidSet
 
     /**
      * The UIDs of a uid-set already matched against its grammar, each range in ascending order;
-     * null when a UID is over UidPlus::MAX_UID or there are more than UidPlus::MAX_UIDS.
+     * null when a UID is over UidMapping::MAX_UID or there are more than UidMapping::MAX_UIDS.
      *
      * @return list<int>|null
      */
@@ -37,7 +37,7 @@ final class UidSet
             $bounds = array_map(intval(...), explode(':', $range));
             $low    = min($bounds);
             $high   = max($bounds);
-            if ($high > UidPlus::MAX_UID || (count($uids) + $high - $low + 1) > UidPlus::MAX_UIDS) {
+            if ($high > UidMapping::MAX_UID || (count($uids) + $high - $low + 1) > UidMapping::MAX_UIDS) {
                 return null;
             }
 

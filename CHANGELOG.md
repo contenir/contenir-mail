@@ -34,7 +34,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `capath` to trust a private certificate authority, `peer_name` to check a
   name other than the host, `allow_self_signed`, and `local_cert` and
   `local_pk` for a client certificate. They're typed fields of the new
-  `Protocol\TlsOptions`, given as `ConnectionConfig::$tls` or as settings in
+  `Protocol\TlsConfig` (`caFile`, `caPath`, `peerName`, `allowSelfSigned`,
+  `localCert`, `localPrivateKey`), given as `ConnectionConfig::$tls` or as settings in
   any config, and they apply to TLS from the start and to STARTTLS. No other
   ssl context option can be passed, and peer verification stays on unless
   `verify_peer` turns it off. (#16)
@@ -44,21 +45,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the transaction either way and the SMTP transport uses it. Every reply is
   read before a refusal is reported, and the transaction is then reset with
   RSET. (#19)
-- `Address::lenient()` builds an address real mail servers take but RFC 5322
-  refuses, such as one with consecutive or trailing dots in the local part, or
-  an underscore in the host. It still needs one `@` and a domain, and refuses
-  whitespace, control characters and the specials that could break a header
-  or an SMTP command. Only addresses built this way are lenient: strings and
-  reading stay strict. (#18)
+- `new Address($email, strict: false)` builds an address real mail servers
+  take but RFC 5322 refuses, such as one with consecutive or trailing dots in
+  the local part, or an underscore in the host. It still needs one `@` and a
+  domain, and refuses whitespace, control characters and the specials that
+  could break a header or an SMTP command. Only addresses built this way are lenient, and they stay
+  so in messages, headers and address lists; `Address::isStrict()` tells
+  which check an address passed. Strings and reading stay strict. (#18)
 - IMAP4rev2 (RFC 9051): after signing in, `Protocol\Imap` turns on IMAP4rev2
   when the server offers it, or else UTF8=ACCEPT (RFC 6855), with ENABLE
   (RFC 5161). Mailbox names then travel as UTF-8. SEARCH reads ESEARCH
   results, bounded to `Imap::MAX_SEARCH_RESULTS`. Folders listed as
-  `\NonExistent` can't be selected. `useImap4Rev2(false)` turns this off.
-  New: `enable()`, `hasCapability()`, `hasUtf8Mailboxes()`, and `move()`,
+  `\NonExistent` can't be selected. `preferImap4Rev2(false)` turns this off.
+  New: `enable()`, `hasCapability()`, `usesUtf8MailboxNames()`, and `move()`,
   which `Storage\Imap::moveMessage()` uses when the server offers MOVE
   (RFC 6851). (#14)
-- Paging through large IMAP folders: `Storage\Imap::sortMessages()` has the
+- Paging through large IMAP folders: `Storage\Imap::getSortedNumbers()` has the
   server sort the folder (RFC 5256 SORT, RFC 5957 display keys), and
   `getMessages(...$numbers)` fetches the flags and headers of a page in one
   FETCH, each body only when it's read. `countMessages()` asks the server for
@@ -91,13 +93,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seeds, refuses RSA keys under 1024 bits, hides the key from dumps and gives
   the DNS record to publish. `Headers::withFirst()` adds a header before the
   others. (#23)
-- IMAP UIDPLUS (RFC 4315): `Storage\Imap::appendMessage()` and
-  `copyMessage()` return the UID the server gave the new message, from the
-  APPENDUID or COPYUID response code. New on `Protocol\Imap`:
-  `appendWithUid()` and `copyWithUid()`, which return a
-  `Protocol\Imap\UidPlus` with the UIDVALIDITY and the source and
-  destination UIDs. UID sets are validated strictly and bounded to
-  `UidPlus::MAX_UIDS`; a malformed code is ignored. (#52)
+- IMAP UIDPLUS (RFC 4315): `Storage\Imap::appendMessage()`, `copyMessage()`
+  and `moveMessage()` return the UID the message has in the destination
+  folder, from the APPENDUID or COPYUID response code; for MOVE, from the
+  untagged COPYUID it sends before expunging. New on `Protocol\Imap`:
+  `appendReturningUids()`, `copyReturningUids()` and `moveReturningUids()`,
+  which return a `Protocol\Imap\UidMapping` with the UIDVALIDITY and the
+  source and destination UIDs, or null when the server sends none, and throw
+  the new `Protocol\Exception\CommandRefusedException` when it refuses, as
+  `searchCount()` does. UID sets are validated strictly and bounded to
+  `UidMapping::MAX_UIDS`; a malformed code is ignored. (#52)
 - IMAP UNSELECT (RFC 3691): `Protocol\Imap::unselect()` leaves the selected
   folder without expunging messages flagged `\Deleted`, when the server
   offers UNSELECT or IMAP4rev2 is enabled. (#52)
@@ -111,37 +116,45 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Storage\Imap::getNamespaces()` return the personal, other users' and shared
   namespaces as `Protocol\Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
   reads a mailbox's status without selecting it. `Storage\Imap::getFolderStatus()`
-  returns its message, unseen and next-UID counts as a `Storage\FolderStatus`.
+  returns a `Storage\FolderStatus` with its `messageCount`, `unseenCount`,
+  `uidNext` and `uidValidity`, the last to store with any UID kept.
   `getFolderSize()` returns its size when the server offers STATUS=SIZE
-  (RFC 8438) or IMAP4rev2. New: `Protocol\Imap::hasImap4Rev2()`. Responses with
+  (RFC 8438) or IMAP4rev2. New: `Protocol\Imap::isImap4Rev2Enabled()`. Responses with
   lists next to each other without a space, such as `(("" "/")("#shared/" "/"))`,
   are now tokenised as separate lists. (#52)
+- The `with*()` and `without*()` methods of the immutable classes
+  (`Headers`, `AddressList`, `Mime\Body`, `Header\ContentType`,
+  `Header\ContentDisposition`, the address-list headers and
+  `Header\HeaderLocator`) carry `#[\NoDiscard]`, so PHP 8.5 warns when the
+  copy they return is thrown away, as when one is mistaken for a setter.
+  Earlier PHP versions ignore the attribute.
 
 ### Changed
 
-- `WritableInterface::appendMessage()` and `copyMessage()` return `?int`
-  instead of `void`: the UID of the new message when the storage reports
-  one, and null otherwise. `Storage\Writable\Maildir` returns null.
-  Classes implementing the interface must change their return types.
-  `Storage\Imap` now calls `Protocol\Imap::appendWithUid()` and
-  `copyWithUid()`, so a protocol subclass that overrides `append()` or
-  `copy()` must override those instead. (#52)
+- `WritableInterface::appendMessage()`, `copyMessage()` and `moveMessage()`
+  return `?int` instead of `void`: the UID the message has in the
+  destination folder when the storage reports one, and null otherwise.
+  `Storage\Writable\Maildir` returns null. Classes implementing the
+  interface must change their return types. `Storage\Imap` now calls
+  `Protocol\Imap::appendReturningUids()`, `copyReturningUids()` and
+  `moveReturningUids()`, so a protocol subclass that overrides `append()`,
+  `copy()` or `move()` must override those instead. (#52)
 - IMAP IDLE (RFC 2177): `Storage\Imap::idle($timeout)` is a generator of
-  `Storage\Idle` events for the selected folder: `Exists` when mail arrives,
-  `Expunge`, `Recent` and `FlagsChanged`, all `Idle\EventInterface`. It stops
-  after the timeout, 29 minutes by default, which RFC 2177 advises; call it
-  again to keep listening. DONE is sent and the reply read when the timeout
-  passes, when the loop is left early, or before the next command, so the
-  connection stays usable. BYE is thrown. `Protocol\Imap::idle()` yields the
+  `Storage\Idle` events for the selected folder: `MessageCountChanged` when
+  mail arrives, `MessageExpunged`, `RecentCountChanged` and `FlagsChanged`,
+  all `Idle\EventInterface`. It stops after the timeout, 29 minutes by
+  default, which RFC 2177 advises; call it again to keep listening. DONE is
+  sent and the reply read when the timeout passes, when the loop is left
+  early, or before the next command, so the connection stays usable. BYE is thrown. `Protocol\Imap::idle()` yields the
   raw untagged responses; both take a PSR-20 clock. Waiting uses the new
-  `ConnectionInterface::waitForData()`, which `StreamConnection` and
+  `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
 
 ### Changed
 
-- `Protocol\ConnectionInterface` has a new method, `waitForData(int $seconds): bool`,
-  for IMAP IDLE. A connection implemented outside the package must add it:
+- `Protocol\ConnectionInterface` has a new method,
+  `waitUntilReadable(int $seconds): bool`, for IMAP IDLE. A connection implemented outside the package must add it:
   return whether the server has sent something, or closed the connection,
   within that many seconds. (#52)
 - The migration guide moved to `docs/book/migrating.md` and lists the silent

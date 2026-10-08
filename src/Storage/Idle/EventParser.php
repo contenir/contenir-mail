@@ -41,9 +41,9 @@ final class EventParser
         }
 
         return match (strtoupper($name)) {
-            'EXISTS'  => new Exists((int) $number),
-            'EXPUNGE' => new Expunge((int) $number),
-            'RECENT'  => new Recent((int) $number),
+            'EXISTS'  => new MessageCountChanged((int) $number),
+            'EXPUNGE' => new MessageExpunged((int) $number),
+            'RECENT'  => new RecentCountChanged((int) $number),
             'FETCH'   => self::flagsChanged((int) $number, $tokens[2] ?? null),
             default   => null,
         };

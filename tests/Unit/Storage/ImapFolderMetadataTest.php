@@ -201,15 +201,16 @@ final class ImapFolderMetadataTest extends TestCase
     public function readsTheStatusOfAFolderWithItsSize(): void
     {
         $server = self::serverWith('STATUS=SIZE')
-            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT SIZE)\r\n")
-            ->reply("* STATUS \"Archive\" (MESSAGES 10 UNSEEN 2 UIDNEXT 31 SIZE 2048)\r\nTAG3 OK\r\n")
+            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT UIDVALIDITY SIZE)\r\n")
+            ->reply("* STATUS \"Archive\" (MESSAGES 10 UNSEEN 2 UIDNEXT 31 UIDVALIDITY 38505 SIZE 2048)\r\nTAG3 OK\r\n")
             ->hangUp();
 
         static::assertEquals(
             new FolderStatus(
-                messages: 10,
-                unseen: 2,
+                messageCount: 10,
+                unseenCount: 2,
                 uidNext: 31,
+                uidValidity: 38_505,
                 size: 2048,
             ),
             self::mailbox($server)->getFolderStatus('Archive'),
@@ -220,15 +221,16 @@ final class ImapFolderMetadataTest extends TestCase
     public function readsTheStatusOfAFolderWithoutItsSize(): void
     {
         $server = self::serverWith('SORT')
-            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT)\r\n")
-            ->reply("* STATUS \"Archive\" (MESSAGES 10 UNSEEN 2 UIDNEXT 31)\r\nTAG3 OK\r\n")
+            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT UIDVALIDITY)\r\n")
+            ->reply("* STATUS \"Archive\" (MESSAGES 10 UNSEEN 2 UIDNEXT 31 UIDVALIDITY 38505)\r\nTAG3 OK\r\n")
             ->hangUp();
 
         static::assertEquals(
             new FolderStatus(
-                messages: 10,
-                unseen: 2,
+                messageCount: 10,
+                unseenCount: 2,
                 uidNext: 31,
+                uidValidity: 38_505,
                 size: null,
             ),
             self::mailbox($server)->getFolderStatus(new Folder('Archive')),
@@ -255,7 +257,7 @@ final class ImapFolderMetadataTest extends TestCase
     public function reportsAnItemTheServerLeftOut(string $values, string $missing): void
     {
         $server = self::serverWith('STATUS=SIZE')
-            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT SIZE)\r\n")
+            ->expect("TAG3 STATUS \"Archive\" (MESSAGES UNSEEN UIDNEXT UIDVALIDITY SIZE)\r\n")
             ->reply("* STATUS \"Archive\" ({$values})\r\nTAG3 OK\r\n")
             ->hangUp();
         $mailbox = self::mailbox($server);
@@ -272,10 +274,11 @@ final class ImapFolderMetadataTest extends TestCase
     public static function incompleteStatusProvider(): array
     {
         return [
-            'messages' => ['UNSEEN 2 UIDNEXT 31 SIZE 2048', 'MESSAGES'],
-            'unseen'   => ['MESSAGES 10 UIDNEXT 31 SIZE 2048', 'UNSEEN'],
-            'uidnext'  => ['MESSAGES 10 UNSEEN 2 SIZE 2048', 'UIDNEXT'],
-            'size'     => ['MESSAGES 10 UNSEEN 2 UIDNEXT 31', 'SIZE'],
+            'messages'    => ['UNSEEN 2 UIDNEXT 31 UIDVALIDITY 7 SIZE 2048', 'MESSAGES'],
+            'unseen'      => ['MESSAGES 10 UIDNEXT 31 UIDVALIDITY 7 SIZE 2048', 'UNSEEN'],
+            'uidnext'     => ['MESSAGES 10 UNSEEN 2 UIDVALIDITY 7 SIZE 2048', 'UIDNEXT'],
+            'uidvalidity' => ['MESSAGES 10 UNSEEN 2 UIDNEXT 31 SIZE 2048', 'UIDVALIDITY'],
+            'size'        => ['MESSAGES 10 UNSEEN 2 UIDNEXT 31 UIDVALIDITY 7', 'SIZE'],
         ];
     }
 

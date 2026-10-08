@@ -10,7 +10,7 @@ namespace Contenir\Mail\Storage\Idle;
  *
  * @api
  */
-final readonly class Recent implements EventInterface
+final readonly class RecentCountChanged implements EventInterface
 {
     public function __construct(
         public int $count,

@@ -13,7 +13,7 @@ namespace Contenir\Mail\Storage\Tnef;
  *
  * @api
  */
-final readonly class Attachment
+final readonly class TnefAttachment
 {
     /**
      * @param string $filename The long file name, or else the title, made safe by SafeText::filename().

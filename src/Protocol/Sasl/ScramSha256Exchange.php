@@ -28,7 +28,7 @@ use function substr;
  * One SCRAM-SHA-256 exchange as the client (RFC 5802, RFC 7677), in base64 as the protocols carry it.
  *
  * ```php
- * $scram = new ScramSha256('jo', $password);
+ * $scram = new ScramSha256Exchange('jo', $password);
  * $challenge = $send($scram->initialResponse());   // client-first, answered by server-first
  * $final     = $send($scram->respond($challenge)); // client-final with the proof, answered by server-final
  * $scram->verify($final);                          // the server's signature, or an exception
@@ -45,7 +45,7 @@ use function substr;
  *
  * @mago-expect lint:cyclomatic-complexity Each check RFC 5802 asks of the server's messages is a branch of its own.
  */
-final class ScramSha256
+final class ScramSha256Exchange
 {
     public const string MECHANISM = 'SCRAM-SHA-256';
 

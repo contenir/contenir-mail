@@ -208,7 +208,7 @@ final class Parser
         foreach ($this->attachments as $record) {
             $properties    = $record->properties;
             $title         = null === $record->title ? null : Text::utf8($record->title, $this->charset);
-            $attachments[] = new Attachment(
+            $attachments[] = new TnefAttachment(
                 SafeText::filename($properties->text(self::PR_ATTACH_LONG_FILENAME, $this->charset) ?? $title ?? ''),
                 $this->output($record->data ?? $properties->binary(self::PR_ATTACH_DATA_BIN) ?? ''),
                 Text::mediaType($properties->text(self::PR_ATTACH_MIME_TAG, $this->charset)),

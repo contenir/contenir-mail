@@ -183,7 +183,9 @@ or `ContentType::withParameter()`, return a new value and leave the old one as
 it was.
 
 **If you don't change your code:** a call whose result you don't keep does
-nothing, without warning, and the header is never sent.
+nothing, and the header is never sent. PHP 8.5 warns when the result of a
+`with*()` or `without*()` method is discarded, as they carry `#[\NoDiscard]`;
+PHP 8.3 and 8.4 don't.
 
 **Fix:** change the message through its own methods, or keep the result and
 give it back.
@@ -338,6 +340,7 @@ message never affects the original.
 | `$references->setIds([...])` | `new References(...$ids)` |
 | `AddressList::add()`, `addMany()`, `merge()`, `delete()` | `with()`, `fromIterable()`, `withList()`, `without()` |
 | `Address\AddressInterface` | `Address` (a `final readonly` value) |
+| An address servers accept but RFC 5322 refuses, such as `first..last@example.com` ([#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148)) | `new Address('first..last@example.com', 'Jo', strict: false)`; strings and parsed mail stay strict |
 | `Header\HeaderLocator::add()` / `remove()` | `new HeaderLocator(['x-name' => MyHeader::class])` or `->with()`, passed to `Headers::fromString()` |
 | `GenericMultiHeader`, `MultipleHeadersInterface`, `StructuredInterface`, `UnstructuredInterface` | Removed; `Headers` keeps repeated headers such as `Received` as separate entries |
 | `IdentificationField` | `AbstractIdentificationField` |

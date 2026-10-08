@@ -84,11 +84,11 @@ SMTP, IMAP and POP3 connections share these settings:
 - `allow_self_signed`;
 - `local_cert` and `local_pk`: a client certificate.
 
-They're typed fields of `TlsOptions`. There's no pass-through for other `ssl` context options, so nothing else reaches the stream context.
+They're typed fields of `TlsConfig`. There's no pass-through for other `ssl` context options, so nothing else reaches the stream context.
 
 | Protection | Evidence |
 | --- | --- |
-| Peer verification and name checking stay on unless `verify_peer` is set to false. No TLS setting changes `verify_peer` or `verify_peer_name`, because they're written after the TLS settings | `TlsOptionsTest`, `StreamConnection::open()` |
+| Peer verification and name checking stay on unless `verify_peer` is set to false. No TLS setting changes `verify_peer` or `verify_peer_name`, because they're written after the TLS settings | `TlsConfigTest`, `StreamConnection::open()` |
 | `allow_self_signed` is the only setting that weakens verification, and it's off unless set to true. Even then, the certificate's name is still checked | `leavesSelfSignedCertificatesRefusedUnlessAllowed`, `stillChecksThePeerNameOfASelfSignedCertificate` |
 | Misspelt or unknown setting names are refused, not ignored, so a typo can't silently leave a CA untrusted | `refusesAnInvalidSetting` (misspelt setting) |
 | Paths and names that are empty or hold a control character are refused, and so is a private key without its certificate | `refusesAnInvalidSetting` |
@@ -111,7 +111,7 @@ Prefer `cafile` or `capath` for a private certificate authority, and `peer_name`
 | AUTH is refused over an unencrypted connection unless `allow_insecure_auth` is set, and only advertised mechanisms are used | `refusesToAuthenticateOverUnencryptedConnection`, `refusesMechanismServerDoesNotOffer` |
 | Credentials are kept out of the session log, the last request and `var_dump()` output | `keepsCredentialsOutOfSessionLog`, `keepsCredentialsOutOfLastRequest`, `keepsPasswordOutOfDumps`, `keepsTokenOutOfDumps` |
 | SASL fields refuse values that could rewrite them | `XOAuth2Test::rejectsValuesThatCouldRewriteSaslFields` |
-| SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256Test`, `Smtp\Auth\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
+| SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256ExchangeTest`, `Smtp\Auth\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
 | Replies are capped at 100 lines, and malformed replies are refused | `refusesReplyLongerThanLimit`, `refusesMalformedReply` |
 | SIZE and SMTPUTF8 are honoured: an oversized message or a non-ASCII address the server cannot take is refused before sending | `refusesMessageLargerThanServerAccepts`, `refusesInternationalSenderWithoutSmtpUtf8` |
 

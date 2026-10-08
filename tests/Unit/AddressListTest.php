@@ -189,7 +189,7 @@ final class AddressListTest extends TestCase
     public function withLeavesOriginalUnchanged(): void
     {
         $list = new AddressList();
-        $list->with('test@example.com');
+        static::assertNotSame($list, $list->with('test@example.com'));
 
         static::assertTrue($list->isEmpty());
     }
@@ -209,7 +209,8 @@ final class AddressListTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Email must be a valid email address');
 
-        (new AddressList())->with('');
+        (new AddressList())->with('')
+            ->count();
     }
 
     #[Test]
@@ -235,7 +236,7 @@ final class AddressListTest extends TestCase
     public function withListLeavesOriginalUnchanged(): void
     {
         $list = new AddressList(new Address('one@example.net'));
-        $list->withList(new AddressList(new Address('two@example.org')));
+        static::assertNotSame($list, $list->withList(new AddressList(new Address('two@example.org'))));
 
         static::assertSame(['one@example.net'], self::emails($list->toArray()));
     }
@@ -269,7 +270,7 @@ final class AddressListTest extends TestCase
     public function withoutLeavesOriginalUnchanged(): void
     {
         $list = new AddressList(new Address('test@example.com'));
-        $list->without('test@example.com');
+        static::assertNotSame($list, $list->without('test@example.com'));
 
         static::assertTrue($list->has('test@example.com'));
     }

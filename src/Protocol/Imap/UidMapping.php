@@ -17,7 +17,7 @@ use function preg_match;
  *
  * @api
  */
-final readonly class UidPlus
+final readonly class UidMapping
 {
     /** The most UIDs a response code may expand to */
     public const int MAX_UIDS = 1_000_000;
@@ -52,17 +52,17 @@ final readonly class UidPlus
     }
 
     /**
-     * The UIDs in the tagged reply to APPEND or COPY, such as
+     * The UIDs in an OK response to APPEND, COPY or MOVE, tagged or untagged, such as
      * ["OK", "[APPENDUID", "38505", "3955]", "done"].
      *
-     * A reply without the code, or with one that is malformed, out of range, larger than
+     * A response without the code, or with one that is malformed, out of range, larger than
      * MAX_UIDS or whose sets differ in size, gives null: the command still succeeded.
      *
-     * @param array<mixed> $tokens The decoded tokens of the tagged reply.
+     * @param array<mixed> $tokens The decoded tokens of the response, after its tag.
      *
      * @internal Used by Contenir\Mail\Protocol\Imap.
      */
-    public static function fromTaggedReply(array $tokens): ?self
+    public static function fromStatusResponse(array $tokens): ?self
     {
         $words   = array_slice($tokens, offset: 1, length: 4);
         $strings = array_filter($words, is_string(...));

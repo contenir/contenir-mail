@@ -543,18 +543,20 @@ $address->toString();   // 'Ralph Nader <ralph@example.org>'
 
 Some addresses real mail servers deliver to are refused by the strict check,
 such as `jo..bloggs@example.org`, `jo.@example.org` or `jo@mail_server.example`.
-To send to one, build it with `Address::lenient()` and pass the object. A
-plain string is always checked strictly.
+To send to one, build it with `strict: false` and pass the object. A plain
+string is always checked strictly.
 
 ```php
-$message->setTo(Address::lenient('jo..bloggs@example.org', 'Jo Bloggs'));
+$message->setTo(new Address('jo..bloggs@example.org', 'Jo Bloggs', strict: false));
 ```
 
 A lenient address still needs one `@` and a domain. It refuses whitespace,
 control characters and the specials `<>()[],;:"\`, because they could add a
 recipient to a header or break an SMTP command. A domain that isn't ASCII
-must still convert with IDNA. Use `lenient()` only for addresses your own
-application supplies. Reading mail never applies it.
+must still convert with IDNA. The address stays as built when it is added to
+a message, a header or an `AddressList`; `isStrict()` tells which check it
+passed. Turn strictness off only for addresses your own application
+supplies. Reading mail is always strict.
 
 `Contenir\Mail\AddressList` is an immutable, countable and iterable list of
 `Address` instances, keyed by e-mail address without regard to case.

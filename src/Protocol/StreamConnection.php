@@ -149,7 +149,7 @@ final class StreamConnection implements ConnectionInterface
      * Streams other than sockets, such as php://memory, cannot be waited on and never block a read.
      */
     #[Override]
-    public function waitForData(int $seconds): bool
+    public function waitUntilReadable(int $seconds): bool
     {
         $stream = $this->stream();
 

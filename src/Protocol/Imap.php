@@ -6,7 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Imap\MailboxName;
-use Contenir\Mail\Protocol\Imap\UidPlus;
+use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
@@ -117,12 +117,12 @@ class Imap
     private const string SORT_KEY = '/^(?:REVERSE )?(?:ARRIVAL|CC|DATE|FROM|SIZE|SUBJECT|TO|DISPLAYFROM|DISPLAYTO)$/Di';
 
     /** The largest literal sent without waiting for the server under LITERAL- (RFC 7888) */
-    public const int LITERAL_MINUS_MAX = 4096;
+    public const int MAX_LITERAL_MINUS_SIZE = 4096;
 
     /** The most ids an ESEARCH result may expand to */
     public const int MAX_SEARCH_RESULTS = 1_000_000;
 
-    private bool $useImap4Rev2 = true;
+    private bool $preferImap4Rev2 = true;
 
     private bool $utf8Mailboxes = false;
 
@@ -486,7 +486,7 @@ class Imap
     /**
      * End the line with the size of the literal that follows: non-synchronising ({size+}, RFC 7888)
      * when the server offers LITERAL+, or LITERAL- or IMAP4rev2 and the literal is at most
-     * LITERAL_MINUS_MAX bytes; otherwise synchronising, waiting for the server's "+".
+     * MAX_LITERAL_MINUS_SIZE bytes; otherwise synchronising, waiting for the server's "+".
      * Only capabilities already read are consulted, so no command is sent in the middle of another.
      *
      * @throws Exception\RuntimeException When the server refuses the literal or the connection fails.
@@ -497,7 +497,7 @@ class Imap
         if (
             in_array('LITERAL+', $capabilities, strict: true)
             || (
-                $size <= self::LITERAL_MINUS_MAX
+                $size <= self::MAX_LITERAL_MINUS_SIZE
                 && (
                     $this->imap4Rev2
                     || in_array('LITERAL-', $capabilities, strict: true)
@@ -810,9 +810,9 @@ class Imap
      * Whether to turn on IMAP4rev2 (RFC 9051) after signing in, when the server offers it.
      * On by default; UTF8=ACCEPT (RFC 6855) is turned on instead when only that is offered.
      */
-    public function useImap4Rev2(bool $use): static
+    public function preferImap4Rev2(bool $prefer = true): static
     {
-        $this->useImap4Rev2 = $use;
+        $this->preferImap4Rev2 = $prefer;
 
         return $this;
     }
@@ -821,7 +821,7 @@ class Imap
      * Whether mailbox names travel as UTF-8, because IMAP4rev2 or UTF8=ACCEPT is enabled,
      * rather than as modified UTF-7.
      */
-    public function hasUtf8Mailboxes(): bool
+    public function usesUtf8MailboxNames(): bool
     {
         return $this->utf8Mailboxes;
     }
@@ -829,7 +829,7 @@ class Imap
     /**
      * Whether IMAP4rev2 (RFC 9051) is enabled, which brings ESEARCH, NAMESPACE and STATUS SIZE with it.
      */
-    public function hasImap4Rev2(): bool
+    public function isImap4Rev2Enabled(): bool
     {
         return $this->imap4Rev2;
     }
@@ -886,7 +886,7 @@ class Imap
     private function negotiate(array $capabilities): void
     {
         $extension = match (true) {
-            ! $this->useImap4Rev2 => null,
+            ! $this->preferImap4Rev2 => null,
             in_array('IMAP4REV2', $capabilities, strict: true)   => 'IMAP4rev2',
             in_array('UTF8=ACCEPT', $capabilities, strict: true) => 'UTF8=ACCEPT',
             default                                              => null,
@@ -1210,7 +1210,7 @@ class Imap
      * @throws Exception\RuntimeException When a value is not a number.
      * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function status(string $mailbox, array $items): array|false
+    public function status(string $folder, array $items): array|false
     {
         if ([] === $items) {
             throw new Exception\InvalidArgumentException('STATUS needs at least one item');
@@ -1225,7 +1225,7 @@ class Imap
             $names[] = strtoupper($item);
         }
 
-        $response = $this->requestAndResponse('STATUS', [$this->mailbox($mailbox), $this->escapeList($names)]);
+        $response = $this->requestAndResponse('STATUS', [$this->mailbox($folder), $this->escapeList($names)]);
         if (null === $response || false === $response) {
             return false;
         }
@@ -1327,23 +1327,29 @@ class Imap
      */
     public function append(string $folder, string $message, ?array $flags = null, ?string $date = null): bool
     {
-        return false !== $this->appendWithUid($folder, $message, $flags, $date);
+        try {
+            $this->appendReturningUids($folder, $message, $flags, $date);
+        } catch (Exception\CommandRefusedException) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * Append a message as append() does, and read the UID the server gave it (RFC 4315, UIDPLUS).
      *
      * @param array<mixed>|null $flags
-     * @return UidPlus|bool false when the server refuses, the UIDs when it reports them in an
-     *     APPENDUID response code, and true otherwise.
-     * @throws Exception\ExceptionInterface
+     * @return UidMapping|null The UIDs the server reported in an APPENDUID response code, or null when it sent none.
+     * @throws Exception\CommandRefusedException When the server refuses the message.
+     * @throws Exception\ExceptionInterface When a flag is not valid or the server cannot be asked.
      */
-    public function appendWithUid(
+    public function appendReturningUids(
         string $folder,
         string $message,
         ?array $flags = null,
         ?string $date = null,
-    ): UidPlus|bool {
+    ): ?UidMapping {
         $tokens   = [];
         $tokens[] = $this->mailbox($folder);
         if (null !== $flags) {
@@ -1356,7 +1362,7 @@ class Imap
 
         $tokens[] = $this->escapeOne($message);
 
-        return $this->withUids('APPEND', $tokens);
+        return $this->returningUids('APPEND', $tokens);
     }
 
     /**
@@ -1371,38 +1377,61 @@ class Imap
      */
     public function copy(string $folder, int|string $from, int|float|null $to = null): bool
     {
-        return false !== $this->copyWithUid($folder, $from, $to);
+        try {
+            $this->copyReturningUids($folder, $from, $to);
+        } catch (Exception\CommandRefusedException) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * Copy messages as copy() does, and read the UIDs the server gave the copies (RFC 4315, UIDPLUS).
      *
      * @param int|float|null $to The last message, INF for the last one there is, or null for $from alone.
-     * @return UidPlus|bool false when the server refuses, the source and destination UIDs when it
-     *     reports them in a COPYUID response code, and true otherwise.
-     * @throws Exception\ExceptionInterface
+     * @return UidMapping|null The source and destination UIDs the server reported in a COPYUID
+     *     response code, or null when it sent none.
+     * @throws Exception\CommandRefusedException When the server refuses the copy.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function copyWithUid(string $folder, int|string $from, int|float|null $to = null): UidPlus|bool
+    public function copyReturningUids(string $folder, int|string $from, int|float|null $to = null): ?UidMapping
     {
-        return $this->withUids('COPY', [self::sequenceSet($from, $to), $this->mailbox($folder)]);
+        return $this->returningUids('COPY', [self::sequenceSet($from, $to), $this->mailbox($folder)]);
     }
 
     /**
-     * Send APPEND or COPY, and read the APPENDUID or COPYUID response code of its tagged reply.
+     * Send APPEND, COPY or MOVE, and read the UIDs of the first APPENDUID or COPYUID response
+     * code: in the tagged reply, or in an untagged OK, where MOVE sends it before the EXPUNGE
+     * responses (RFC 6851, section 4.3).
      *
      * @param array<mixed> $tokens
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\CommandRefusedException When the server refuses the command.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    private function withUids(string $command, array $tokens): UidPlus|bool
+    private function returningUids(string $command, array $tokens): ?UidMapping
     {
         $tag = null;
         $this->sendRequest($command, $tokens, $tag);
-        $reply = $this->skipToTag($tag);
-        if ('OK' !== ($reply[0] ?? null)) {
-            return false;
+        $responses = [];
+        do {
+            $response    = [];
+            $tagged      = $this->readLine($response, $tag);
+            $responses[] = $response;
+        } while (! $tagged);
+
+        if ('OK' !== ($response[0] ?? null)) {
+            throw new Exception\CommandRefusedException("The server refused {$command}");
         }
 
-        return UidPlus::fromTaggedReply($reply) ?? true;
+        foreach ($responses as $response) {
+            $uids = 'OK' === ($response[0] ?? null) ? UidMapping::fromStatusResponse($response) : null;
+            if (null !== $uids) {
+                return $uids;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1431,14 +1460,31 @@ class Imap
      */
     public function move(string $folder, int|string $from, int|float|null $to = null): bool
     {
+        try {
+            $this->moveReturningUids($folder, $from, $to);
+        } catch (Exception\CommandRefusedException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Move messages as move() does, and read the UIDs the server gave them in the destination
+     * (RFC 4315, UIDPLUS), from the COPYUID response code MOVE sends before the EXPUNGE responses.
+     *
+     * @param int|float|null $to The last message, INF for the last one there is, or null for $from alone.
+     * @return UidMapping|null The source and destination UIDs the server reported, or null when it sent none.
+     * @throws Exception\CommandRefusedException When the server refuses the move.
+     * @throws Exception\ExceptionInterface When the server does not offer MOVE or cannot be asked.
+     */
+    public function moveReturningUids(string $folder, int|string $from, int|float|null $to = null): ?UidMapping
+    {
         if (! $this->hasCapability('MOVE')) {
             throw new Exception\RuntimeException('The server does not offer MOVE');
         }
 
-        return $this->succeeded($this->requestAndResponse('MOVE', [
-            self::sequenceSet($from, $to),
-            $this->mailbox($folder),
-        ]));
+        return $this->returningUids('MOVE', [self::sequenceSet($from, $to), $this->mailbox($folder)]);
     }
 
     /**
@@ -1626,7 +1672,7 @@ class Imap
     private function awaitNews(string $tag, int $deadline, ClockInterface $clock): void
     {
         $remaining = $deadline - $clock->now()->getTimestamp();
-        if ($remaining > 0 && $this->connection->waitForData($remaining)) {
+        if ($remaining > 0 && $this->connection->waitUntilReadable($remaining)) {
             return;
         }
 
@@ -1697,7 +1743,7 @@ class Imap
      *
      * @param list<string> $keys Sort keys: ARRIVAL, CC, DATE, FROM, SIZE, SUBJECT, TO, DISPLAYFROM
      *     or DISPLAYTO (RFC 5957), each optionally after REVERSE.
-     * @param array<mixed> $search
+     * @param array<mixed> $criteria Search criteria, as for search().
      * @param bool $uid Return UIDs rather than message numbers.
      * @return list<string>|false message numbers or UIDs in order, or false when the server refuses
      * @throws Exception\InvalidArgumentException When there is no key, or a key is not one of those.
@@ -1705,20 +1751,20 @@ class Imap
      *
      * @mago-expect lint:no-boolean-flag-parameter Matches fetch(), which picks UIDs the same way.
      */
-    public function sort(array $keys, array $search = ['ALL'], bool $uid = false): array|false
+    public function sort(array $keys, array $criteria = ['ALL'], bool $uid = false): array|false
     {
         if ([] === $keys) {
             throw new Exception\InvalidArgumentException('SORT needs at least one sort key');
         }
 
-        $criteria = [];
+        $words = [];
         foreach ($keys as $key) {
             if (1 !== preg_match(self::SORT_KEY, $key)) {
                 throw new Exception\InvalidArgumentException("\"{$key}\" is not an IMAP sort key");
             }
 
             foreach (explode(' ', strtoupper($key)) as $word) {
-                $criteria[] = $word;
+                $words[] = $word;
             }
         }
 
@@ -1728,7 +1774,7 @@ class Imap
 
         $response = $this->requestAndResponse(
             ($uid ? 'UID ' : '') . 'SORT',
-            [$this->escapeList($criteria), 'UTF-8', ...$search],
+            [$this->escapeList($words), 'UTF-8', ...$criteria],
         );
         if (null === $response || false === $response) {
             return false;
@@ -1748,23 +1794,24 @@ class Imap
      * (RFC 4731), which IMAP4rev2 includes, rather than by sending every matching
      * number.
      *
-     * @param array<mixed> $params Search parameters, as for search().
-     * @throws Exception\ExceptionInterface When the server refuses or cannot be asked.
+     * @param array<mixed> $criteria Search criteria, as for search().
+     * @throws Exception\CommandRefusedException When the server refuses the search.
+     * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function searchCount(array $params): int
+    public function searchCount(array $criteria): int
     {
         if (! $this->imap4Rev2 && ! $this->hasCapability('ESEARCH')) {
-            $ids = $this->search($params);
+            $ids = $this->search($criteria);
             if (false === $ids) {
-                throw new Exception\RuntimeException('The server refused the search');
+                throw new Exception\CommandRefusedException('The server refused the search');
             }
 
             return count($ids);
         }
 
-        $response = $this->requestAndResponse('SEARCH', ['RETURN', '(COUNT)', ...$params]);
+        $response = $this->requestAndResponse('SEARCH', ['RETURN', '(COUNT)', ...$criteria]);
         if (null === $response || false === $response) {
-            throw new Exception\RuntimeException('The server refused the search');
+            throw new Exception\CommandRefusedException('The server refused the search');
         }
 
         foreach (is_array($response) ? $response : [] as $tokens) {

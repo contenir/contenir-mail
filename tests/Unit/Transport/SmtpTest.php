@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Transport;
 
+use Contenir\Mail\Address;
 use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
@@ -89,6 +90,22 @@ final class SmtpTest extends TestCase
                 '.',
             ],
             self::transaction($server),
+        );
+    }
+
+    #[Test]
+    public function deliversToAnAddressBuiltWithoutStrictChecks(): void
+    {
+        [$transport, , $server] = self::transport();
+        $message = self::datedMessage()
+            ->setSender('ralph@example.com')
+            ->addTo(new Address('first..last@mail_host.example.com', strict: false));
+
+        $transport->send($message);
+
+        static::assertSame(
+            ['RCPT TO:<first..last@mail_host.example.com>', 'To: first..last@mail_host.example.com'],
+            [self::transaction($server)[1], self::transaction($server)[5]],
         );
     }
 

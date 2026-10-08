@@ -253,10 +253,11 @@ final class Maildir extends Folder\Maildir implements WritableInterface
     /**
      * Move a message to another folder, without its Recent flag.
      *
+     * @return null Maildir has no UIDs.
      * @throws Exception\ExceptionInterface When there is no such message or folder, it is the current folder, or moving fails.
      */
     #[Override]
-    public function moveMessage(int $id, Folder|string $folder): void
+    public function moveMessage(int $id, Folder|string $folder): ?int
     {
         $file  = $this->file($id);
         $local = $this->selectableFolder($folder);
@@ -276,6 +277,8 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         FileSystem::quietly(static fn(): bool => unlink($source));
         unset($this->files[$id - 1]);
         $this->files = array_values($this->files);
+
+        return null;
     }
 
     /**

@@ -22,7 +22,7 @@ use function sprintf;
  * when set explicitly.
  *
  * ```php
- * new ConnectionConfig('mail.internal', tls: new TlsOptions(cafile: '/etc/ssl/internal-ca.pem'));
+ * new ConnectionConfig('mail.internal', tls: new TlsConfig(caFile: '/etc/ssl/internal-ca.pem'));
  * ConnectionConfig::fromIterable(['host' => 'mail.internal', 'cafile' => '/etc/ssl/internal-ca.pem']);
  * ```
  *
@@ -30,7 +30,7 @@ use function sprintf;
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
  */
-final readonly class TlsOptions
+final readonly class TlsConfig
 {
     /**
      * The settings read by fromReader(), named as PHP's ssl context options are
@@ -43,29 +43,29 @@ final readonly class TlsOptions
     private const string CONTROLS = '/[\x00-\x1F\x7F]/';
 
     /**
-     * @param string|null $cafile A file of certificate authorities to trust, in place of the system's.
-     * @param string|null $capath A directory of hashed certificate authority files to trust.
+     * @param string|null $caFile A file of certificate authorities to trust, in place of the system's.
+     * @param string|null $caPath A directory of hashed certificate authority files to trust.
      * @param string|null $peerName The name the server's certificate must carry, when it differs from the host.
      * @param bool $allowSelfSigned Accept a certificate that signs itself. Weakens verification; off by default.
      * @param string|null $localCert A client certificate to present, in PEM, which may hold its private key.
-     * @param string|null $localPk The client certificate's private key, when it is in a file of its own.
+     * @param string|null $localPrivateKey The client certificate's private key, when it is in a file of its own.
      * @throws InvalidArgumentException When a value is empty or holds a control character,
      *     or a private key is given without a certificate.
      */
     public function __construct(
-        public ?string $cafile = null,
-        public ?string $capath = null,
+        public ?string $caFile = null,
+        public ?string $caPath = null,
         public ?string $peerName = null,
         public bool $allowSelfSigned = false,
         public ?string $localCert = null,
-        public ?string $localPk = null,
+        public ?string $localPrivateKey = null,
     ) {
-        self::check('cafile', $cafile);
-        self::check('capath', $capath);
+        self::check('cafile', $caFile);
+        self::check('capath', $caPath);
         self::check('peer_name', $peerName);
         self::check('local_cert', $localCert);
-        self::check('local_pk', $localPk);
-        if (null !== $localPk && null === $localCert) {
+        self::check('local_pk', $localPrivateKey);
+        if (null !== $localPrivateKey && null === $localCert) {
             throw new InvalidArgumentException('A TLS private key (local_pk) needs its certificate (local_cert)');
         }
     }
@@ -79,12 +79,12 @@ final readonly class TlsOptions
     public static function fromReader(ConfigReader $reader): self
     {
         return new self(
-            cafile: $reader->nullableString('cafile'),
-            capath: $reader->nullableString('capath'),
+            caFile: $reader->nullableString('cafile'),
+            caPath: $reader->nullableString('capath'),
             peerName: $reader->nullableString('peer_name'),
             allowSelfSigned: $reader->bool('allow_self_signed', default: false),
             localCert: $reader->nullableString('local_cert'),
-            localPk: $reader->nullableString('local_pk'),
+            localPrivateKey: $reader->nullableString('local_pk'),
         );
     }
 
@@ -96,11 +96,11 @@ final readonly class TlsOptions
     public function contextOptions(): array
     {
         $options = [
-            'cafile'     => $this->cafile,
-            'capath'     => $this->capath,
+            'cafile'     => $this->caFile,
+            'capath'     => $this->caPath,
             'peer_name'  => $this->peerName,
             'local_cert' => $this->localCert,
-            'local_pk'   => $this->localPk,
+            'local_pk'   => $this->localPrivateKey,
         ];
         $options = array_filter($options, static fn(?string $value): bool => null !== $value);
         if ($this->allowSelfSigned) {

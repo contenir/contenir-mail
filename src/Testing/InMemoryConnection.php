@@ -295,7 +295,7 @@ final class InMemoryConnection implements ConnectionInterface
      * @throws LogicException When the script expects the client to write or to enable TLS.
      */
     #[Override]
-    public function waitForData(int $seconds): bool
+    public function waitUntilReadable(int $seconds): bool
     {
         $this->assertOpen();
         $this->waits[] = $seconds;

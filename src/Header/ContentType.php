@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Header;
 
+use NoDiscard;
 use Override;
 
 use function in_array;
@@ -85,16 +86,19 @@ final readonly class ContentType implements HeaderInterface
         return $this->parameters[strtolower($name)] ?? null;
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withType(string $type): self
     {
         return new self($type, $this->parameters);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withParameter(string $name, string $value): self
     {
         return new self($this->type, [...$this->parameters, $name => $value]);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withoutParameter(string $name): self
     {
         $parameters = $this->parameters;

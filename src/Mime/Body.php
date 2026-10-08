@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Mime;
 
+use NoDiscard;
+
 /**
  * The parts of a message body, arranged into a MIME tree on request.
  *
@@ -23,11 +25,13 @@ final readonly class Body
         private array $attachments = [],
     ) {}
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withText(Part $text): self
     {
         return new self($text, $this->html, $this->embedded, $this->attachments);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withHtml(Part $html): self
     {
         return new self($this->text, $html, $this->embedded, $this->attachments);
@@ -36,6 +40,7 @@ final readonly class Body
     /**
      * @throws Exception\InvalidArgumentException When the part has no Content-ID for the HTML to refer to.
      */
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withEmbedded(Part $resource): self
     {
         if (null === $resource->getId()) {
@@ -47,6 +52,7 @@ final readonly class Body
         return new self($this->text, $this->html, [...$this->embedded, $resource], $this->attachments);
     }
 
+    #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAttachment(Part $attachment): self
     {
         return new self($this->text, $this->html, $this->embedded, [...$this->attachments, $attachment]);

@@ -531,7 +531,7 @@ final class HeadersTest extends TestCase
     public function withLeavesOriginalUnchanged(): void
     {
         $headers = Headers::fromString('Foo: bar');
-        $headers->with(new GenericHeader('Foo', 'new'));
+        static::assertNotSame($headers, $headers->with(new GenericHeader('Foo', 'new')));
 
         static::assertSame("Foo: bar\r\n", $headers->toString());
     }
@@ -557,7 +557,7 @@ final class HeadersTest extends TestCase
     public function withAddedLeavesOriginalUnchanged(): void
     {
         $headers = Headers::fromString('Foo: bar');
-        $headers->withAdded(new GenericHeader('Baz', 'baz'));
+        static::assertNotSame($headers, $headers->withAdded(new GenericHeader('Baz', 'baz')));
 
         static::assertCount(1, $headers);
     }
@@ -602,7 +602,7 @@ final class HeadersTest extends TestCase
     public function withoutLeavesOriginalUnchanged(): void
     {
         $headers = new Headers(new Header\Bcc());
-        $headers->without('Bcc');
+        static::assertNotSame($headers, $headers->without('Bcc'));
 
         static::assertTrue($headers->has('Bcc'));
     }

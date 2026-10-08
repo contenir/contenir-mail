@@ -10,7 +10,7 @@ namespace Contenir\Mail\Storage\Idle;
  *
  * @api
  */
-final readonly class Expunge implements EventInterface
+final readonly class MessageExpunged implements EventInterface
 {
     public function __construct(
         public int $number,
