@@ -36,6 +36,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   New: `enable()`, `hasCapability()`, `hasUtf8Mailboxes()`, and `move()`,
   which `Storage\Imap::moveMessage()` uses when the server offers MOVE
   (RFC 6851). (#14)
+- Paging through large IMAP folders: `Storage\Imap::sortMessages()` has the
+  server sort the folder (RFC 5256 SORT, RFC 5957 display keys), and
+  `getMessages(...$numbers)` fetches the flags and headers of a page in one
+  FETCH, each body only when it's read. `countMessages()` asks the server for
+  the count with ESEARCH (RFC 4731) when it can. New on `Protocol\Imap`:
+  `sort()` and `searchCount()`. (#21)
 
 ### Changed
 

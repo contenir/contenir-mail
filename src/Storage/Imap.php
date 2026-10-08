@@ -12,7 +12,9 @@ use Contenir\Mail\Storage\Part\MimeParser;
 use Override;
 use SensitiveParameter;
 
-use function count;
+use function array_map;
+use function array_values;
+use function intval;
 use function is_array;
 use function is_iterable;
 use function is_scalar;
@@ -110,12 +112,11 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
             throw new Exception\RuntimeException('No folder is selected');
         }
 
-        $ids = $this->protocol->search(ImapFlags::toSearch($flags, $this->escape(...)));
-        if (false === $ids) {
-            throw new Exception\RuntimeException('The server refused the search');
+        try {
+            return $this->protocol->searchCount(ImapFlags::toSearch($flags, $this->escape(...)));
+        } catch (Protocol\Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException('The server refused the search', previous: $e);
         }
-
-        return count($ids);
     }
 
     /**
@@ -147,14 +148,82 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      *
      * @throws Exception\ExceptionInterface When the number is below 1 or the headers cannot be read.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
-     *
-     * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
      */
     #[Override]
     public function getMessage(int $id): Message
     {
-        $data  = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], self::checkNumber($id));
-        $data  = is_array($data) ? $data : [];
+        $data = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], self::checkNumber($id));
+
+        return $this->buildMessage($id, is_array($data) ? $data : []);
+    }
+
+    /**
+     * Several messages at once: their flags and headers come in one FETCH, and each
+     * body is fetched only when it is read. This is the way to show a page of a
+     * large folder, with the numbers from sortMessages() or a range.
+     *
+     * @return array<int, Message> The messages by number, in the order asked for; a number the
+     *     server sends no headers for is left out.
+     * @throws Exception\OutOfBoundsException When a number is below 1.
+     * @throws Exception\RuntimeException When the headers of a message cannot be read.
+     * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
+     */
+    public function getMessages(int ...$numbers): array
+    {
+        if ([] === $numbers) {
+            return [];
+        }
+
+        $data = $this->protocol->fetch(
+            ['FLAGS', 'RFC822.HEADER'],
+            array_values(array_map(self::checkNumber(...), $numbers)),
+        );
+        $messages = [];
+        foreach ($numbers as $number) {
+            $item = is_array($data) ? $data[$number] ?? null : null;
+            if (! is_array($item) || ! is_string($item['RFC822.HEADER'] ?? null)) {
+                continue;
+            }
+
+            $messages[$number] = $this->buildMessage($number, $item);
+        }
+
+        return $messages;
+    }
+
+    /**
+     * The numbers of the messages in the current folder, sorted by the server (RFC 5256),
+     * such as sortMessages('REVERSE DATE') for the newest first.
+     *
+     * @param string ...$keys Sort keys: ARRIVAL, CC, DATE, FROM, SIZE, SUBJECT, TO, DISPLAYFROM
+     *     or DISPLAYTO, each optionally after REVERSE.
+     * @return list<int>
+     * @throws Exception\RuntimeException When no folder is selected or the server refuses.
+     * @throws Protocol\Exception\ExceptionInterface When a key is not valid, the server does not
+     *     offer SORT, or it cannot be asked.
+     */
+    public function sortMessages(string ...$keys): array
+    {
+        if ('' === $this->currentFolder) {
+            throw new Exception\RuntimeException('No folder is selected');
+        }
+
+        $numbers = $this->protocol->sort(array_values($keys));
+        if (false === $numbers) {
+            throw new Exception\RuntimeException('The server refused the sort');
+        }
+
+        return array_map(intval(...), $numbers);
+    }
+
+    /**
+     * @param array<mixed> $data The FLAGS and RFC822.HEADER items fetched for the message.
+     * @throws Exception\RuntimeException When the headers cannot be read.
+     *
+     * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
+     */
+    private function buildMessage(int $id, array $data): Message
+    {
         $flags = [];
         foreach (is_array($data['FLAGS'] ?? null) ? $data['FLAGS'] : [] as $flag) {
             $flags[] = Flag::fromImap(is_scalar($flag) ? (string) $flag : '');

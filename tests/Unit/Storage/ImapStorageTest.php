@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
@@ -301,7 +302,7 @@ final class ImapStorageTest extends TestCase
     public function countsMessages(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('search')->with(['ALL'])->willReturn([1, 2, 3]);
+        $protocol->method('searchCount')->with(['ALL'])->willReturn(3);
 
         static::assertSame(3, $this->imap($protocol)->countMessages());
     }
@@ -310,7 +311,8 @@ final class ImapStorageTest extends TestCase
     public function reportsRefusedSearch(): void
     {
         $protocol = $this->protocol();
-        $protocol->method('search')->willReturn(false);
+        $protocol->method('searchCount')
+            ->willThrowException(new ProtocolRuntimeException('The server refused the search'));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('The server refused the search');
@@ -324,7 +326,7 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->method('escapeString')->willReturnCallback(static fn(string $text): string => "\"{$text}\"");
-        $protocol->expects($this->once())->method('search')->with($criteria)->willReturn([1]);
+        $protocol->expects($this->once())->method('searchCount')->with($criteria)->willReturn(1);
 
         $this->imap($protocol)->countMessages(...$flags);
     }
@@ -347,7 +349,7 @@ final class ImapStorageTest extends TestCase
     {
         $protocol = $this->protocol();
         $protocol->method('escapeString')->willReturn(['x']);
-        $protocol->expects($this->once())->method('search')->with(['KEYWORD', ''])->willReturn([]);
+        $protocol->expects($this->once())->method('searchCount')->with(['KEYWORD', ''])->willReturn(0);
 
         $this->imap($protocol)->countMessages('$Junk');
     }
