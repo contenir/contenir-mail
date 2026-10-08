@@ -65,7 +65,7 @@ These requests describe features contenir-mail does not have.
 | Issue | Request |
 | --- | --- |
 | [#5](https://github.com/laminas/laminas-mail/issues/5), [#63](https://github.com/laminas/laminas-mail/issues/63), [#185](https://github.com/laminas/laminas-mail/issues/185), [#206](https://github.com/laminas/laminas-mail/issues/206) | Custom TLS stream-context options beyond `verify_peer`, such as `allow_self_signed` or a CA file. Coming in 0.3.0 as typed settings (#16). |
-| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address validation mode. Reading is already lenient: an address header that fails is kept as a GenericHeader. |
+| [#64](https://github.com/laminas/laminas-mail/issues/64), [#146](https://github.com/laminas/laminas-mail/issues/146), [#148](https://github.com/laminas/laminas-mail/issues/148) | A non-strict address validation mode. Reading is already lenient: an address header that fails is kept as a GenericHeader. `Address::lenient()` is coming in 0.3.0 (#18). |
 | [#73](https://github.com/laminas/laminas-mail/issues/73), [#229](https://github.com/laminas/laminas-mail/issues/229) | Text and HTML accessors on a stored message; extracting the reply from a thread. |
 | [#205](https://github.com/laminas/laminas-mail/issues/205) | Adding or removing single flags in storage. `Protocol\Imap::store()` supports `+` and `-`; `Storage\Imap` only replaces flags. |
 | [#9](https://github.com/laminas/laminas-mail/issues/9) | DKIM signing. |

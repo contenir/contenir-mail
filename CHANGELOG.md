@@ -16,6 +16,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   any config, and they apply to TLS from the start and to STARTTLS. No other
   ssl context option can be passed, and peer verification stays on unless
   `verify_peer` turns it off. (#16)
+- SMTP PIPELINING (RFC 2920): when the server offers it, MAIL and every RCPT
+  are sent together and the replies read after, saving a round trip for each
+  recipient. DATA stays a step of its own. `Protocol\Smtp::envelope()` starts
+  the transaction either way and the SMTP transport uses it. Every reply is
+  read before a refusal is reported, and the transaction is then reset with
+  RSET. (#19)
+- `Address::lenient()` builds an address real mail servers take but RFC 5322
+  refuses, such as one with consecutive or trailing dots in the local part, or
+  an underscore in the host. It still needs one `@` and a domain, and refuses
+  whitespace, control characters and the specials that could break a header
+  or an SMTP command. Only addresses built this way are lenient: strings and
+  reading stay strict. (#18)
 - Reading TNEF (`winmail.dat`) attachments: `Storage\Part::getTnefContents()`
   and `Storage\Message::getTnefContents()` find a message's
   `application/ms-tnef` part and return its attachments, its plain-text body
