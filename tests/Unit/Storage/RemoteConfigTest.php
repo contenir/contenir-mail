@@ -8,6 +8,7 @@ use ArrayIterator;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\LocalPath;
 use Contenir\Mail\Storage\Pop3Config;
@@ -133,6 +134,55 @@ final class RemoteConfigTest extends TestCase
         $config = ImapConfig::fromIterable(['user' => 'u']);
 
         static::assertSame(['', 'INBOX'], [$config->password, $config->folder]);
+    }
+
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function readsAnAccessTokenInPlaceOfTheUser(string $class): void
+    {
+        $config = $class::fromIterable(['auth' => ['username' => 'jo@example.com', 'access_token' => self::PASSWORD]]);
+
+        static::assertSame(['jo@example.com', 'jo@example.com'], [$config->user, $config->auth?->username]);
+    }
+
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function keepsTheUserGivenWithAnAccessToken(string $class): void
+    {
+        $config = $class::fromIterable([
+            'user' => 'shared@example.com',
+            'auth' => new XOAuth2('jo@example.com', self::PASSWORD),
+        ]);
+
+        static::assertSame('shared@example.com', $config->user);
+    }
+
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function takesAnAuthenticatorAsItIs(string $class): void
+    {
+        $auth = new XOAuth2('jo@example.com', static fn(): string => self::PASSWORD);
+
+        static::assertSame($auth, $class::fromIterable(['auth' => $auth])->auth);
+    }
+
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function refusesAnAccessTokenGivenAsAString(string $class): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("{$class}: option \"auth\"");
+
+        $class::fromIterable(['auth' => self::PASSWORD]);
+    }
+
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function masksTheAccessTokenInDumps(string $class): void
+    {
+        $config = $class::fromIterable(['auth' => ['username' => 'jo@example.com', 'access_token' => self::PASSWORD]]);
+
+        static::assertStringNotContainsString(self::PASSWORD, print_r($config, return: true));
     }
 
     #[DataProvider('configProvider')]

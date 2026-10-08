@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
 use LogicException;
 use SensitiveParameter;
 
@@ -407,13 +410,8 @@ class Imap
      */
     public function sendRequest(string $command, array $tokens = [], ?string &$tag = null): void
     {
-        if (null === $tag || '' === $tag) {
-            ++$this->tagCount;
-            $tag = "TAG{$this->tagCount}";
-        }
-
-        $this->responseBytes = 0;
-        $line                = "{$tag} {$command}";
+        $tag  = null === $tag || '' === $tag ? $this->nextTag() : $this->startResponse($tag);
+        $line = "{$tag} {$command}";
 
         foreach ($tokens as $token) {
             if (is_array($token)) {
@@ -522,6 +520,106 @@ class Imap
         }
 
         return $this->succeeded($this->requestAndResponse('LOGIN', $arguments));
+    }
+
+    /**
+     * Sign in with an OAuth 2.0 access token (XOAUTH2), as Gmail and Microsoft 365 require.
+     *
+     * The response goes with the command when the server offers SASL-IR (RFC 4959), and
+     * after its continuation otherwise. A refused token is answered with the empty
+     * response that ends the exchange (RFC 7628, section 3.2.3) before this throws.
+     *
+     * @throws Exception\ExceptionInterface When the server does not offer XOAUTH2 or refuses the token, the
+     *     connection fails, or a token provider returns an invalid token.
+     */
+    public function authenticate(XOAuth2 $auth): void
+    {
+        $capabilities = $this->capabilities ?? $this->upperCaseCapabilities();
+        if (! in_array('AUTH=XOAUTH2', $capabilities, strict: true)) {
+            throw new Exception\RuntimeException('The server does not offer XOAUTH2');
+        }
+
+        $response = $auth->initialResponse();
+        $saslIr   = in_array('SASL-IR', $capabilities, strict: true);
+        $tag      = $this->nextTag();
+        $this->connection->write(CommandLine::terminate(
+            $saslIr ? "{$tag} AUTHENTICATE XOAUTH2 {$response}" : "{$tag} AUTHENTICATE XOAUTH2",
+        ));
+        if (! $saslIr) {
+            $this->awaitContinuation($tag);
+            $this->connection->write(CommandLine::terminate($response));
+        }
+
+        $line = $this->nextLine();
+        if (str_starts_with($line, '+')) {
+            $this->connection->write(CommandLine::terminate(''));
+
+            throw new Exception\RuntimeException(XoauthEncoder::refusal(
+                substr($line, offset: 1),
+                $this->taggedReply($tag, $this->nextLine())[1],
+            ));
+        }
+
+        [$status, $text] = $this->taggedReply($tag, $line);
+        if ('OK' !== $status) {
+            throw new Exception\RuntimeException('' === $text ? 'The server refused the access token' : $text);
+        }
+
+        $this->capabilities = null;
+    }
+
+    /**
+     * A new tag for the next command, with the count of response bytes started again.
+     */
+    private function nextTag(): string
+    {
+        ++$this->tagCount;
+
+        return $this->startResponse("TAG{$this->tagCount}");
+    }
+
+    /**
+     * Start counting the bytes of the response to the command tagged $tag.
+     */
+    private function startResponse(string $tag): string
+    {
+        $this->responseBytes = 0;
+
+        return $tag;
+    }
+
+    /**
+     * Wait for the "+" that asks for the SASL response, refusing a tagged reply in its place.
+     *
+     * @throws Exception\RuntimeException When the server refuses the mechanism.
+     */
+    private function awaitContinuation(string $tag): void
+    {
+        $line = $this->nextLine();
+        if (str_starts_with($line, '+')) {
+            return;
+        }
+
+        $text = $this->taggedReply($tag, $line)[1];
+
+        throw new Exception\RuntimeException('' === $text ? 'The server refused XOAUTH2' : $text);
+    }
+
+    /**
+     * The status and text of the reply tagged $tag, starting from $line and skipping untagged lines.
+     *
+     * @return array{string, string}
+     * @throws Exception\RuntimeException When the connection fails or a line exceeds the limits.
+     */
+    private function taggedReply(string $tag, string $line): array
+    {
+        while (! str_starts_with($line, "{$tag} ")) {
+            $line = $this->nextLine();
+        }
+
+        $parts = explode(' ', rtrim(substr($line, strlen($tag) + 1), characters: "\r\n"), limit: 2);
+
+        return [strtoupper($parts[0]), SafeText::display($parts[1] ?? '')];
     }
 
     /**

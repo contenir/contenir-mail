@@ -43,6 +43,11 @@
             ]
         },
         "IncrementInteger": {
+            "ignoreSourceCodeByRegex": [
+                // The XOAUTH2 challenge follows "+ "; strict base64 decoding skips the space, so
+                // starting one character later reads the same JSON.
+                "substr\\(\\$line, offset: 1\\),"
+            ],
             "ignore": [
                 // Skipping a fourth continuation byte also ends at a unit start: a byte after three
                 // continuation bytes is a unit of its own, so the slices come out equivalent.

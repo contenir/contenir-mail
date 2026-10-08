@@ -17,6 +17,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   message with one `STORE +FLAGS.SILENT` or `-FLAGS.SILENT` command, leaving
   its other flags alone. They are not on `WritableInterface`, as Maildir has
   no equivalent.
+- IMAP and POP3 sign in with an OAuth 2.0 access token (XOAUTH2), for Gmail and
+  Microsoft 365. Give `ImapConfig` or `Pop3Config` an `auth` setting: the same
+  `XOAuth2` authenticator SMTP uses, as an object or as `username` and
+  `access_token`, with a Closure for a fresh token at each sign-in.
+  `Protocol\Imap::authenticate()` uses SASL-IR when the server offers it.
+  `Protocol\Pop3::authenticate()` takes the place of `Pop3\Xoauth2\Microsoft`,
+  which still works. `XOAuth2::initialResponse()` gives the SASL response. (#32)
 
 ### Changed
 
