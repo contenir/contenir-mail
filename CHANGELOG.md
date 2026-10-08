@@ -1,0 +1,72 @@
+# Changelog
+
+All notable changes to this project are documented in this file, in the
+format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
+project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 0.1.1 - TBD
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.1.0 - 2026-10-08
+
+First release. contenir-mail continues laminas-mail and laminas-mime for
+PHP 8.3, 8.4 and 8.5, under the `Contenir\Mail` namespace.
+
+### Added
+
+- `<Component>Config` objects for transports, protocols and storage, built from arrays or iterables.
+- XOAUTH2 for SMTP, IMAP and POP3, with a token provider.
+- A `Failover` transport, which tries a list of transports in turn.
+- Address groups, read and written as `AddressGroup` values.
+- SMTPUTF8 and RFC 6532 UTF-8 headers.
+- `Contenir\Mail\Testing\InMemoryConnection`, which scripts a server conversation for protocol tests.
+- Documentation of the [security model](docs/book/security.md), [standards conformance](docs/book/standards.md) and how the [laminas-mail issues](docs/book/laminas-issues.md) affect this package.
+
+### Changed
+
+- Value objects have typed constructors; the magic accessors are gone.
+- SMTP defaults to port 587 and requires STARTTLS. Peers are verified.
+- `Sendmail` runs the program with `proc_open` and no shell, and still supports `mail()`.
+- A Message-ID is generated on the sender's domain.
+- A message may have only one of each unique header.
+- Content-Type parameters stay on one line while they fit.
+- mbstring is no longer needed.
+
+### Removed
+
+- Magic property and method access on messages, headers and parts.
+
+### Fixed
+
+- Headers in a legacy charset are read as Windows-1252 instead of making the message unreadable (laminas/laminas-mail#58, #209, #234, #263).
+- IMAP quoted strings keep escaped quotes and backslashes (laminas/laminas-mail#62, #188).
+- Parentheses inside a quoted display name are kept as text (laminas/laminas-mail#70).
+- A malformed header line is dropped when reading, instead of making the message unreadable (laminas/laminas-mail#76, #221).
+- A refused POP3 request reports the server's reason (laminas/laminas-mail#187).
+- The password is never sent to an IMAP server that advertises LOGINDISABLED (laminas/laminas-mail#258).
+
+### Security
+
+- Header, SMTP command, IMAP command and sendmail argument injection are refused.
+- Server responses, header blocks and MIME parts are limited in size and count.
+- Encoded words are decoded only from an allow-list of charsets (CVE-2024-2961).
+- SMTP transports refuse to be serialised.
