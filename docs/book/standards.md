@@ -1,9 +1,10 @@
 # Standards
 
 This page lists the standards contenir-mail implements and how closely it
-follows each one. Verdicts were checked against the code reviewed on 8 October
-2026 (commit `1ad388a3`, with the fixes made after it). Behaviour was checked with tests where they exist and with
-probe scripts where they do not; rows without a test say so.
+follows each one. Verdicts were first checked against the code on 8 October
+2026 and are updated as features and fixes land; this page describes release
+0.3.0. Behaviour was checked with tests where they exist and with probe scripts
+where they do not; rows without a test say so.
 
 **Verdicts:**
 
@@ -164,10 +165,13 @@ and rev2 servers accept rev1 clients.
 
 ## Not verified
 
-These need real servers or mail clients and were not tested:
+Submission to Postfix, delivery from Postfix to Dovecot, and reading from
+Dovecot over IMAP and POP3 are tested in CI by the integration suite
+(`tests/Integration`) since 0.1.1. These need other servers or mail clients and
+were not tested:
 
-- delivery through Postfix, Exim, Sendmail, Gmail and Microsoft 365, and reading
-  from Dovecot and Cyrus;
+- delivery through Exim, Sendmail, Gmail and Microsoft 365, and reading from
+  Cyrus;
 - how mail clients display RFC 2231 filenames, long encoded words and
   continuation-line values.
 
