@@ -316,6 +316,9 @@ message unreadable.
   invokable object, not a function name.
 - Messages, headers and parts can be serialized for queues; a part's stream is
   serialized as its content.
+- Address groups (`Team: a@example.org, b@example.org;`, `undisclosed-recipients:;`)
+  are read with their names and can be written with `AddressGroup`; laminas-mail
+  flattened them into their members.
 - Addresses with an obsolete source route (`<@relay.example:jo@example.com>`) are
   read as the address, and the IMAP client never sends a password to a server that
   advertises `LOGINDISABLED`.
