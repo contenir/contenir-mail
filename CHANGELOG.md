@@ -156,6 +156,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   within that many seconds. (#52)
 - The migration guide moved to `docs/book/migrating.md` and lists the silent
   changes first.
+- Faster recipients and headers. `Message::addTo()`, `addCc()`, `addBcc()`,
+  `addReplyTo()` and `addFrom()`, `AddressList::with()` and `withList()`,
+  and `Headers::with()` and `withAdded()` no longer go over every address or
+  header already held: adding 4,000 Bcc recipients one at a time took 3 s
+  and now takes 0.12 s. `Headers` works out each header name once, so
+  `get()`, `all()` and `has()` no longer normalise every name on each
+  lookup: 1,000 lookups among 1,000 headers took 280 ms and now take 0.5 ms.
 
 ### Deprecated
 

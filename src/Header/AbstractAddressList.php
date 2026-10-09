@@ -10,8 +10,10 @@ use Contenir\Mail\AddressList;
 use Contenir\Mail\Headers;
 use NoDiscard;
 use Override;
+use ReflectionClass;
 
 use function array_filter;
+use function array_key_exists;
 use function array_map;
 use function array_values;
 use function implode;
@@ -23,6 +25,7 @@ use function strtolower;
  * Base for headers holding a list of addresses: From, To, Cc, Bcc and Reply-To.
  *
  * @api
+ * @mago-expect lint:kan-defect The header keeps its addresses indexed, so adding one does not go over the others.
  */
 abstract readonly class AbstractAddressList implements HeaderInterface
 {
@@ -35,20 +38,28 @@ abstract readonly class AbstractAddressList implements HeaderInterface
     /** @var list<Address|AddressGroup> */
     private array $entries;
 
+    /** @var array<string, true> the lower-cased e-mail addresses of the entries outside groups */
+    private array $emails;
+
     /**
      * Addresses and groups in the order they are written; an address list
      * stands for its addresses.
      */
     final public function __construct(Address|AddressList|AddressGroup ...$entries)
     {
-        $list = [];
+        $list   = [];
+        $emails = [];
         foreach ($entries as $entry) {
             foreach ($entry instanceof AddressList ? $entry->toArray() : [$entry] as $item) {
                 $list[] = $item;
+                if ($item instanceof Address) {
+                    $emails[strtolower($item->getEmail())] = true;
+                }
             }
         }
 
         $this->entries = $list;
+        $this->emails  = $emails;
     }
 
     #[Override]
@@ -103,6 +114,9 @@ abstract readonly class AbstractAddressList implements HeaderInterface
     /**
      * The same header with a group, or addresses, added after its entries.
      * An address already in the header outside a group is not added again.
+     *
+     * @mago-expect analysis:invalid-property-write PHP lets the class initialise the readonly properties of an instance made without its constructor.
+     * @mago-expect analysis:unhandled-thrown-type Reflection throws only for internal final classes, which this is not.
      */
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAdded(Address|AddressList|AddressGroup $entry): static
@@ -111,21 +125,23 @@ abstract readonly class AbstractAddressList implements HeaderInterface
             return new static(...[...$this->entries, $entry]);
         }
 
-        $present = new AddressList(...array_filter(
-            $this->entries,
-            static fn(Address|AddressGroup $existing): bool => $existing instanceof Address,
-        ));
-        $added = [];
+        $entries = $this->entries;
+        $emails  = $this->emails;
         foreach ($entry instanceof AddressList ? $entry : [$entry] as $address) {
-            if ($present->has($address->getEmail())) {
+            $email = strtolower($address->getEmail());
+            if (array_key_exists($email, $emails)) {
                 continue;
             }
 
-            $present = $present->with($address);
-            $added[] = $address;
+            $emails[$email] = true;
+            $entries[]      = $address;
         }
 
-        return new static(...[...$this->entries, ...$added]);
+        $header          = (new ReflectionClass($this))->newInstanceWithoutConstructor();
+        $header->entries = $entries;
+        $header->emails  = $emails;
+
+        return $header;
     }
 
     #[Override]
