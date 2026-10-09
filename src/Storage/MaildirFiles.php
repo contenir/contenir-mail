@@ -82,7 +82,7 @@ final class MaildirFiles
      */
     public static function content(string $filename): Content
     {
-        return Content::fromFile($filename, 0, self::size($filename, null));
+        return Content::fromFile($filename, 0, self::size($filename, null), MaildirFilename::moved(...));
     }
 
     /**

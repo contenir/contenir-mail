@@ -235,6 +235,33 @@ final class MaildirTest extends TestCase
         static::assertSame([5, $before], [count($messages), count(get_resources('stream'))]);
     }
 
+    /**
+     * Changing a message's flags renames its file, and a message seen for the first time
+     * moves from new to cur; a message held from before still reads.
+     */
+    #[Test]
+    #[DataProvider('renameProvider')]
+    public function readsAMessageWhoseFileWasRenamedSinceItWasRead(string $from, string $to): void
+    {
+        $held     = $this->maildir()->getMessage(1);
+        $expected = $held->getContent();
+
+        rename("{$this->directory}/{$from}", "{$this->directory}/{$to}");
+
+        static::assertSame($expected, $held->getContent());
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function renameProvider(): array
+    {
+        return [
+            'flags changed in cur'  => ['cur/1000000000.P1.example.org:2,S', 'cur/1000000000.P1.example.org:2,RS'],
+            'moved from cur to new' => ['cur/1000000000.P1.example.org:2,S', 'new/1000000000.P1.example.org'],
+        ];
+    }
+
     #[Test]
     public function reportsMessageFileThatHasGoneSinceItWasRead(): void
     {

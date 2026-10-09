@@ -7,6 +7,7 @@ namespace Contenir\Mail\Storage;
 use Closure;
 
 use function closedir;
+use function fopen;
 use function is_dir;
 use function is_link;
 use function mkdir;
@@ -136,5 +137,22 @@ final class FileSystem
         closedir($handle);
 
         return $files;
+    }
+
+    /**
+     * A file opened for reading, or, when it has gone, the file $relocate finds in its place.
+     *
+     * @param (Closure(string): ?string)|null $relocate
+     * @return array{resource|false, string} The stream, and the path it was opened from.
+     */
+    public static function openMoved(string $path, ?Closure $relocate): array
+    {
+        $stream = self::quietly(static fn(): mixed => fopen($path, mode: 'rb'));
+        $moved  = false === $stream && null !== $relocate ? $relocate($path) : null;
+        if (null === $moved) {
+            return [$stream, $path];
+        }
+
+        return [self::quietly(static fn(): mixed => fopen($moved, mode: 'rb')), $moved];
     }
 }

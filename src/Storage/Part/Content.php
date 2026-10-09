@@ -51,6 +51,9 @@ final class Content
 
     private ?string $path = null;
 
+    /** @var (Closure(string): ?string)|null Finds a file moved since it was read, from its old path */
+    private ?Closure $relocate = null;
+
     private int $start = 0;
 
     private int $end = 0;
@@ -88,13 +91,16 @@ final class Content
 
     /**
      * A range of a file, opened each time it is read and closed again, so holding it holds no open file.
+     *
+     * @param (Closure(string): ?string)|null $relocate Finds the file from its old path when it has moved.
      */
-    public static function fromFile(string $path, int $start, int $end): self
+    public static function fromFile(string $path, int $start, int $end, ?Closure $relocate = null): self
     {
-        $content        = new self(null, unquoteFrom: false);
-        $content->path  = $path;
-        $content->start = $start;
-        $content->end   = max($start, $end);
+        $content           = new self(null, unquoteFrom: false);
+        $content->path     = $path;
+        $content->relocate = $relocate;
+        $content->start    = $start;
+        $content->end      = max($start, $end);
 
         return $content;
     }
@@ -165,10 +171,7 @@ final class Content
      */
     public function blocks(): Generator
     {
-        $path   = $this->path;
-        $stream = null === $path
-            ? $this->load()
-            : FileSystem::quietly(static fn(): mixed => fopen($path, mode: 'rb'));
+        $stream = $this->open();
         if (! is_resource($stream)) {
             throw new Exception\RuntimeException('Cannot open the message file; it may have been moved');
         }
@@ -187,7 +190,7 @@ final class Content
                 $offset += strlen($block);
             }
         } finally {
-            if (null !== $path) {
+            if (null !== $this->path) {
                 fclose($stream);
             }
         }
@@ -215,6 +218,23 @@ final class Content
         foreach (Lines::whole($this->blocks()) as $lines) {
             yield (string) preg_replace('/^>(>*From )/m', replacement: '$1', subject: $lines);
         }
+    }
+
+    /**
+     * The stream to read: the loaded bytes, or the file, found again if it has moved.
+     *
+     * @return resource|false
+     * @throws Exception\RuntimeException When the storage has been closed.
+     */
+    private function open(): mixed
+    {
+        if (null === $this->path) {
+            return $this->load();
+        }
+
+        [$stream, $this->path] = FileSystem::openMoved($this->path, $this->relocate);
+
+        return $stream;
     }
 
     /**

@@ -211,9 +211,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   hash of `uniqid()`, which a sender could predict.
 - Each Maildir message held its file open for as long as it was held, so
   holding 10,000 messages took 10,007 file descriptors, past the usual limit
-  of 1024. A message file is now opened only while it is read. A message
-  whose file is moved or removed after it was read throws when it is next
-  read, as `getMessage()` does.
+  of 1024. A message file is now opened only while it is read. When its
+  flags change, or it moves from new to cur, it is found again by its unique
+  name; a message whose file is removed throws when it is next read, as
+  `getMessage()` does.
 - Walking the parts of a large message read it line by line with a seek
   before each line, which on a `php://temp` stream drops its read buffer.
   Bodies are now read in 64 KB blocks and searched for the boundary, so
