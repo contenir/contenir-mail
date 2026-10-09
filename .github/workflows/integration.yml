@@ -23,12 +23,13 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress
 
-      - name: Start Dovecot, Postfix and Mailpit
+      - name: Start Dovecot, Postfix, Mailpit and GreenMail
         id: servers
         run: echo "cafile=$(tests/Integration/servers/start.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Integration tests
         env:
+          TESTS_CONTENIR_MAIL_SERVERS_ENABLED: "1"
           TESTS_CONTENIR_MAIL_SERVER_TESTDIR: ${{ github.workspace }}/tests/Integration/servers/var/mail/test
           TESTS_CONTENIR_MAIL_SERVER_FORMAT: mbox
           TESTS_CONTENIR_MAIL_IMAP_ENABLED: "1"
