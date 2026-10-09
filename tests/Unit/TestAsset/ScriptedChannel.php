@@ -4,27 +4,33 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\TestAsset;
 
+use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Smtp\Auth\ChannelInterface;
 use Override;
 use SensitiveParameter;
 
 use function array_shift;
+use function is_string;
 
 /**
  * A ChannelInterface that records each step of an AUTH exchange and answers from a script.
+ *
+ * A reply given as a string is the text of the code the step expects. One given as
+ * [code, text] is a reply with that code, thrown as the server's refusal would be
+ * when the step expects another.
  */
 final class ScriptedChannel implements ChannelInterface
 {
     /** @var list<array{line: string, expect: int, secret: bool}> */
     private array $steps = [];
 
-    /** @var list<string> */
+    /** @var list<string|array{int, string}> */
     private array $replies;
 
     /**
-     * @param string ...$replies The reply text for each step, in order; "" when they run out.
+     * @param string|array{int, string} ...$replies The reply for each step, in order; "" when they run out.
      */
-    public function __construct(string ...$replies)
+    public function __construct(string|array ...$replies)
     {
         $this->replies = $replies;
     }
@@ -42,7 +48,7 @@ final class ScriptedChannel implements ChannelInterface
     {
         $this->steps[] = ['line' => $line, 'expect' => $expect, 'secret' => false];
 
-        return array_shift($this->replies) ?? '';
+        return $this->reply($expect);
     }
 
     #[Override]
@@ -50,6 +56,21 @@ final class ScriptedChannel implements ChannelInterface
     {
         $this->steps[] = ['line' => $line, 'expect' => $expect, 'secret' => true];
 
-        return array_shift($this->replies) ?? '';
+        return $this->reply($expect);
+    }
+
+    private function reply(int $expect): string
+    {
+        $reply = array_shift($this->replies) ?? '';
+        if (is_string($reply)) {
+            return $reply;
+        }
+
+        [$code, $text] = $reply;
+        if ($code !== $expect) {
+            throw new RuntimeException($text, $code);
+        }
+
+        return $text;
     }
 }

@@ -74,9 +74,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   checksums verified, and attachments and output limited (100 and 64 MiB by
   default). (#22)
 - SCRAM-SHA-256 authentication (RFC 5802, RFC 7677) for SMTP, IMAP and POP3.
-  `Protocol\Smtp\Auth\ScramSha256` is an SMTP authenticator, with `type`
+  `Protocol\Sasl\ScramSha256` is an SMTP authenticator, with `type`
   `scram-sha-256` in settings, and `Imap::authenticate()` and
-  `Pop3::authenticate()` take it as they take `XOAuth2`. `ImapConfig` and
+  `Pop3::authenticate()` take it as they take `Sasl\Xoauth2`. `ImapConfig` and
   `Pop3Config` accept it under `auth`, as an object or as settings with a
   `type`; settings without one are still read as XOAUTH2. The server's
   signature is verified, and the exchange fails closed without it. Iteration
@@ -139,6 +139,26 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
+- SASL mechanisms behind one interface. `Protocol\Sasl\MechanismInterface`
+  names a mechanism and starts a `Protocol\Sasl\ExchangeInterface` for each
+  sign-in: its initial response, its answer to each challenge, its check of
+  the server's acceptance, and its message for a refusal. One exchange loop
+  runs it over IMAP AUTHENTICATE (with SASL-IR), POP3 AUTH and SMTP AUTH, and
+  cancels with `*` a challenge the mechanism cannot answer.
+  `Imap::authenticate()`, `Pop3::authenticate()` and the mailbox `auth`
+  setting take any mechanism, and `Protocol\Smtp\Auth\SaslAuthenticator`
+  runs one over SMTP, so a mechanism such as OAUTHBEARER is written once.
+  The built-in `Protocol\Sasl\Xoauth2` and `Protocol\Sasl\ScramSha256` are
+  mechanisms and SMTP authenticators both.
+- Logging the session to a PSR-3 logger, at debug level, with credentials
+  redacted: give `logger` in `ConnectionConfig`, `SmtpConfig`, `ImapConfig`,
+  `Pop3Config` or their settings, or wrap a connection in
+  `Protocol\LoggingConnection`. Passwords, tokens, APOP digests, LOGIN
+  literals and every SASL response are written with the new
+  `Protocol\RedactingConnectionInterface::writeSecret()` and logged as
+  `[redacted]`; other lines that start LOGIN, AUTHENTICATE, AUTH, USER, PASS
+  or APOP have their arguments redacted. `psr/log` is suggested, not
+  required.
 
 ### Changed
 
@@ -163,10 +183,34 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and now takes 0.12 s. `Headers` works out each header name once, so
   `get()`, `all()` and `has()` no longer normalise every name on each
   lookup: 1,000 lookups among 1,000 headers took 280 ms and now take 0.5 ms.
+- `Imap::authenticate()` and `Pop3::authenticate()` take a
+  `Protocol\Sasl\MechanismInterface` instead of an `XOAuth2`, and
+  `ImapConfig::$auth` and `Pop3Config::$auth` hold one; a `Smtp\Auth\XOAuth2`
+  is still accepted. The XOAUTH2 class is now `Protocol\Sasl\Xoauth2`, and
+  settings build that class.
+- The auth `type` values are the IANA mechanism names, in any case:
+  `AuthenticatorFactory::TYPES` lists `cram-md5` and `scram-sha-256`. The
+  mailbox `auth` setting reads the same names, and still defaults to
+  `xoauth2`.
+- POP3 reports a refused SCRAM-SHA-256 sign-in with the server's reason, as
+  IMAP does, rather than after "last request failed:". A server that accepts
+  SCRAM-SHA-256 without proving it knows the password is reported the same way
+  by all three protocols.
+- SMTP sends the empty response that ends an XOAUTH2 refusal, and SCRAM's
+  answer to the server's proof, as secrets, so the session log shows
+  `[credentials hidden]` for them.
 
 ### Deprecated
 
-- Nothing.
+- `Protocol\Smtp\Auth\XOAuth2`: use `Protocol\Sasl\Xoauth2`, which takes the
+  same arguments. It extends the new class, so it is accepted wherever that
+  is; building one is reported by PHP 8.4 and later.
+- `Protocol\Pop3\Xoauth2\Microsoft`: call
+  `Protocol\Pop3::authenticate(new Protocol\Sasl\Xoauth2($user, $token))`.
+  Its `login()` is reported by PHP 8.4 and later.
+- Auth `type` spellings other than the IANA names, such as `crammd5`,
+  `cram_md5` and `scramsha256`: they still work, with an `E_USER_DEPRECATED`
+  notice.
 
 ### Removed
 

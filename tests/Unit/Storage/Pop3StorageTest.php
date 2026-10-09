@@ -7,9 +7,9 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Flag;
@@ -73,7 +73,7 @@ final class Pop3StorageTest extends TestCase
     #[Test]
     public function signsInWithAnAccessTokenInsteadOfAPassword(): void
     {
-        $auth     = new XOAuth2('jo@example.com', 'token');
+        $auth     = new Xoauth2('jo@example.com', 'token');
         $protocol = $this->protocol();
         $protocol->expects($this->once())->method('authenticate')->with($auth);
         $protocol->expects($this->never())->method('login');

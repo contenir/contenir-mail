@@ -39,6 +39,7 @@ Key                     | Argument              | Default        | Meaning
 `allow_insecure_auth`   | `allowInsecureAuth`   | `false`        | Allow `auth` with `security` set to `none`.
 `connection_time_limit` | `connectionTimeLimit` | none           | Seconds after which the transport opens a new connection rather than reusing it; QUIT is then not sent.
 `use_complete_quit`     | `useCompleteQuit`     | `true`         | Send QUIT before closing the connection.
+`logger`                | `logger`              | none           | A PSR-3 logger for the session, at debug level, credentials redacted. See [logging the session](smtp-authentication.md#logging-the-session).
 
 The connection settings are also available on their own as
 `SmtpConfig::$connection`, a `Contenir\Mail\Protocol\ConnectionConfig`.

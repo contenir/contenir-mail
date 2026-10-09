@@ -6,15 +6,17 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use ArrayIterator;
 use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3Config;
 use Contenir\Mail\Storage\RemoteAuth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -62,14 +64,27 @@ final class RemoteAuthTest extends TestCase
         foreach ([ImapConfig::class, Pop3Config::class] as $class) {
             $cases += [
                 "{$class}, scram-sha-256"       => [$class, ['type' => 'scram-sha-256', ...$scram], ScramSha256::class],
-                "{$class}, SCRAM_SHA_256"       => [$class, ['type' => 'SCRAM_SHA_256', ...$scram], ScramSha256::class],
-                "{$class}, xoauth2"             => [$class, ['type' => 'xoauth2', ...$token], XOAuth2::class],
-                "{$class}, XOAUTH2"             => [$class, ['type' => 'XOAUTH2', ...$token], XOAuth2::class],
-                "{$class}, no type, as XOAUTH2" => [$class, $token, XOAuth2::class],
+                "{$class}, SCRAM-SHA-256"       => [$class, ['type' => 'SCRAM-SHA-256', ...$scram], ScramSha256::class],
+                "{$class}, xoauth2"             => [$class, ['type' => 'xoauth2', ...$token], Xoauth2::class],
+                "{$class}, XOAUTH2"             => [$class, ['type' => 'XOAUTH2', ...$token], Xoauth2::class],
+                "{$class}, no type, as XOAUTH2" => [$class, $token, Xoauth2::class],
             ];
         }
 
         return $cases;
+    }
+
+    #[Test]
+    #[IgnoreDeprecations]
+    public function readsADeprecatedSpellingOfTheType(): void
+    {
+        $this->expectUserDeprecationMessage(
+            'Mailbox authentication: type "scramsha256" is deprecated; use "scram-sha-256"',
+        );
+
+        $auth = RemoteAuth::fromIterable(['type' => 'scramsha256', 'username' => 'jo', 'password' => self::PASSWORD]);
+
+        static::assertInstanceOf(ScramSha256::class, $auth);
     }
 
     #[Test]
@@ -105,7 +120,10 @@ final class RemoteAuthTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            "{$class}: option \"auth\" must be an XOAuth2 or ScramSha256 authenticator, got " . Plain::class,
+            "{$class}: option \"auth\" must be a "
+                . MechanismInterface::class
+                . ' or an array of its settings, got '
+                . Plain::class,
         );
 
         $class::fromIterable(['auth' => new Plain('jo', self::PASSWORD)]);

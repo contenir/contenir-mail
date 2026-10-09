@@ -7,8 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
 use Contenir\Mail\Protocol\TlsConfig;
 use SensitiveParameter;
 
@@ -40,6 +39,7 @@ final readonly class ImapConfig
         'ssl',
         'novalidatecert',
         ...TlsConfig::KEYS,
+        'logger',
         'user',
         'password',
         'folder',
@@ -51,8 +51,8 @@ final readonly class ImapConfig
 
     /**
      * @param string $folder The folder selected after logging in.
-     * @param XOAuth2|ScramSha256|null $auth How to sign in with SASL instead of the password: an OAuth 2.0
-     *     access token (XOAUTH2), or a password proved without sending it (SCRAM-SHA-256).
+     * @param MechanismInterface|null $auth How to sign in with SASL instead of the password, such as
+     *     Sasl\Xoauth2 for an OAuth 2.0 access token, or Sasl\ScramSha256 for a password proved without sending it.
      * @throws Exception\InvalidArgumentException When the folder name holds a line break or NUL.
      */
     public function __construct(
@@ -61,7 +61,7 @@ final readonly class ImapConfig
         #[SensitiveParameter]
         public string $password = '',
         public string $folder = 'INBOX',
-        public XOAuth2|ScramSha256|null $auth = null,
+        public ?MechanismInterface $auth = null,
     ) {
         RemoteFolder::check($folder);
     }
@@ -73,11 +73,13 @@ final readonly class ImapConfig
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
-        $auth   = RemoteAuth::fromReader($reader, self::class);
+        $auth   = RemoteAuth::fromReader($reader);
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),
-            user: null === $auth ? $reader->requiredString('user') : $reader->string('user', default: $auth->username),
+            user: null === $auth
+                ? $reader->requiredString('user')
+                : $reader->string('user', default: RemoteAuth::username($auth)),
             password: $reader->string('password', default: ''),
             folder: $reader->string('folder', default: 'INBOX'),
             auth: $auth,

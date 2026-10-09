@@ -505,7 +505,9 @@ final class SmtpSessionTest extends TestCase
                     . Smtp::HIDDEN_LINE
                     . "\r\n334 "
                     . ScramVector::b64(ScramVector::SERVER_FINAL)
-                    . "\r\n\r\n235 2.7.0 Accepted\r\n",
+                    . "\r\n"
+                    . Smtp::HIDDEN_LINE
+                    . "\r\n235 2.7.0 Accepted\r\n",
             ],
             [$smtp->isAuthenticated(), substr($smtp->getLog(), (int) strrpos($smtp->getLog(), needle: "\nAUTH ") + 1)],
         );
