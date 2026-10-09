@@ -66,7 +66,7 @@ final class AuthenticateScramTest extends TestCase
         );
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('last request failed: [AUTH] Unknown mechanism');
+        $this->expectExceptionMessage('[AUTH] Unknown mechanism');
 
         $pop3->authenticate(ScramVector::authenticator());
     }
@@ -91,11 +91,11 @@ final class AuthenticateScramTest extends TestCase
         return [
             'a refusal'         => [
                 "-ERR [AUTH] Authentication failed.\r\n",
-                'last request failed: [AUTH] Authentication failed.',
+                '[AUTH] Authentication failed.',
             ],
             'success, unproved' => [
                 "+OK Logged in.\r\n",
-                'The server ended SCRAM-SHA-256 without proving it knows the password',
+                'The server accepted SCRAM-SHA-256 without proving it knows the password',
             ],
         ];
     }
@@ -106,7 +106,7 @@ final class AuthenticateScramTest extends TestCase
         $pop3 = ScriptedServer::pop3(self::afterServerFinal()->reply("-ERR [SYS/TEMP] Try later\r\n")->hangUp());
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('last request failed: [SYS/TEMP] Try later');
+        $this->expectExceptionMessage('[SYS/TEMP] Try later');
 
         $pop3->authenticate(ScramVector::authenticator());
     }

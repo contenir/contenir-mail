@@ -7,13 +7,16 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use ArrayIterator;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\LocalPath;
 use Contenir\Mail\Storage\Pop3Config;
+use Contenir\Mail\Storage\RemoteAuth;
 use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
+use Contenir\Mail\Tests\Unit\Protocol\TestAsset\FakeMechanism;
+use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -25,6 +28,7 @@ use function print_r;
 #[CoversClass(ImapConfig::class)]
 #[CoversClass(Pop3Config::class)]
 #[CoversClass(RemoteConnection::class)]
+#[CoversClass(RemoteAuth::class)]
 #[CoversClass(RemoteFolder::class)]
 #[CoversClass(LocalPath::class)]
 #[Group('unit')]
@@ -145,13 +149,37 @@ final class RemoteConfigTest extends TestCase
         static::assertSame(['jo@example.com', 'jo@example.com'], [$config->user, $config->auth?->username]);
     }
 
+    /**
+     * @param class-string<ImapConfig|Pop3Config> $class
+     */
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function readsTheLogger(string $class): void
+    {
+        $logger = new RecordingLogger();
+
+        static::assertSame($logger, $class::fromIterable(['user' => 'u', 'logger' => $logger])->connection->logger);
+    }
+
+    /**
+     * A mechanism other than the built-in ones has no username to sign in as.
+     *
+     * @param class-string<ImapConfig|Pop3Config> $class
+     */
+    #[DataProvider('configProvider')]
+    #[Test]
+    public function readsNoUserFromAnotherMechanism(string $class): void
+    {
+        static::assertSame('', $class::fromIterable(['auth' => new FakeMechanism()])->user);
+    }
+
     #[DataProvider('configProvider')]
     #[Test]
     public function keepsTheUserGivenWithAnAccessToken(string $class): void
     {
         $config = $class::fromIterable([
             'user' => 'shared@example.com',
-            'auth' => new XOAuth2('jo@example.com', self::PASSWORD),
+            'auth' => new Xoauth2('jo@example.com', self::PASSWORD),
         ]);
 
         static::assertSame('shared@example.com', $config->user);
@@ -161,7 +189,7 @@ final class RemoteConfigTest extends TestCase
     #[Test]
     public function takesAnAuthenticatorAsItIs(string $class): void
     {
-        $auth = new XOAuth2('jo@example.com', static fn(): string => self::PASSWORD);
+        $auth = new Xoauth2('jo@example.com', static fn(): string => self::PASSWORD);
 
         static::assertSame($auth, $class::fromIterable(['auth' => $auth])->auth);
     }

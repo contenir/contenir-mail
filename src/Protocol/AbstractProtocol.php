@@ -14,7 +14,6 @@ use function count;
 use function implode;
 use function in_array;
 use function is_array;
-use function preg_match;
 use function preg_split;
 use function str_starts_with;
 use function strlen;
@@ -58,13 +57,6 @@ abstract class AbstractProtocol
 
     /** What a redacted credential is logged as */
     public const string REDACTED = '[redacted]';
-
-    /**
-     * Commands whose arguments are credentials
-     */
-    private const string CREDENTIAL_COMMAND =
-        '/^(?<prefix>(?:\S+ +)??)(?<command>LOGIN|AUTHENTICATE|AUTH|USER|PASS|APOP)'
-            . '(?<mechanism>(?<=AUTH|AUTHENTICATE) +\S+)?(?<secret> .*)?$/isD';
 
     /**
      * Maximum of the transaction log
@@ -228,24 +220,6 @@ abstract class AbstractProtocol
     }
 
     /**
-     * The request as it may be logged: the arguments of credential commands replaced by "[redacted]".
-     */
-    private static function redact(#[SensitiveParameter] string $request): string
-    {
-        if (1 !== preg_match(self::CREDENTIAL_COMMAND, $request, $matches) || '' === ($matches['secret'] ?? '')) {
-            return $request;
-        }
-
-        return (
-            ($matches['prefix'] ?? '')
-                . ($matches['command'] ?? '')
-                . ($matches['mechanism'] ?? '')
-                . ' '
-                . self::REDACTED
-        );
-    }
-
-    /**
      * Add the transaction log
      *
      * @param  string $value new transaction
@@ -269,7 +243,7 @@ abstract class AbstractProtocol
      */
     protected function openConnection(ConnectionConfig $config, int $port): void
     {
-        $this->connection ??= new StreamConnection();
+        $this->connection = LoggingConnection::decorate($this->connection ?? new StreamConnection(), $config->logger);
         $this->connection->open($config, $port);
     }
 
@@ -296,7 +270,7 @@ abstract class AbstractProtocol
     // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _send(#[SensitiveParameter] $request)
     {
-        return $this->sendAndLog($request, self::redact($request));
+        return $this->sendAndLog($request, Redaction::redact($request));
     }
 
     /**
@@ -428,6 +402,28 @@ abstract class AbstractProtocol
 
     /**
      * @throws Exception\RuntimeException
+     *
+     * @mago-expect lint:no-boolean-flag-parameter Whether the bytes are a secret decides how they are written.
+     */
+    private static function write(
+        ConnectionInterface $connection,
+        #[SensitiveParameter]
+        string $data,
+        bool $public,
+    ): void {
+        if ($public) {
+            $connection->write($data);
+
+            return;
+        }
+
+        Redaction::writeSecret($connection, $data);
+    }
+
+    /**
+     * Send the request, as a secret when it is logged as something else.
+     *
+     * @throws Exception\RuntimeException
      */
     private function sendAndLog(#[SensitiveParameter] string $request, string $loggedAs): int
     {
@@ -436,7 +432,7 @@ abstract class AbstractProtocol
         $this->_addLog($loggedAs . self::EOL);
 
         try {
-            $connection->write($request . self::EOL);
+            self::write($connection, $request . self::EOL, $loggedAs === $request);
         } catch (Exception\RuntimeException $e) {
             throw new Exception\RuntimeException("Could not send request to {$this->host}", previous: $e);
         }

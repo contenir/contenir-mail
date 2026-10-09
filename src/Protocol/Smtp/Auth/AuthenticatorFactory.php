@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace Contenir\Mail\Protocol\Smtp\Auth;
 
 use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use SensitiveParameter;
 
 use function get_debug_type;
 use function implode;
+use function in_array;
 use function is_string;
 use function sprintf;
 use function str_replace;
 use function strtolower;
+use function trigger_error;
+
+use const E_USER_DEPRECATED;
 
 /**
  * Builds a built-in authenticator from settings such as
@@ -22,8 +28,8 @@ use function strtolower;
  */
 final readonly class AuthenticatorFactory
 {
-    /** The accepted "type" values; "-" and "_" are ignored, so "cram-md5" and "scram-sha-256" also work */
-    public const array TYPES = ['plain', 'login', 'crammd5', 'xoauth2', 'scramsha256'];
+    /** The accepted "type" values: the mechanisms' names as IANA registers them, in any case */
+    public const array TYPES = ['plain', 'login', 'cram-md5', 'xoauth2', 'scram-sha-256'];
 
     /**
      * @param iterable<mixed, mixed> $config The "type" key and the chosen authenticator's own keys.
@@ -50,21 +56,54 @@ final readonly class AuthenticatorFactory
             ));
         }
 
-        return match (str_replace(
-            search: ['-', '_'],
-            replace: '',
-            subject: strtolower($type),
-        )) {
-            'plain'       => Plain::fromIterable($settings),
-            'login'       => Login::fromIterable($settings),
-            'crammd5'     => CramMd5::fromIterable($settings),
-            'xoauth2'     => XOAuth2::fromIterable($settings),
-            'scramsha256' => ScramSha256::fromIterable($settings),
-            default       => throw new InvalidArgumentException(sprintf(
+        return match (self::type($type, 'SMTP authentication')) {
+            'plain'         => Plain::fromIterable($settings),
+            'login'         => Login::fromIterable($settings),
+            'cram-md5'      => CramMd5::fromIterable($settings),
+            'xoauth2'       => Xoauth2::fromIterable($settings),
+            'scram-sha-256' => ScramSha256::fromIterable($settings),
+            default         => throw new InvalidArgumentException(sprintf(
                 'SMTP authentication: unknown type "%s"; expected one of %s',
                 $type,
                 implode(', ', self::TYPES),
             )),
         };
+    }
+
+    /**
+     * The type in TYPES that $type names, in any case; "" when it names none.
+     *
+     * A spelling without the "-" of the IANA name, such as "crammd5", or with "_" in its
+     * place, still names it, with a deprecation notice.
+     *
+     * @internal Storage\RemoteAuth reads the "type" of a mailbox's "auth" setting with it too.
+     */
+    public static function type(string $type, string $context): string
+    {
+        $lower = strtolower($type);
+        if (in_array($lower, self::TYPES, strict: true)) {
+            return $lower;
+        }
+
+        foreach (self::TYPES as $name) {
+            if (self::squash($name) !== self::squash($lower)) {
+                continue;
+            }
+
+            trigger_error(sprintf('%s: type "%s" is deprecated; use "%s"', $context, $type, $name), E_USER_DEPRECATED);
+
+            return $name;
+        }
+
+        return '';
+    }
+
+    private static function squash(string $type): string
+    {
+        return str_replace(
+            search: ['-', '_'],
+            replace: '',
+            subject: $type,
+        );
     }
 }

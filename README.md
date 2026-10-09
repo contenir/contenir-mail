@@ -159,8 +159,8 @@ not complain about, so check these first:
 - `security: 'tls'` is TLS from the start, not STARTTLS as laminas-mail's
   `ssl: 'tls'` was, and STARTTLS is now required by default.
 - `Mime\Part` defaults to base64 rather than 8bit.
-- `Crammd5` and `Xoauth2` are now `CramMd5` and `XOAuth2`, which only fails on a
-  case-sensitive file system.
+- `Crammd5` is now `CramMd5`, which only fails on a case-sensitive file system,
+  and `Protocol\Smtp\Auth\Xoauth2` is now `Protocol\Sasl\Xoauth2`.
 
 ## Development
 

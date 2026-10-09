@@ -12,6 +12,7 @@ use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Validator\HostnameValidator;
+use Psr\Log\LoggerInterface;
 use SensitiveParameter;
 
 use function implode;
@@ -60,6 +61,7 @@ final readonly class SmtpConfig
      *     reusing the connection; when set, QUIT is not sent.
      * @param bool $useCompleteQuit Send QUIT before closing the connection.
      * @param TlsConfig $tls Certificate authorities, peer name and client certificate; the system's by default.
+     * @param LoggerInterface|null $logger Logs the SMTP session at debug level, credentials redacted; needs psr/log.
      * @throws InvalidArgumentException When a value is out of range, or credentials would be sent unencrypted.
      */
     public function __construct(
@@ -74,8 +76,9 @@ final readonly class SmtpConfig
         public ?int $connectionTimeLimit = null,
         public bool $useCompleteQuit = true,
         TlsConfig $tls = new TlsConfig(),
+        ?LoggerInterface $logger = null,
     ) {
-        $this->connection = new ConnectionConfig($host, $port, $security, $verifyPeer, $timeout, $tls);
+        $this->connection = new ConnectionConfig($host, $port, $security, $verifyPeer, $timeout, $tls, $logger);
 
         $validator = HostnameValidator::forConnection();
         if (! $validator->isValid($name)) {
@@ -119,6 +122,7 @@ final readonly class SmtpConfig
             connectionTimeLimit: $reader->nullableInt('connection_time_limit'),
             useCompleteQuit: $reader->bool('use_complete_quit', default: true),
             tls: TlsConfig::fromReader($reader),
+            logger: $reader->instance('logger', LoggerInterface::class),
         );
     }
 }

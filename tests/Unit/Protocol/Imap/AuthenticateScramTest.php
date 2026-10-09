@@ -215,7 +215,7 @@ final class AuthenticateScramTest extends TestCase
             'without a reason'  => ["TAG2 NO\r\n", 'The server refused the credentials'],
             'success, unproved' => [
                 "TAG2 OK Logged in\r\n",
-                'The server ended SCRAM-SHA-256 without proving it knows the password',
+                'The server accepted SCRAM-SHA-256 without proving it knows the password',
             ],
         ];
     }

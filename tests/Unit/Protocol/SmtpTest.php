@@ -11,6 +11,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
+use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -190,6 +191,17 @@ final class SmtpTest extends TestCase
         static::assertEquals(
             new ConnectionConfig('mail.example.com', 2525, Security::StartTls, true, 5),
             $smtp->getConnectionConfig(),
+        );
+    }
+
+    #[Test]
+    public function keepsTheLoggerWithLegacySettings(): void
+    {
+        $logger = new RecordingLogger();
+
+        static::assertSame(
+            $logger,
+            (new Smtp('mail.example.com', 2525, ['ssl' => 'tls', 'logger' => $logger]))->getConnectionConfig()->logger,
         );
     }
 

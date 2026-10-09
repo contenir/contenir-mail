@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Tests\Unit\Protocol\Smtp\Auth;
+namespace Contenir\Mail\Tests\Unit\Protocol\Sasl;
 
 use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
+use Contenir\Mail\Protocol\Sasl\Authentication;
+use Contenir\Mail\Protocol\Sasl\Reply;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\CallbackChannel;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
+use Contenir\Mail\Protocol\Smtp\Auth\SaslAuthenticator;
 use Contenir\Mail\Tests\Unit\TestAsset\ScramVector;
 use Contenir\Mail\Tests\Unit\TestAsset\ScriptedChannel;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,6 +29,9 @@ use function array_key_last;
  * AUTH SCRAM-SHA-256, replaying the test vector of RFC 7677.
  */
 #[CoversClass(ScramSha256::class)]
+#[CoversClass(SaslAuthenticator::class)]
+#[CoversClass(Authentication::class)]
+#[CoversClass(Reply::class)]
 #[Group('unit')]
 final class ScramSha256Test extends TestCase
 {
@@ -36,6 +42,7 @@ final class ScramSha256Test extends TestCase
             '',
             ScramVector::b64(ScramVector::SERVER_FIRST),
             ScramVector::b64(ScramVector::SERVER_FINAL),
+            [235, '2.7.0 Authentication successful'],
         );
 
         ScramVector::authenticator()->authenticate($channel);
@@ -45,7 +52,7 @@ final class ScramSha256Test extends TestCase
                 ['line' => 'AUTH SCRAM-SHA-256', 'expect' => 334, 'secret' => false],
                 ['line' => ScramVector::b64(ScramVector::CLIENT_FIRST), 'expect' => 334, 'secret' => true],
                 ['line' => ScramVector::b64(ScramVector::CLIENT_FINAL), 'expect' => 334, 'secret' => true],
-                ['line' => '', 'expect' => 235, 'secret' => false],
+                ['line' => '', 'expect' => 334, 'secret' => true],
             ],
             $channel->steps(),
         );
@@ -122,15 +129,10 @@ final class ScramSha256Test extends TestCase
                 : throw $accepted,
         );
 
-        try {
-            ScramVector::authenticator()->authenticate($channel);
-            static::fail('Success without the server signature was accepted');
-        } catch (RuntimeException $e) {
-            static::assertSame(
-                ['The server accepted SCRAM-SHA-256 without proving it knows the password', $accepted],
-                [$e->getMessage(), $e->getPrevious()],
-            );
-        }
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The server accepted SCRAM-SHA-256 without proving it knows the password');
+
+        ScramVector::authenticator()->authenticate($channel);
     }
 
     #[Test]
@@ -144,9 +146,15 @@ final class ScramSha256Test extends TestCase
                 : throw $refused,
         );
 
-        $this->expectExceptionObject($refused);
-
-        ScramVector::authenticator()->authenticate($channel);
+        try {
+            ScramVector::authenticator()->authenticate($channel);
+            static::fail('The refusal was not passed on');
+        } catch (RuntimeException $e) {
+            static::assertSame(
+                ['5.7.8 Authentication failed', 535, $refused],
+                [$e->getMessage(), $e->getCode(), $e->getPrevious()],
+            );
+        }
     }
 
     #[Test]

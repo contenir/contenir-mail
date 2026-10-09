@@ -6,54 +6,53 @@ namespace Contenir\Mail\Storage;
 
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
+use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use SensitiveParameter;
 
 use function get_debug_type;
 use function is_string;
 use function sprintf;
-use function str_replace;
-use function strtolower;
 
 /**
- * Reads the "auth" setting of an IMAP or POP3 mailbox: an XOAuth2 or ScramSha256 authenticator,
- * or its settings, such as `['type' => 'scram-sha-256', 'username' => 'jo', 'password' => '…']`.
+ * Reads the "auth" setting of an IMAP or POP3 mailbox: a SASL mechanism, or the settings of
+ * a built-in one, such as `['type' => 'scram-sha-256', 'username' => 'jo', 'password' => '…']`.
  *
- * Settings without a "type" are XOAUTH2 ones, as before SCRAM was added.
+ * Types are named as for SMTP (AuthenticatorFactory::TYPES), but only "xoauth2" and
+ * "scram-sha-256" are read here, and "type" defaults to "xoauth2", as settings without one
+ * were XOAUTH2 settings before SCRAM was added. Any other mechanism is given as an object.
  *
  * @internal
  *
- * @mago-expect analysis:mixed-assignment Settings arrive untyped; each authenticator reads them into types.
+ * @mago-expect analysis:mixed-assignment Settings arrive untyped; each mechanism reads them into types.
  */
 final readonly class RemoteAuth
 {
     /**
-     * @param string $context The Config class, named in error messages.
-     * @throws InvalidArgumentException When the setting is neither an authenticator these protocols
-     *     support nor valid settings for one.
+     * @throws InvalidArgumentException When the setting is neither a SASL mechanism nor valid
+     *     settings for a built-in one.
      */
-    public static function fromReader(ConfigReader $reader, string $context): XOAuth2|ScramSha256|null
+    public static function fromReader(ConfigReader $reader): ?MechanismInterface
     {
-        $auth = $reader->section('auth', AuthenticatorInterface::class, self::fromIterable(...));
-        if (null === $auth || $auth instanceof XOAuth2 || $auth instanceof ScramSha256) {
-            return $auth;
-        }
-
-        throw new InvalidArgumentException(sprintf(
-            '%s: option "auth" must be an XOAuth2 or ScramSha256 authenticator, got %s',
-            $context,
-            $auth::class,
-        ));
+        return $reader->section('auth', MechanismInterface::class, self::fromIterable(...));
     }
 
     /**
-     * @param iterable<mixed, mixed> $config The optional "type", "xoauth2" by default, or "scram-sha-256"
-     *     ("-" and "_" are ignored), and the authenticator's own keys.
+     * The username a built-in mechanism signs in as; "" for any other mechanism.
+     */
+    public static function username(MechanismInterface $auth): string
+    {
+        return $auth instanceof Xoauth2 || $auth instanceof ScramSha256 ? $auth->username : '';
+    }
+
+    /**
+     * @param iterable<mixed, mixed> $config The optional "type", "xoauth2" by default, or "scram-sha-256",
+     *     and the mechanism's own keys.
      * @throws InvalidArgumentException When the type is unknown or the other settings are invalid.
      */
-    public static function fromIterable(#[SensitiveParameter] iterable $config): XOAuth2|ScramSha256
+    public static function fromIterable(#[SensitiveParameter] iterable $config): MechanismInterface
     {
         $settings = [];
         $type     = 'xoauth2';
@@ -73,14 +72,10 @@ final readonly class RemoteAuth
             ));
         }
 
-        return match (str_replace(
-            search: ['-', '_'],
-            replace: '',
-            subject: strtolower($type),
-        )) {
-            'xoauth2'     => XOAuth2::fromIterable($settings),
-            'scramsha256' => ScramSha256::fromIterable($settings),
-            default       => throw new InvalidArgumentException(sprintf(
+        return match (AuthenticatorFactory::type($type, 'Mailbox authentication')) {
+            'xoauth2'       => Xoauth2::fromIterable($settings),
+            'scram-sha-256' => ScramSha256::fromIterable($settings),
+            default         => throw new InvalidArgumentException(sprintf(
                 'Mailbox authentication: unknown type "%s"; expected xoauth2 or scram-sha-256',
                 $type,
             )),

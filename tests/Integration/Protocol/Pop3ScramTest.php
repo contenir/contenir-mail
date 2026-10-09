@@ -7,8 +7,8 @@ namespace Contenir\Mail\Tests\Integration\Protocol;
 use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Pop3;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -89,7 +89,7 @@ final class Pop3ScramTest extends TestCase
         $pop3 = new Pop3(self::config());
 
         $this->expectException(ExceptionInterface::class);
-        $this->expectExceptionMessage('last request failed: [AUTH] Authentication failed.');
+        $this->expectExceptionMessage('[AUTH] Authentication failed.');
 
         $pop3->authenticate(new ScramSha256('test', bin2hex(random_bytes(8))));
     }

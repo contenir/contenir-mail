@@ -168,12 +168,12 @@ traces, and `var_dump()` of a config shows them masked.
 
 Microsoft 365 accepts only OAuth for IMAP and POP3. Gmail accepts an app
 password, or OAuth. To use OAuth, give an `auth` setting in place of the
-password. It takes the same `XOAuth2` authenticator as the SMTP transport, so
-one token signs in to all three protocols. The `user` defaults to the token's
-username.
+password. It takes the same `Protocol\Sasl\Xoauth2` mechanism as the SMTP
+transport, so one token signs in to all three protocols. The `user` defaults
+to the token's username.
 
 ```php
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Storage\Imap;
 use Contenir\Mail\Storage\Pop3;
 
@@ -187,7 +187,7 @@ $mail = new Imap([
 $mail = new Pop3([
     'host'     => 'pop.gmail.com',
     'security' => 'tls',
-    'auth'     => new XOAuth2('jo@gmail.com', static fn(): string => $tokens->fresh()),
+    'auth'     => new Xoauth2('jo@gmail.com', static fn(): string => $tokens->fresh()),
 ]);
 ```
 
@@ -202,11 +202,12 @@ expired token or a mailbox with IMAP turned off shows up there.
 
 A server that offers SCRAM-SHA-256, such as Dovecot, can check the password
 without it crossing the wire, and proves in return that it knows the password.
-Give the `ScramSha256` authenticator, or its settings with `type`, under `auth`.
-Settings without a `type` are read as XOAUTH2, as before.
+Give the `Protocol\Sasl\ScramSha256` mechanism, or its settings with `type`,
+under `auth`. The types are named as for SMTP; settings without a `type` are
+read as XOAUTH2, as before.
 
 ```php
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Storage\Imap;
 use Contenir\Mail\Storage\Pop3;
 
@@ -227,6 +228,41 @@ the server's signature before it finishes the exchange, and throws if the
 signature is wrong or missing. Channel binding (`-PLUS`) is not supported; see
 [SMTP authentication](transport/smtp-authentication.md#scram-sha-256) for the
 reasons and for how non-ASCII credentials are prepared.
+
+### Signing in with another mechanism
+
+`auth` takes any `Protocol\Sasl\MechanismInterface`, and so do
+`Protocol\Imap::authenticate()` and `Protocol\Pop3::authenticate()`. See
+[writing a mechanism](transport/smtp-authentication.md#writing-a-mechanism).
+With a mechanism other than the built-in ones, give `user` as well if the
+storage should know it.
+
+```php
+use Contenir\Mail\Protocol;
+
+$imap = new Protocol\Imap(new Protocol\ConnectionConfig('imap.example.com'));
+$imap->authenticate(new Protocol\Sasl\Xoauth2('jo@example.com', $accessToken));
+```
+
+`Protocol\Pop3\Xoauth2\Microsoft` is deprecated: call
+`Pop3::authenticate(new Xoauth2($user, $token))` on a `Protocol\Pop3`.
+
+### Logging the session
+
+Give a PSR-3 logger as `logger`, beside the connection settings, to log the
+IMAP or POP3 session at debug level with credentials redacted, as for
+[SMTP](transport/smtp-authentication.md#logging-the-session). It needs
+`psr/log`.
+
+```php
+$mail = new Imap(['host' => 'imap.example.com', 'user' => 'jo', 'password' => $password, 'logger' => $logger]);
+
+new ConnectionConfig(host: 'imap.example.com', logger: $logger);
+```
+
+LOGIN, USER, PASS and APOP arguments, a LOGIN password sent as a literal, and
+every SASL response are logged as `[redacted]`. Messages and headers are
+logged as they are read.
 
 Connection errors throw `Contenir\Mail\Protocol\Exception\ExceptionInterface`;
 a failed login throws `Contenir\Mail\Storage\Exception\RuntimeException`.

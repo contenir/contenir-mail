@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Imap;
 
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Imap;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Encoder;
 use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
@@ -45,9 +45,9 @@ final class AuthenticateTest extends TestCase
             ->reply("* CAPABILITY {$capabilities}\r\nTAG1 OK\r\n");
     }
 
-    private static function auth(): XOAuth2
+    private static function auth(): Xoauth2
     {
-        return new XOAuth2(self::USER, self::TOKEN);
+        return new Xoauth2(self::USER, self::TOKEN);
     }
 
     #[Test]

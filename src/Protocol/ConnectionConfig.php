@@ -6,6 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Where and how to connect to a mail server, shared by SMTP, IMAP and POP3.
@@ -15,12 +16,14 @@ use Contenir\Mail\Exception\InvalidArgumentException;
  * ConnectionConfig::fromIterable(['host' => 'mail.example.com', 'port' => '587', 'security' => 'starttls']);
  * ```
  *
+ * Give a PSR-3 "logger" to log the session at debug level, credentials redacted; see LoggingConnection.
+ *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
  */
 final readonly class ConnectionConfig
 {
     /** @var list<string> */
-    public const array KEYS = ['host', 'port', 'security', 'verify_peer', 'timeout', ...TlsConfig::KEYS];
+    public const array KEYS = ['host', 'port', 'security', 'verify_peer', 'timeout', ...TlsConfig::KEYS, 'logger'];
 
     /**
      * @param int|null $port Null for the protocol's standard port for this security.
@@ -28,6 +31,8 @@ final readonly class ConnectionConfig
      *     is refused; set Security::None explicitly for a local relay without TLS.
      * @param int $timeout Seconds to wait for the connection and for each response.
      * @param TlsConfig $tls Certificate authorities, peer name and client certificate; the system's by default.
+     * @param LoggerInterface|null $logger Logs what is sent and received, credentials redacted, through a
+     *     LoggingConnection; needs psr/log.
      * @throws InvalidArgumentException When the port or timeout is out of range.
      */
     public function __construct(
@@ -37,6 +42,7 @@ final readonly class ConnectionConfig
         public bool $verifyPeer = true,
         public int $timeout = 30,
         public TlsConfig $tls = new TlsConfig(),
+        public ?LoggerInterface $logger = null,
     ) {
         if (null !== $port && ($port < 1 || $port > 65_535)) {
             throw new InvalidArgumentException("Port {$port} is out of range");
@@ -71,6 +77,7 @@ final readonly class ConnectionConfig
             verifyPeer: $reader->bool('verify_peer', default: true),
             timeout: $reader->int('timeout', default: 30),
             tls: TlsConfig::fromReader($reader),
+            logger: $reader->instance('logger', LoggerInterface::class),
         );
     }
 

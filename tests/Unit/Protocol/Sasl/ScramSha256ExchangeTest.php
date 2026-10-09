@@ -35,11 +35,12 @@ final class ScramSha256ExchangeTest extends TestCase
         $scram    = ScramVector::exchange();
         $first    = $scram->initialResponse();
         $response = $scram->respond(ScramVector::b64(ScramVector::SERVER_FIRST));
-        $scram->verify(ScramVector::b64(ScramVector::SERVER_FINAL));
+        $final    = $scram->respond(ScramVector::b64(ScramVector::SERVER_FINAL));
+        $scram->complete();
 
         static::assertSame(
-            [ScramVector::CLIENT_FIRST, ScramVector::CLIENT_FINAL],
-            [ScramVector::decode($first), ScramVector::decode($response)],
+            [ScramVector::CLIENT_FIRST, ScramVector::CLIENT_FINAL, ''],
+            [ScramVector::decode($first), ScramVector::decode($response), $final],
         );
     }
 
@@ -80,9 +81,8 @@ final class ScramSha256ExchangeTest extends TestCase
     {
         $scram = ScramVector::exchange();
         $scram->respond(ScramVector::b64(ScramVector::SERVER_FIRST));
-        $scram->verify(ScramVector::b64(ScramVector::SERVER_FINAL . ',x=1'));
 
-        static::assertSame(ScramVector::CLIENT_FIRST, ScramVector::decode($scram->initialResponse()));
+        static::assertSame('', $scram->respond(ScramVector::b64(ScramVector::SERVER_FINAL . ',x=1')));
     }
 
     #[Test]
@@ -241,7 +241,7 @@ final class ScramSha256ExchangeTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage($message);
 
-        $scram->verify($challenge);
+        $scram->respond($challenge);
     }
 
     /**
@@ -271,14 +271,63 @@ final class ScramSha256ExchangeTest extends TestCase
     }
 
     #[Test]
-    public function refusesToVerifyBeforeResponding(): void
+    public function refusesAChallengeAfterTheServersProof(): void
     {
         $scram = ScramVector::exchange();
+        $scram->respond(ScramVector::b64(ScramVector::SERVER_FIRST));
+        $scram->respond(ScramVector::b64(ScramVector::SERVER_FINAL));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('The SCRAM-SHA-256 exchange has no client-final message to verify');
+        $this->expectExceptionMessage('The server sent another SCRAM-SHA-256 challenge after its final message');
 
-        $scram->verify(ScramVector::b64(ScramVector::SERVER_FINAL));
+        $scram->respond(ScramVector::b64(ScramVector::SERVER_FINAL));
+    }
+
+    /**
+     * Without server-final, the server has not proved it knows the password, so its acceptance is refused.
+     */
+    #[Test]
+    #[DataProvider('unprovenAcceptanceProvider')]
+    public function refusesAcceptanceBeforeTheServersProof(string ...$challenges): void
+    {
+        $scram = ScramVector::exchange();
+        foreach ($challenges as $challenge) {
+            $scram->respond($challenge);
+        }
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The server accepted SCRAM-SHA-256 without proving it knows the password');
+
+        $scram->complete();
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function unprovenAcceptanceProvider(): array
+    {
+        return [
+            'after client-first' => [],
+            'after client-final' => [ScramVector::b64(ScramVector::SERVER_FIRST)],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('refusalProvider')]
+    public function reportsTheServersReasonForARefusal(string $reason, string $message): void
+    {
+        static::assertSame($message, ScramVector::exchange()->refusal($reason));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function refusalProvider(): array
+    {
+        return [
+            'with a reason'    => ['[AUTHENTICATIONFAILED] Invalid', '[AUTHENTICATIONFAILED] Invalid'],
+            'without a reason' => ['', 'The server refused the credentials'],
+        ];
     }
 
     #[Test]

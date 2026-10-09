@@ -9,9 +9,9 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Exception\CommandRefusedException;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
 use Contenir\Mail\Protocol\Imap\UidMapping;
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -128,7 +128,7 @@ final class ImapStorageTest extends TestCase
     #[Test]
     public function signsInWithAnAccessTokenInsteadOfAPassword(): void
     {
-        $auth     = new XOAuth2('jo@example.com', 'token');
+        $auth     = new Xoauth2('jo@example.com', 'token');
         $protocol = $this->protocol();
         $protocol->expects($this->once())->method('authenticate')->with($auth);
         $protocol->expects($this->never())->method('login');

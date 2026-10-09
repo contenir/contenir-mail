@@ -9,7 +9,8 @@ use Contenir\Mail\Protocol\Exception\ExceptionInterface;
 /**
  * An SMTP AUTH mechanism (RFC 4954), run by Protocol\Smtp after EHLO and any STARTTLS.
  *
- * Implement it to add a mechanism; the built-in ones are Plain, Login, CramMd5 and XOAuth2.
+ * Implement it to add a mechanism, or wrap a Protocol\Sasl\MechanismInterface in a SaslAuthenticator.
+ * The built-in ones are Plain, Login and CramMd5 here, and Protocol\Sasl\Xoauth2 and ScramSha256.
  *
  * @api
  */

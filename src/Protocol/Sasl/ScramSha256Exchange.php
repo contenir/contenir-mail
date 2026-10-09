@@ -8,6 +8,7 @@ use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
+use Override;
 use Random\RandomException;
 use SensitiveParameter;
 
@@ -31,21 +32,22 @@ use function substr;
  * $scram = new ScramSha256Exchange('jo', $password);
  * $challenge = $send($scram->initialResponse());   // client-first, answered by server-first
  * $final     = $send($scram->respond($challenge)); // client-final with the proof, answered by server-final
- * $scram->verify($final);                          // the server's signature, or an exception
+ * $send($scram->respond($final));                  // the server's signature checked, or an exception
+ * $scram->complete();                              // after the server accepts: only once it was checked
  * ```
  *
- * The password never crosses the wire, and verify() proves the server knows it too, so the
- * exchange fails closed against a server that does not. Use a new instance for each attempt.
+ * The password never crosses the wire, and the server's signature proves it knows it too, so
+ * the exchange fails closed against a server that does not. Use a new instance for each attempt.
  *
  * Channel binding (SCRAM-SHA-256-PLUS) is not offered: it needs the tls-unique or tls-exporter
  * value of the TLS session, which PHP's stream functions do not expose. The gs2 header is
  * therefore "n,,", which tells the server the client does not support binding.
  *
- * @internal Protocol\Smtp\Auth\ScramSha256 runs it for SMTP, IMAP and POP3.
+ * @internal ScramSha256 starts it.
  *
  * @mago-expect lint:cyclomatic-complexity Each check RFC 5802 asks of the server's messages is a branch of its own.
  */
-final class ScramSha256Exchange
+final class ScramSha256Exchange implements ExchangeInterface
 {
     public const string MECHANISM = 'SCRAM-SHA-256';
 
@@ -73,6 +75,9 @@ final class ScramSha256Exchange
     /** Set by respond(); what verify() expects the server to send */
     private ?string $serverSignature = null;
 
+    /** Whether verify() has checked the server's signature */
+    private bool $verified = false;
+
     /**
      * @param string|null $nonce The client nonce, printable ASCII without ","; random by default, given only in tests.
      * @throws InvalidArgumentException When the username or password cannot be prepared, or the nonce is invalid.
@@ -98,21 +103,63 @@ final class ScramSha256Exchange
     /**
      * The client-first message, which names the user and carries the client nonce.
      */
+    #[Override]
     public function initialResponse(): string
     {
         return base64_encode(self::GS2_HEADER . $this->clientFirstBare);
     }
 
     /**
-     * Answer the server-first message with the client-final one, which carries the proof.
+     * Answer the server-first message with the client-final one, which carries the proof; then
+     * check the server-final message, answered with an empty response.
      *
-     * @param string $challenge The server-first message, in base64.
-     * @throws RuntimeException When the challenge is malformed, asks for an extension, does not extend the
-     *     client nonce, or gives an iteration count outside MIN_ITERATIONS to MAX_ITERATIONS.
+     * @param string $challenge The server-first message, then the server-final one, in base64.
+     * @throws RuntimeException When server-first is malformed, asks for an extension, does not extend
+     *     the client nonce, or gives an iteration count outside MIN_ITERATIONS to MAX_ITERATIONS; when
+     *     server-final does not prove the server knows the password; or when a third challenge comes.
+     */
+    #[Override]
+    public function respond(string $challenge): string
+    {
+        $expected = $this->serverSignature;
+        if (null === $expected) {
+            return $this->clientFinal($challenge);
+        }
+
+        if ($this->verified) {
+            throw new RuntimeException('The server sent another SCRAM-SHA-256 challenge after its final message');
+        }
+
+        $this->verify($expected, $challenge);
+
+        return '';
+    }
+
+    /**
+     * @throws RuntimeException When the server accepted before proving it knows the password.
+     */
+    #[Override]
+    public function complete(): void
+    {
+        if (! $this->verified) {
+            throw new RuntimeException('The server accepted SCRAM-SHA-256 without proving it knows the password');
+        }
+    }
+
+    #[Override]
+    public function refusal(string $reason): string
+    {
+        return '' === $reason ? 'The server refused the credentials' : $reason;
+    }
+
+    /**
+     * The client-final message for the server-first one.
+     *
+     * @throws RuntimeException
      *
      * @mago-expect analysis:possibly-invalid-argument The iteration count was checked to be at least MIN_ITERATIONS.
      */
-    public function respond(string $challenge): string
+    private function clientFinal(string $challenge): string
     {
         $serverFirst = self::decode($challenge);
         $matches     = [];
@@ -160,17 +207,12 @@ final class ScramSha256Exchange
     /**
      * Check the server-final message proves the server knows the password.
      *
+     * @param string $expected The server signature respond() computed.
      * @param string $challenge The server-final message, in base64.
-     * @throws RuntimeException When respond() has not been called, the server reports an error,
-     *     or its signature is missing or does not match.
+     * @throws RuntimeException When the server reports an error, or its signature is missing or does not match.
      */
-    public function verify(string $challenge): void
+    private function verify(string $expected, string $challenge): void
     {
-        $expected = $this->serverSignature;
-        if (null === $expected) {
-            throw new RuntimeException('The SCRAM-SHA-256 exchange has no client-final message to verify');
-        }
-
         $serverFinal = self::decode($challenge);
         if (str_starts_with($serverFinal, 'e=')) {
             throw new RuntimeException(
@@ -189,6 +231,8 @@ final class ScramSha256Exchange
                 "The server's SCRAM-SHA-256 signature does not match: it does not know the password",
             );
         }
+
+        $this->verified = true;
     }
 
     /**

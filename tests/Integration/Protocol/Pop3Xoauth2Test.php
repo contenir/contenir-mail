@@ -6,7 +6,8 @@ namespace Contenir\Mail\Tests\Integration\Protocol;
 
 use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
+use Contenir\Mail\Protocol\Pop3;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -22,7 +23,8 @@ use function substr;
 /**
  * POP3 XOAUTH2 against Dovecot, which checks the token as the user's secret.
  */
-#[CoversClass(Microsoft::class)]
+#[CoversClass(Pop3::class)]
+#[CoversClass(Xoauth2::class)]
 #[Group('integration')]
 final class Pop3Xoauth2Test extends TestCase
 {
@@ -33,9 +35,9 @@ final class Pop3Xoauth2Test extends TestCase
         }
     }
 
-    private static function pop3(): Microsoft
+    private static function pop3(): Pop3
     {
-        return new Microsoft(
+        return new Pop3(
             new ConnectionConfig((string) getenv('TESTS_CONTENIR_MAIL_POP3_HOST'), security: Security::StartTls),
         );
     }
@@ -44,7 +46,7 @@ final class Pop3Xoauth2Test extends TestCase
     public function logsInWithAnAccessToken(): void
     {
         $pop3 = self::pop3();
-        $pop3->login('test', (string) getenv('TESTS_CONTENIR_MAIL_POP3_PASSWORD'));
+        $pop3->authenticate(new Xoauth2('test', (string) getenv('TESTS_CONTENIR_MAIL_POP3_PASSWORD')));
 
         $messages = null;
         $octets   = null;
@@ -61,13 +63,13 @@ final class Pop3Xoauth2Test extends TestCase
     public function finishesTheExchangeWhenTheTokenIsRefused(): void
     {
         $connection = new RecordingConnection();
-        $pop3       = new Microsoft(connection: $connection);
+        $pop3       = new Pop3(connection: $connection);
         $pop3->connect(
             new ConnectionConfig((string) getenv('TESTS_CONTENIR_MAIL_POP3_HOST'), security: Security::StartTls),
         );
 
         try {
-            $pop3->login('test', 'wrong');
+            $pop3->authenticate(new Xoauth2('test', 'wrong'));
             static::fail('The wrong token was accepted');
         } catch (ExceptionInterface $e) {
             $transcript = $connection->transcript();
