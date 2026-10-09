@@ -16,8 +16,8 @@ use const PHP_INT_MAX;
  * Measures how the time a piece of work takes grows with its input, so a test can tell
  * linear from quadratic work without depending on how fast the machine is.
  *
- * The input is built outside the timing, and each size is timed best of five, which
- * keeps a stray pause from deciding the result.
+ * The inputs are built outside the timing, and the two sizes are timed in turn, best of
+ * seven, so a stray pause or a busy machine slows both rather than deciding the result.
  */
 final class Growth
 {
@@ -31,10 +31,16 @@ final class Growth
      */
     public static function ratio(Closure $make, Closure $run, int $size, int $factor = 4): float
     {
-        $small = self::fastest($run, $make($size));
-        $large = self::fastest($run, $make($size * $factor));
+        $small     = $make($size);
+        $large     = $make($size * $factor);
+        $bestSmall = PHP_INT_MAX;
+        $bestLarge = PHP_INT_MAX;
+        for ($i = 0; $i < 7; $i++) {
+            $bestSmall = min($bestSmall, self::time($run, $small));
+            $bestLarge = min($bestLarge, self::time($run, $large));
+        }
 
-        return $large / max($small, 1);
+        return $bestLarge / max($bestSmall, 1);
     }
 
     /**
@@ -42,15 +48,11 @@ final class Growth
      * @param Closure(T): mixed $run
      * @param T $input
      */
-    private static function fastest(Closure $run, mixed $input): int
+    private static function time(Closure $run, mixed $input): int
     {
-        $best = PHP_INT_MAX;
-        for ($i = 0; $i < 5; $i++) {
-            $start = hrtime(true);
-            $run($input);
-            $best = min($best, hrtime(true) - $start);
-        }
+        $start = hrtime(true);
+        $run($input);
 
-        return $best;
+        return hrtime(true) - $start;
     }
 }
