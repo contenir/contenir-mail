@@ -9,7 +9,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Imap;
 use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Imap\UidSet;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

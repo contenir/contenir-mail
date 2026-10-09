@@ -6,11 +6,13 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Pop3;
 
 use Contenir\Mail\Protocol\Pop3\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Response::class)]
-class ResponseTest extends TestCase
+#[Group('unit')]
+final class ResponseTest extends TestCase
 {
     /** @psalm-suppress InternalClass */
     #[Test]

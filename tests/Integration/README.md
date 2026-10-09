@@ -12,6 +12,8 @@ Each run creates a throwaway certificate authority, used for both servers' certi
 
 Without the environment variables below, the tests are skipped, so `vendor/bin/phpunit` alone never needs a server.
 
+Some tests here need only PHP: they open sockets on the loopback interface, start a TLS server in a child process, or run a fake sendmail program. They run whenever the suite does, and CI runs them on every PHP version through `composer test-integration`, while the unit suite stays free of I/O.
+
 ## Running locally
 
 The servers use ports 110, 143, 587, 993, 995, 1025 and 8025.

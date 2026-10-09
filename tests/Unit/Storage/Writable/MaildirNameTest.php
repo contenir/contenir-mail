@@ -8,13 +8,12 @@ use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Writable\Maildir;
 use Contenir\Mail\Storage\Writable\MaildirName;
+use Contenir\Mail\Tests\TestAsset\FixedClock;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-
-use function explode;
-use function time;
 
 #[CoversClass(MaildirName::class)]
 #[Group('unit')]
@@ -35,10 +34,9 @@ final class MaildirNameTest extends TestCase
     #[Test]
     public function startsUniqueNameWithTheTime(): void
     {
-        $before  = time();
-        $seconds = (int) explode('.', MaildirName::unique())[0];
+        $clock = new FixedClock(new DateTimeImmutable('@1709208855.012345'));
 
-        static::assertTrue($seconds >= $before && $seconds <= time());
+        static::assertStringStartsWith('1709208855.M012345P', MaildirName::unique(clock: $clock));
     }
 
     #[Test]

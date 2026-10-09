@@ -6,6 +6,8 @@ namespace Contenir\Mail\Storage\Writable;
 
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Flag;
+use Contenir\Mail\SystemClock;
+use Psr\Clock\ClockInterface;
 use Random\RandomException;
 
 use function array_keys;
@@ -14,7 +16,6 @@ use function bin2hex;
 use function getmypid;
 use function implode;
 use function ksort;
-use function microtime;
 use function php_uname;
 use function preg_match;
 use function random_bytes;
@@ -38,9 +39,10 @@ final class MaildirName
      * can neither add a path nor be mistaken for the info or size fields.
      *
      * @param string|null $host This machine's name when null.
+     * @param ClockInterface|null $clock The system clock when null.
      * @throws Exception\RuntimeException When the system has no source of randomness.
      */
-    public static function unique(?string $host = null): string
+    public static function unique(?string $host = null, ?ClockInterface $clock = null): string
     {
         try {
             $random = bin2hex(random_bytes(8));
@@ -53,7 +55,7 @@ final class MaildirName
 
         // @codeCoverageIgnoreEnd
 
-        $time = sprintf('%.6F', microtime(as_float: true));
+        $time = ($clock ?? new SystemClock())->now()->format('U.u');
         $host = str_replace(
             search: ['\\', '/', ':', ','],
             replace: ['\\134', '\\057', '\\072', '\\054'],

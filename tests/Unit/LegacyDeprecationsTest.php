@@ -16,7 +16,7 @@ use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3Config;
 use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversTrait;

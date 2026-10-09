@@ -8,7 +8,7 @@ use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Attachment;
 use Contenir\Mail\Mime\Part;
-use Contenir\Mail\Tests\Unit\TestAsset\FixedClock;
+use Contenir\Mail\Tests\TestAsset\FixedClock;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;

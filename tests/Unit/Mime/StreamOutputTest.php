@@ -8,7 +8,7 @@ use ArrayObject;
 use Contenir\Mail\Mime\Exception\InvalidArgumentException;
 use Contenir\Mail\Mime\Exception\RuntimeException;
 use Contenir\Mail\Mime\StreamOutput;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingWriteStream;
+use Contenir\Mail\Tests\TestAsset\RecordingWriteStream;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

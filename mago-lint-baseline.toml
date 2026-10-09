@@ -157,12 +157,6 @@ message = "Variable `$count` is assigned but never used."
 count = 1
 
 [[issues]]
-file = "tests/Unit/Protocol/HttpStatusService/index.php"
-code = "no-isset"
-message = "Use of the `isset` construct."
-count = 1
-
-[[issues]]
 file = "tests/Unit/Protocol/Xoauth2/Xoauth2Test.php"
 code = "no-literal-password"
 message = "Literal passwords or sensitive data should not be stored in code."

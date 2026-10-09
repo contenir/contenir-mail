@@ -9,7 +9,7 @@ use Contenir\Mail\Protocol\Imap;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Encoder;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

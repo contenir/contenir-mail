@@ -10,7 +10,7 @@ use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Imap;
 use Contenir\Mail\Storage\Message;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;

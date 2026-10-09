@@ -16,7 +16,8 @@ use function chr;
 use function str_repeat;
 
 #[CoversClass(HeaderName::class)]
-class HeaderNameTest extends TestCase
+#[Group('unit')]
+final class HeaderNameTest extends TestCase
 {
     /**
      * Data for filter name

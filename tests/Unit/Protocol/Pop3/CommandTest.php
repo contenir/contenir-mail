@@ -8,7 +8,7 @@ use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3;
 use Contenir\Mail\Protocol\ResponseLimits;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

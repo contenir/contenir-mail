@@ -17,7 +17,7 @@ use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Storage\Part\Window;
 use Contenir\Mail\Storage\TreeIterator;
-use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
+use Contenir\Mail\Tests\TestAsset\Storage\Fixtures;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

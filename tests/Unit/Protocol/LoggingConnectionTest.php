@@ -9,7 +9,7 @@ use Contenir\Mail\Protocol\LoggingConnection;
 use Contenir\Mail\Protocol\Redaction;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
+use Contenir\Mail\Tests\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

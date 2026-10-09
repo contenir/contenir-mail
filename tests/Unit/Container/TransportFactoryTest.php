@@ -8,7 +8,7 @@ use ArrayObject;
 use Contenir\Mail\Container\TransportFactory;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
-use Contenir\Mail\Tests\Unit\TestAsset\ArrayContainer;
+use Contenir\Mail\Tests\TestAsset\ArrayContainer;
 use Contenir\Mail\Transport\Failover;
 use Contenir\Mail\Transport\File;
 use Contenir\Mail\Transport\InMemory;

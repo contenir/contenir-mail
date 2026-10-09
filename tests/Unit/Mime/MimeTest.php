@@ -7,7 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 use Contenir\Mail\Mime\Decode;
 use Contenir\Mail\Mime\Mime;
 use Contenir\Mail\Mime\TransferEncoding;
-use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
+use Contenir\Mail\Tests\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

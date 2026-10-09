@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 
 use Contenir\Mail\Mime\BoundaryGuard;
 use Contenir\Mail\Mime\Exception\RuntimeException;
-use Contenir\Mail\Tests\Unit\TestAsset\Growth;
+use Contenir\Mail\Tests\TestAsset\Growth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

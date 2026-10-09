@@ -10,7 +10,7 @@ use Contenir\Mail\Protocol\Imap;
 use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage;
-use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
+use Contenir\Mail\Tests\TestAsset\Protocol\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;

@@ -11,7 +11,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
-use Contenir\Mail\Tests\Unit\TestAsset\InjectingHeader;
+use Contenir\Mail\Tests\TestAsset\InjectingHeader;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\Sendmail;
 use Contenir\Mail\Transport\SendmailConfig;

@@ -9,7 +9,7 @@ use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Pop3;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
+use Contenir\Mail\Tests\TestAsset\Protocol\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;

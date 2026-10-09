@@ -6,8 +6,8 @@ namespace Contenir\Mail\Tests\Unit\Storage\Part;
 
 use Contenir\Mail\Storage\Part\Content;
 use Contenir\Mail\Storage\Part\Lines;
-use Contenir\Mail\Tests\Unit\TestAsset\Growth;
-use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
+use Contenir\Mail\Tests\TestAsset\Growth;
+use Contenir\Mail\Tests\TestAsset\ShortReadStream;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

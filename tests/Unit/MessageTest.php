@@ -15,6 +15,7 @@ use Contenir\Mail\Header\To;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Tests\TestAsset;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;

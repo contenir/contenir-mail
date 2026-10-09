@@ -9,7 +9,7 @@ use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderWrap;
-use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
+use Contenir\Mail\Tests\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

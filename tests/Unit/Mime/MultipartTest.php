@@ -10,7 +10,7 @@ use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Mime\PartInterface;
-use Contenir\Mail\Tests\Unit\TestAsset\PartWithHeaders;
+use Contenir\Mail\Tests\TestAsset\PartWithHeaders;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

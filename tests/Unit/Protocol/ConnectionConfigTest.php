@@ -8,7 +8,7 @@ use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
+use Contenir\Mail\Tests\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

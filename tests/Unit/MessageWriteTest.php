@@ -15,7 +15,7 @@ use Contenir\Mail\Mime\Exception\RuntimeException;
 use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
-use Contenir\Mail\Tests\Unit\TestAsset\StringSerializableObject;
+use Contenir\Mail\Tests\TestAsset\StringSerializableObject;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

@@ -9,7 +9,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Sasl\SaslPrep;
 use Contenir\Mail\Protocol\Sasl\ScramSha256Exchange;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
-use Contenir\Mail\Tests\Unit\TestAsset\ScramVector;
+use Contenir\Mail\Tests\TestAsset\ScramVector;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

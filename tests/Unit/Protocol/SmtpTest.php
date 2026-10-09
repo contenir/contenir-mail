@@ -11,7 +11,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
+use Contenir\Mail\Tests\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

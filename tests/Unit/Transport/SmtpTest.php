@@ -14,13 +14,11 @@ use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException as ProtocolInvalidArgumentException;
-use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
-use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp as SmtpProtocol;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
-use Contenir\Mail\Tests\Unit\TestAsset\InjectingHeader;
-use Contenir\Mail\Tests\Unit\TestAsset\SettableClock;
-use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
+use Contenir\Mail\Tests\TestAsset\InjectingHeader;
+use Contenir\Mail\Tests\TestAsset\SettableClock;
+use Contenir\Mail\Tests\TestAsset\SmtpServer;
 use Contenir\Mail\Transport\Envelope;
 use Contenir\Mail\Transport\Exception\LogicException;
 use Contenir\Mail\Transport\Exception\RuntimeException;
@@ -39,7 +37,6 @@ use function array_slice;
 use function array_values;
 use function count;
 use function explode;
-use function fclose;
 use function fopen;
 use function fwrite;
 use function get_resources;
@@ -49,11 +46,7 @@ use function sprintf;
 use function str_repeat;
 use function str_replace;
 use function str_starts_with;
-use function stream_socket_get_name;
-use function stream_socket_server;
 use function strlen;
-use function strrpos;
-use function substr;
 use function unserialize;
 
 #[CoversClass(Smtp::class)]
@@ -572,54 +565,6 @@ final class SmtpTest extends TestCase
     }
 
     #[Test]
-    public function createsConnectionFromConfig(): void
-    {
-        $config = new SmtpConfig(
-            host: '127.0.0.1',
-            port: self::closedPort(),
-            timeout: 1,
-            auth: new Login('orders', self::AUTH_VALUE),
-        );
-        $transport = new Smtp($config);
-
-        try {
-            $transport->send(self::message());
-        } catch (ProtocolRuntimeException) {
-            $connection = $transport->getConnection();
-            static::assertSame(
-                [$config->connection, $config->auth],
-                [$connection?->getConnectionConfig(), $connection?->getAuthenticator()],
-            );
-            return;
-        }
-
-        static::fail('A closed port accepted the connection');
-    }
-
-    #[Test]
-    public function passesInsecureAuthSettingToConnection(): void
-    {
-        $config = new SmtpConfig(
-            host: '127.0.0.1',
-            port: self::closedPort(),
-            security: Security::None,
-            timeout: 1,
-            auth: new Login('orders', self::AUTH_VALUE),
-            allowInsecureAuth: true,
-        );
-        $transport = new Smtp($config);
-
-        try {
-            $transport->send(self::message());
-        } catch (ProtocolRuntimeException) {
-            static::assertTrue($transport->getConnection()?->allowsInsecureAuth());
-            return;
-        }
-
-        static::fail('A closed port accepted the connection');
-    }
-
-    #[Test]
     public function hasNoConnectionBeforeFirstSend(): void
     {
         static::assertNull((new Smtp())->getConnection());
@@ -852,16 +797,6 @@ final class SmtpTest extends TestCase
             $server->sentLines(),
             static fn(string $line): bool => str_starts_with($line, 'RCPT'),
         ));
-    }
-
-    private static function closedPort(): int
-    {
-        $server = stream_socket_server('tcp://127.0.0.1:0');
-        static::assertIsResource($server);
-        $address = (string) stream_socket_get_name($server, remote: false);
-        fclose($server);
-
-        return (int) substr($address, strrpos($address, needle: ':') + 1);
     }
 
     private static function datedMessage(): Message

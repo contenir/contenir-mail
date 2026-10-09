@@ -31,7 +31,7 @@ use Contenir\Mail\Storage\RawMessage;
 use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
