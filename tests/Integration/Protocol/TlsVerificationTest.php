@@ -75,13 +75,13 @@ final class TlsVerificationTest extends TestCase
                 Servers::IP_ADDRESS,
                 Servers::IMAPS,
                 Security::Tls,
-                'did not match expected CN',
+                'did not match expected name',
             ],
             'another name, STARTTLS'           => [
                 Servers::IP_ADDRESS,
                 Servers::IMAP,
                 Security::StartTls,
-                'did not match expected CN',
+                'did not match expected name',
             ],
         ];
     }
