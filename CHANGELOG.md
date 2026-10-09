@@ -272,6 +272,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   by semantic versioning, or `@internal`, not for users
   (docs/book/conventions.md). The 68 that had neither, from `Message` and
   `Headers` to the transports, headers and DKIM classes, are all `@api`.
+- Parameters are renamed to the words in docs/book/conventions.md, which
+  breaks calls that pass them by name. Positional calls are unaffected. In
+  `Storage\AbstractStorage` and every storage, `$id` becomes `$number` in
+  `getSize()`, `getMessage()`, `getRawHeader()`, `getRawContent()`,
+  `removeMessage()`, `getUniqueId()` and the protected `checkNumber()`, and
+  `$uniqueId` in `getNumberByUniqueId()`. In
+  `Storage\Writable\WritableInterface`, `Storage\Imap` and
+  `Storage\Writable\Maildir`, `$id` becomes `$number` in `copyMessage()`,
+  `moveMessage()` and `setFlags()`, and in `Storage\Imap` also `addFlags()`
+  and `removeFlags()`. `Storage\Maildir::file()`, protected, takes `$number`.
+  `Protocol\Imap::search()` takes `$criteria` instead of `$params`. In
+  `Protocol\Pop3`, `$msgno` becomes `$number` in `getList()`, `uniqueid()`,
+  `top()`, `retrieve()` and `delete()`.
 
 ### Deprecated
 
@@ -289,17 +302,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   uses it, and every PSR-11 container installs it; code that builds its
   transports itself no longer pulls it in. An application that type-hints
   PSR-11 interfaces without a container must require `psr/container` itself.
-- Parameters are renamed to the words in docs/book/conventions.md, which
-  breaks calls that pass them by name. Positional calls are unaffected. In
-  `Storage\AbstractStorage` and every storage, `$id` becomes `$number` in
-  `getSize()`, `getMessage()`, `getRawHeader()`, `getRawContent()`,
-  `removeMessage()`, `getUniqueId()` and the protected `checkNumber()`, and
-  `$uniqueId` in `getNumberByUniqueId()`. In
-  `Storage\Writable\WritableInterface`, `Storage\Imap` and
-  `Storage\Writable\Maildir`, `$id` becomes `$number` in `copyMessage()`,
-  `moveMessage()` and `setFlags()`, and in `Storage\Imap` also `addFlags()`
-  and `removeFlags()`. `Storage\Maildir::file()`, protected, takes `$number`.
-  `Protocol\Imap::search()` takes `$criteria` instead of `$params`.
 - `Storage\Flag::normalise()`: use `Flag::normalize()`. Identifiers are
   spelled the American way (docs/book/conventions.md); the British spelling
   stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its

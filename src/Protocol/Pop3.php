@@ -451,14 +451,14 @@ class Pop3
     /**
      * Make LIST call for size of message(s)
      *
-     * @param  int|null $msgno number of message, null for all
+     * @param  int|null $number number of message, null for all
      * @return int|array<int, int> size of given message or list with array(num => size)
      * @throws Exception\ExceptionInterface
      */
-    public function getList(?int $msgno = null): int|array
+    public function getList(?int $number = null): int|array
     {
-        if (null !== $msgno) {
-            [, $size] = self::pair($this->request('LIST ' . self::messageNumber($msgno)), default: '0');
+        if (null !== $number) {
+            [, $size] = self::pair($this->request('LIST ' . self::messageNumber($number)), default: '0');
 
             return (int) $size;
         }
@@ -479,14 +479,14 @@ class Pop3
     /**
      * Make UIDL call for getting a uniqueid
      *
-     * @param  int|null $msgno number of message, null for all
+     * @param  int|null $number number of message, null for all
      * @return string|array<int, string> uniqueid of message or list with array(num => uniqueid)
      * @throws Exception\ExceptionInterface
      */
-    public function uniqueid(?int $msgno = null): string|array
+    public function uniqueid(?int $number = null): string|array
     {
-        if (null !== $msgno) {
-            [, $id] = self::pair($this->request('UIDL ' . self::messageNumber($msgno)), default: '');
+        if (null !== $number) {
+            [, $id] = self::pair($this->request('UIDL ' . self::messageNumber($number)), default: '');
 
             return $id;
         }
@@ -511,7 +511,7 @@ class Pop3
      * The fallback makes normal RETR call, which retrieves the whole message. Additional
      * lines are not removed.
      *
-     * @param  int  $msgno    number of message
+     * @param  int  $number   number of message
      * @param  int  $lines    number of wanted body lines (empty line is inserted after header lines)
      * @param  bool $fallback fallback with full retrieve if top is not supported
      * @throws Exception\RuntimeException
@@ -520,12 +520,12 @@ class Pop3
      *
      * @mago-expect lint:no-boolean-flag-parameter The laminas-mail signature, kept for compatibility.
      */
-    public function top(int $msgno, int $lines = 0, bool $fallback = false): string
+    public function top(int $number, int $lines = 0, bool $fallback = false): string
     {
-        $number = self::messageNumber($msgno);
+        $number = self::messageNumber($number);
         if (false === $this->hasTop) {
             if ($fallback) {
-                return $this->retrieve($msgno);
+                return $this->retrieve($number);
             }
 
             throw new Exception\RuntimeException('top not supported and no fallback wanted');
@@ -544,19 +544,19 @@ class Pop3
             }
         }
 
-        return $this->retrieve($msgno);
+        return $this->retrieve($number);
     }
 
     /**
      * Make a RETR call for retrieving a full message with headers and body
      *
-     * @param  int $msgno  message number
+     * @param  int $number message number
      * @return string message
      * @throws Exception\ExceptionInterface
      */
-    public function retrieve(int $msgno): string
+    public function retrieve(int $number): string
     {
-        return $this->request('RETR ' . self::messageNumber($msgno), true);
+        return $this->request('RETR ' . self::messageNumber($number), true);
     }
 
     /**
@@ -574,9 +574,9 @@ class Pop3
      *
      * @throws Exception\ExceptionInterface
      */
-    public function delete(int $msgno): void
+    public function delete(int $number): void
     {
-        $this->request('DELE ' . self::messageNumber($msgno));
+        $this->request('DELE ' . self::messageNumber($number));
     }
 
     /**
@@ -673,12 +673,12 @@ class Pop3
     /**
      * @throws Exception\InvalidArgumentException When the number is below 1.
      */
-    private static function messageNumber(int $msgno): int
+    private static function messageNumber(int $number): int
     {
-        if ($msgno < 1) {
+        if ($number < 1) {
             throw new Exception\InvalidArgumentException('Message numbers start at 1');
         }
 
-        return $msgno;
+        return $number;
     }
 }

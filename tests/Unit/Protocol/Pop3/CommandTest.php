@@ -357,14 +357,14 @@ final class CommandTest extends TestCase
 
     #[DataProvider('invalidMessageNumberProvider')]
     #[Test]
-    public function refusesMessageNumbersBelowOne(string $method, int $msgno): void
+    public function refusesMessageNumbersBelowOne(string $method, int $number): void
     {
         $pop3 = ScriptedServer::pop3(ScriptedServer::pop3Greeting()->hangUp());
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Message numbers start at 1');
 
-        $pop3->{$method}($msgno);
+        $pop3->{$method}($number);
     }
 
     /**
