@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Closure;
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Imap\UidMapping;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
-use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
+use Contenir\Mail\Protocol\Sasl\Authentication;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
+use Contenir\Mail\Protocol\Sasl\Reply;
 use Contenir\Mail\SystemClock;
 use Generator;
 use LogicException;
@@ -235,6 +236,7 @@ class Imap
         $this->setNoValidateCert(! $this->config->verifyPeer);
 
         $this->responseBytes = 0;
+        $this->connection    = LoggingConnection::decorate($this->connection, $this->config->logger);
         $this->connection->open($this->config, $this->config->portOr(143, 993));
 
         if (! $this->assumedNextLine('* OK')) {
@@ -477,14 +479,15 @@ class Imap
         array $tokens = [],
         ?string &$tag = null,
     ): void {
-        $tag  = null === $tag || '' === $tag ? $this->nextTag() : $this->startResponse($tag);
-        $line = "{$tag} {$command}";
+        $tag   = null === $tag || '' === $tag ? $this->nextTag() : $this->startResponse($tag);
+        $line  = "{$tag} {$command}";
+        $write = 'LOGIN' === strtoupper($command) ? $this->writeSecret(...) : $this->connection->write(...);
 
         foreach ($tokens as $token) {
             if (is_array($token)) {
                 $literal = self::literal($token);
-                $this->sendLiteralSize($line, strlen($literal));
-                $this->connection->write($literal);
+                $this->sendLiteralSize($line, strlen($literal), $write);
+                $write($literal);
                 $line = '';
                 continue;
             }
@@ -502,7 +505,7 @@ class Imap
             $line .= " {$token}";
         }
 
-        $this->connection->write(CommandLine::terminate($line));
+        $write(CommandLine::terminate($line));
     }
 
     /**
@@ -511,9 +514,10 @@ class Imap
      * MAX_LITERAL_MINUS_SIZE bytes; otherwise synchronising, waiting for the server's "+".
      * Only capabilities already read are consulted, so no command is sent in the middle of another.
      *
+     * @param Closure(string): void $write Writes the line, as a secret for LOGIN.
      * @throws Exception\RuntimeException When the server refuses the literal or the connection fails.
      */
-    private function sendLiteralSize(#[SensitiveParameter] string $line, int $size): void
+    private function sendLiteralSize(#[SensitiveParameter] string $line, int $size, Closure $write): void
     {
         $capabilities = $this->capabilities ?? [];
         if (
@@ -526,12 +530,12 @@ class Imap
                 )
             )
         ) {
-            $this->connection->write(CommandLine::terminate("{$line} {{$size}+}"));
+            $write(CommandLine::terminate("{$line} {{$size}+}"));
 
             return;
         }
 
-        $this->connection->write(CommandLine::terminate("{$line} {{$size}}"));
+        $write(CommandLine::terminate("{$line} {{$size}}"));
         if (! $this->assumedNextLine('+')) {
             throw new Exception\RuntimeException('cannot send literal string');
         }
@@ -630,148 +634,130 @@ class Imap
     }
 
     /**
-     * Sign in with SASL: an OAuth 2.0 access token (XOAUTH2), as Gmail and Microsoft 365 require,
-     * or a password proved without sending it (SCRAM-SHA-256).
+     * Sign in with a SASL mechanism, such as Sasl\Xoauth2 for an OAuth 2.0 access token, as
+     * Gmail and Microsoft 365 require, or Sasl\ScramSha256 for a password proved without sending it.
      *
-     * The first response goes with the command when the server offers SASL-IR (RFC 4959), and
-     * after its continuation otherwise. A refused token is answered with the empty
-     * response that ends the exchange (RFC 7628, section 3.2.3) before this throws.
+     * The initial response goes with the command when the server offers SASL-IR (RFC 4959),
+     * and after its continuation otherwise. Each challenge comes in a continuation, and a
+     * challenge the mechanism cannot answer is cancelled with "*" (RFC 3501, section 6.2.2)
+     * before this throws. Responses are sent as secrets, kept out of a LoggingConnection's log.
      *
      * @throws Exception\ExceptionInterface When the server does not offer the mechanism or refuses the
-     *     credentials, the connection fails, a token provider returns an invalid token, or a SCRAM
-     *     server cannot prove it knows the password.
+     *     credentials, the connection fails, the mechanism cannot start, such as when a token provider
+     *     returns an invalid token, or the mechanism cannot trust the server, as SCRAM cannot when the
+     *     server does not prove it knows the password.
+     *
+     * @mago-expect analysis:unhandled-thrown-type The Closures throw what this method declares, from where it runs them.
      */
-    public function authenticate(XOAuth2|ScramSha256 $auth): void
+    public function authenticate(MechanismInterface $mechanism): void
     {
-        $mechanism    = $auth->mechanism();
+        $name         = $mechanism->mechanism();
         $capabilities = $this->capabilities ?? $this->upperCaseCapabilities();
-        if (! in_array("AUTH={$mechanism}", $capabilities, strict: true)) {
-            throw new Exception\RuntimeException("The server does not offer {$mechanism}");
+        if (! in_array("AUTH={$name}", $capabilities, strict: true)) {
+            throw new Exception\RuntimeException("The server does not offer {$name}");
         }
 
-        if ($auth instanceof ScramSha256) {
-            $this->authenticateScram($auth, $mechanism, $capabilities);
-            $this->negotiate($capabilities);
-
-            return;
-        }
-
-        $response = $auth->initialResponse();
-        $tag      = $this->sendAuthenticate($mechanism, $response, $capabilities);
-
-        $line = $this->nextLine();
-        if (str_starts_with($line, '+')) {
-            $this->connection->write(CommandLine::terminate(''));
-
-            throw new Exception\RuntimeException(XoauthEncoder::refusal(
-                substr($line, offset: 1),
-                $this->taggedReply($tag, $this->nextLine())[1],
-            ));
-        }
-
-        [$status, $text] = $this->taggedReply($tag, $line);
-        if ('OK' !== $status) {
-            throw new Exception\RuntimeException('' === $text ? 'The server refused the access token' : $text);
-        }
+        $exchange = $mechanism->start();
+        $tag      = $this->nextTag();
+        (new Authentication(
+            /** @throws Exception\ExceptionInterface */
+            start: fn(#[SensitiveParameter] ?string $initial): Reply => $this->startSasl(
+                $tag,
+                $name,
+                $initial,
+                $capabilities,
+            ),
+            /** @throws Exception\ExceptionInterface */
+            send: fn(#[SensitiveParameter] string $response): Reply => $this->sendSasl($tag, $response),
+            /** @throws Exception\ExceptionInterface */
+            cancel: function () use ($tag): void {
+                $this->cancelSasl($tag);
+            },
+        ))->run($exchange);
 
         $this->capabilities = null;
         $this->negotiate($capabilities);
     }
 
     /**
-     * Send AUTHENTICATE with the first response, or wait for its continuation without SASL-IR.
+     * Send AUTHENTICATE with the initial response under SASL-IR, or else after the continuation
+     * that asks for it, writing "=" for an empty one (RFC 4959), and read the reply.
      *
      * @param list<string> $capabilities
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\ExceptionInterface When the server refuses the mechanism or the connection fails.
      */
-    private function sendAuthenticate(
-        string $mechanism,
+    private function startSasl(
+        string $tag,
+        string $name,
         #[SensitiveParameter]
-        string $response,
+        ?string $initial,
         array $capabilities,
-    ): string {
-        $saslIr = in_array('SASL-IR', $capabilities, strict: true);
-        $tag    = $this->nextTag();
-        $this->connection->write(CommandLine::terminate(
-            $saslIr ? "{$tag} AUTHENTICATE {$mechanism} {$response}" : "{$tag} AUTHENTICATE {$mechanism}",
-        ));
-        if (! $saslIr) {
-            $this->awaitContinuation($tag, $mechanism);
-            $this->connection->write(CommandLine::terminate($response));
+    ): Reply {
+        if (null !== $initial && in_array('SASL-IR', $capabilities, strict: true)) {
+            $this->writeSecret(CommandLine::terminate(
+                "{$tag} AUTHENTICATE {$name} " . ('' === $initial ? '=' : $initial),
+            ));
+
+            return $this->saslReply($tag);
         }
 
-        return $tag;
+        $this->connection->write(CommandLine::terminate("{$tag} AUTHENTICATE {$name}"));
+        if (null !== $initial) {
+            $this->awaitContinuation($tag, $name);
+            $this->writeSecret(CommandLine::terminate($initial));
+        }
+
+        return $this->saslReply($tag);
     }
 
     /**
-     * SCRAM-SHA-256: server-first and server-final arrive in continuations, and the second
-     * is answered with an empty response before the tagged reply. A step the client refuses
-     * is cancelled with "*" (RFC 3501, section 6.2.2) before this throws.
+     * Send a response to a challenge, as a secret, and read the reply.
      *
-     * @param list<string> $capabilities
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\ExceptionInterface When the response holds CR, LF or NUL, or the connection fails.
      */
-    private function authenticateScram(ScramSha256 $auth, string $mechanism, array $capabilities): void
+    private function sendSasl(string $tag, #[SensitiveParameter] string $response): Reply
     {
-        $scram     = $auth->start();
-        $tag       = $this->sendAuthenticate($mechanism, $scram->initialResponse(), $capabilities);
-        $challenge = $this->saslChallenge($tag);
-        try {
-            $response = $scram->respond($challenge);
-        } catch (Exception\RuntimeException $e) {
-            $this->cancelSasl($tag, $e);
-        }
+        $this->writeSecret(CommandLine::terminate($response));
 
-        $this->connection->write(CommandLine::terminate($response));
-        $challenge = $this->saslChallenge($tag);
-        try {
-            $scram->verify($challenge);
-        } catch (Exception\RuntimeException $e) {
-            $this->cancelSasl($tag, $e);
-        }
-
-        $this->connection->write(CommandLine::terminate(''));
-        [$status, $text] = $this->taggedReply($tag, $this->nextLine());
-        if ('OK' !== $status) {
-            throw new Exception\RuntimeException('' === $text ? 'The server refused the credentials' : $text);
-        }
-
-        $this->capabilities = null;
+        return $this->saslReply($tag);
     }
 
     /**
-     * The base64 text of the next continuation, refusing a tagged reply in its place.
+     * Cancel the exchange with "*" (RFC 3501, section 6.2.2) and read the server's reply.
      *
-     * @throws Exception\RuntimeException When the server refuses the credentials, or ends the
-     *     exchange without the server-final message that proves it knows the password.
+     * @throws Exception\RuntimeException When the connection fails.
      */
-    private function saslChallenge(string $tag): string
+    private function cancelSasl(string $tag): void
+    {
+        $this->connection->write(CommandLine::terminate('*'));
+        $this->taggedReply($tag, $this->nextLine());
+    }
+
+    /**
+     * A continuation's challenge, or the tagged reply that ends the exchange.
+     *
+     * @throws Exception\RuntimeException When the connection fails or a line exceeds the limits.
+     */
+    private function saslReply(string $tag): Reply
     {
         $line = $this->nextLine();
         if (str_starts_with($line, '+')) {
-            return substr($line, offset: 1);
+            return Reply::challenge(trim(substr($line, offset: 1)));
         }
 
         [$status, $text] = $this->taggedReply($tag, $line);
 
-        throw new Exception\RuntimeException(match (true) {
-            'OK' === $status => 'The server ended SCRAM-SHA-256 without proving it knows the password',
-            '' === $text => 'The server refused the credentials',
-            default => $text,
-        });
+        return 'OK' === $status ? Reply::accepted() : Reply::refused(new Exception\RuntimeException($text));
     }
 
     /**
-     * Cancel the exchange with "*" (RFC 3501, section 6.2.2), read the server's reply, and throw $reason.
+     * Send bytes that carry credentials, kept out of a LoggingConnection's log.
      *
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\RuntimeException When the connection fails.
      */
-    private function cancelSasl(string $tag, Exception\RuntimeException $reason): never
+    private function writeSecret(#[SensitiveParameter] string $data): void
     {
-        $this->connection->write(CommandLine::terminate('*'));
-        $this->taggedReply($tag, $this->nextLine());
-
-        throw $reason;
+        Redaction::writeSecret($this->connection, $data);
     }
 
     /**

@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Imap;
 
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Imap;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Encoder;
 use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
@@ -195,7 +195,7 @@ final class Imap4rev2Test extends TestCase
             ->reply("* ENABLED IMAP4REV2\r\nTAG3 OK\r\n")
             ->hangUp();
         $imap = ScriptedServer::imap($server);
-        $imap->authenticate(new XOAuth2('jo@example.com', 'token'));
+        $imap->authenticate(new Xoauth2('jo@example.com', 'token'));
 
         static::assertTrue($imap->usesUtf8MailboxNames());
     }

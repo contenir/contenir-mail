@@ -307,11 +307,32 @@ $body = $mail->getMessage($id)->getPart(2)->getEncodedContent();
 
 ### Class names whose case changed
 
-`Protocol\Smtp\Auth\Crammd5` is now `CramMd5`, and `Protocol\Smtp\Auth\Xoauth2`
-is now `XOAuth2`. PHP class names are case-insensitive, and macOS's default file
-system is too, so the old spelling works on a developer's Mac. On Linux, Composer's
-PSR-4 autoloader looks for `Crammd5.php`, does not find `CramMd5.php`, and the
-class is not found in production. Use the new spelling.
+`Protocol\Smtp\Auth\Crammd5` is now `CramMd5`. PHP class names are
+case-insensitive, and macOS's default file system is too, so the old spelling
+works on a developer's Mac. On Linux, Composer's PSR-4 autoloader looks for
+`Crammd5.php`, does not find `CramMd5.php`, and the class is not found in
+production. Use the new spelling.
+
+`Protocol\Smtp\Auth\Xoauth2` is now `Protocol\Sasl\Xoauth2`, a SASL mechanism
+that signs in to IMAP and POP3 as well as SMTP. On macOS the old name finds
+`Protocol\Smtp\Auth\XOAuth2`, the deprecated 0.2 name, which still works;
+on Linux it is not found. Use `Protocol\Sasl\Xoauth2`.
+
+### Moving from contenir-mail 0.2
+
+- `Protocol\Smtp\Auth\XOAuth2` is deprecated: use `Protocol\Sasl\Xoauth2`,
+  which takes the same arguments and settings. The old class extends the new
+  one, so it is accepted wherever the new one is. Objects that settings build,
+  such as `SmtpConfig::fromIterable(['auth' => [...]])->auth`, are
+  `Protocol\Sasl\Xoauth2`, so an `instanceof` test should name the new class.
+- `Protocol\Pop3\Xoauth2\Microsoft` is deprecated: call
+  `authenticate(new Protocol\Sasl\Xoauth2($user, $token))` on a
+  `Protocol\Pop3`.
+- `Imap::authenticate()` and `Pop3::authenticate()` take any
+  `Protocol\Sasl\MechanismInterface`; `ImapConfig::$auth` and
+  `Pop3Config::$auth` hold one.
+- The auth `type` values are the IANA names: `cram-md5` and `scram-sha-256`.
+  `crammd5` still works, with a deprecation notice.
 
 ## Mapping tables
 
@@ -399,7 +420,8 @@ be snake_case or camelCase, and strings from environment variables such as
 | `connection_class` with `connection_config` `username` and `password` | `auth`: an authenticator, or `['type' => 'login', 'username' => ..., 'password' => ...]` |
 | `connection_config['ssl']` = `'ssl'` / `'tls'` | `security` = `'tls'` / `'starttls'` (the default); `'none'` for a plain connection. See [above](#security-tls-means-tls-from-the-start-not-starttls) |
 | `connection_config['novalidatecert']` | `verify_peer` |
-| `Protocol\Smtp\Auth\Plain`, `Login`, `Crammd5`, `Xoauth2` (subclasses of `Protocol\Smtp`) | `Protocol\Smtp\Auth\Plain`, `Login`, `CramMd5`, `XOAuth2`, implementing `AuthenticatorInterface` |
+| `Protocol\Smtp\Auth\Plain`, `Login`, `Crammd5` (subclasses of `Protocol\Smtp`) | `Protocol\Smtp\Auth\Plain`, `Login`, `CramMd5`, implementing `AuthenticatorInterface` |
+| `Protocol\Smtp\Auth\Xoauth2` (a subclass of `Protocol\Smtp`) | `Protocol\Sasl\Xoauth2`, a SASL mechanism for SMTP, IMAP and POP3 |
 | `Protocol\SmtpPluginManager`, `Transport\Smtp::setPluginManager()` / `plugin()` | Removed; implement `AuthenticatorInterface` for another mechanism |
 | `Transport\FileOptions` | `Transport\FileConfig` |
 | `new Sendmail($parameters)`, `setParameters()`, `setCallable()` | `new Sendmail($parameters)` or a `SendmailConfig`, with `mailer:` for a custom callable |
@@ -419,6 +441,7 @@ be snake_case or camelCase, and strings from environment variables such as
 | laminas-stdlib `ErrorHandler` | Internal; no laminas-stdlib dependency |
 | Commands returning raw response lines | `login()`, `select()`, `store()` and the other commands are typed; boolean commands return `bool` |
 | Unlimited response sizes | `ResponseLimits` (8 MiB lines, 64 MiB responses by default), set with `setResponseLimits()` |
+| `Protocol\Pop3\Xoauth2\Microsoft` | Kept, deprecated: use `authenticate()` with any `Protocol\Sasl\MechanismInterface`, such as `Sasl\Xoauth2` |
 
 ### Storage
 
@@ -495,7 +518,8 @@ The defaults and silent changes above are not repeated here.
   `path`; without one it uses `mail()` as before.
 - The container's transport configuration must name its `type`; it no longer
   defaults to sendmail.
-- `XOAuth2` accepts a Closure that returns a fresh access token at each AUTH.
+- `Sasl\Xoauth2` accepts a Closure that returns a fresh access token at each
+  sign-in.
 - A header word too long to fold within 998 characters is written as encoded
   words, so no header line ever exceeds the RFC 5322 limit.
 - Encoded words always hold whole characters (RFC 2047, section 5). A header name

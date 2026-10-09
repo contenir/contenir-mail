@@ -333,6 +333,24 @@ final readonly class ConfigReader
     }
 
     /**
+     * An object of the class, such as a logger.
+     *
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T|null
+     * @throws Exception\InvalidArgumentException When the value is not one.
+     */
+    public function instance(string $key, string $class): ?object
+    {
+        $value = $this->values[$key] ?? null;
+        if (null === $value || $value instanceof $class) {
+            return $value;
+        }
+
+        throw $this->invalid($key, "a {$class}", $value);
+    }
+
+    /**
      * @param list<string> $default
      * @return list<string>
      * @throws Exception\InvalidArgumentException When the value is not an iterable of strings.

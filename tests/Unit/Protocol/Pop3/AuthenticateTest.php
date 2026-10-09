@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Pop3;
 
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Pop3;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as Encoder;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,7 +31,7 @@ final class AuthenticateTest extends TestCase
             ->reply("+OK Welcome\r\n")
             ->hangUp();
 
-        ScriptedServer::pop3($server)->authenticate(new XOAuth2('jo@example.com', static fn(): string => 'fresh'));
+        ScriptedServer::pop3($server)->authenticate(new Xoauth2('jo@example.com', static fn(): string => 'fresh'));
 
         static::assertTrue($server->isScriptComplete());
     }
@@ -49,6 +49,6 @@ final class AuthenticateTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('last request failed: [AUTH] Unknown mechanism');
 
-        $pop3->authenticate(new XOAuth2('jo@example.com', 'token'));
+        $pop3->authenticate(new Xoauth2('jo@example.com', 'token'));
     }
 }

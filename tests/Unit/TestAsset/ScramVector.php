@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\TestAsset;
 
+use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Sasl\ScramSha256Exchange;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 
 use function base64_decode;
 use function base64_encode;

@@ -27,12 +27,14 @@
         "contenir/contenir-qa-tools": "0.1.x-dev",
         "infection/infection": "^0.34.1",
         "phpunit/phpunit": "^11.5.42",
+        "psr/log": "^2.0 || ^3.0",
         "symfony/process": "^7.3"
     },
     "suggest": {
         "ext-intl": "Faster and stricter internationalised domain name handling than symfony/polyfill-intl-idn",
         "ext-openssl": "DKIM signing with RSA keys, and reading DKIM keys from PEM",
-        "ext-sodium": "DKIM signing with Ed25519 keys (RFC 8463)"
+        "ext-sodium": "DKIM signing with Ed25519 keys (RFC 8463)",
+        "psr/log": "Logging the IMAP, POP3 and SMTP sessions, credentials redacted, with Protocol\\LoggingConnection"
     },
     "autoload": {
         "psr-4": {

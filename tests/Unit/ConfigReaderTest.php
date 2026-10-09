@@ -397,6 +397,32 @@ final class ConfigReaderTest extends TestCase
     }
 
     #[Test]
+    public function readsInstanceOfClass(): void
+    {
+        $value = new stdClass();
+
+        static::assertSame($value, self::reader(['connection' => $value])->instance('connection', stdClass::class));
+    }
+
+    #[Test]
+    public function readsAbsentInstanceAsNull(): void
+    {
+        static::assertNull(self::reader(['connection' => null])->instance('connection', stdClass::class));
+    }
+
+    #[Test]
+    #[DataProvider('invalidSectionProvider')]
+    public function rejectsInstanceOfWrongType(mixed $value, string $type): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Example: option \"connection\" must be a Contenir\\Mail\\Protocol\\ConnectionConfig, got {$type}",
+        );
+
+        self::reader(['connection' => $value])->instance('connection', ConnectionConfig::class);
+    }
+
+    #[Test]
     #[DataProvider('invalidSectionProvider')]
     public function rejectsSectionOfWrongType(mixed $value, string $type): void
     {
