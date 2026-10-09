@@ -7,8 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
 use Contenir\Mail\Protocol\TlsConfig;
 use SensitiveParameter;
 
@@ -40,6 +39,7 @@ final readonly class Pop3Config
         'ssl',
         'novalidatecert',
         ...TlsConfig::KEYS,
+        'logger',
         'user',
         'password',
         'auth',
@@ -49,15 +49,15 @@ final readonly class Pop3Config
     private const string MASK = '********';
 
     /**
-     * @param XOAuth2|ScramSha256|null $auth How to sign in with SASL instead of the password: an OAuth 2.0
-     *     access token (XOAUTH2), or a password proved without sending it (SCRAM-SHA-256).
+     * @param MechanismInterface|null $auth How to sign in with SASL instead of the password, such as
+     *     Sasl\Xoauth2 for an OAuth 2.0 access token, or Sasl\ScramSha256 for a password proved without sending it.
      */
     public function __construct(
         public ConnectionConfig $connection,
         public string $user,
         #[SensitiveParameter]
         public string $password = '',
-        public XOAuth2|ScramSha256|null $auth = null,
+        public ?MechanismInterface $auth = null,
     ) {}
 
     /**
@@ -67,11 +67,13 @@ final readonly class Pop3Config
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader = ConfigReader::read(self::class, $config, self::KEYS);
-        $auth   = RemoteAuth::fromReader($reader, self::class);
+        $auth   = RemoteAuth::fromReader($reader);
 
         return new self(
             connection: RemoteConnection::fromReader($reader, self::class),
-            user: null === $auth ? $reader->requiredString('user') : $reader->string('user', default: $auth->username),
+            user: null === $auth
+                ? $reader->requiredString('user')
+                : $reader->string('user', default: RemoteAuth::username($auth)),
             password: $reader->string('password', default: ''),
             auth: $auth,
         );

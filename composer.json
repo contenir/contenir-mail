@@ -27,13 +27,15 @@
         "infection/infection": "^0.34.1",
         "phpunit/phpunit": "^11.5.42",
         "psr/container": "^1.1 || ^2.0",
+        "psr/log": "^2.0 || ^3.0",
         "symfony/process": "^7.3"
     },
     "suggest": {
         "ext-intl": "Faster and stricter internationalised domain name handling than symfony/polyfill-intl-idn",
         "ext-openssl": "DKIM signing with RSA keys, and reading DKIM keys from PEM",
         "ext-sodium": "DKIM signing with Ed25519 keys (RFC 8463)",
-        "psr/container": "The container factories, Container\\TransportFactory and ConfigProvider (PSR-11)"
+        "psr/container": "The container factories, Container\\TransportFactory and ConfigProvider (PSR-11)",
+        "psr/log": "Logging the IMAP, POP3 and SMTP sessions, credentials redacted, with Protocol\\LoggingConnection"
     },
     "autoload": {
         "psr-4": {

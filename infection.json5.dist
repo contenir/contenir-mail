@@ -36,7 +36,10 @@
                 "Contenir\\Mail\\Protocol\\Pop3::top",
                 // A nanosecond more or less on the deadline, or a microsecond on the 10 ms poll,
                 // cannot be observed; the timeout tests check the program is stopped promptly.
-                "Contenir\\Mail\\Transport\\SendmailProcess::wait"
+                "Contenir\\Mail\\Transport\\SendmailProcess::wait",
+                // Resuming a search one byte earlier only searches a byte that cannot start the
+                // needle again: a needle starting there would have been found in the bytes before.
+                "Contenir\\Mail\\Storage\\Part\\Window::resume"
             ],
             "ignoreSourceCodeByRegex": [
                 // HeaderValue::isValid() has just checked the character after the CRLF is a
@@ -64,8 +67,25 @@
                 "Contenir\\Mail\\Mime\\Part::encodeStreamAsBase64",
                 // A nanosecond more or less on the deadline, or a microsecond on the 10 ms poll,
                 // cannot be observed; the timeout tests check the program is stopped promptly.
-                "Contenir\\Mail\\Transport\\SendmailProcess::wait"
+                "Contenir\\Mail\\Transport\\SendmailProcess::wait",
+                // Forgetting one byte fewer only keeps it in memory; no read reaches back to it.
+                "Contenir\\Mail\\Storage\\Part\\Window::forget"
             ]
+        },
+        "MethodCallRemoval": {
+            // Not forgetting the bytes a search has passed only keeps them in memory; the
+            // same needle is found at the same offset.
+            "ignore": ["Contenir\\Mail\\Storage\\Part\\Window::find"]
+        },
+        "GreaterThan": {
+            // As for IncrementInteger above: forgetting nothing when there is nothing to forget
+            // takes an empty substring off the buffer, which leaves it as it is.
+            "ignore": ["Contenir\\Mail\\Storage\\Part\\Window::forget"]
+        },
+        "Plus": {
+            // As for DecrementInteger above: resuming two bytes earlier searches only bytes in
+            // which the needle was already looked for, and found not to start.
+            "ignore": ["Contenir\\Mail\\Storage\\Part\\Window::resume"]
         },
         "FunctionCallRemoval": {
             "ignore": [

@@ -50,6 +50,7 @@ final class RemoteConnection
             verifyPeer: $reader->has('novalidatecert') ? self::legacyVerifyPeer($reader) : $connection->verifyPeer,
             timeout: $connection->timeout,
             tls: $connection->tls,
+            logger: $connection->logger,
         );
     }
 

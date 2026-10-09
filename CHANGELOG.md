@@ -74,9 +74,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   checksums verified, and attachments and output limited (100 and 64 MiB by
   default). (#22)
 - SCRAM-SHA-256 authentication (RFC 5802, RFC 7677) for SMTP, IMAP and POP3.
-  `Protocol\Smtp\Auth\ScramSha256` is an SMTP authenticator, with `type`
+  `Protocol\Sasl\ScramSha256` is an SMTP authenticator, with `type`
   `scram-sha-256` in settings, and `Imap::authenticate()` and
-  `Pop3::authenticate()` take it as they take `XOAuth2`. `ImapConfig` and
+  `Pop3::authenticate()` take it as they take `Sasl\Xoauth2`. `ImapConfig` and
   `Pop3Config` accept it under `auth`, as an object or as settings with a
   `type`; settings without one are still read as XOAUTH2. The server's
   signature is verified, and the exchange fails closed without it. Iteration
@@ -139,6 +139,37 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
+- Writing a message to a stream: `Message::writeTo($stream)` and
+  `writeBodyTo($stream)` write the bytes `toString()` and `getBodyText()`
+  return, and `Mime\PartWriter::write($part, $stream)` those of `body()`, a
+  piece at a time. `Mime\Part::encodedChunks()` gives a part's encoded
+  content in pieces, base64 of a stream a read at a time, so an attachment
+  read from a stream is never held in memory as a whole.
+  `Protocol\Smtp::dataFromStream($stream)` sends DATA from a seekable stream.
+- SASL mechanisms behind one interface. `Protocol\Sasl\MechanismInterface`
+  names a mechanism and starts a `Protocol\Sasl\ExchangeInterface` for each
+  sign-in: its initial response, its answer to each challenge, its check of
+  the server's acceptance, and its message for a refusal. One exchange loop
+  runs it over IMAP AUTHENTICATE (with SASL-IR), POP3 AUTH and SMTP AUTH, and
+  cancels with `*` a challenge the mechanism cannot answer.
+  `Imap::authenticate()`, `Pop3::authenticate()` and the mailbox `auth`
+  setting take any mechanism, and `Protocol\Smtp\Auth\SaslAuthenticator`
+  runs one over SMTP, so a mechanism such as OAUTHBEARER is written once.
+  The built-in `Protocol\Sasl\Xoauth2` and `Protocol\Sasl\ScramSha256` are
+  mechanisms and SMTP authenticators both.
+- Logging the session to a PSR-3 logger, at debug level, with credentials
+  redacted: give `logger` in `ConnectionConfig`, `SmtpConfig`, `ImapConfig`,
+  `Pop3Config` or their settings, or wrap a connection in
+  `Protocol\LoggingConnection`. Passwords, tokens, APOP digests, LOGIN
+  literals and every SASL response are written with the new
+  `Protocol\RedactingConnectionInterface::writeSecret()` and logged as
+  `[redacted]`; other lines that start LOGIN, AUTHENTICATE, AUTH, USER, PASS
+  or APOP have their arguments redacted. `psr/log` is suggested, not
+  required.
+- `Storage\Part::saveTo($stream)`, and `Storage\Message::saveTo()`, write
+  the content, decoded as `getContent()` decodes it, to a stream a block at a
+  time and return the number of bytes written, so a large attachment can be
+  saved to a file without holding it in memory.
 - `Storage\ImapConfig` has a `prefer_imap4_rev2` setting (`$preferImap4Rev2`),
   true by default, which `Storage\Imap` passes to
   `Protocol\Imap::preferImap4Rev2()`, so a storage can keep the session
@@ -181,6 +212,56 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   within that many seconds. (#52)
 - The migration guide moved to `docs/book/migrating.md` and lists the silent
   changes first.
+- Faster recipients and headers. `Message::addTo()`, `addCc()`, `addBcc()`,
+  `addReplyTo()` and `addFrom()`, `AddressList::with()` and `withList()`,
+  and `Headers::with()` and `withAdded()` no longer go over every address or
+  header already held: adding 4,000 Bcc recipients one at a time took 3 s
+  and now takes 0.12 s. `Headers` works out each header name once, so
+  `get()`, `all()` and `has()` no longer normalise every name on each
+  lookup: 1,000 lookups among 1,000 headers took 280 ms and now take 0.5 ms.
+- The SMTP and File transports write the message as it is made instead of
+  building it as a string: SMTP to `php://temp`, sent from there, and File
+  straight to its file, which is removed if it cannot be finished. Sending a
+  28 MB message with a 20 MB attachment over SMTP took 5 s and 106 MB of
+  memory; it takes 0.3 s and 2.5 MB. File takes 0.15 s and 1.2 MB instead of
+  0.3 s and 84 MB, and `toString()` 80 ms and 56 MB instead of 180 ms and
+  84 MB.
+- `Protocol\Smtp::data()` writes the message in 64 KiB chunks, with line
+  endings and leading dots fixed a chunk at a time, instead of one write and
+  one log entry per line. The log holds `[DATA n bytes]` in place of the
+  message text. Over-long lines are still refused before anything is sent.
+- `StreamConnection::write()` writes at most 64 KiB at a time and no longer
+  copies the rest of the data after each partial write.
+- Quoted-printable encoding replaces characters in one pass over the text
+  instead of a pass per character per line, three times faster for text.
+- `Imap::authenticate()` and `Pop3::authenticate()` take a
+  `Protocol\Sasl\MechanismInterface` instead of an `XOAuth2`, and
+  `ImapConfig::$auth` and `Pop3Config::$auth` hold one; a `Smtp\Auth\XOAuth2`
+  is still accepted. The XOAUTH2 class is now `Protocol\Sasl\Xoauth2`, and
+  settings build that class.
+- The auth `type` values are the IANA mechanism names, in any case:
+  `AuthenticatorFactory::TYPES` lists `cram-md5` and `scram-sha-256`. The
+  mailbox `auth` setting reads the same names, and still defaults to
+  `xoauth2`.
+- POP3 reports a refused SCRAM-SHA-256 sign-in with the server's reason, as
+  IMAP does, rather than after "last request failed:". A server that accepts
+  SCRAM-SHA-256 without proving it knows the password is reported the same way
+  by all three protocols.
+- SMTP sends the empty response that ends an XOAUTH2 refusal, and SCRAM's
+  answer to the server's proof, as secrets, so the session log shows
+  `[credentials hidden]` for them.
+
+### Deprecated
+
+- `Protocol\Smtp\Auth\XOAuth2`: use `Protocol\Sasl\Xoauth2`, which takes the
+  same arguments. It extends the new class, so it is accepted wherever that
+  is; building one is reported by PHP 8.4 and later.
+- `Protocol\Pop3\Xoauth2\Microsoft`: call
+  `Protocol\Pop3::authenticate(new Protocol\Sasl\Xoauth2($user, $token))`.
+  Its `login()` is reported by PHP 8.4 and later.
+- Auth `type` spellings other than the IANA names, such as `crammd5`,
+  `cram_md5` and `scramsha256`: they still work, with an `E_USER_DEPRECATED`
+  notice.
 - `psr/container` is suggested instead of required. Only
   `Container\TransportFactory`, which `ConfigProvider` and `Module` register,
   uses it, and every PSR-11 container installs it; code that builds its
@@ -197,9 +278,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `moveMessage()` and `setFlags()`, and in `Storage\Imap` also `addFlags()`
   and `removeFlags()`. `Storage\Maildir::file()`, protected, takes `$number`.
   `Protocol\Imap::search()` takes `$criteria` instead of `$params`.
-
-### Deprecated
-
 - `Storage\Flag::normalise()`: use `Flag::normalize()`. Identifiers are
   spelled the American way (docs/book/conventions.md); the British spelling
   stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its
@@ -271,6 +349,24 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `=?ISO_8859-1?Q?caf=E9?=` as ASCII.
 - A MIME boundary is now 128 random bits from `random_bytes()`, instead of a
   hash of `uniqid()`, which a sender could predict.
+- Each Maildir message held its file open for as long as it was held, so
+  holding 10,000 messages took 10,007 file descriptors, past the usual limit
+  of 1024. A message file is now opened only while it is read. When its
+  flags change, or it moves from new to cur, it is found again by its unique
+  name; a message whose file is removed throws when it is next read, as
+  `getMessage()` does.
+- Walking the parts of a large message read it line by line with a seek
+  before each line, which on a `php://temp` stream drops its read buffer.
+  Bodies are now read in 64 KB blocks and searched for the boundary, so
+  walking a 28 MB message takes 18 ms instead of 1 second.
+- Decoding a base64 part held four copies of it. Content is now decoded a
+  block at a time: a 20 MB attachment takes 20 MB instead of 81 MB to
+  decode, and 79 ms instead of 115 ms. Quoted-printable is decoded the same
+  way. The result is unchanged, stray characters in base64 included.
+- Decompressing TNEF RTF made method calls for each byte. Literals and
+  references are now copied whole, so RTF decompresses six to ten times as
+  fast: a hostile 7.5 MB `winmail.dat` whose RTF fills the 64 MB budget
+  takes 3 seconds instead of 28.
 
 ## 0.2.1 - TBD
 

@@ -7,8 +7,8 @@ namespace Contenir\Mail\Tests\Integration\Protocol;
 use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Imap;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Tests\Integration\TestAsset\RecordingConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -67,7 +67,7 @@ final class ImapXoauth2Test extends TestCase
         $imap->connect(new ConnectionConfig(self::host(), security: Security::StartTls));
 
         try {
-            $imap->authenticate(new XOAuth2('test', bin2hex(random_bytes(8))));
+            $imap->authenticate(new Xoauth2('test', bin2hex(random_bytes(8))));
             static::fail('The wrong token was accepted');
         } catch (ExceptionInterface $e) {
             $transcript = $connection->transcript();

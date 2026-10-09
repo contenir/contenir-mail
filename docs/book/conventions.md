@@ -82,4 +82,19 @@ callers that pass it by name must change too.
 
 An internal class never shares its short name with a public one, so an
 import never has to be aliased: `Sasl\ScramSha256Exchange` runs the exchange
-for the public `Smtp\Auth\ScramSha256`.
+for the public `Sasl\ScramSha256`. Two names kept for compatibility are the
+exceptions: the deprecated `Smtp\Auth\XOAuth2`, the 0.2 name of
+`Sasl\Xoauth2`, and the internal XOAUTH2 encoder `Xoauth2\Xoauth2`, kept
+from laminas-mail.
+
+Interfaces end in `Interface` and are named for what they are within their
+namespace, without repeating it: `Sasl\MechanismInterface`,
+`Sasl\ExchangeInterface`, `Smtp\Auth\AuthenticatorInterface`.
+
+## Authentication
+
+SASL mechanisms live in `Protocol\Sasl` and are named for the mechanism, its
+acronyms StudlyCase: `Sasl\Xoauth2` for XOAUTH2, `Sasl\ScramSha256` for
+SCRAM-SHA-256. Each implements `Sasl\MechanismInterface`, so IMAP, POP3 and
+SMTP take it alike. The `type` that names one in settings is its IANA name in
+lower case: `xoauth2`, `scram-sha-256`, `cram-md5`.

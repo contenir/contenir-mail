@@ -9,9 +9,10 @@ use Contenir\Mail\Storage\Exception\RuntimeException;
 use function crc32;
 use function ord;
 use function sprintf;
-use function str_pad;
 use function str_repeat;
 use function strlen;
+use function strrev;
+use function strspn;
 use function substr;
 
 /**
@@ -39,9 +40,6 @@ final class CompressedRtf
             . '\fscript \fdecor MS Sans SerifSymbolArialTimes New RomanCourier{\colortbl\red0\green0\blue0'
             . "\r\n"
             . '\par \pard\plain\f0\fs20\b\i\u\tab\tx';
-
-    /** Bytes in the dictionary that references point into */
-    private const int DICTIONARY_SIZE = 4096;
 
     /** Bytes of the header: the compressed size, the raw size, the compression type and the CRC */
     private const int HEADER_SIZE = 16;
@@ -124,6 +122,7 @@ final class CompressedRtf
     /**
      * Run the LZFu tokens: each control byte says, bit by bit from the lowest,
      * whether a literal byte or a two-byte dictionary reference follows.
+     * Literal bytes in a row are written together.
      *
      * @throws RuntimeException When the data is malformed or the output would grow past $rawSize.
      */
@@ -133,37 +132,49 @@ final class CompressedRtf
             throw new RuntimeException('The compressed RTF fails its CRC check');
         }
 
-        $dictionary = new Dictionary(
-            str_pad(self::PREBUFFER, self::DICTIONARY_SIZE, pad_string: "\0"),
-            strlen(self::PREBUFFER),
-            $rawSize,
-        );
-        $input = new ByteReader($payload);
+        $dictionary = new Dictionary(self::PREBUFFER, $rawSize);
+        $at         = 0;
         while (true) {
-            $control = ord(self::next($input));
-            for ($bit = 0; $bit < 8; $bit++) {
-                if (0 === (($control >> $bit) & 1)) {
-                    $dictionary->append(self::next($input));
+            $flags = strrev(sprintf('%08b', ord(self::take($payload, $at, 1))));
+            $bit   = 0;
+            while ($bit < 8) {
+                $literals = strspn($flags, characters: '0', offset: $bit);
+                if ($literals > 0) {
+                    $dictionary->append(self::take($payload, $at, $literals, $dictionary));
+                    $bit += $literals;
                     continue;
                 }
 
-                $reference = (ord(self::next($input)) << 8) | ord(self::next($input));
+                $reference = self::take($payload, $at, 2);
+                $reference = (ord($reference[0]) << 8) | ord($reference[1]);
                 if ($dictionary->copy($reference >> 4, ($reference & 0xF) + 2)) {
                     return $dictionary->output();
                 }
+
+                $bit++;
             }
         }
     }
 
     /**
-     * @throws RuntimeException When the data ends before its end marker.
+     * The next $count bytes, moving $at past them.
+     *
+     * When the data ends early, the bytes there are are still written to
+     * $dictionary first, so a literal run that grows past the limit is
+     * refused for that, as it would be byte by byte.
+     *
+     * @throws RuntimeException When the data ends before its end marker, or the output would grow past its limit.
      */
-    private static function next(ByteReader $input): string
+    private static function take(string $payload, int &$at, int $count, ?Dictionary $dictionary = null): string
     {
-        if ($input->remaining() < 1) {
+        $bytes = substr($payload, $at, $count);
+        if (strlen($bytes) < $count) {
+            $dictionary?->append($bytes);
             throw new RuntimeException('The compressed RTF ends before its end marker');
         }
 
-        return $input->bytes(1);
+        $at += $count;
+
+        return $bytes;
     }
 }

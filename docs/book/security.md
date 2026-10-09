@@ -115,8 +115,8 @@ Prefer `cafile` or `capath` for a private certificate authority, and `peer_name`
 | AUTH is refused over an unencrypted connection unless `allow_insecure_auth` is set, and only advertised mechanisms are used | `refusesToAuthenticateOverUnencryptedConnection`, `refusesMechanismServerDoesNotOffer` |
 | Credentials are kept out of the session log, the last request and `var_dump()` output | `keepsCredentialsOutOfSessionLog`, `keepsCredentialsOutOfLastRequest`, `keepsPasswordOutOfDumps`, `keepsTokenOutOfDumps` |
 | Passwords, tokens, keys and SASL responses never appear in an exception's trace, even with `zend.exception_ignore_args` off: every parameter that can carry one is `#[SensitiveParameter]`, from the settings array to `ConnectionInterface::write()` | `SecretsInTracesTest` (SMTP cases) |
-| SASL fields refuse values that could rewrite them | `XOAuth2Test::rejectsValuesThatCouldRewriteSaslFields` |
-| SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256ExchangeTest`, `Smtp\Auth\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
+| SASL fields refuse values that could rewrite them | `Sasl\Xoauth2Test::rejectsValuesThatCouldRewriteSaslFields` |
+| SCRAM-SHA-256 fails closed: a wrong or missing server signature, a nonce that does not extend the client's, and an iteration count outside 4096 to 1,000,000 are refused, and the exchange cancelled | `Sasl\ScramSha256ExchangeTest`, `Sasl\ScramSha256Test::cancelsTheExchangeWhenAStepIsRefused`, `refusesSuccessWithoutTheServersProof` |
 | Replies are capped at 100 lines, and malformed replies are refused | `refusesReplyLongerThanLimit`, `refusesMalformedReply` |
 | SIZE and SMTPUTF8 are honoured: an oversized message or a non-ASCII address the server cannot take is refused before sending | `refusesMessageLargerThanServerAccepts`, `refusesInternationalSenderWithoutSmtpUtf8` |
 
@@ -157,6 +157,7 @@ which escapes them again for a shell.
 | A response line is tokenized in one pass, so a long line costs time linear in its length; a SEARCH reply of 200,000 ids took 9 seconds before 0.3.0 | `TokenizerScalingTest::decodesALongLineInLinearTime` |
 | A sequence set is checked range by range, so a set of many ranges, sent or received in ESEARCH, never exhausts PCRE's stack | `LargeSequenceSetTest` |
 | Credentials are redacted in the log | `keepsCredentialsOutOfTheLog`, `logsASensitiveRequestAsItsRedactedForm` |
+| A PSR-3 `logger` never receives a credential: LOGIN and its literals, USER, PASS, APOP and every SASL response, in IMAP, POP3 and SMTP, are written as secrets and logged as `[redacted]` | `LoggedSecretsTest`, `LoggingConnectionTest` |
 | Credentials never appear in an exception's trace: LOGIN, PASS, literals and command tokens are `#[SensitiveParameter]` down to the connection, and `ConfigReader` hides its values from `var_dump()` | `SecretsInTracesTest` (IMAP, POP3 and config cases), `ConfigReaderTest::hidesEveryValueFromVarDump` |
 | SCRAM-SHA-256 checks the server's signature before finishing, and cancels the exchange with `*` when it does not match. Without channel binding, which PHP cannot provide, it relies on TLS for the connection itself | `AuthenticateScramTest` (IMAP and POP3) |
 

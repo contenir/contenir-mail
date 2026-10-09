@@ -37,7 +37,7 @@ final class MimeParser
     {
         $block     = '';
         $lineStart = true;
-        foreach ($raw->lines() as $offset => $piece) {
+        foreach (Lines::of($raw) as $offset => $piece) {
             if ($lineStart && '' === trim($piece, characters: "\r\n")) {
                 return [self::headers($block), $raw->slice($offset + strlen($piece), $raw->length())];
             }
@@ -47,7 +47,7 @@ final class MimeParser
             }
 
             $block     .= $piece;
-            $lineStart = Content::endsLine($piece);
+            $lineStart = Lines::endsLine($piece);
             if (strlen($block) > self::MAX_HEADER_BYTES) {
                 throw new Exception\RuntimeException(sprintf(
                     'The header block is larger than %d bytes',

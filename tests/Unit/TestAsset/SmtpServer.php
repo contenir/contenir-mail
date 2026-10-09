@@ -12,11 +12,11 @@ use SensitiveParameter;
 
 use function array_key_exists;
 use function array_key_last;
+use function array_pop;
 use function array_shift;
 use function base64_encode;
 use function count;
 use function explode;
-use function str_ends_with;
 use function str_starts_with;
 use function strtoupper;
 use function substr;
@@ -60,6 +60,9 @@ final class SmtpServer implements ConnectionInterface
 
     /** @var list<string> Every line the client sent, including secrets */
     private array $sent = [];
+
+    /** The start of a line not yet ended by CRLF, as the message data arrives in chunks */
+    private string $partial = '';
 
     private bool $inData = false;
 
@@ -147,6 +150,7 @@ final class SmtpServer implements ConnectionInterface
         $this->config      = $config;
         $this->port        = $port;
         $this->lastRequest = '';
+        $this->partial     = '';
         $this->connected   = true;
         $this->pending     = $this->greeting;
     }
@@ -164,11 +168,9 @@ final class SmtpServer implements ConnectionInterface
             throw new RuntimeException('Cannot write: the connection is closed');
         }
 
-        if (! str_ends_with($data, "\r\n")) {
-            throw new RuntimeException('Protocol\Smtp writes whole lines');
-        }
-
-        foreach (explode("\r\n", substr($data, offset: 0, length: -2)) as $line) {
+        $lines         = explode("\r\n", $this->partial . $data);
+        $this->partial = array_pop($lines);
+        foreach ($lines as $line) {
             $this->lastRequest = $line;
             $this->sent[]      = $line;
             $this->queueReply($line);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Protocol;
 
+use ArrayObject;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\ErrorCapture;
 use Contenir\Mail\Protocol\Exception\InvalidArgumentException;
@@ -13,6 +14,7 @@ use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\StreamConnection;
 use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\TlsServer;
+use Contenir\Mail\Tests\Unit\TestAsset\RecordingWriteStream;
 use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -193,6 +195,30 @@ final class StreamConnectionTest extends TestCase
         StreamConnection::fromStream($stream)->write('abc');
 
         static::assertSame('abc', stream_get_contents($stream, offset: 0));
+    }
+
+    #[Test]
+    public function writesALargeStringInSlicesOf64Kilobytes(): void
+    {
+        $writes = new ArrayObject();
+        StreamConnection::fromStream(RecordingWriteStream::open($writes, accept: 1 << 20))->write(str_repeat(
+            'a',
+            (65_536 * 2) + 1,
+        ));
+
+        static::assertSame([65_536, 65_536, 1], $writes->getArrayCopy());
+    }
+
+    #[Test]
+    public function writesOnFromWhereAShortWriteStopped(): void
+    {
+        $writes = new ArrayObject();
+        StreamConnection::fromStream(RecordingWriteStream::open($writes, accept: 40_000))->write(str_repeat(
+            'a',
+            times: 100_000,
+        ));
+
+        static::assertSame([65_536, 60_000, 20_000], $writes->getArrayCopy());
     }
 
     #[Test]

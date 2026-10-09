@@ -14,6 +14,8 @@ use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SensitiveParameter;
@@ -21,10 +23,33 @@ use SensitiveParameter;
 use function base64_encode;
 use function preg_quote;
 
+/**
+ * Microsoft is deprecated, which PHP 8.4 and later report on each login(); these tests still run it.
+ */
 #[CoversClass(Microsoft::class)]
 #[Group('unit')]
+#[IgnoreDeprecations]
 final class MicrosoftTest extends TestCase
 {
+    #[Test]
+    #[RequiresPhp('>= 8.4')]
+    public function reportsThatLoginIsDeprecated(): void
+    {
+        $server = $this->greetingServer()
+            ->expect("AUTH XOAUTH2\r\n")
+            ->reply("+ \r\n")
+            ->expect(Xoauth2::encodeXoauth2Sasl('test@example.com', '123') . "\r\n")
+            ->reply("+OK Authenticated\r\n")
+            ->hangUp();
+
+        $this->expectUserDeprecationMessage(
+            'Method Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft::login() is deprecated since 0.3.0, '
+                . 'use Contenir\Mail\Protocol\Pop3::authenticate() with a Contenir\Mail\Protocol\Sasl\Xoauth2',
+        );
+
+        $this->connect($server)->login('test@example.com', '123');
+    }
+
     #[Test]
     public function sendsTheXoauth2SaslResponseAfterTheServerAcceptsTheMechanism(): void
     {

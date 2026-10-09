@@ -14,17 +14,15 @@ use Contenir\Mail\Mime\PartInterface;
 use Contenir\Mail\Mime\TransferEncoding;
 use Contenir\Mail\Storage\Part\BodySelector;
 use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\Decoder;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Utf8;
 use IteratorAggregate;
 use Override;
 
-use function base64_decode;
 use function count;
 use function in_array;
-use function preg_replace;
-use function quoted_printable_decode;
 use function sprintf;
 use function str_starts_with;
 use function strlen;
@@ -190,20 +188,24 @@ final class Part implements PartInterface, IteratorAggregate
     #[Override]
     public function getContent(): string
     {
-        if ($this->isMultipart()) {
-            return '';
-        }
+        return Decoder::join($this->decoded());
+    }
 
-        $encoded = $this->body->read();
-
-        /** @mago-expect lint:strict-behavior Stored base64 often carries stray characters; mail clients decode it leniently, and so do we. */
-        return match ($this->transferEncoding()) {
-            TransferEncoding::Base64 => (string) base64_decode(
-                (string) preg_replace('/[^A-Za-z0-9+\/=]/', replacement: '', subject: $encoded),
-            ),
-            TransferEncoding::QuotedPrintable => quoted_printable_decode(self::crlf($encoded)),
-            default                           => $encoded,
-        };
+    /**
+     * Write the content, decoded as getContent() decodes it, to a stream, a block at a time.
+     *
+     * The content is never held whole, so this is the way to save a large
+     * attachment to a file. Nothing is written for a multipart.
+     *
+     * @param resource $stream An open, writable stream.
+     * @return int The number of bytes written.
+     * @throws Exception\RuntimeException When the storage has been closed, or the stream cannot be written.
+     *
+     * @mago-expect analysis:missing-parameter-type Streams have no native parameter type.
+     */
+    public function saveTo($stream): int
+    {
+        return Decoder::write($this->decoded(), $stream);
     }
 
     /**
@@ -259,7 +261,7 @@ final class Part implements PartInterface, IteratorAggregate
     #[Override]
     public function getEncodedContent(): string
     {
-        return $this->isMultipart() ? '' : self::crlf($this->body->read());
+        return $this->isMultipart() ? '' : Decoder::crlf($this->body->read());
     }
 
     /**
@@ -279,7 +281,7 @@ final class Part implements PartInterface, IteratorAggregate
      */
     public function toString(): string
     {
-        return $this->headers->toString() . Headers::EOL . self::crlf($this->body->read());
+        return $this->headers->toString() . Headers::EOL . Decoder::crlf($this->body->read());
     }
 
     /**
@@ -375,10 +377,13 @@ final class Part implements PartInterface, IteratorAggregate
     }
 
     /**
-     * Bare LF line breaks, as in mbox files, as CRLF.
+     * The content, decoded a block at a time; nothing for a multipart.
+     *
+     * @return iterable<string>
+     * @throws Exception\RuntimeException When the storage has been closed.
      */
-    private static function crlf(string $text): string
+    private function decoded(): iterable
     {
-        return (string) preg_replace('/(?<!\r)\n/', replacement: "\r\n", subject: $text);
+        return $this->isMultipart() ? [] : Decoder::decode($this->body, $this->transferEncoding());
     }
 }

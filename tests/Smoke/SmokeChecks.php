@@ -8,9 +8,9 @@ use Closure;
 use Contenir\Mail\Exception\RuntimeException as RefusedException;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Attachment;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
 use Contenir\Mail\Storage;
 use Contenir\Mail\Transport\Smtp;
 use RuntimeException;
@@ -122,7 +122,7 @@ final class SmokeChecks
     private function authenticator(): AuthenticatorInterface
     {
         if (null !== $this->token) {
-            return new XOAuth2($this->account->user, $this->token);
+            return new Xoauth2($this->account->user, $this->token);
         }
 
         if (null !== $this->account->password && $this->account->provider->acceptsPasswords()) {
@@ -197,7 +197,7 @@ final class SmokeChecks
     private function signIn(): array
     {
         if (null !== $this->token) {
-            return ['auth' => new XOAuth2($this->account->user, $this->token)];
+            return ['auth' => new Xoauth2($this->account->user, $this->token)];
         }
 
         if (null === $this->account->password || ! $this->account->provider->acceptsPasswords()) {
@@ -262,7 +262,7 @@ final class SmokeChecks
                 'host'     => $host,
                 'port'     => $port,
                 'security' => $security,
-                'auth'     => new XOAuth2($this->account->user, 'not-a-real-token-' . bin2hex(random_bytes(8))),
+                'auth'     => new Xoauth2($this->account->user, 'not-a-real-token-' . bin2hex(random_bytes(8))),
             ]))->send(
                 (new Message())->setFrom($this->account->user)
                     ->setTo($this->account->recipient())

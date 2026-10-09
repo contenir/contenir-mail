@@ -39,6 +39,7 @@ Key                     | Argument              | Default        | Meaning
 `allow_insecure_auth`   | `allowInsecureAuth`   | `false`        | Allow `auth` with `security` set to `none`.
 `connection_time_limit` | `connectionTimeLimit` | none           | Seconds after which the transport opens a new connection rather than reusing it; QUIT is then not sent.
 `use_complete_quit`     | `useCompleteQuit`     | `true`         | Send QUIT before closing the connection.
+`logger`                | `logger`              | none           | A PSR-3 logger for the session, at debug level, credentials redacted. See [logging the session](smtp-authentication.md#logging-the-session).
 
 The laminas-mail `ssl` setting is read too, as IMAP and POP3 read it: `ssl`
 means `tls` (TLS from the start), `tls` means `starttls`, and `false` or `none`

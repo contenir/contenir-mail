@@ -6,9 +6,9 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Protocol\Pop3\Response;
-use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
-use Contenir\Mail\Protocol\Xoauth2\Xoauth2 as XoauthEncoder;
+use Contenir\Mail\Protocol\Sasl\Authentication;
+use Contenir\Mail\Protocol\Sasl\MechanismInterface;
+use Contenir\Mail\Protocol\Sasl\Reply;
 use LogicException;
 use SensitiveParameter;
 
@@ -168,6 +168,7 @@ class Pop3
             : LegacyOptions::config($host, $port, $ssl, $this->validateCert(), self::TIMEOUT_CONNECTION);
         $this->novalidatecert = ! $this->config->verifyPeer;
 
+        $this->connection = LoggingConnection::decorate($this->connection, $this->config->logger);
         $this->connection->open($this->config, $this->config->portOr(110, 995));
 
         $welcome         = $this->readResponse();
@@ -184,13 +185,22 @@ class Pop3
     /**
      * Send a request
      *
+     * USER, PASS, APOP and AUTH with arguments are sent as secrets, kept out of a LoggingConnection's log.
+     *
      * @param string $request your request without newline
      * @throws Exception\RuntimeException When the connection fails.
      * @throws Exception\InvalidArgumentException When the request contains CR, LF or NUL.
      */
     public function sendRequest(#[SensitiveParameter] string $request): void
     {
-        $this->connection->write(CommandLine::terminate($request));
+        $line = CommandLine::terminate($request);
+        if (Redaction::redact($request) === $request) {
+            $this->connection->write($line);
+
+            return;
+        }
+
+        $this->writeSecret($line);
     }
 
     /**
@@ -323,113 +333,102 @@ class Pop3
     }
 
     /**
-     * Sign in with SASL (RFC 5034): an OAuth 2.0 access token (XOAUTH2), as Gmail and
-     * Microsoft 365 require, or a password proved without sending it (SCRAM-SHA-256).
+     * Sign in with a SASL mechanism (RFC 5034), such as Sasl\Xoauth2 for an OAuth 2.0 access
+     * token, as Gmail and Microsoft 365 require, or Sasl\ScramSha256 for a password proved
+     * without sending it.
      *
-     * A refused token is answered with the empty response that ends the exchange
-     * (RFC 7628, section 3.2.3) before this throws, with the server's reason.
+     * The initial response follows the server's first "+", since it may be longer than the
+     * 255 bytes an AUTH command may carry. Each challenge comes in a "+" continuation, and a
+     * challenge the mechanism cannot answer is cancelled with "*" before this throws.
+     * Responses are sent as secrets, kept out of a LoggingConnection's log.
      *
      * @throws Exception\RuntimeException When the server refuses the mechanism or the credentials,
-     *     or a SCRAM server cannot prove it knows the password.
+     *     or the mechanism cannot trust the server, as SCRAM cannot when the server does not prove
+     *     it knows the password.
      * @throws Exception\InvalidArgumentException When a token provider returns an invalid token.
      * @throws Exception\ExceptionInterface When the connection fails.
+     *
+     * @mago-expect analysis:unhandled-thrown-type The Closure throws what this method declares, from where it runs it.
      */
-    public function authenticate(XOAuth2|ScramSha256 $auth): void
+    public function authenticate(MechanismInterface $mechanism): void
     {
-        if ($auth instanceof ScramSha256) {
-            $this->authenticateScram($auth);
-
-            return;
-        }
-
-        $initial = $auth->initialResponse();
-        $this->sendRequest('AUTH XOAUTH2');
-        $response = $this->readRemoteResponse();
-        if ('+' !== $response->status()) {
-            throw new Exception\RuntimeException(self::failure($response->message()));
-        }
-
-        $this->sendRequest($initial);
-        $response = $this->readRemoteResponse();
-        if ('+' === $response->status()) {
-            $this->sendRequest('');
-            $final = $this->readRemoteResponse();
-
-            throw new Exception\RuntimeException(XoauthEncoder::refusal($response->message(), $final->message()));
-        }
-
-        if ('+OK' !== $response->status()) {
-            $reason = SafeText::display($response->message());
-
-            throw new Exception\RuntimeException('' === $reason ? 'The server refused the access token' : $reason);
-        }
+        $exchange = $mechanism->start();
+        $command  = "AUTH {$mechanism->mechanism()}";
+        (new Authentication(
+            /** @throws Exception\ExceptionInterface */
+            start: fn(#[SensitiveParameter] ?string $initial): Reply => $this->startSasl($command, $initial),
+            send: $this->sendSasl(...),
+            cancel: $this->cancelSasl(...),
+        ))->run($exchange);
     }
 
     /**
-     * SCRAM-SHA-256: server-first and server-final arrive in "+" continuations, and the second
-     * is answered with an empty response before "+OK". A step the client refuses is cancelled
-     * with "*" (RFC 5034, section 4) before this throws.
+     * Send AUTH, then the initial response after the server's "+", and read the reply.
      *
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\ExceptionInterface When the server refuses the mechanism or the connection fails.
      */
-    private function authenticateScram(ScramSha256 $auth): void
+    private function startSasl(string $command, #[SensitiveParameter] ?string $initial): Reply
     {
-        $scram = $auth->start();
-        $this->sendRequest("AUTH {$auth->mechanism()}");
-        $this->saslChallenge();
-        $this->sendRequest($scram->initialResponse());
-        $challenge = $this->saslChallenge();
-        try {
-            $response = $scram->respond($challenge);
-        } catch (Exception\RuntimeException $e) {
-            $this->cancelSasl($e);
+        $this->sendRequest($command);
+        if (null !== $initial) {
+            $response = $this->readRemoteResponse();
+            if ('+' !== $response->status()) {
+                throw new Exception\RuntimeException(self::failure($response->message()));
+            }
+
+            $this->writeSecret(CommandLine::terminate($initial));
         }
 
-        $this->sendRequest($response);
-        $challenge = $this->saslChallenge();
-        try {
-            $scram->verify($challenge);
-        } catch (Exception\RuntimeException $e) {
-            $this->cancelSasl($e);
-        }
-
-        $this->sendRequest('');
-        $response = $this->readRemoteResponse();
-        if ('+OK' !== $response->status()) {
-            throw new Exception\RuntimeException(self::failure($response->message()));
-        }
+        return $this->saslReply();
     }
 
     /**
-     * The base64 text of the next "+" continuation, refusing any other reply in its place.
+     * Send a response to a challenge, as a secret, and read the reply.
      *
-     * @throws Exception\RuntimeException When the server refuses the mechanism or the credentials, or ends
-     *     the exchange without the server-final message that proves it knows the password.
+     * @throws Exception\ExceptionInterface When the response holds CR, LF or NUL, or the connection fails.
      */
-    private function saslChallenge(): string
+    private function sendSasl(#[SensitiveParameter] string $response): Reply
+    {
+        $this->writeSecret(CommandLine::terminate($response));
+
+        return $this->saslReply();
+    }
+
+    /**
+     * Cancel the exchange with "*" (RFC 5034, section 4) and read the server's reply.
+     *
+     * @throws Exception\ExceptionInterface When the connection fails.
+     */
+    private function cancelSasl(): void
+    {
+        $this->sendRequest('*');
+        $this->readRemoteResponse();
+    }
+
+    /**
+     * A "+" continuation's challenge, or the reply that ends the exchange.
+     *
+     * @throws Exception\RuntimeException When the connection fails or the line exceeds the limit.
+     */
+    private function saslReply(): Reply
     {
         $response = $this->readRemoteResponse();
 
         return match ($response->status()) {
-            '+'     => $response->message(),
-            '+OK' => throw new Exception\RuntimeException(
-                'The server ended SCRAM-SHA-256 without proving it knows the password',
-            ),
-            default => throw new Exception\RuntimeException(self::failure($response->message())),
+            '+'     => Reply::challenge($response->message()),
+            '+OK'   => Reply::accepted(),
+            default => Reply::refused(new Exception\RuntimeException(SafeText::display($response->message()))),
         };
     }
 
     /**
-     * Cancel the exchange with "*", read the server's reply, and throw $reason.
+     * Send bytes that carry credentials, kept out of a LoggingConnection's log.
      *
-     * @throws Exception\ExceptionInterface
+     * @throws Exception\RuntimeException When the connection fails.
      */
-    private function cancelSasl(Exception\RuntimeException $reason): never
+    private function writeSecret(#[SensitiveParameter] string $data): void
     {
-        $this->sendRequest('*');
-        $this->readRemoteResponse();
-
-        throw $reason;
+        Redaction::writeSecret($this->connection, $data);
     }
 
     /**

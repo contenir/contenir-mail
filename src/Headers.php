@@ -14,11 +14,15 @@ use Countable;
 use IteratorAggregate;
 use NoDiscard;
 use Override;
+use ReflectionClass;
 use WeakMap;
 
 use function array_filter;
 use function array_is_list;
+use function array_key_exists;
+use function array_keys;
 use function array_map;
+use function array_slice;
 use function array_values;
 use function count;
 use function is_array;
@@ -57,10 +61,14 @@ final readonly class Headers implements Countable, IteratorAggregate
     /** @var list<HeaderInterface> */
     private array $headers;
 
+    /** @var array<string, non-empty-array<int, HeaderInterface>> the headers of each normalised name, by position */
+    private array $byName;
+
     /**
      * The text each parsed header was written with, CRLF-folded.
      *
-     * Filled only by the factory methods, before the new instance is returned.
+     * Filled only when the map is created, so a copy that keeps every header
+     * of this collection can share it.
      *
      * @var WeakMap<HeaderInterface, string|null>
      */
@@ -69,6 +77,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     public function __construct(HeaderInterface ...$headers)
     {
         $this->headers  = array_values($headers);
+        $this->byName   = self::byName($this->headers);
         $this->wireText = new WeakMap();
     }
 
@@ -95,7 +104,7 @@ final readonly class Headers implements Countable, IteratorAggregate
             $wireText[$header] = $text;
         }
 
-        return self::build($headers, $wireText);
+        return self::assemble($headers, self::byName($headers), $wireText);
     }
 
     /**
@@ -117,26 +126,27 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(HeaderInterface $header): self
     {
-        $key      = self::normalize($header->getFieldName());
-        $headers  = [];
-        $replaced = false;
-        foreach ($this->headers as $existing) {
-            if (self::normalize($existing->getFieldName()) !== $key) {
-                $headers[] = $existing;
-                continue;
-            }
-
-            if (! $replaced) {
-                $headers[] = $header;
-                $replaced  = true;
-            }
+        $key   = self::normalize($header->getFieldName());
+        $found = $this->byName[$key] ?? [];
+        if ([] === $found) {
+            return $this->appending($header, $key);
         }
 
-        if (! $replaced) {
-            $headers[] = $header;
+        $positions              = array_keys($found);
+        $headers                = $this->headers;
+        $headers[$positions[0]] = $header;
+        $wireText               = $this->wireTextWithout(array_filter(
+            $found,
+            static fn(HeaderInterface $existing): bool => $existing !== $header,
+        ));
+        if (1 === count($positions)) {
+            $byName       = $this->byName;
+            $byName[$key] = [$positions[0] => $header];
+
+            return self::assemble($headers, $byName, $wireText);
         }
 
-        return $this->derive($headers);
+        return self::dropping($headers, array_slice($positions, offset: 1), $wireText);
     }
 
     /**
@@ -145,7 +155,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAdded(HeaderInterface $header): self
     {
-        return $this->derive([...$this->headers, $header]);
+        return $this->appending($header, self::normalize($header->getFieldName()));
     }
 
     /**
@@ -154,18 +164,17 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withFirst(HeaderInterface $header): self
     {
-        return $this->derive([$header, ...$this->headers]);
+        $headers = [$header, ...$this->headers];
+
+        return self::assemble($headers, self::byName($headers), $this->wireText);
     }
 
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function without(string $name): self
     {
-        $key = self::normalize($name);
+        $found = $this->byName[self::normalize($name)] ?? [];
 
-        return $this->derive(array_values(array_filter(
-            $this->headers,
-            static fn(HeaderInterface $header): bool => self::normalize($header->getFieldName()) !== $key,
-        )));
+        return self::dropping($this->headers, array_keys($found), $this->wireTextWithout($found));
     }
 
     /**
@@ -183,17 +192,12 @@ final readonly class Headers implements Countable, IteratorAggregate
      */
     public function all(string $name): array
     {
-        $key = self::normalize($name);
-
-        return array_values(array_filter(
-            $this->headers,
-            static fn(HeaderInterface $header): bool => self::normalize($header->getFieldName()) === $key,
-        ));
+        return array_values($this->byName[self::normalize($name)] ?? []);
     }
 
     public function has(string $name): bool
     {
-        return null !== $this->get($name);
+        return array_key_exists(self::normalize($name), $this->byName);
     }
 
     /**
@@ -307,6 +311,7 @@ final readonly class Headers implements Countable, IteratorAggregate
         }
 
         $this->headers  = $headers;
+        $this->byName   = self::byName($headers);
         $this->wireText = $wireText;
     }
 
@@ -329,27 +334,85 @@ final readonly class Headers implements Countable, IteratorAggregate
     }
 
     /**
-     * A new collection of these headers, keeping the written text of those that came from this one.
+     * A copy with the header added last; every header stays where it is, so the written text is shared.
+     */
+    private function appending(HeaderInterface $header, string $key): self
+    {
+        $headers                       = $this->headers;
+        $byName                        = $this->byName;
+        $byName[$key][count($headers)] = $header;
+        $headers[]                     = $header;
+
+        return self::assemble($headers, $byName, $this->wireText);
+    }
+
+    /**
+     * The written text, less that of headers a copy no longer holds, so a
+     * header added back later is written from its value, as any new header is.
+     *
+     * @param array<int, HeaderInterface> $removed
+     * @return WeakMap<HeaderInterface, string|null>
+     */
+    private function wireTextWithout(array $removed): WeakMap
+    {
+        $wireText = clone $this->wireText;
+        foreach ($removed as $header) {
+            unset($wireText[$header]);
+        }
+
+        return $wireText;
+    }
+
+    /**
+     * These headers, less those at the positions given.
      *
      * @param list<HeaderInterface> $headers
+     * @param list<int> $drop
+     * @param WeakMap<HeaderInterface, string|null> $wireText
      */
-    private function derive(array $headers): self
+    private static function dropping(array $headers, array $drop, WeakMap $wireText): self
     {
-        return self::build($headers, $this->wireText);
+        foreach ($drop as $position) {
+            unset($headers[$position]);
+        }
+
+        $headers = array_values($headers);
+
+        return self::assemble($headers, self::byName($headers), $wireText);
+    }
+
+    /**
+     * Headers built from parts already worked out, without normalising any name again.
+     *
+     * @param list<HeaderInterface> $headers
+     * @param array<string, non-empty-array<int, HeaderInterface>> $byName
+     * @param WeakMap<HeaderInterface, string|null> $wireText
+     *
+     * @mago-expect analysis:invalid-property-write PHP lets the class initialise the readonly properties of an instance made without its constructor.
+     * @mago-expect analysis:unhandled-thrown-type Reflection throws only for internal final classes, which this is not.
+     */
+    private static function assemble(array $headers, array $byName, WeakMap $wireText): self
+    {
+        $built           = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $built->headers  = $headers;
+        $built->byName   = $byName;
+        $built->wireText = $wireText;
+
+        return $built;
     }
 
     /**
      * @param list<HeaderInterface> $headers
-     * @param WeakMap<HeaderInterface, string|null> $wireText
+     * @return array<string, non-empty-array<int, HeaderInterface>>
      */
-    private static function build(array $headers, WeakMap $wireText): self
+    private static function byName(array $headers): array
     {
-        $built = new self(...$headers);
-        foreach ($headers as $header) {
-            $built->wireText[$header] = $wireText[$header] ?? null;
+        $byName = [];
+        foreach ($headers as $position => $header) {
+            $byName[self::normalize($header->getFieldName())][$position] = $header;
         }
 
-        return $built;
+        return $byName;
     }
 
     private static function normalize(string $name): string

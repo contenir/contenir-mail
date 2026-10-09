@@ -9,6 +9,7 @@ use Contenir\Mail\Header\ContentTransferEncoding;
 use Contenir\Mail\Header\ContentType;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
+use Generator;
 use Override;
 
 use function base64_encode;
@@ -19,7 +20,6 @@ use function get_resource_type;
 use function is_resource;
 use function is_string;
 use function rewind;
-use function rtrim;
 use function str_starts_with;
 use function stream_get_contents;
 use function strlen;
@@ -234,40 +234,73 @@ final readonly class Part implements PartInterface
     #[Override]
     public function getEncodedContent(): string
     {
+        $encoded = '';
+        foreach ($this->encodedChunks() as $chunk) {
+            $encoded .= $chunk;
+        }
+
+        return $encoded;
+    }
+
+    /**
+     * The encoded content in pieces that join up to getEncodedContent(). Base64 of a stream
+     * comes a chunk at a time, so the stream is never read into memory as a whole.
+     *
+     * @return Generator<int, string>
+     */
+    public function encodedChunks(): Generator
+    {
         if (TransferEncoding::Base64 === $this->encoding && ! is_string($this->content)) {
             return self::encodeStreamAsBase64($this->content);
         }
 
-        return Mime::encode(
+        return self::single(Mime::encode(
             $this->getContent(),
             $this->encoding,
             Headers::EOL,
             text: str_starts_with($this->type, 'text/'),
-        );
+        ));
+    }
+
+    /**
+     * @return Generator<int, string>
+     */
+    private static function single(string $chunk): Generator
+    {
+        yield $chunk;
     }
 
     /**
      * Encode whole 54-byte groups as they are read, so padding only ever
-     * appears at the very end, however the stream splits its reads.
+     * appears at the very end, however the stream splits its reads. The
+     * line break after the last line is left out.
      *
      * @param resource $stream
+     * @return Generator<int, string>
      *
      * @mago-expect analysis:missing-parameter-type Streams have no native parameter type.
      */
-    private static function encodeStreamAsBase64($stream): string
+    private static function encodeStreamAsBase64($stream): Generator
     {
         rewind($stream);
 
-        $encoded = '';
-        $buffer  = '';
+        $lineBreak = '';
+        $buffer    = '';
         while (! feof($stream)) {
-            $buffer  .= (string) fread($stream, self::BASE64_CHUNK * 1024);
-            $whole   = strlen($buffer) - (strlen($buffer) % self::BASE64_CHUNK);
-            $encoded .= self::base64Lines(substr($buffer, offset: 0, length: $whole));
-            $buffer  = substr($buffer, $whole);
+            $buffer .= (string) fread($stream, self::BASE64_CHUNK * 1024);
+            $whole  = strlen($buffer) - (strlen($buffer) % self::BASE64_CHUNK);
+            $lines  = self::base64Lines(substr($buffer, offset: 0, length: $whole));
+            $buffer = substr($buffer, $whole);
+            if ('' !== $lines) {
+                yield $lineBreak . substr($lines, offset: 0, length: -2);
+                $lineBreak = Headers::EOL;
+            }
         }
 
-        return rtrim($encoded . self::base64Lines($buffer), Headers::EOL);
+        $lines = self::base64Lines($buffer);
+        if ('' !== $lines) {
+            yield $lineBreak . substr($lines, offset: 0, length: -2);
+        }
     }
 
     /**

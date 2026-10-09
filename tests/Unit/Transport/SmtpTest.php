@@ -35,12 +35,19 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_filter;
+use function array_slice;
 use function array_values;
+use function count;
+use function explode;
 use function fclose;
+use function fopen;
+use function fwrite;
+use function get_resources;
 use function implode;
 use function serialize;
 use function sprintf;
 use function str_repeat;
+use function str_replace;
 use function str_starts_with;
 use function stream_socket_get_name;
 use function stream_socket_server;
@@ -303,6 +310,69 @@ final class SmtpTest extends TestCase
         $transport->send(self::message()->setBody('Grüße'));
 
         static::assertStringEndsWith(' BODY=8BITMIME', self::transaction($server)[0]);
+    }
+
+    #[Test]
+    public function declaresEightBitBodyWhenTheByteComesAfterTheFirstChunk(): void
+    {
+        [$transport, , $server] = self::transport();
+        $server->setCapabilities('STARTTLS', 'SIZE 10000000', '8BITMIME');
+
+        $transport->send(self::message()->setBody(str_repeat("0123456789abcdef\r\n", times: 5000) . 'Grüße'));
+
+        static::assertStringEndsWith(' BODY=8BITMIME', self::transaction($server)[0]);
+    }
+
+    #[Test]
+    public function sendsMessageWithStreamedAttachmentAsToStringWritesIt(): void
+    {
+        [$transport, , $server] = self::transport();
+        $server->setCapabilities('STARTTLS', 'SIZE 10000000', '8BITMIME');
+        $content = fopen('php://temp', mode: 'w+b');
+        static::assertNotFalse($content);
+        fwrite($content, str_repeat("\x00\x80\xFF.abc\r\n", times: 30_000));
+        $message = self::message()->setText(".Hi\n")->attach(new Part($content, filename: 'data.bin'));
+
+        $transport->send($message);
+
+        $expected = explode(
+            "\r\n",
+            str_replace(
+                search: "\n.",
+                replace: "\n..",
+                subject: HeaderGuard::check($message->getHeaders()->without('Bcc'))->toString()
+                    . Headers::EOL
+                    . $message->getBodyText(),
+            ),
+        );
+        static::assertSame([...$expected, '.'], array_slice(self::transaction($server), offset: 5));
+    }
+
+    #[Test]
+    public function closesTheStreamItWritesTheMessageTo(): void
+    {
+        [$transport] = self::transport();
+        $streams = count(get_resources('stream'));
+
+        $transport->send(self::message());
+
+        static::assertCount($streams, get_resources('stream'));
+    }
+
+    #[Test]
+    public function closesTheStreamItWritesTheMessageToWhenSendingFails(): void
+    {
+        [$transport] = self::transport();
+        $streams = count(get_resources('stream'));
+
+        try {
+            $transport->send((new Message())->setSender('ralph@example.com'));
+        } catch (RuntimeException) {
+            static::assertCount($streams, get_resources('stream'));
+            return;
+        }
+
+        static::fail('A message without recipients was sent');
     }
 
     #[Test]

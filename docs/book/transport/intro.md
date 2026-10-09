@@ -56,6 +56,14 @@ port, SMTP connects to 587 for STARTTLS (the submission port), 465 for
 [SMTP options](smtp-options.md), [SMTP authentication](smtp-authentication.md)
 and [sending several messages](smtp-multiple-send.md).
 
+The message is written to a `php://temp` stream, which keeps up to 2 MB in
+memory and the rest in a temporary file, and sent from there in 64 KB
+chunks, so an attachment read from a stream is never held in memory as a
+whole. The session log records the message as `[DATA n bytes]` rather than its
+text. `Protocol\Smtp::dataFromStream($stream)` sends a message from any
+seekable stream the same way; it reads the stream twice, first to refuse a
+line longer than 998 bytes before anything is sent.
+
 ## Sendmail
 
 ```php
@@ -104,7 +112,9 @@ $transport->send($message);
 echo $transport->getLastFile();
 ```
 
-See [File transport options](file-options.md).
+The message is written to the file as it is made, with `Message::writeTo()`.
+A file that cannot be finished is removed. See
+[File transport options](file-options.md).
 
 ## InMemory
 

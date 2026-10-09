@@ -90,10 +90,13 @@ final readonly class Address
 
     /**
      * Whether the address was checked as RFC 5322, rather than built with strict: false.
+     * An address serialized before 0.3.0 has no strictness of its own, and was strict.
+     *
+     * @mago-expect analysis:redundant-null-coalesce Unserialized from before 0.3.0, the property is uninitialised.
      */
     public function isStrict(): bool
     {
-        return $this->strict;
+        return $this->strict ?? true;
     }
 
     /**

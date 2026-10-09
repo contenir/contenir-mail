@@ -8,6 +8,7 @@ use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -49,6 +50,23 @@ final class ConnectionConfigTest extends TestCase
                 'timeout'     => '10',
             ]),
         );
+    }
+
+    #[Test]
+    public function readsTheLogger(): void
+    {
+        $logger = new RecordingLogger();
+
+        static::assertSame($logger, ConnectionConfig::fromIterable(['logger' => $logger])->logger);
+    }
+
+    #[Test]
+    public function rejectsALoggerThatIsNotOne(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('option "logger" must be a Psr\Log\LoggerInterface, got string');
+
+        ConnectionConfig::fromIterable(['logger' => 'syslog']);
     }
 
     #[Test]
