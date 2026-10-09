@@ -42,9 +42,6 @@
                 "Contenir\\Mail\\Storage\\Part\\Window::resume"
             ],
             "ignoreSourceCodeByRegex": [
-                // HeaderValue::isValid() has just checked the character after the CRLF is a
-                // space or tab, so stepping onto it again only re-validates a valid character.
-                "\\$i \\+= 2;",
                 // Not stripping the "(" of a nested list leaves the tokenizer pushing lists forever;
                 // the mutant can only end by exhausting memory, never by a failing assertion.
                 "\\$token\\s+= substr\\(\\$token, offset: 1\\);",
@@ -54,11 +51,6 @@
             ]
         },
         "IncrementInteger": {
-            "ignoreSourceCodeByRegex": [
-                // The XOAUTH2 challenge follows "+ "; strict base64 decoding skips the space, so
-                // starting one character later reads the same JSON.
-                "substr\\(\\$line, offset: 1\\),"
-            ],
             "ignore": [
                 // Skipping a fourth continuation byte also ends at a unit start: a byte after three
                 // continuation bytes is a unit of its own, so the slices come out equivalent.
@@ -103,7 +95,7 @@
                 // As for FunctionCallRemoval above: a blocking write is bounded by the timeout on Linux too.
                 "Contenir\\Mail\\Protocol\\StreamConnection::write",
                 // Read only when "novalidatecert" is given, so its default never applies.
-                "Contenir\\Mail\\Storage\\RemoteConnection::legacyVerifyPeer"
+                "Contenir\\Mail\\Protocol\\ConnectionSettings::legacyVerifyPeer"
             ]
         },
         "LessThan": {

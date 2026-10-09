@@ -7,7 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol\Smtp;
 use ArrayObject;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Smtp\Chunks;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingWriteStream;
+use Contenir\Mail\Tests\TestAsset\RecordingWriteStream;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

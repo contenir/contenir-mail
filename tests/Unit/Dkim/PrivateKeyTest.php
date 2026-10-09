@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Dkim;
 
 use Contenir\Mail\Dkim\Algorithm;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\LogicException;
 use Contenir\Mail\Dkim\PrivateKey;
-use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Tests\TestAsset\DkimKeys;
+use Contenir\Mail\Tests\TestAsset\DkimVerifier;
 use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
-use Contenir\Mail\Tests\Unit\TestAsset\DkimKeys;
-use Contenir\Mail\Tests\Unit\TestAsset\DkimVerifier;
-use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

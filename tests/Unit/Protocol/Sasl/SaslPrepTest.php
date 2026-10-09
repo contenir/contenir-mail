@@ -63,8 +63,8 @@ final class SaslPrepTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('intl')]
-    #[DataProvider('normalisationProvider')]
-    public function normalisesOtherTextToNfkc(string $value, string $expected): void
+    #[DataProvider('normalizationProvider')]
+    public function normalizesOtherTextToNfkc(string $value, string $expected): void
     {
         static::assertSame($expected, (new SaslPrep(normalize: true))->prepare($value, 'username'));
     }
@@ -72,7 +72,7 @@ final class SaslPrepTest extends TestCase
     /**
      * @return array<string, array{string, string}>
      */
-    public static function normalisationProvider(): array
+    public static function normalizationProvider(): array
     {
         return [
             'a roman numeral'         => ["\u{2168}", 'IX'],
@@ -84,7 +84,7 @@ final class SaslPrepTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('intl')]
-    public function normalisesWhenIntlIsInstalled(): void
+    public function normalizesWhenIntlIsInstalled(): void
     {
         static::assertSame('IX', (new SaslPrep())->prepare("\u{2168}", 'username'));
     }

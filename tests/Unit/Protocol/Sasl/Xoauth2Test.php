@@ -14,7 +14,7 @@ use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Sasl\Xoauth2Exchange;
 use Contenir\Mail\Protocol\Smtp\Auth\Credentials;
 use Contenir\Mail\Protocol\Smtp\Auth\SaslAuthenticator;
-use Contenir\Mail\Tests\Unit\TestAsset\ScriptedChannel;
+use Contenir\Mail\Tests\TestAsset\ScriptedChannel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

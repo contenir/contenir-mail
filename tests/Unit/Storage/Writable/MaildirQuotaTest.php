@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Storage\Writable;
 
 use Contenir\Mail\Storage\Writable\MaildirQuota;
+use Contenir\Mail\Tests\TestAsset\Storage\Fixtures;
 use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
-use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

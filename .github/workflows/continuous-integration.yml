@@ -14,6 +14,11 @@ jobs:
       php-versions: '["8.3", "8.4", "8.5"]'
       coverage-php-version: "8.4"
       enable-infection: true
+      # The integration suite after the unit suite on every leg. Without a mail
+      # server its server tests are skipped, so this runs the ones that need
+      # only PHP: loopback sockets, TLS servers and sendmail child processes.
+      # integration.yml runs the whole suite against real servers.
+      run-integration: true
       # Pull requests mutate only the lines they change; pushes to release
       # branches still mutate everything.
       infection-diff-on-pull-requests: true

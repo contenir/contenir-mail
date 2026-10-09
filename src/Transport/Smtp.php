@@ -10,7 +10,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\SystemClock;
-use LogicException;
+use Contenir\Mail\Transport\Exception\LogicException;
 use Override;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;
@@ -37,6 +37,7 @@ use function sprintf;
  * @mago-expect lint:too-many-methods The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  * @mago-expect lint:cyclomatic-complexity The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  * @mago-expect lint:kan-defect The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
+ * @api
  */
 final class Smtp implements TransportInterface
 {

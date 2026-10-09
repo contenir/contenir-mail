@@ -6,6 +6,8 @@ namespace Contenir\Mail\Mime;
 
 /**
  * Content-Transfer-Encoding mechanisms (RFC 2045, section 6.1).
+ *
+ * @api
  */
 enum TransferEncoding: string
 {

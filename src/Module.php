@@ -6,6 +6,8 @@ namespace Contenir\Mail;
 
 /**
  * The laminas-mvc module, registering the same services as ConfigProvider.
+ *
+ * @api
  */
 final readonly class Module
 {

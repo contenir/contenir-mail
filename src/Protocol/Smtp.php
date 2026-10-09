@@ -62,6 +62,7 @@ use function substr;
  * @mago-expect lint:too-many-properties Session state from laminas-mail plus the EHLO capabilities.
  * @mago-expect lint:no-boolean-flag-parameter MAIL's ESMTP parameters SMTPUTF8 and BODY=8BITMIME are on or off.
  * @mago-expect lint:method-name The underscored methods override AbstractProtocol's, kept from laminas-mail.
+ * @api
  */
 final class Smtp extends AbstractProtocol
 {
@@ -686,7 +687,7 @@ final class Smtp extends AbstractProtocol
      * @throws Exception\RuntimeException When the code is unexpected or the reply is too long.
      */
     #[Override]
-    protected function _expect($code, $timeout = null) // phpcs:ignore
+    protected function _expect($code, $timeout = null)
     {
         $codes            = is_array($code) ? $code : [$code];
         $this->response   = [];
@@ -724,7 +725,7 @@ final class Smtp extends AbstractProtocol
      * @mago-expect lint:no-empty-catch-clause The connection is closed next, which is all that is left to do.
      */
     #[Override]
-    protected function _disconnect() // phpcs:ignore
+    protected function _disconnect()
     {
         try {
             $this->quit();

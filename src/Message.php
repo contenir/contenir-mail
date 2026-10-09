@@ -35,6 +35,7 @@ use function strtolower;
  *
  * @mago-expect lint:too-many-methods The builder exposes set, add and get for each address header, as in Zend_Mail.
  * @mago-expect lint:cyclomatic-complexity The RFC 5322 header rules (unique headers, Sender, Message-ID) sit with the builder that enforces them.
+ * @api
  */
 final class Message
 {

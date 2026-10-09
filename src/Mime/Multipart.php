@@ -16,6 +16,8 @@ use function random_bytes;
 
 /**
  * A multipart node of a MIME tree, holding other parts between boundary lines.
+ *
+ * @api
  */
 final readonly class Multipart implements PartInterface
 {

@@ -16,6 +16,7 @@ use function strtolower;
  * How a part is presented, inline or as an attachment, with its parameters (RFC 2183).
  *
  * @mago-expect lint:too-many-methods The HeaderInterface methods plus typed accessors and with*() for each part.
+ * @api
  */
 final readonly class ContentDisposition implements HeaderInterface
 {

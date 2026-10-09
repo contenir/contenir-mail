@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Header;
 
 use Contenir\Mail\Header\HeaderBlock;
-use Contenir\Mail\Tests\Unit\TestAsset\Growth;
+use Contenir\Mail\Tests\TestAsset\Growth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;

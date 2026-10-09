@@ -15,6 +15,7 @@ use Contenir\Mail\Header\To;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Tests\TestAsset;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -817,13 +818,10 @@ final class MessageTest extends TestCase
         $this->expectException(Exception\InvalidArgumentException::class);
         $this->expectExceptionMessage('is not a valid hostname for the email address');
 
-        // @codingStandardsIgnoreStart
         $this->makeMessage()->setFrom(
             'user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)',
             "Sender's name",
         );
-
-        // @codingStandardsIgnoreEnd
     }
 
     /**

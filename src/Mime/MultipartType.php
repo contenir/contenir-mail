@@ -6,6 +6,8 @@ namespace Contenir\Mail\Mime;
 
 /**
  * The multipart subtypes contenir-mail composes (RFC 2046, RFC 2387).
+ *
+ * @api
  */
 enum MultipartType: string
 {

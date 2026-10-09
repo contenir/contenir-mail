@@ -18,6 +18,8 @@ use function trim;
 
 /**
  * The unique identifier of a message (RFC 5322, section 3.6.4), held without its angle brackets.
+ *
+ * @api
  */
 final readonly class MessageId implements HeaderInterface
 {

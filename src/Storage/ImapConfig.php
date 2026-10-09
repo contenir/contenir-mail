@@ -7,6 +7,7 @@ namespace Contenir\Mail\Storage;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Sasl\MechanismInterface;
 use Contenir\Mail\Protocol\TlsConfig;
 use SensitiveParameter;
@@ -83,7 +84,7 @@ final readonly class ImapConfig
         $auth   = RemoteAuth::fromReader($reader);
 
         return new self(
-            connection: RemoteConnection::fromReader($reader, self::class),
+            connection: ConnectionSettings::fromReader($reader, self::class),
             user: null === $auth
                 ? $reader->requiredString('user')
                 : $reader->string('user', default: RemoteAuth::username($auth)),

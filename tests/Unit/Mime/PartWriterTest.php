@@ -17,7 +17,7 @@ use Contenir\Mail\Mime\PartInterface;
 use Contenir\Mail\Mime\PartWriter;
 use Contenir\Mail\Mime\TransferEncoding;
 use Contenir\Mail\Storage\Part as StoragePart;
-use Contenir\Mail\Tests\Unit\TestAsset\PartWithHeaders;
+use Contenir\Mail\Tests\TestAsset\PartWithHeaders;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

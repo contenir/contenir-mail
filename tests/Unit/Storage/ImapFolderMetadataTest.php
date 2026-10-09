@@ -14,7 +14,7 @@ use Contenir\Mail\Storage\Imap;
 use Contenir\Mail\Storage\ImapFolderTree;
 use Contenir\Mail\Storage\SpecialUse;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

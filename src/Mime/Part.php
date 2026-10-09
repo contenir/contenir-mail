@@ -35,6 +35,7 @@ use function substr;
  * @mago-expect lint:too-many-methods Getters for each field, the PartInterface methods and serialization.
  * @mago-expect lint:cyclomatic-complexity Serialization checks each field's type.
  * @mago-expect lint:excessive-parameter-list A value object built with named arguments; every field is an optional MIME header.
+ * @api
  */
 final readonly class Part implements PartInterface
 {

@@ -9,7 +9,7 @@ use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderName;
 use Contenir\Mail\Header\HeaderWrap;
-use Contenir\Mail\Tests\Unit\TestAsset\EncodedWordReader;
+use Contenir\Mail\Tests\TestAsset\EncodedWordReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -89,14 +89,14 @@ final class GenericHeaderTest extends TestCase
 
     #[DataProvider('fieldNameProvider')]
     #[Test]
-    public function normalisesFieldName(string $fieldName, string $expected): void
+    public function normalizesFieldName(string $fieldName, string $expected): void
     {
         static::assertSame($expected, (new GenericHeader($fieldName, 'value'))->getFieldName());
     }
 
     #[DataProvider('fieldNameProvider')]
     #[Test]
-    public function normalisesFieldNameFromString(string $fieldName, string $expected): void
+    public function normalizesFieldNameFromString(string $fieldName, string $expected): void
     {
         static::assertSame($expected, GenericHeader::fromString("{$fieldName}: value")->getFieldName());
     }
@@ -430,7 +430,7 @@ final class GenericHeaderTest extends TestCase
     }
 
     #[Test]
-    public function fromStringNormalisesTheName(): void
+    public function fromStringNormalizesTheName(): void
     {
         static::assertSame('Content-Type', GenericHeader::fromString('content_type: text/plain')->getFieldName());
     }

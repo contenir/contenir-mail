@@ -38,6 +38,7 @@ use function var_export;
  * transport's Config.
  *
  * @mago-expect analysis:mixed-assignment Container configuration arrives untyped; each Config reads it into types.
+ * @api
  */
 final readonly class TransportFactory
 {

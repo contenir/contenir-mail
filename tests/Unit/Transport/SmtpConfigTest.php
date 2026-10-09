@@ -9,7 +9,7 @@ use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\Login;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
+use Contenir\Mail\Tests\TestAsset\RecordingLogger;
 use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

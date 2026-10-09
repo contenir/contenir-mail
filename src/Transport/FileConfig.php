@@ -22,6 +22,8 @@ use function sys_get_temp_dir;
  * new FileConfig(path: '/var/mail-out', callback: static fn(File $transport): string => uniqid('mail_') . '.eml');
  * FileConfig::fromIterable(['path' => '/var/mail-out']);
  * ```
+ *
+ * @api
  */
 final readonly class FileConfig
 {

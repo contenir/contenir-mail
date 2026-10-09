@@ -16,6 +16,7 @@ use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
 use Contenir\Mail\Mime\PartInterface;
 use Contenir\Mail\Mime\PartWriter;
+use Contenir\Mail\Tests\TestAsset;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

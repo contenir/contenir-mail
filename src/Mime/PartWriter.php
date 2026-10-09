@@ -15,6 +15,8 @@ use Contenir\Mail\Headers;
  * body() returns the text; write() sends the same bytes to a stream a piece
  * at a time, so that a large attachment read from a stream is never held in
  * memory as a whole.
+ *
+ * @api
  */
 final class PartWriter
 {

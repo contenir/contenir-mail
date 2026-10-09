@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Exception\CommandRefusedException;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolRuntimeException;
 use Contenir\Mail\Protocol\Imap\UidMapping;
@@ -28,10 +29,9 @@ use Contenir\Mail\Storage\Part\Content;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Storage\RawMessage;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
 use Contenir\Mail\Testing\InMemoryConnection;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
+use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -54,7 +54,7 @@ use const INF;
 #[CoversClass(ImapConfig::class)]
 #[CoversClass(ImapFlags::class)]
 #[CoversClass(ImapFolderTree::class)]
-#[CoversClass(RemoteConnection::class)]
+#[CoversClass(ConnectionSettings::class)]
 #[CoversClass(RemoteFolder::class)]
 #[CoversClass(RawMessage::class)]
 #[CoversClass(Part::class)]

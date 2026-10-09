@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Mime;
 
+use Contenir\Mail\Exception;
 use Contenir\Mail\Exception\ExceptionInterface as MailExceptionInterface;
 use Contenir\Mail\Mime\Exception\InvalidArgumentException;
 use Contenir\Mail\Mime\Exception\RuntimeException;
@@ -24,6 +25,18 @@ final class ExceptionTest extends TestCase
     public function isCaughtAsAMailException(Throwable $exception): void
     {
         static::assertInstanceOf(MailExceptionInterface::class, $exception);
+    }
+
+    #[Test]
+    public function invalidArgumentExtendsThePackageException(): void
+    {
+        static::assertInstanceOf(Exception\InvalidArgumentException::class, new InvalidArgumentException('invalid'));
+    }
+
+    #[Test]
+    public function runtimeExtendsThePackageException(): void
+    {
+        static::assertInstanceOf(Exception\RuntimeException::class, new RuntimeException('runtime'));
     }
 
     /**

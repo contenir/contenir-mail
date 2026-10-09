@@ -43,6 +43,11 @@ use function var_export;
  * reads while the script waits for it to write, gets a LogicException: the
  * test is wrong, not the server.
  *
+ * It is a test double, for scripts with test credentials only. Unlike the
+ * session log, the LogicException's message is not redacted: it quotes what
+ * the client wrote and what the script expected, LOGIN and AUTH arguments
+ * included, so that a test can show which byte differs.
+ *
  * @api
  *
  * @mago-expect lint:cyclomatic-complexity One builder method per kind of script step, and the Connection methods that play them.

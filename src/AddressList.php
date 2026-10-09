@@ -23,6 +23,7 @@ use function strtolower;
  *
  * @mago-expect lint:too-many-methods A collection: construction, with/without, lookup and iteration.
  * @implements IteratorAggregate<int, Address>
+ * @api
  */
 final readonly class AddressList implements Countable, IteratorAggregate
 {

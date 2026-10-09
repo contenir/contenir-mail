@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Contenir\Mail\Dkim;
 
 use Contenir\Mail\ConfigReader;
-use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Exception\RuntimeException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\RuntimeException;
+use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use SensitiveParameter;
 
 use function addcslashes;
@@ -39,6 +40,7 @@ use function substr;
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting but the key and its domain is optional.
  * @mago-expect lint:cyclomatic-complexity Checks each setting where the config is built, so a signer is never built from an invalid one.
+ * @api
  */
 final readonly class DkimConfig
 {
@@ -151,7 +153,8 @@ final readonly class DkimConfig
     /**
      * @param iterable<mixed, mixed> $config The keys in KEYS. The key is given as "private_key", a PEM
      *     key or an Ed25519 key in base64, or as "private_key_path", a file holding either.
-     * @throws InvalidArgumentException When a key is unknown, the private key is missing or given twice, or a value is invalid.
+     * @throws MailInvalidArgumentException When a key is unknown, a value is missing, or a value has the wrong type.
+     * @throws InvalidArgumentException When the private key is missing or given twice, or a value is invalid.
      * @throws RuntimeException When the extension the key needs is not loaded.
      */
     public static function fromIterable(#[SensitiveParameter] iterable $config): self

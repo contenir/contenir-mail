@@ -7,16 +7,16 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use ArrayIterator;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\LocalPath;
 use Contenir\Mail\Storage\Pop3Config;
 use Contenir\Mail\Storage\RemoteAuth;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Storage\RemoteFolder;
-use Contenir\Mail\Tests\Unit\Protocol\TestAsset\FakeMechanism;
-use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
+use Contenir\Mail\Tests\TestAsset\Protocol\FakeMechanism;
+use Contenir\Mail\Tests\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -28,7 +28,7 @@ use function print_r;
 
 #[CoversClass(ImapConfig::class)]
 #[CoversClass(Pop3Config::class)]
-#[CoversClass(RemoteConnection::class)]
+#[CoversClass(ConnectionSettings::class)]
 #[CoversClass(RemoteAuth::class)]
 #[CoversClass(RemoteFolder::class)]
 #[CoversClass(LocalPath::class)]

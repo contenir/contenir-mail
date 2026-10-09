@@ -11,6 +11,8 @@ use function strlen;
 
 /**
  * Header field names: printable US-ASCII except the colon (RFC 5322, section 3.6.8).
+ *
+ * @api
  */
 final class HeaderName
 {

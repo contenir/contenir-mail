@@ -49,6 +49,7 @@ use function strtolower;
  *
  * @mago-expect lint:cyclomatic-complexity A collection: lookup, derivation, writing and checked serialization.
  * @mago-expect lint:kan-defect A collection: lookup, derivation, writing and checked serialization.
+ * @api
  */
 final readonly class Headers implements Countable, IteratorAggregate
 {

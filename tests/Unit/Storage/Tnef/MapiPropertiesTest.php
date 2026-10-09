@@ -8,7 +8,7 @@ use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Tnef\ByteReader;
 use Contenir\Mail\Storage\Tnef\MapiProperties;
 use Contenir\Mail\Storage\Tnef\Properties;
-use Contenir\Mail\Tests\Unit\TestAsset\TnefBuilder;
+use Contenir\Mail\Tests\TestAsset\TnefBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

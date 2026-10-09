@@ -157,10 +157,14 @@ These laminas exception classes are gone:
 | `Storage\Part\Exception\ExceptionInterface`, `InvalidArgumentException`, `RuntimeException` (thrown by `Part\File`, the parts of mbox and maildir messages) | `Storage\Exception\ExceptionInterface`, or `Storage\Exception\RuntimeException` and `OutOfBoundsException` (for a part number that does not exist) |
 | `Header\Exception\BadMethodCallException` (never thrown by laminas-mail) | `Header\Exception\ExceptionInterface` |
 
-Every component's `ExceptionInterface` (`Header`, `Mime`, `Protocol`, `Storage`,
-`Transport`) extends `Contenir\Mail\Exception\ExceptionInterface`, so catching
-that catches everything the package throws. In laminas, the `Laminas\Mime`
-exceptions did not share an interface with `Laminas\Mail`; now they do.
+Every component's `ExceptionInterface` (`Dkim`, `Header`, `Mime`, `Protocol`,
+`Storage`, `Transport`) extends `Contenir\Mail\Exception\ExceptionInterface`,
+so catching that catches everything the package throws. In laminas, the
+`Laminas\Mime` exceptions did not share an interface with `Laminas\Mail`; now
+they do. A protocol or the SMTP transport refuses to be serialized with a
+`Protocol\Exception\LogicException` or `Transport\Exception\LogicException`,
+which extend PHP's `LogicException`, so a `catch (LogicException $e)` still
+matches.
 
 ```php
 // laminas-mail

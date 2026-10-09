@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;
-use Contenir\Mail\Tests\Unit\TestAsset\InjectingHeader;
+use Contenir\Mail\Tests\TestAsset\InjectingHeader;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\HeaderGuard;
 use PHPUnit\Framework\Attributes\CoversClass;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Dkim;
 
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 use Contenir\Mail\Dkim\SignatureHeader;
-use Contenir\Mail\Header\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;

@@ -9,6 +9,8 @@ use Override;
 
 /**
  * Keeps the last message instead of sending it, for tests and development.
+ *
+ * @api
  */
 final class InMemory implements TransportInterface
 {

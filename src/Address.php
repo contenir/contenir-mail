@@ -18,6 +18,8 @@ use const INTL_IDNA_VARIANT_UTS46;
 
 /**
  * An e-mail address with an optional display name and comment.
+ *
+ * @api
  */
 final readonly class Address
 {

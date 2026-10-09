@@ -16,6 +16,7 @@ use function substr;
 /**
  * The media type of a message or part, with its parameters (RFC 2045, section 5).
  *
+ * @api
  */
 final readonly class ContentType implements HeaderInterface
 {

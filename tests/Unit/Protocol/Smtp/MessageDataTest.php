@@ -35,7 +35,7 @@ final class MessageDataTest extends TestCase
      * @param list<string> $chunks
      * @param list<string> $expected
      */
-    #[DataProvider('normalisationProvider')]
+    #[DataProvider('normalizationProvider')]
     #[Test]
     public function writesEveryLineBreakAsCrlf(array $chunks, array $expected): void
     {
@@ -93,7 +93,7 @@ final class MessageDataTest extends TestCase
     /**
      * @return array<string, array{list<string>, list<string>}>
      */
-    public static function normalisationProvider(): array
+    public static function normalizationProvider(): array
     {
         return [
             'CRLF'                      => [["a\r\nb"], ["a\r\nb"]],

@@ -13,7 +13,7 @@ use Contenir\Mail\Storage\Part;
 use Contenir\Mail\Storage\Part\Content;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
-use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
+use Contenir\Mail\Tests\TestAsset\Storage\Fixtures;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

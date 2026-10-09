@@ -15,6 +15,8 @@ use function base64_encode;
  * AUTH LOGIN: the username and the password, each in its own base64 response.
  *
  * Sends the password itself, so use it only over TLS.
+ *
+ * @api
  */
 final readonly class Login implements AuthenticatorInterface
 {

@@ -26,6 +26,8 @@ use function trim;
  *
  * Without a path, mail is sent with PHP's mail() function. With one, that program is run
  * directly, without a shell, with the message on its standard input.
+ *
+ * @api
  */
 final readonly class SendmailConfig
 {

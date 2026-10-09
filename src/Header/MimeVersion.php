@@ -11,6 +11,9 @@ use function preg_match;
 use function strtolower;
 use function trim;
 
+/**
+ * @api
+ */
 final readonly class MimeVersion implements HeaderInterface
 {
     private string $version;

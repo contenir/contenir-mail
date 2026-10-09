@@ -13,6 +13,8 @@ use function trim;
 
 /**
  * The mailbox responsible for sending a message on behalf of its author (RFC 5322, section 3.6.2).
+ *
+ * @api
  */
 final readonly class Sender implements HeaderInterface
 {

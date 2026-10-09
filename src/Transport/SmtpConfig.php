@@ -7,11 +7,11 @@ namespace Contenir\Mail\Transport;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\TlsConfig;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Validator\HostnameValidator;
 use Psr\Log\LoggerInterface;
 use SensitiveParameter;
@@ -36,6 +36,7 @@ use function implode;
  * is read as ImapConfig and Pop3Config read it, and is deprecated.
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
+ * @api
  */
 final readonly class SmtpConfig
 {
@@ -119,7 +120,7 @@ final readonly class SmtpConfig
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         $reader     = ConfigReader::read(self::class, $config, self::KEYS);
-        $connection = RemoteConnection::fromReader($reader, self::class);
+        $connection = ConnectionSettings::fromReader($reader, self::class);
 
         return new self(
             host: $connection->host,

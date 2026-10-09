@@ -13,6 +13,8 @@ use function mime_content_type;
 
 /**
  * Builds parts for files attached to a message and resources embedded in its HTML.
+ *
+ * @api
  */
 final class Attachment
 {

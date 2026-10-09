@@ -6,7 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
-use Contenir\Mail\Tests\Unit\TestAsset\FailingTransport;
+use Contenir\Mail\Tests\TestAsset\FailingTransport;
 use Contenir\Mail\Transport\Exception\InvalidArgumentException;
 use Contenir\Mail\Transport\Exception\RuntimeException;
 use Contenir\Mail\Transport\Failover;

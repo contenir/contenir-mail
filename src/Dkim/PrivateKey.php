@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Dkim;
 
-use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Exception\RuntimeException;
-use LogicException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\LogicException;
+use Contenir\Mail\Dkim\Exception\RuntimeException;
 use OpenSSLAsymmetricKey;
 use SensitiveParameter;
 
@@ -54,6 +54,7 @@ use const OPENSSL_KEYTYPE_RSA;
  * RSA keys need ext-openssl, and Ed25519 keys ext-sodium; reading an Ed25519 key from PEM needs both.
  *
  * @mago-expect lint:cyclomatic-complexity Reads RSA and Ed25519 keys in each form they are kept in, and checks each.
+ * @api
  */
 final readonly class PrivateKey
 {

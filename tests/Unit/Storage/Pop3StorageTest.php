@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 
 use Contenir\Mail\Protocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
 use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
@@ -21,7 +22,6 @@ use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Storage\Pop3;
 use Contenir\Mail\Storage\Pop3Config;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,7 +38,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(MimeParser::class)]
 #[CoversClass(MultipartSplitter::class)]
 #[CoversClass(Pop3Config::class)]
-#[CoversClass(RemoteConnection::class)]
+#[CoversClass(ConnectionSettings::class)]
 #[Group('unit')]
 final class Pop3StorageTest extends TestCase
 {

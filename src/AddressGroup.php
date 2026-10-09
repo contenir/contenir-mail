@@ -15,6 +15,8 @@ use function trim;
  *
  * A group may be empty: "undisclosed-recipients:;" is the usual To header of a
  * message sent only to Bcc recipients.
+ *
+ * @api
  */
 final readonly class AddressGroup
 {

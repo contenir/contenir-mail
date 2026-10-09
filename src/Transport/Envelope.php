@@ -15,6 +15,8 @@ use function is_string;
  * ```php
  * $transport->setEnvelope(new Envelope(from: 'bounces@example.com', to: ['archive@example.com']));
  * ```
+ *
+ * @api
  */
 final readonly class Envelope
 {

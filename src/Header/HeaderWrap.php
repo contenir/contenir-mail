@@ -19,8 +19,9 @@ use function wordwrap;
 /**
  * Utility class used for creating wrapped or MIME-encoded versions of header
  * values.
+ *
+ * @api
  */
-// phpcs:ignore WebimpressCodingStandard.NamingConventions.AbstractClass.Prefix
 final class HeaderWrap
 {
     /** Characters escaped in addition inside an encoded phrase */
