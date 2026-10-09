@@ -13,6 +13,7 @@ use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -123,6 +124,63 @@ final class SmtpConfigTest extends TestCase
         ]);
 
         static::assertEquals(new Login('orders', self::AUTH_VALUE), $config->auth);
+    }
+
+    /**
+     * The laminas-mail "ssl" setting, read as ImapConfig and Pop3Config read it.
+     */
+    #[DataProvider('sslProvider')]
+    #[IgnoreDeprecations]
+    #[Test]
+    public function readsTheLaminasSslSetting(string|bool $ssl, Security $expected): void
+    {
+        static::assertSame($expected, SmtpConfig::fromIterable(['ssl' => $ssl])->connection->security);
+    }
+
+    /**
+     * @return array<string, array{string|bool, Security}>
+     */
+    public static function sslProvider(): array
+    {
+        return [
+            'ssl is TLS from the start' => ['ssl', Security::Tls],
+            'tls is STARTTLS'           => ['TLS', Security::StartTls],
+            'none is plain'             => ['none', Security::None],
+            'false is plain'            => [false, Security::None],
+        ];
+    }
+
+    #[IgnoreDeprecations]
+    #[Test]
+    public function refusesSslWithSecurity(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Contenir\Mail\Transport\SmtpConfig: give option "security" or its laminas-mail form "ssl", not both',
+        );
+
+        SmtpConfig::fromIterable(['ssl' => 'ssl', 'security' => 'tls']);
+    }
+
+    #[IgnoreDeprecations]
+    #[Test]
+    public function refusesAnUnknownSslValue(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Contenir\Mail\Transport\SmtpConfig: option "ssl" must be "ssl", "tls", "starttls", "none" or false, got "sslv3"',
+        );
+
+        SmtpConfig::fromIterable(['ssl' => 'sslv3']);
+    }
+
+    #[Test]
+    public function stillRefusesTheLaminasNoValidateCertSetting(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('unknown option "novalidatecert"');
+
+        SmtpConfig::fromIterable(['novalidatecert' => true]);
     }
 
     #[Test]

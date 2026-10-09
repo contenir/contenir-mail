@@ -40,6 +40,14 @@ Key                     | Argument              | Default        | Meaning
 `connection_time_limit` | `connectionTimeLimit` | none           | Seconds after which the transport opens a new connection rather than reusing it; QUIT is then not sent.
 `use_complete_quit`     | `useCompleteQuit`     | `true`         | Send QUIT before closing the connection.
 
+The laminas-mail `ssl` setting is read too, as IMAP and POP3 read it: `ssl`
+means `tls` (TLS from the start), `tls` means `starttls`, and `false` or `none`
+means a plain connection. It is deprecated: use `security`, and don't give
+both.
+
+When TLS from the start fails on port 25, 110, 143 or 587, where servers expect
+STARTTLS, the error says so and suggests `security: 'starttls'`.
+
 The connection settings are also available on their own as
 `SmtpConfig::$connection`, a `Contenir\Mail\Protocol\ConnectionConfig`.
 `SmtpConfig::DEFAULT_SECURITY` holds the default security.

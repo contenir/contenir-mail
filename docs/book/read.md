@@ -127,10 +127,11 @@ The TLS settings apply to TLS from the start and to STARTTLS. See the security
 page for their risks.
 
 Connections use STARTTLS unless told otherwise. The laminas-mail keys still
-work: `ssl` set to `SSL` means `tls`, `TLS` means `starttls`, and `false` or
-`none` means a plain connection; any other value is refused. `novalidatecert`
-set to `true` turns peer verification off. Give each setting under one name
-only.
+work, and are deprecated: `ssl` set to `SSL` means `tls`, `TLS` means
+`starttls`, and `false` or `none` means a plain connection; any other value is
+refused. `novalidatecert` set to `true` turns peer verification off. Use
+`security` and `verify_peer` instead, and give each setting under one name
+only. PHP 8.4 and later report the laminas-mail keys as deprecated.
 
 ```php
 use Contenir\Mail\Protocol\ConnectionConfig;

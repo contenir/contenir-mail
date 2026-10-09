@@ -11,6 +11,7 @@ use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorFactory;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\TlsConfig;
+use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Validator\HostnameValidator;
 use SensitiveParameter;
 
@@ -30,7 +31,8 @@ use function implode;
  *
  * STARTTLS is required unless "security" says otherwise: "tls" for TLS from the start
  * (port 465), or "none" for a plain connection to a local relay (port 25). Without a port,
- * STARTTLS connects to the submission port 587 (RFC 6409).
+ * STARTTLS connects to the submission port 587 (RFC 6409). The laminas-mail "ssl" setting
+ * is read as ImapConfig and Pop3Config read it, and is deprecated.
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
  */
@@ -39,9 +41,14 @@ final readonly class SmtpConfig
     /** The one place the SMTP transport's default security is set */
     public const Security DEFAULT_SECURITY = Security::StartTls;
 
-    /** @var list<string> */
+    /**
+     * The connection settings, the laminas-mail "ssl", and the transport's own
+     *
+     * @var list<string>
+     */
     public const array KEYS = [
         ...ConnectionConfig::KEYS,
+        'ssl',
         'name',
         'auth',
         'allow_insecure_auth',
@@ -100,25 +107,29 @@ final readonly class SmtpConfig
 
     /**
      * @param iterable<mixed, mixed> $config The keys in KEYS; "auth" takes an authenticator or
-     *     settings such as `['type' => 'login', 'username' => …, 'password' => …]`.
-     * @throws InvalidArgumentException When a key is unknown or a value is invalid.
+     *     settings such as `['type' => 'login', 'username' => …, 'password' => …]`. "ssl" is the
+     *     laminas-mail setting: "ssl" is TLS from the start, "tls" STARTTLS, and false or "none"
+     *     a plain connection.
+     * @throws InvalidArgumentException When a key is unknown, a value is invalid, or both "ssl"
+     *     and "security" are given.
      */
     public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
-        $reader = ConfigReader::read(self::class, $config, self::KEYS);
+        $reader     = ConfigReader::read(self::class, $config, self::KEYS);
+        $connection = RemoteConnection::fromReader($reader, self::class);
 
         return new self(
-            host: $reader->string('host', default: '127.0.0.1'),
-            port: $reader->nullableInt('port'),
-            security: $reader->enum('security', default: self::DEFAULT_SECURITY),
-            verifyPeer: $reader->bool('verify_peer', default: true),
-            timeout: $reader->int('timeout', default: 30),
+            host: $connection->host,
+            port: $connection->port,
+            security: $connection->security,
+            verifyPeer: $connection->verifyPeer,
+            timeout: $connection->timeout,
             name: $reader->string('name', default: 'localhost'),
             auth: $reader->section('auth', AuthenticatorInterface::class, AuthenticatorFactory::fromIterable(...)),
             allowInsecureAuth: $reader->bool('allow_insecure_auth', default: false),
             connectionTimeLimit: $reader->nullableInt('connection_time_limit'),
             useCompleteQuit: $reader->bool('use_complete_quit', default: true),
-            tls: TlsConfig::fromReader($reader),
+            tls: $connection->tls,
         );
     }
 }

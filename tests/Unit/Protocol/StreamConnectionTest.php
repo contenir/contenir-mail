@@ -15,6 +15,7 @@ use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\TlsServer;
 use Contenir\Mail\Tests\Unit\TestAsset\ShortReadStream;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -424,6 +425,83 @@ final class StreamConnectionTest extends TestCase
             host: '127.0.0.1',
             security: Security::None,
         ), $port);
+    }
+
+    /**
+     * Nothing on these ports offers TLS from the start, so the connection fails whether or not
+     * a server listens there.
+     */
+    #[DataProvider('startTlsPortProvider')]
+    #[Test]
+    public function suggestsStartTlsWhenTlsFromTheStartFailsOnAStartTlsPort(int $port): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            "; port {$port} usually expects STARTTLS: if this server does, set security to \"starttls\"",
+        );
+
+        (new StreamConnection())->open(new ConnectionConfig(
+            host: '127.0.0.1',
+            security: Security::Tls,
+            timeout: 2,
+        ), $port);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function startTlsPortProvider(): array
+    {
+        return [
+            'SMTP'       => [25],
+            'POP3'       => [110],
+            'IMAP'       => [143],
+            'submission' => [587],
+        ];
+    }
+
+    /**
+     * A plain connection may succeed where a mail server listens, which needs no hint either.
+     */
+    #[Test]
+    public function suggestsNothingForAPlainConnectionOnAStartTlsPort(): void
+    {
+        $connection = new StreamConnection();
+        try {
+            $connection->open(new ConnectionConfig(
+                host: '127.0.0.1',
+                security: Security::None,
+                timeout: 2,
+            ), 587);
+        } catch (RuntimeException $e) {
+            static::assertStringNotContainsString('STARTTLS', $e->getMessage());
+
+            return;
+        }
+
+        $connection->close();
+        static::assertFalse($connection->isConnected());
+    }
+
+    #[Test]
+    public function suggestsNothingForTlsFromTheStartOnAnotherPort(): void
+    {
+        [$server, $port] = $this->listen();
+        fclose($server);
+
+        try {
+            (new StreamConnection())->open(new ConnectionConfig(
+                host: '127.0.0.1',
+                security: Security::Tls,
+                timeout: 2,
+            ), $port);
+        } catch (RuntimeException $e) {
+            static::assertStringNotContainsString('STARTTLS', $e->getMessage());
+
+            return;
+        }
+
+        static::fail('Nothing listens on the closed port');
     }
 
     #[Test]

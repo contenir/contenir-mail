@@ -158,6 +158,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and `var_dump()` shows `TlsConfig::REDACTED` in its place.
   `ConnectionConfig::fromIterable()` marks its settings
   `#[SensitiveParameter]` too.
+- `Transport\SmtpConfig` accepts the laminas-mail `ssl` setting, as
+  `ImapConfig` and `Pop3Config` do: `ssl` is TLS from the start, `tls` is
+  STARTTLS, and false or `none` a plain connection. Giving it with `security`
+  is refused. It is deprecated, as it is for IMAP and POP3.
+- When TLS from the start fails on port 25, 110, 143 or 587, where servers
+  expect STARTTLS, the error suggests setting `security` to `starttls`.
 
 ### Changed
 

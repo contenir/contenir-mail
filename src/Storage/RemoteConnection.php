@@ -13,8 +13,8 @@ use function is_string;
 use function sprintf;
 
 /**
- * Reads the connection settings of ImapConfig and Pop3Config, with the
- * laminas-mail "ssl" and "novalidatecert" keys.
+ * Reads the connection settings of ImapConfig, Pop3Config and Transport\SmtpConfig,
+ * with the laminas-mail "ssl" and "novalidatecert" keys where the config accepts them.
  *
  * @internal
  */
