@@ -658,11 +658,13 @@ if (null !== $sent) {
 }
 ```
 
-`getNamespaces()` returns the server's namespaces (RFC 2342), or null when
-the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
-`shared` is a list of `Contenir\Mail\Imap\NamespaceEntry` with a `prefix`, such as
-`INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
-New folders belong under the first personal prefix on servers that have one.
+`getNamespaces()` returns the server's namespaces (RFC 2342) as a
+`Contenir\Mail\Imap\Namespaces`, or null when the server doesn't offer
+NAMESPACE. Each of `personal`, `otherUsers` and `shared` is a list of
+`Imap\NamespaceEntry` with a `prefix`, such as `INBOX.` or `#shared/`, and a
+`delimiter`, which is null for a flat namespace. New folders belong under the
+first personal prefix on servers that have one. `Protocol\Imap::namespace()`
+returns the same classes.
 
 `getFolderStatus()` reads a folder's message count, unseen count, UIDNEXT
 and UIDVALIDITY without selecting it. It also reads the folder's size in octets
