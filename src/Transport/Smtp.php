@@ -37,6 +37,7 @@ use function sprintf;
  * @mago-expect lint:too-many-methods The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  * @mago-expect lint:cyclomatic-complexity The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  * @mago-expect lint:kan-defect The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
+ * @api
  */
 final class Smtp implements TransportInterface
 {

@@ -13,6 +13,8 @@ use function var_export;
 
 /**
  * How a connection to a mail server is secured.
+ *
+ * @api
  */
 enum Security: string
 {

@@ -19,6 +19,8 @@ use function hash_hmac;
  *
  * The password never crosses the wire, but MD5 is weak and the server must store
  * the password in a recoverable form. Prefer PLAIN or LOGIN over TLS where offered.
+ *
+ * @api
  */
 final readonly class CramMd5 implements AuthenticatorInterface
 {

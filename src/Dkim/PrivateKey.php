@@ -54,6 +54,7 @@ use const OPENSSL_KEYTYPE_RSA;
  * RSA keys need ext-openssl, and Ed25519 keys ext-sodium; reading an Ed25519 key from PEM needs both.
  *
  * @mago-expect lint:cyclomatic-complexity Reads RSA and Ed25519 keys in each form they are kept in, and checks each.
+ * @api
  */
 final readonly class PrivateKey
 {

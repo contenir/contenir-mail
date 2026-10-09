@@ -8,5 +8,7 @@ use Contenir\Mail\Exception;
 
 /**
  * Exception for Contenir\Mail component.
+ *
+ * @api
  */
 final class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface {}

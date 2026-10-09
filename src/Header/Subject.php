@@ -8,6 +8,9 @@ use Override;
 
 use function strtolower;
 
+/**
+ * @api
+ */
 final readonly class Subject implements HeaderInterface
 {
     private string $subject;

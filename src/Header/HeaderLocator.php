@@ -13,6 +13,8 @@ use function strtolower;
 
 /**
  * The built-in header classes, with any custom classes layered on top.
+ *
+ * @api
  */
 final readonly class HeaderLocator implements HeaderLocatorInterface
 {

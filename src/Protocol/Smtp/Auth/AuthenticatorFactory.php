@@ -25,6 +25,7 @@ use const E_USER_DEPRECATED;
  * `['type' => 'login', 'username' => 'orders', 'password' => '…']`.
  *
  * @mago-expect analysis:mixed-assignment Settings arrive untyped; each authenticator reads them into types.
+ * @api
  */
 final readonly class AuthenticatorFactory
 {

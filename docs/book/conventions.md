@@ -80,6 +80,14 @@ callers that pass it by name must change too.
 
 ## Classes
 
+Every class, interface, enum and trait is marked, in its docblock, with
+exactly one of two tags, and `ApiMarkerTest` keeps it so:
+
+- `@api`: public API, covered by semantic versioning. It changes only as
+  described under Deprecations.
+- `@internal`: a helper the library uses, not for users. It may change or go
+  in any release, even where PHP lets other code call it.
+
 An internal class never shares its short name with a public one, so an
 import never has to be aliased: `Sasl\ScramSha256Exchange` runs the exchange
 for the public `Sasl\ScramSha256`. Two names kept for compatibility are the

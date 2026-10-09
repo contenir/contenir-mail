@@ -16,6 +16,8 @@ use function str_contains;
  * AUTH PLAIN (RFC 4616): the username and password in one base64 response.
  *
  * Sends the password itself, so use it only over TLS.
+ *
+ * @api
  */
 final readonly class Plain implements AuthenticatorInterface
 {

@@ -18,6 +18,8 @@ use function strcasecmp;
  *
  * The value is kept folded as the signer folded it, since with "simple"
  * canonicalisation any change to the folding breaks the signature.
+ *
+ * @api
  */
 final readonly class SignatureHeader implements HeaderInterface
 {

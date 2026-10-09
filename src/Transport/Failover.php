@@ -18,6 +18,8 @@ use function sprintf;
  *
  * A transport that fails with one of this package's exceptions is skipped;
  * when every transport has failed, the send fails with each one's reason.
+ *
+ * @api
  */
 final readonly class Failover implements TransportInterface
 {

@@ -21,6 +21,7 @@ use SensitiveParameter;
  * Pop3Config build them, are Protocol\Sasl\Xoauth2 and not this class, so test for that.
  *
  * @deprecated 0.3.0 Use Protocol\Sasl\Xoauth2, which signs in to IMAP, POP3 and SMTP alike.
+ * @api
  */
 final readonly class XOAuth2 extends SaslXoauth2
 {

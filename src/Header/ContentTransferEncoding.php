@@ -12,6 +12,9 @@ use function sprintf;
 use function strtolower;
 use function trim;
 
+/**
+ * @api
+ */
 final readonly class ContentTransferEncoding implements HeaderInterface
 {
     public function __construct(

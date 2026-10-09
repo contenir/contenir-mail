@@ -44,6 +44,7 @@ use const PHP_OS_FAMILY;
  * escapings do not compose.
  *
  * @mago-expect lint:cyclomatic-complexity Each argument of mail() differs between Windows and other systems.
+ * @api
  */
 final class Sendmail implements TransportInterface
 {

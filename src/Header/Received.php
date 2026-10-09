@@ -13,6 +13,8 @@ use function strtolower;
  * A trace field added by each server that handled the message (RFC 5322, section 3.6.7).
  *
  * The value is kept as written; it is not split into its from, by and date parts.
+ *
+ * @api
  */
 final readonly class Received implements HeaderInterface
 {

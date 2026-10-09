@@ -268,6 +268,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Contenir\Mail\Exception\InvalidArgumentException` and `RuntimeException`,
   as every other component's exceptions do, and so still extend PHP's. They
   are marked `@final`: they stay extendable in 0.x and will be final in 1.0.
+- Every class, interface, enum and trait is marked `@api`, public API covered
+  by semantic versioning, or `@internal`, not for users
+  (docs/book/conventions.md). The 68 that had neither, from `Message` and
+  `Headers` to the transports, headers and DKIM classes, are all `@api`.
 
 ### Deprecated
 

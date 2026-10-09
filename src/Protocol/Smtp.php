@@ -62,6 +62,7 @@ use function substr;
  * @mago-expect lint:too-many-properties Session state from laminas-mail plus the EHLO capabilities.
  * @mago-expect lint:no-boolean-flag-parameter MAIL's ESMTP parameters SMTPUTF8 and BODY=8BITMIME are on or off.
  * @mago-expect lint:method-name The underscored methods override AbstractProtocol's, kept from laminas-mail.
+ * @api
  */
 final class Smtp extends AbstractProtocol
 {

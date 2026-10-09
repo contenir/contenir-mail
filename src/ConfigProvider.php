@@ -7,6 +7,8 @@ namespace Contenir\Mail;
 /**
  * Registers the optional PSR-11 factories with Mezzio, laminas-servicemanager or any
  * container that reads the "dependencies" key.
+ *
+ * @api
  */
 final readonly class ConfigProvider
 {

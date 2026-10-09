@@ -36,6 +36,7 @@ use function implode;
  * is read as ImapConfig and Pop3Config read it, and is deprecated.
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
+ * @api
  */
 final readonly class SmtpConfig
 {

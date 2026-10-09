@@ -40,6 +40,7 @@ use function substr;
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting but the key and its domain is optional.
  * @mago-expect lint:cyclomatic-complexity Checks each setting where the config is built, so a signer is never built from an invalid one.
+ * @api
  */
 final readonly class DkimConfig
 {

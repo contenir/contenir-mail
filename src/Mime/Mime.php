@@ -33,6 +33,7 @@ use function trim;
  * Support class for MultiPart Mime Messages
  *
  * @mago-expect lint:too-many-methods The RFC 2045 and 2047 encoders kept from laminas-mime, as one static utility.
+ * @api
  */
 final class Mime
 {

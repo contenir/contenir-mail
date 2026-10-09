@@ -34,6 +34,7 @@ use const DIRECTORY_SEPARATOR;
  * name planted in a shared directory, or a symlink in its place, makes the send fail.
  *
  * @mago-expect analysis:mixed-assignment The name callback is user code; its result is checked before use.
+ * @api
  */
 final class File implements TransportInterface
 {

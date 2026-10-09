@@ -21,6 +21,9 @@ use function wordwrap;
  * values.
  */
 // phpcs:ignore WebimpressCodingStandard.NamingConventions.AbstractClass.Prefix
+/**
+ * @api
+ */
 final class HeaderWrap
 {
     /** Characters escaped in addition inside an encoded phrase */

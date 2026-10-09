@@ -46,6 +46,7 @@ use const PREG_SPLIT_NO_EMPTY;
  *
  * @mago-expect lint:cyclomatic-complexity Builds, folds and signs the tags of RFC 6376, section 3.5, each of them optional or derived.
  * @mago-expect lint:kan-defect Builds, folds and signs the tags of RFC 6376, section 3.5, each of them optional or derived.
+ * @api
  */
 final readonly class Signer
 {

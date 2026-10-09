@@ -17,6 +17,8 @@ use function trim;
 
 /**
  * The origination date of a message (RFC 5322, section 3.6.1).
+ *
+ * @api
  */
 final readonly class Date implements HeaderInterface
 {

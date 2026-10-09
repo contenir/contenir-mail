@@ -20,6 +20,7 @@ use SensitiveParameter;
  * Give a PSR-3 "logger" to log the session at debug level, credentials redacted; see LoggingConnection.
  *
  * @mago-expect lint:excessive-parameter-list Built with named arguments; every setting is optional.
+ * @api
  */
 final readonly class ConnectionConfig
 {

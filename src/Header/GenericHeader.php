@@ -15,6 +15,8 @@ use function ucwords;
 /**
  * Any header without a dedicated class, and the fallback for headers that
  * fail to parse as their dedicated class.
+ *
+ * @api
  */
 final readonly class GenericHeader implements HeaderInterface
 {

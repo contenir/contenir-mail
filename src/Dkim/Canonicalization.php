@@ -20,6 +20,8 @@ use function trim;
  * "simple" tolerates no change at all on the way; "relaxed" tolerates the
  * changes relays commonly make: refolded headers, a different case in header
  * names, and changed white space.
+ *
+ * @api
  */
 enum Canonicalization: string
 {

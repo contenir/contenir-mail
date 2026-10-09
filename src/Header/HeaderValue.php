@@ -7,6 +7,9 @@ namespace Contenir\Mail\Header;
 use function preg_match;
 use function preg_replace;
 
+/**
+ * @api
+ */
 final class HeaderValue
 {
     /**

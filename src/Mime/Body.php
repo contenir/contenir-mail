@@ -11,6 +11,8 @@ use NoDiscard;
  *
  * Text and HTML become alternatives, HTML with its embedded resources becomes
  * a related group, and attachments follow in a mixed multipart.
+ *
+ * @api
  */
 final readonly class Body
 {

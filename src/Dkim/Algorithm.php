@@ -15,6 +15,8 @@ use function strtolower;
  *
  * rsa-sha1 is not offered: RFC 8301 forbids signing with it, and verifiers
  * treat such signatures as failing.
+ *
+ * @api
  */
 enum Algorithm: string
 {

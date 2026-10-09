@@ -8,5 +8,7 @@ use Contenir\Mail\Exception;
 
 /**
  * Exception for Contenir\Mail component.
+ *
+ * @api
  */
 class RuntimeException extends Exception\RuntimeException implements ExceptionInterface {}
