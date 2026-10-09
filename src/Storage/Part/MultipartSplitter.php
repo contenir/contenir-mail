@@ -9,13 +9,12 @@ use Contenir\Mail\Storage\Exception;
 use function count;
 use function rtrim;
 use function sprintf;
-use function str_ends_with;
 use function str_starts_with;
 use function strlen;
 use function substr;
 
 /**
- * Splits multipart bodies into their parts, reading line by line so memory
+ * Splits multipart bodies into their parts, reading in blocks so memory
  * stays bounded whatever the size of the input.
  *
  * Hostile input is cut short: a multipart holds at most MAX_PARTS parts,
@@ -36,40 +35,43 @@ final class MultipartSplitter
      * closing one are not parts. The line break before a boundary line
      * belongs to the boundary (RFC 2046, section 5.1.1).
      *
+     * The body is read in blocks and searched for a line break followed by
+     * the boundary, so lines that cannot be boundary lines are never split
+     * out one by one.
+     *
      * @return list<Content>
      * @throws Exception\RuntimeException When there are more than MAX_PARTS parts.
      */
     public static function split(Content $body, string $boundary): array
     {
         $delimiter = "--{$boundary}";
+        $window    = new Window($body->blocks());
         $parts     = [];
         $partStart = null;
-        $lineStart = true;
-        $previous  = '';
-        foreach ($body->lines() as $offset => $piece) {
-            $kind      = $lineStart ? self::delimiterKind($piece, $delimiter) : null;
-            $lineStart = Content::endsLine($piece);
-            if (null === $kind) {
-                $previous = $piece;
-                continue;
-            }
-
-            if (null !== $partStart) {
-                $parts[] = $body->slice($partStart, $offset - self::lineBreakLength($previous));
-                if (count($parts) > self::MAX_PARTS) {
-                    throw new Exception\RuntimeException(sprintf(
-                        'A multipart may hold at most %d parts',
-                        self::MAX_PARTS,
-                    ));
+        $line      = 0;
+        while (null !== $line) {
+            $piece = $window->piece($line);
+            $kind  = self::delimiterKind($piece, $delimiter);
+            if (null !== $kind) {
+                if (null !== $partStart) {
+                    $parts[] = $body->slice($partStart, $line - self::lineBreakLength($window->byte($line - 2)));
+                    if (count($parts) > self::MAX_PARTS) {
+                        throw new Exception\RuntimeException(sprintf(
+                            'A multipart may hold at most %d parts',
+                            self::MAX_PARTS,
+                        ));
+                    }
                 }
+
+                if ('close' === $kind) {
+                    return $parts;
+                }
+
+                $partStart = $line + strlen($piece);
             }
 
-            if ('close' === $kind) {
-                return $parts;
-            }
-
-            $partStart = $offset + strlen($piece);
-            $previous  = $piece;
+            $found = $window->find("\n{$delimiter}", $line);
+            $line  = null === $found ? null : $found + 1;
         }
 
         if (null !== $partStart) {
@@ -98,10 +100,10 @@ final class MultipartSplitter
     }
 
     /**
-     * The length of the line break ending the line before a boundary line, which always has one.
+     * The length of the line break ending the line before a boundary line, from the byte before its "\n".
      */
-    private static function lineBreakLength(string $previous): int
+    private static function lineBreakLength(string $beforeLineFeed): int
     {
-        return str_ends_with($previous, "\r\n") ? 2 : 1;
+        return "\r" === $beforeLineFeed ? 2 : 1;
     }
 }

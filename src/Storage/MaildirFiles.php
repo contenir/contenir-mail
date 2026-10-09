@@ -8,7 +8,6 @@ use Contenir\Mail\Storage\Part\Content;
 
 use function array_values;
 use function filesize;
-use function fopen;
 use function in_array;
 use function is_dir;
 use function is_file;
@@ -79,18 +78,11 @@ final class MaildirFiles
     }
 
     /**
-     * A message file, read when its bytes are asked for.
-     *
-     * @throws Exception\RuntimeException When the file cannot be opened.
+     * A message file, opened only while its bytes are read, so a held message holds no open file.
      */
     public static function content(string $filename): Content
     {
-        $fh = FileSystem::quietly(static fn(): mixed => fopen($filename, mode: 'rb'));
-        if (false === $fh) {
-            throw new Exception\RuntimeException('Cannot open the message file; it may have been moved');
-        }
-
-        return Content::fromStream($fh, 0, self::size($filename, null));
+        return Content::fromFile($filename, 0, self::size($filename, null), MaildirFilename::moved(...));
     }
 
     /**

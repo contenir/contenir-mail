@@ -186,6 +186,20 @@ final class Message implements PartInterface, IteratorAggregate
     }
 
     /**
+     * Write the content, decoded, to a stream a block at a time, see Part::saveTo().
+     *
+     * @param resource $stream An open, writable stream.
+     * @return int The number of bytes written.
+     * @throws Exception\RuntimeException When the body cannot be read, or the stream cannot be written.
+     *
+     * @mago-expect analysis:missing-parameter-type Streams have no native parameter type.
+     */
+    public function saveTo($stream): int
+    {
+        return $this->part->saveTo($stream);
+    }
+
+    /**
      * @throws Exception\RuntimeException When the body cannot be read.
      */
     #[Override]

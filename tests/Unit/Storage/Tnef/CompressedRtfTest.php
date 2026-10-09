@@ -9,12 +9,14 @@ use Contenir\Mail\Storage\Tnef\ByteReader;
 use Contenir\Mail\Storage\Tnef\CompressedRtf;
 use Contenir\Mail\Storage\Tnef\Dictionary;
 use Contenir\Mail\Tests\Unit\TestAsset\RtfBuilder;
+use Contenir\Mail\Tests\Unit\TestAsset\RtfRing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function chr;
 use function hex2bin;
 use function pack;
 use function range;
@@ -185,75 +187,81 @@ final class CompressedRtfTest extends TestCase
         $beforeStart = 'The compressed RTF refers to offset 300, before the start of its data';
 
         return [
-            'empty'                                   => [
+            'empty'                                     => [
                 '',
                 100,
                 'The TNEF data ends early: 4 bytes are needed at offset 0, but 0 remain',
             ],
-            'header cut short'                        => [
+            'header cut short'                          => [
                 substr($valid, offset: 0, length: 15),
                 100,
                 'The TNEF data ends early',
             ],
-            'compressed size below the header'        => [
+            'compressed size below the header'          => [
                 pack('VVVV', 11, 0, RtfBuilder::MELA, 0),
                 100,
                 'The compressed RTF claims 11 bytes, but 12 follow its size',
             ],
-            'compressed size past the end'            => [
+            'compressed size past the end'              => [
                 pack('VVVV', 13, 0, RtfBuilder::MELA, 0),
                 100,
                 'The compressed RTF claims 13 bytes, but 12 follow its size',
             ],
-            'raw size above the limit'                => [
+            'raw size above the limit'                  => [
                 $valid,
                 2,
                 'The compressed RTF holds 3 bytes, more than the 2 allowed',
             ],
-            'unknown compression type'                => [
+            'unknown compression type'                  => [
                 pack('VVVV', 12, 0, 0x1234_5678, 0),
                 100,
                 'The RTF has the unknown compression type 0x12345678',
             ],
-            'CRC mismatch'                            => [
+            'CRC mismatch'                              => [
                 RtfBuilder::compressed(['abc'], crc: 0x1234),
                 100,
                 'The compressed RTF fails its CRC check',
             ],
-            'literals past the declared size'         => [
+            'literals past the declared size'           => [
                 RtfBuilder::compressed(['abc'], rawSize: 2),
                 100,
                 'The compressed RTF grows past the 2 bytes its header declares',
             ],
-            'reference past the declared size'        => [
+            'reference past the declared size'          => [
                 RtfBuilder::compressed(['a', [0, 5]], rawSize: 3),
                 100,
                 'The compressed RTF grows past the 3 bytes its header declares',
             ],
-            'reference to bytes never written'        => [
+            'reference to bytes never written'          => [
                 RtfBuilder::compressed(['a', [300, 2]]),
                 100,
                 $beforeStart,
             ],
-            'reference just past the write position'  => [
+            'reference just past the write position'    => [
                 RtfBuilder::compressed([[RtfBuilder::PREBUFFER_LENGTH + 1, 2]]),
                 100,
                 'The compressed RTF refers to offset 208, before the start of its data',
             ],
-            'no tokens'                               => [$withoutCrc(''), 100, $endsEarly],
-            'no end marker'                           => [
+            'no tokens'                                 => [$withoutCrc(''), 100, $endsEarly],
+            'no end marker'                             => [
                 RtfBuilder::unterminated(['abc']),
                 100,
                 $endsEarly,
             ],
-            'no end marker after a full control byte' => [
+            'no end marker after a full control byte'   => [
                 RtfBuilder::unterminated(['abcdefgh']),
                 100,
                 $endsEarly,
             ],
-            'missing literal'                         => [$withoutCrc("\x00"), 100, $endsEarly],
-            'half a reference'                        => [$withoutCrc("\x01\x00"), 100, $endsEarly],
-            'stored RTF shorter than declared'        => [
+            'missing literal'                           => [$withoutCrc("\x00"), 100, $endsEarly],
+            'literals cut short'                        => [$withoutCrc("\x00ab"), 100, $endsEarly],
+            'literals cut short past the declared size' => [
+                RtfBuilder::header("\x00abc", 2, RtfBuilder::LZFU, CompressedRtf::crc("\x00abc")) . "\x00abc",
+                100,
+                'The compressed RTF grows past the 2 bytes its header declares',
+            ],
+            'half a reference'                          => [$withoutCrc("\x01\x00"), 100, $endsEarly],
+            'stored RTF shorter than declared'          => [
                 RtfBuilder::stored('{\rtf1}', 8),
                 100,
                 'The uncompressed RTF claims 8 bytes, but 7 follow its header',
@@ -270,5 +278,78 @@ final class CompressedRtfTest extends TestCase
         $this->expectExceptionMessage('The compressed RTF refers to offset 4000, before the start of its data');
 
         CompressedRtf::decompress(RtfBuilder::compressed([$literals, [4000, 2]]), strlen($literals) + 2);
+    }
+
+    /**
+     * @param list<string|array{int, int}> $tokens
+     */
+    #[DataProvider('tokenProvider')]
+    #[Test]
+    public function decompressesAsTheRingIsWrittenByteByByte(array $tokens): void
+    {
+        static::assertSame(
+            RtfRing::decompress($tokens),
+            CompressedRtf::decompress(RtfBuilder::compressed($tokens), 1_000_000),
+        );
+    }
+
+    /**
+     * @return array<string, array{list<string|array{int, int}>}>
+     */
+    public static function tokenProvider(): array
+    {
+        $cases = [
+            'reference repeating one byte'         => [['a', [RtfBuilder::PREBUFFER_LENGTH, 17]]],
+            'reference repeating three bytes'      => [['abc', [RtfBuilder::PREBUFFER_LENGTH, 17]]],
+            'reference just clear of the writing'  => [[
+                str_repeat('q', times: 17),
+                [RtfBuilder::PREBUFFER_LENGTH, 17],
+            ]],
+            'reference across the end of the ring' => [[str_repeat('x', times: 3889), [4090, 17], [4094, 5]]],
+            'reference to the prebuffer end'       => [['a', [200, 8]]],
+            'eight literals then references'       => [['abcdefgh', [0, 2], 'ij', [3, 3]]],
+        ];
+        foreach ([1, 2, 3, 4, 5, 6] as $seed) {
+            $cases["random tokens, seed {$seed}"] = [self::randomTokens($seed)];
+        }
+
+        return $cases;
+    }
+
+    /**
+     * Literals and references to bytes already written, from a small deterministic generator.
+     *
+     * @return list<string|array{int, int}>
+     */
+    private static function randomTokens(int $seed): array
+    {
+        $state = $seed;
+        $next  = static function (int $below) use (&$state): int {
+            $state = (($state * 1_103_515_245) + 12_345) & 0x7FFF_FFFF;
+
+            return ($state >> 8) % $below;
+        };
+        $tokens   = [];
+        $produced = 0;
+        while ($produced < 9000) {
+            $position = (RtfBuilder::PREBUFFER_LENGTH + $produced) % 4096;
+            $written  = RtfBuilder::PREBUFFER_LENGTH + $produced;
+            $length   = 2 + $next(16);
+            if (0 === $next(3)) {
+                $tokens[] = str_repeat(chr(97 + $next(26)), times: $length - 1);
+                $produced += $length - 1;
+                continue;
+            }
+
+            $offset = $written >= 4096 ? $next(4096) : $next($position);
+            if ($offset === $position) {
+                $offset = ($offset + 1) % 4096;
+            }
+
+            $tokens[] = [$offset, $length];
+            $produced += $length;
+        }
+
+        return $tokens;
     }
 }
