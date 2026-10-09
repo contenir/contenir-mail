@@ -114,7 +114,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `SpecialUse::Sent`, and `Storage\Imap::getSpecialFolder()` finds the folder
   with a use. NAMESPACE (RFC 2342): `Protocol\Imap::namespace()` and
   `Storage\Imap::getNamespaces()` return the personal, other users' and shared
-  namespaces as `Protocol\Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
+  namespaces as `Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
   reads a mailbox's status without selecting it. `Storage\Imap::getFolderStatus()`
   returns a `Storage\FolderStatus` with its `messageCount`, `unseenCount`,
   `uidNext` and `uidValidity`, the last to store with any UID kept.

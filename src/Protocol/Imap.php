@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Imap\NamespaceEntry;
+use Contenir\Mail\Imap\Namespaces;
 use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
@@ -1156,7 +1158,7 @@ class Imap
      * @throws Exception\RuntimeException When the server refuses or its response is malformed.
      * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function namespace(): ?Imap\Namespaces
+    public function namespace(): ?Namespaces
     {
         if (! $this->imap4Rev2 && ! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
             return null;
@@ -1169,7 +1171,7 @@ class Imap
 
         foreach (is_array($response) ? $response : [] as $tokens) {
             if ('NAMESPACE' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
-                return new Imap\Namespaces(
+                return new Namespaces(
                     personal: $this->namespaceEntries($tokens[1] ?? null),
                     otherUsers: $this->namespaceEntries($tokens[2] ?? null),
                     shared: $this->namespaceEntries($tokens[3] ?? null),
@@ -1183,7 +1185,7 @@ class Imap
     /**
      * The namespaces of one kind: NIL for none, or a list of namespaces.
      *
-     * @return list<Imap\NamespaceEntry>
+     * @return list<NamespaceEntry>
      * @throws Exception\RuntimeException When the namespaces are malformed.
      */
     private function namespaceEntries(mixed $namespaces): array
@@ -1204,7 +1206,7 @@ class Imap
      *
      * @throws Exception\RuntimeException When the namespace is malformed.
      */
-    private function namespaceEntry(mixed $entry): Imap\NamespaceEntry
+    private function namespaceEntry(mixed $entry): NamespaceEntry
     {
         $prefix    = is_array($entry) ? $entry[0] ?? null : null;
         $delimiter = is_array($entry) ? $entry[1] ?? null : null;
@@ -1219,7 +1221,7 @@ class Imap
             throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
         }
 
-        return new Imap\NamespaceEntry(
+        return new NamespaceEntry(
             prefix: $this->utf8Mailboxes ? $prefix : MailboxName::decode($prefix),
             delimiter: 1 === strlen($delimiter) ? $delimiter : null,
         );

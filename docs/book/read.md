@@ -644,7 +644,7 @@ if (null !== $sent) {
 
 `getNamespaces()` returns the server's namespaces (RFC 2342), or null when
 the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
-`shared` is a list of `Protocol\Imap\NamespaceEntry` with a `prefix`, such as
+`shared` is a list of `Contenir\Mail\Imap\NamespaceEntry` with a `prefix`, such as
 `INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
 New folders belong under the first personal prefix on servers that have one.
 

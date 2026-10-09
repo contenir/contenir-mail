@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Tests\Unit\Storage;
 
-use Contenir\Mail\Protocol\Imap\NamespaceEntry;
-use Contenir\Mail\Protocol\Imap\Namespaces;
+use Contenir\Mail\Imap\NamespaceEntry;
+use Contenir\Mail\Imap\Namespaces;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Folder;

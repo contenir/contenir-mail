@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Storage;
 
+use Contenir\Mail\Imap\Namespaces;
 use Contenir\Mail\Message as ComposedMessage;
 use Contenir\Mail\Mime\Exception\RuntimeException as MimeException;
 use Contenir\Mail\Protocol;
@@ -623,7 +624,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      *
      * @throws Protocol\Exception\ExceptionInterface When the server refuses or cannot be asked.
      */
-    public function getNamespaces(): ?Protocol\Imap\Namespaces
+    public function getNamespaces(): ?Namespaces
     {
         return $this->protocol->namespace();
     }
