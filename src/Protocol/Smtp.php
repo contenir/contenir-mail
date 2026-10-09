@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Closure;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\CallbackChannel;
+use Contenir\Mail\Protocol\Smtp\Chunks;
+use Contenir\Mail\Protocol\Smtp\LineLengthCheck;
+use Contenir\Mail\Protocol\Smtp\MessageData;
+use Generator;
 use Override;
 use SensitiveParameter;
 
@@ -15,17 +20,19 @@ use function array_replace;
 use function array_slice;
 use function count;
 use function explode;
+use function get_resource_type;
 use function implode;
 use function in_array;
 use function is_array;
+use function is_resource;
 use function ltrim;
 use function preg_match;
 use function preg_replace;
 use function rtrim;
 use function sprintf;
-use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
+use function stream_get_meta_data;
 use function strlen;
 use function strtolower;
 use function strtoupper;
@@ -480,40 +487,43 @@ final class Smtp extends AbstractProtocol
      * Send the message. Bare CR and LF become CRLF and a leading "." is doubled after that;
      * nothing else in the message is changed.
      *
+     * The message is written in chunks of Chunks::SIZE bytes, and the log holds
+     * "[DATA n bytes]" in place of its text.
+     *
      * @throws Exception\InvalidArgumentException When a line is longer than SMTP_LINE_LIMIT, which
      *     the message's encoding should have prevented; nothing is sent in that case.
      * @throws Exception\ExceptionInterface When no recipient was accepted or the server refuses the message.
      */
     public function data(string $data): void
     {
-        if (! $this->rcpt) {
-            throw new Exception\RuntimeException('No recipient forward path has been supplied');
+        $this->sendData(static fn(): Generator => Chunks::ofString($data));
+    }
+
+    /**
+     * Send the message read from a stream, from its start to its end, as data() does.
+     *
+     * The stream is read twice, first to check the line lengths, so it must be seekable;
+     * a message written to php://temp is never held in memory as a whole.
+     *
+     * @param resource $stream
+     * @throws Exception\InvalidArgumentException When $stream is not an open, seekable stream, or a
+     *     line is longer than SMTP_LINE_LIMIT; nothing is sent in that case.
+     * @throws Exception\ExceptionInterface When no recipient was accepted or the server refuses the message.
+     */
+    public function dataFromStream(mixed $stream): void
+    {
+        if (! is_resource($stream) || 'stream' !== get_resource_type($stream)) {
+            throw new Exception\InvalidArgumentException('Expected an open stream');
         }
 
-        $lines = self::lines($data);
-        foreach ($lines as $number => $line) {
-            if (strlen($line) > self::SMTP_LINE_LIMIT) {
-                throw new Exception\InvalidArgumentException(sprintf(
-                    'Line %d of the message is %d bytes; SMTP allows at most %d. Encode the content '
-                        . '(quoted-printable or base64) instead of sending it as is.',
-                    $number + 1,
-                    strlen($line),
-                    self::SMTP_LINE_LIMIT,
-                ));
-            }
+        if (! stream_get_meta_data($stream)['seekable']) {
+            throw new Exception\InvalidArgumentException('The message stream must be seekable');
         }
 
-        $this->_send('DATA');
-        $this->_expect(354, 120);
-
-        foreach ($lines as $line) {
-            $this->_send(str_starts_with($line, '.') ? ".{$line}" : $line);
-        }
-
-        $this->_send('.');
-        $this->_expect(250, 600);
-        $this->mail = false;
-        $this->rcpt = false;
+        $this->sendData(
+            /** @throws Exception\RuntimeException When the stream cannot be read. */
+            static fn(): Generator => Chunks::ofStream($stream),
+        );
     }
 
     /**
@@ -853,25 +863,6 @@ final class Smtp extends AbstractProtocol
     }
 
     /**
-     * Split text on CRLF, bare CR and bare LF, without a final empty line for a trailing break.
-     *
-     * @return list<string>
-     */
-    private static function lines(string $data): array
-    {
-        $data = str_replace(
-            search: ["\r\n", "\r"],
-            replace: "\n",
-            subject: $data,
-        );
-        if (str_ends_with($data, "\n")) {
-            $data = substr($data, offset: 0, length: -1);
-        }
-
-        return '' === $data ? [] : explode("\n", $data);
-    }
-
-    /**
      * Ask for STARTTLS, upgrade the connection and repeat EHLO, as RFC 3207 requires.
      *
      * The connection refuses to start TLS when the server sent more after agreeing, since an
@@ -902,6 +893,40 @@ final class Smtp extends AbstractProtocol
         $this->connection()->enableTls();
         $this->encrypted = true;
         $this->ehlo($host);
+    }
+
+    /**
+     * @param Closure(): Generator<int, string> $chunks The message text, from its start each time it is called.
+     * @throws Exception\ExceptionInterface
+     */
+    private function sendData(Closure $chunks): void
+    {
+        if (! $this->rcpt) {
+            throw new Exception\RuntimeException('No recipient forward path has been supplied');
+        }
+
+        LineLengthCheck::check($chunks(), self::SMTP_LINE_LIMIT);
+
+        $this->_send('DATA');
+        $this->_expect(354, 120);
+
+        $connection = $this->connection();
+        $bytes      = 0;
+        foreach (MessageData::encode($chunks()) as $chunk) {
+            try {
+                $connection->write($chunk);
+            } catch (Exception\RuntimeException $e) {
+                throw new Exception\RuntimeException("Could not send request to {$this->host}", previous: $e);
+            }
+
+            $bytes += strlen($chunk);
+        }
+
+        $this->_addLog("[DATA {$bytes} bytes]" . self::EOL);
+        $this->_send('.');
+        $this->_expect(250, 600);
+        $this->mail = false;
+        $this->rcpt = false;
     }
 
     /**

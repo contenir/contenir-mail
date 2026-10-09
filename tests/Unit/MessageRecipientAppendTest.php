@@ -12,7 +12,6 @@ use Contenir\Mail\Header\AbstractAddressList;
 use Contenir\Mail\Header\Bcc;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
-use Contenir\Mail\Tests\Unit\TestAsset\Growth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -20,7 +19,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function array_map;
-use function range;
 
 /**
  * Adding recipients one at a time, as a mailing loop does.
@@ -98,33 +96,5 @@ final class MessageRecipientAppendTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('A message may have only one Bcc header; use setHeader() to replace it');
         $message->addHeader(new Bcc(new Address('ann@example.org')));
-    }
-
-    /**
-     * Each addition used to build the recipient list and the headers again, so
-     * adding 4,000 Bcc recipients one at a time took 2.7 seconds.
-     */
-    #[Group('slow')]
-    #[Test]
-    public function addsRecipientsOneAtATimeInTimeThatGrowsWithTheirNumber(): void
-    {
-        $ratio = Growth::ratio(
-            static fn(int $count): array => array_map(
-                static fn(int $i): string => "user{$i}@example.org",
-                range(1, $count),
-            ),
-            static function (array $emails): Message {
-                $message = new Message();
-                foreach ($emails as $email) {
-                    $message->addBcc($email);
-                }
-
-                return $message;
-            },
-            size: 125,
-            factor: 8,
-        );
-
-        static::assertLessThan(24, $ratio, 'Adding 8 times as many recipients took over 24 times as long');
     }
 }

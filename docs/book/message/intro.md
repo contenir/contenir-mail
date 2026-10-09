@@ -146,6 +146,23 @@ If you want a string representation of your email, you can get that:
 echo $message->toString();
 ```
 
+A large message can be written to a stream instead, with the same bytes.
+Attachments read from a stream (`Attachment::fromPath()`, or a `Part` given a
+stream) are encoded a chunk at a time, so the message is never held in memory
+as a whole:
+
+```php
+$stream = fopen('/var/mail-out/report.eml', 'xb');
+$message->writeTo($stream);       // headers and body, as toString() returns them
+fclose($stream);
+
+$message->writeBodyTo($stream);   // the body alone, as getBodyText() returns it
+```
+
+The SMTP and File transports send this way. When the message cannot be
+written, as when a part contains a line that starts with its boundary, part
+of it may already be in the stream.
+
 Finally, you can fully introspect the message, including getting all addresses
 of recipients and senders, all headers, and the message body.
 
@@ -511,6 +528,23 @@ toString() : string
 ```
 
 Serialize the headers and body to a string.
+
+### writeTo
+
+```php
+writeTo(resource $stream) : void
+```
+
+Write the headers and body to a stream, exactly as `toString()` returns them,
+without holding the message in memory as a whole.
+
+### writeBodyTo
+
+```php
+writeBodyTo(resource $stream) : void
+```
+
+Write the body to a stream, exactly as `getBodyText()` returns it.
 
 ### fromString
 

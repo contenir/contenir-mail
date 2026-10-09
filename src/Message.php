@@ -400,6 +400,49 @@ final class Message
     }
 
     /**
+     * Write the message to a stream, exactly as toString() returns it.
+     *
+     * Attachments read from a stream are encoded a chunk at a time, so the message is
+     * never held in memory as a whole. When an error is found part of the message may
+     * already have been written.
+     *
+     * @param resource $stream
+     * @throws Mime\Exception\InvalidArgumentException When $stream is not an open stream.
+     * @throws Mime\Exception\RuntimeException When the stream cannot be written, a multipart set with
+     *     setBody() has no boundary, or embed() was used without setHtml().
+     */
+    public function writeTo(mixed $stream): void
+    {
+        Mime\StreamOutput::check($stream);
+        Mime\StreamOutput::write($stream, $this->getHeaders()->toString() . Headers::EOL);
+        $this->writeBodyTo($stream);
+    }
+
+    /**
+     * Write the body to a stream, exactly as getBodyText() returns it, as writeTo() does.
+     *
+     * @param resource $stream
+     * @throws Mime\Exception\InvalidArgumentException When $stream is not an open stream.
+     * @throws Mime\Exception\RuntimeException When the stream cannot be written, a multipart set with
+     *     setBody() has no boundary, or embed() was used without setHtml().
+     */
+    public function writeBodyTo(mixed $stream): void
+    {
+        Mime\StreamOutput::check($stream);
+        $body = $this->getBody();
+        if (! $body instanceof Mime\PartInterface) {
+            Mime\StreamOutput::write($stream, (string) $body);
+            return;
+        }
+
+        if ($body->isMultipart()) {
+            Mime\StreamOutput::write($stream, self::PREAMBLE . Headers::EOL . Headers::EOL);
+        }
+
+        Mime\PartWriter::write($body, $stream);
+    }
+
+    /**
      * Parse a raw message into its headers and body text.
      *
      * Headers keep the text they were read with, so toString() writes them

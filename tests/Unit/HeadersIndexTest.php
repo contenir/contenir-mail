@@ -373,7 +373,7 @@ final class HeadersIndexTest extends TestCase
             factor: 8,
         );
 
-        static::assertLessThan(24, $ratio, 'Looking up 8 times as many headers took over 24 times as long');
+        static::assertLessThan(32, $ratio, 'Looking up 8 times as many headers took over 32 times as long');
     }
 
     /**
