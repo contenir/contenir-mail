@@ -9,6 +9,7 @@ use Countable;
 use IteratorAggregate;
 use NoDiscard;
 use Override;
+use ReflectionClass;
 
 use function array_key_exists;
 use function array_key_first;
@@ -73,7 +74,7 @@ final readonly class AddressList implements Countable, IteratorAggregate
     {
         $address = $emailOrAddress instanceof Address ? $emailOrAddress : new Address($emailOrAddress, $name);
 
-        return new self(...[...array_values($this->addresses), $address]);
+        return self::of($this->addresses + [strtolower($address->getEmail()) => $address]);
     }
 
     /**
@@ -82,7 +83,7 @@ final readonly class AddressList implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withList(self $addressList): self
     {
-        return new self(...[...array_values($this->addresses), ...$addressList->toArray()]);
+        return self::of($this->addresses + $addressList->addresses);
     }
 
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
@@ -91,7 +92,7 @@ final readonly class AddressList implements Countable, IteratorAggregate
         $addresses = $this->addresses;
         unset($addresses[strtolower($email)]);
 
-        return new self(...$addresses);
+        return self::of($addresses);
     }
 
     public function has(string $email): bool
@@ -137,5 +138,22 @@ final readonly class AddressList implements Countable, IteratorAggregate
     public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->toArray());
+    }
+
+    /**
+     * A list of addresses already keyed and unique, so adding to a list
+     * does not go over the addresses it holds again.
+     *
+     * @param array<string, Address> $addresses
+     *
+     * @mago-expect analysis:invalid-property-write PHP lets the class initialise the readonly properties of an instance made without its constructor.
+     * @mago-expect analysis:unhandled-thrown-type Reflection throws only for internal final classes, which this is not.
+     */
+    private static function of(array $addresses): self
+    {
+        $list            = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $list->addresses = $addresses;
+
+        return $list;
     }
 }
