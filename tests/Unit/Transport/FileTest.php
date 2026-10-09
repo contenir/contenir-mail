@@ -109,8 +109,15 @@ final class FileTest extends TestCase
 
         try {
             $transport->send($message);
-        } catch (MimeRuntimeException) {
-            static::assertSame([false, null], [is_file("{$this->dir}/mail.eml"), $transport->getLastFile()]);
+        } catch (RuntimeException $e) {
+            static::assertSame(
+                [false, null, true],
+                [
+                    is_file("{$this->dir}/mail.eml"),
+                    $transport->getLastFile(),
+                    $e->getPrevious() instanceof MimeRuntimeException,
+                ],
+            );
             return;
         }
 

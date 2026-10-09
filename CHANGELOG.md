@@ -169,8 +169,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   28 MB message with a 20 MB attachment over SMTP took 5 s and 106 MB of
   memory; it takes 0.3 s and 2.5 MB. File takes 0.15 s and 1.2 MB instead of
   0.3 s and 84 MB, and `toString()` 80 ms and 56 MB instead of 180 ms and
-  84 MB. A file that cannot be written now throws
-  `Mime\Exception\RuntimeException`.
+  84 MB.
 - `Protocol\Smtp::data()` writes the message in 64 KiB chunks, with line
   endings and leading dots fixed a chunk at a time, instead of one write and
   one log entry per line. The log holds `[DATA n bytes]` in place of the

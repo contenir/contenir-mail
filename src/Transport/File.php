@@ -64,8 +64,9 @@ final class File implements TransportInterface
      * never held in memory as a whole; a file that cannot be finished is removed.
      *
      * @throws Exception\RuntimeException When the file name is not a plain name, a header is unsafe,
-     *     or the file exists or cannot be created.
-     * @throws Mime\Exception\RuntimeException When the message body or the file cannot be written.
+     *     the file exists or cannot be created, or the message cannot be written to it.
+     * @throws Mime\Exception\RuntimeException When the message cannot be composed, such as after
+     *     embed() without setHtml().
      * @throws RandomException When the system has no source of randomness for the default name.
      */
     #[Override]
@@ -102,6 +103,11 @@ final class File implements TransportInterface
             Mime\StreamOutput::write($handle, $headers);
             $message->writeBodyTo($handle);
             $written = true;
+        } catch (Mime\Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException(
+                sprintf('Unable to write all of mail file "%s": %s', $file, $e->getMessage()),
+                previous: $e,
+            );
         } finally {
             fclose($handle);
             if (! $written) {
