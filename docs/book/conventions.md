@@ -40,6 +40,11 @@ as `Address::isStrict()` does.
   UIDVALIDITY (`FolderStatus::$uidValidity`).
 - **Unique ID**: the storage-neutral `string` that `getUniqueId()` returns.
 
+Parameters carry these words, since PHP 8 named arguments make a parameter's
+name part of the API: `$number` for a message number and `$uniqueId` for a
+unique ID, as in `getMessage(number: 3)` and
+`getNumberByUniqueId(uniqueId: $uniqueId)`. Search criteria are `$criteria`.
+
 ## Spelling
 
 - Acronyms are StudlyCase: `Imap4Rev2`, `TlsConfig`, `Utf8`, `Uid`.

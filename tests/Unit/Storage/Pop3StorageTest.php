@@ -398,7 +398,22 @@ final class Pop3StorageTest extends TestCase
         $protocol = $this->protocol();
         $protocol->method('uniqueid')->willReturn([1 => 'abc', 2 => 'def']);
 
-        static::assertSame(2, $this->pop3($protocol)->getNumberByUniqueId('def'));
+        static::assertSame(2, $this->pop3($protocol)->getNumberByUniqueId(uniqueId: 'def'));
+    }
+
+    /**
+     * "1e1" == "10" in PHP; a unique ID must match exactly.
+     */
+    #[Test]
+    public function refusesUniqueIdThatOnlyLooselyEqualsOne(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('uniqueid')->willReturn([1 => '10']);
+
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('Unique ID not found');
+
+        $this->pop3($protocol)->getNumberByUniqueId('1e1');
     }
 
     #[Test]

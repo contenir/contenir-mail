@@ -229,10 +229,10 @@ final class Maildir extends Folder\Maildir implements WritableInterface
      * @throws MimeException Never: the copy is written from a file.
      */
     #[Override]
-    public function copyMessage(int $id, Folder|string $folder): ?int
+    public function copyMessage(int $number, Folder|string $folder): ?int
     {
         $this->refuseOverQuota();
-        $file  = $this->file($id);
+        $file  = $this->file($number);
         $local = $this->selectableFolder($folder);
         [$info, $named] = MaildirName::info(self::withoutRecent($file['flags']));
         $source = FileSystem::quietly(static fn(): mixed => fopen($file['filename'], mode: 'rb'));
@@ -257,9 +257,9 @@ final class Maildir extends Folder\Maildir implements WritableInterface
      * @throws Exception\ExceptionInterface When there is no such message or folder, it is the current folder, or moving fails.
      */
     #[Override]
-    public function moveMessage(int $id, Folder|string $folder): ?int
+    public function moveMessage(int $number, Folder|string $folder): ?int
     {
-        $file  = $this->file($id);
+        $file  = $this->file($number);
         $local = $this->selectableFolder($folder);
         if ($this->localPath($this->currentFolder) === $local) {
             throw new Exception\RuntimeException('The target is the current folder');
@@ -275,7 +275,7 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         }
 
         FileSystem::quietly(static fn(): bool => unlink($source));
-        unset($this->files[$id - 1]);
+        unset($this->files[$number - 1]);
         $this->files = array_values($this->files);
 
         return null;
@@ -288,9 +288,9 @@ final class Maildir extends Folder\Maildir implements WritableInterface
      * @throws Exception\ExceptionInterface When there is no such message, a flag cannot be stored, or renaming fails.
      */
     #[Override]
-    public function setFlags(int $id, iterable $flags): void
+    public function setFlags(int $number, iterable $flags): void
     {
-        $file = $this->file($id);
+        $file = $this->file($number);
         [$info, $named] = MaildirName::info($flags);
         $directory = dirname($file['filename'], levels: 2) . DIRECTORY_SEPARATOR . 'cur';
         $target    = $directory . DIRECTORY_SEPARATOR . "{$file['uniq']}:{$info}";
@@ -299,7 +299,7 @@ final class Maildir extends Folder\Maildir implements WritableInterface
             throw new Exception\RuntimeException('Cannot rename the message file');
         }
 
-        $this->files[$id - 1] = [
+        $this->files[$number - 1] = [
             'uniq'     => $file['uniq'],
             'flags'    => $named,
             'filename' => $target,
@@ -311,16 +311,16 @@ final class Maildir extends Folder\Maildir implements WritableInterface
      * @throws Exception\ExceptionInterface When there is no such message or it cannot be removed.
      */
     #[Override]
-    public function removeMessage(int $id): void
+    public function removeMessage(int $number): void
     {
-        $file = $this->file($id);
+        $file = $this->file($number);
         $size = MaildirFiles::size($file['filename'], $file['size']);
         $path = $file['filename'];
         if (! FileSystem::quietly(static fn(): bool => unlink($path))) {
             throw new Exception\RuntimeException('Cannot remove the message');
         }
 
-        unset($this->files[$id - 1]);
+        unset($this->files[$number - 1]);
         $this->files = array_values($this->files);
         $this->addQuotaEntry(-$size, -1);
     }

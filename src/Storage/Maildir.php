@@ -64,9 +64,9 @@ class Maildir extends AbstractStorage
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
     #[Override]
-    public function getSize(int $id): int
+    public function getSize(int $number): int
     {
-        return MaildirFiles::size($this->file($id)['filename'], $this->file($id)['size']);
+        return MaildirFiles::size($this->file($number)['filename'], $this->file($number)['size']);
     }
 
     #[Override]
@@ -85,9 +85,9 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException When its file cannot be read.
      */
     #[Override]
-    public function getMessage(int $id): Message
+    public function getMessage(int $number): Message
     {
-        $file = $this->file($id);
+        $file = $this->file($number);
         [$headers, $body] = MimeParser::split(MaildirFiles::content($file['filename']));
 
         return new Message(new Part($headers, $body), $file['flags']);
@@ -98,9 +98,9 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException When its file cannot be read.
      */
     #[Override]
-    public function getRawHeader(int $id): string
+    public function getRawHeader(int $number): string
     {
-        $content = MaildirFiles::content($this->file($id)['filename']);
+        $content = MaildirFiles::content($this->file($number)['filename']);
         [, $body] = MimeParser::split($content);
 
         return $content->slice(0, $content->length() - $body->length())->read();
@@ -111,9 +111,9 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException When its file cannot be read.
      */
     #[Override]
-    public function getRawContent(int $id): string
+    public function getRawContent(int $number): string
     {
-        return MimeParser::split(MaildirFiles::content($this->file($id)['filename']))[1]->read();
+        return MimeParser::split(MaildirFiles::content($this->file($number)['filename']))[1]->read();
     }
 
     #[Override]
@@ -130,7 +130,7 @@ class Maildir extends AbstractStorage
      * @throws Exception\RuntimeException Always: use Writable\Maildir to change a maildir.
      */
     #[Override]
-    public function removeMessage(int $id): void
+    public function removeMessage(int $number): void
     {
         throw new Exception\RuntimeException('Maildir is read-only; use Writable\Maildir');
     }
@@ -139,9 +139,9 @@ class Maildir extends AbstractStorage
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
     #[Override]
-    public function getUniqueId(int $id): string
+    public function getUniqueId(int $number): string
     {
-        return $this->file($id)['uniq'];
+        return $this->file($number)['uniq'];
     }
 
     #[Override]
@@ -159,10 +159,10 @@ class Maildir extends AbstractStorage
      * @throws Exception\OutOfBoundsException When no message has that unique ID.
      */
     #[Override]
-    public function getNumberByUniqueId(string $id): int
+    public function getNumberByUniqueId(string $uniqueId): int
     {
         foreach ($this->files as $index => $file) {
-            if ($file['uniq'] === $id) {
+            if ($file['uniq'] === $uniqueId) {
                 return $index + 1;
             }
         }
@@ -207,11 +207,11 @@ class Maildir extends AbstractStorage
      * @return array{uniq: string, flags: list<Flag|string>, filename: string, size: int|null}
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
-    protected function file(int $id): array
+    protected function file(int $number): array
     {
         return (
-            $this->files[self::checkNumber($id, count($this->files)) - 1]
-                ?? throw new Exception\OutOfBoundsException("There is no message {$id}")
+            $this->files[self::checkNumber($number, count($this->files)) - 1]
+                ?? throw new Exception\OutOfBoundsException("There is no message {$number}")
         );
     }
 }

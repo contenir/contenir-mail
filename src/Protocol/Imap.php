@@ -1884,20 +1884,20 @@ class Imap
     /**
      * do a search request
      *
-     * The parameters are sent as they are, apart from the checks every
+     * The criteria are sent as they are, apart from the checks every
      * request gets: pass any string from outside through escapeString().
      *
      * An IMAP4rev2 server answers with ESEARCH (RFC 4731, RFC 9051) rather than
      * SEARCH; its ALL sequence set is expanded to the same list of ids, up to
      * MAX_SEARCH_RESULTS, so a server cannot make the client build an endless list.
      *
-     * @param array<mixed> $params
+     * @param array<mixed> $criteria The search keys, such as ['UNSEEN'] or ['FROM', $imap->escapeString($from)].
      * @return array<mixed>|false message ids, or false on failure
      * @throws Exception\ExceptionInterface When the server cannot be asked, or an ESEARCH result is malformed or too long.
      */
-    public function search(array $params): array|false
+    public function search(array $criteria): array|false
     {
-        $response = $this->requestAndResponse('SEARCH', $params);
+        $response = $this->requestAndResponse('SEARCH', $criteria);
         if (null === $response || false === $response) {
             return false;
         }

@@ -304,7 +304,7 @@ returns the whole message's header block or body.
 **Fix:** read the part from the message.
 
 ```php
-$body = $mail->getMessage($id)->getPart(2)->getEncodedContent();
+$body = $mail->getMessage($number)->getPart(2)->getEncodedContent();
 ```
 
 ### Class names whose case changed

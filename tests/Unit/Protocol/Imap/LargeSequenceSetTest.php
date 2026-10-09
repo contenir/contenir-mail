@@ -130,7 +130,7 @@ final class LargeSequenceSetTest extends TestCase
                 ->hangUp(),
         );
 
-        $ids = $imap->search(['ALL']);
+        $ids = $imap->search(criteria: ['ALL']);
 
         return false === $ids ? [] : $ids;
     }

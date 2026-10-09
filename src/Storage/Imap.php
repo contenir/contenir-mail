@@ -131,9 +131,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getSize(int $id): int
+    public function getSize(int $number): int
     {
-        return (int) $this->fetchText('RFC822.SIZE', $id);
+        return (int) $this->fetchText('RFC822.SIZE', $number);
     }
 
     /**
@@ -143,8 +143,8 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     public function getSizes(): array
     {
         $sizes = [];
-        foreach ($this->fetchAll('RFC822.SIZE') as $id => $size) {
-            $sizes[$id] = (int) $size;
+        foreach ($this->fetchAll('RFC822.SIZE') as $number => $size) {
+            $sizes[$number] = (int) $size;
         }
 
         return $sizes;
@@ -157,11 +157,11 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getMessage(int $id): Message
+    public function getMessage(int $number): Message
     {
-        $data = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], self::checkNumber($id));
+        $data = $this->protocol->fetch(['FLAGS', 'RFC822.HEADER'], self::checkNumber($number));
 
-        return $this->buildMessage($id, is_array($data) ? $data : []);
+        return $this->buildMessage($number, is_array($data) ? $data : []);
     }
 
     /**
@@ -282,7 +282,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      *
      * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
      */
-    private function buildMessage(int $id, array $data): Message
+    private function buildMessage(int $number, array $data): Message
     {
         $flags = [];
         foreach (is_array($data['FLAGS'] ?? null) ? $data['FLAGS'] : [] as $flag) {
@@ -291,7 +291,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
         $header = $data['RFC822.HEADER'] ?? '';
         [$headers] = MimeParser::split(Content::fromString(is_string($header) ? $header : ''));
-        $body = Content::lazy(fn(): string => $this->fetchText('RFC822.TEXT', $id));
+        $body = Content::lazy(fn(): string => $this->fetchText('RFC822.TEXT', $number));
 
         return new Message(new Part($headers, $body), $flags);
     }
@@ -301,9 +301,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getRawHeader(int $id): string
+    public function getRawHeader(int $number): string
     {
-        return $this->fetchText('RFC822.HEADER', $id);
+        return $this->fetchText('RFC822.HEADER', $number);
     }
 
     /**
@@ -311,9 +311,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getRawContent(int $id): string
+    public function getRawContent(int $number): string
     {
-        return $this->fetchText('RFC822.TEXT', $id);
+        return $this->fetchText('RFC822.TEXT', $number);
     }
 
     #[Override]
@@ -347,9 +347,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function removeMessage(int $id): void
+    public function removeMessage(int $number): void
     {
-        if (false === $this->protocol->store([Flag::Deleted->value], self::checkNumber($id), null, '+')) {
+        if (false === $this->protocol->store([Flag::Deleted->value], self::checkNumber($number), null, '+')) {
             throw new Exception\RuntimeException('Cannot set the Deleted flag');
         }
 
@@ -363,9 +363,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getUniqueId(int $id): string
+    public function getUniqueId(int $number): string
     {
-        return $this->fetchText('UID', $id);
+        return $this->fetchText('UID', $number);
     }
 
     /**
@@ -382,10 +382,10 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getNumberByUniqueId(string $id): int
+    public function getNumberByUniqueId(string $uniqueId): int
     {
         foreach ($this->getUniqueIds() as $number => $uid) {
-            if ($uid === $id) {
+            if ($uid === $uniqueId) {
                 return $number;
             }
         }
@@ -501,10 +501,13 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function copyMessage(int $id, Folder|string $folder): ?int
+    public function copyMessage(int $number, Folder|string $folder): ?int
     {
         try {
-            $uids = $this->protocol->copyReturningUids(RemoteFolder::check((string) $folder), self::checkNumber($id));
+            $uids = $this->protocol->copyReturningUids(
+                RemoteFolder::check((string) $folder),
+                self::checkNumber($number),
+            );
         } catch (Protocol\Exception\CommandRefusedException $refused) {
             throw new Exception\RuntimeException('Cannot copy the message; does the folder exist?', previous: $refused);
         }
@@ -521,17 +524,20 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function moveMessage(int $id, Folder|string $folder): ?int
+    public function moveMessage(int $number, Folder|string $folder): ?int
     {
         if (! $this->protocol->hasCapability('MOVE')) {
-            $uid = $this->copyMessage($id, $folder);
-            $this->removeMessage($id);
+            $uid = $this->copyMessage($number, $folder);
+            $this->removeMessage($number);
 
             return $uid;
         }
 
         try {
-            $uids = $this->protocol->moveReturningUids(RemoteFolder::check((string) $folder), self::checkNumber($id));
+            $uids = $this->protocol->moveReturningUids(
+                RemoteFolder::check((string) $folder),
+                self::checkNumber($number),
+            );
         } catch (Protocol\Exception\CommandRefusedException $refused) {
             throw new Exception\RuntimeException('Cannot move the message; does the folder exist?', previous: $refused);
         }
@@ -545,9 +551,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function setFlags(int $id, iterable $flags): void
+    public function setFlags(int $number, iterable $flags): void
     {
-        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id))) {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($number))) {
             throw new Exception\RuntimeException('Cannot set the flags');
         }
     }
@@ -561,9 +567,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Exception\ExceptionInterface When the number or a flag is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function addFlags(int $id, iterable $flags): void
+    public function addFlags(int $number, iterable $flags): void
     {
-        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id), null, '+')) {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($number), null, '+')) {
             throw new Exception\RuntimeException('Cannot add the flags');
         }
     }
@@ -577,9 +583,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Exception\ExceptionInterface When the number or a flag is not valid, or the server refuses.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function removeFlags(int $id, iterable $flags): void
+    public function removeFlags(int $number, iterable $flags): void
     {
-        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($id), null, '-')) {
+        if (false === $this->protocol->store(ImapFlags::toStore($flags), self::checkNumber($number), null, '-')) {
             throw new Exception\RuntimeException('Cannot remove the flags');
         }
     }
@@ -712,9 +718,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @throws Exception\OutOfBoundsException When the number is below 1.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    private function fetchText(string $item, int $id): string
+    private function fetchText(string $item, int $number): string
     {
-        $value = $this->protocol->fetch($item, self::checkNumber($id));
+        $value = $this->protocol->fetch($item, self::checkNumber($number));
 
         return is_string($value) ? $value : '';
     }
@@ -729,8 +735,8 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
     {
         $values = $this->protocol->fetch($item, 1, INF);
         $result = [];
-        foreach (is_array($values) ? $values : [] as $id => $value) {
-            $result[(int) $id] = is_scalar($value) ? (string) $value : '';
+        foreach (is_array($values) ? $values : [] as $number => $value) {
+            $result[(int) $number] = is_scalar($value) ? (string) $value : '';
         }
 
         return $result;

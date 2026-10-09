@@ -258,8 +258,8 @@ Numbers change when messages are removed. Unique IDs do not, so use them to
 refer to a message across requests:
 
 ```php
-$id     = $mail->getUniqueId($number);
-$number = $mail->getNumberByUniqueId($id);
+$uniqueId = $mail->getUniqueId($number);
+$number   = $mail->getNumberByUniqueId($uniqueId);
 $mail->removeMessage($number);
 ```
 

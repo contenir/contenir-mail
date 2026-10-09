@@ -54,14 +54,14 @@ interface WritableInterface
      *     UIDPLUS do (RFC 4315), and null otherwise.
      * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function copyMessage(int $id, Folder|string $folder): ?int;
+    public function copyMessage(int $number, Folder|string $folder): ?int;
 
     /**
      * @return int|null The UID the message has in the destination folder when the storage reports
      *     one, as IMAP servers with UIDPLUS do (RFC 4315), and null otherwise.
      * @throws ExceptionInterface When there is no such message or folder.
      */
-    public function moveMessage(int $id, Folder|string $folder): ?int;
+    public function moveMessage(int $number, Folder|string $folder): ?int;
 
     /**
      * Replace a message's flags. Recent cannot be set.
@@ -69,5 +69,5 @@ interface WritableInterface
      * @param iterable<Flag|string> $flags
      * @throws ExceptionInterface When there is no such message or a flag cannot be set.
      */
-    public function setFlags(int $id, iterable $flags): void;
+    public function setFlags(int $number, iterable $flags): void;
 }

@@ -422,7 +422,7 @@ final class ImapStorageTest extends TestCase
                 'FLAGS'         => ['\Seen', '$Junk'],
                 'RFC822.HEADER' => self::HEADER,
             ]);
-        $message = $this->imap($protocol)->getMessage(3);
+        $message = $this->imap($protocol)->getMessage(number: 3);
 
         static::assertSame(['Hello', [Flag::Seen, '$Junk']], [$message->getSubject(), $message->getFlags()]);
     }
@@ -437,7 +437,7 @@ final class ImapStorageTest extends TestCase
                 [['FLAGS', 'RFC822.HEADER'], 3, null, false, ['FLAGS' => [], 'RFC822.HEADER' => self::HEADER]],
                 ['RFC822.TEXT', 3, null, false, 'body'],
             ]);
-        $message = $this->imap($protocol)->getMessage(3);
+        $message = $this->imap($protocol)->getMessage(number: 3);
         $message->getContent();
 
         static::assertSame('body', $message->getContent());
