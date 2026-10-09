@@ -2147,19 +2147,16 @@ class Imap
     }
 
     /**
-     * Read the rest of a response up to its tagged line, returning that line's tokens.
+     * Read the rest of a response up to its tagged line.
      *
-     * @return array<mixed>
      * @throws Exception\RuntimeException
      */
-    private function skipToTag(string $tag): array
+    private function skipToTag(string $tag): void
     {
         do {
             $tokens = [];
             $done   = $this->readLine($tokens, $tag);
         } while (! $done);
-
-        return $tokens;
     }
 
     /**
