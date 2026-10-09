@@ -148,10 +148,12 @@ adding headers of its own, such as a hidden `Bcc`.
 ## Container configuration
 
 `Contenir\Mail\ConfigProvider` registers a PSR-11 factory for
-`TransportInterface`, which reads `$config['mail']['transport']`. No container
-package is required; any PSR-11 container that reads the `dependencies` key
-(Mezzio, laminas-servicemanager 3 or 4) can use it, and `Contenir\Mail\Module`
-registers the same for laminas-mvc.
+`TransportInterface`, which reads `$config['mail']['transport']`. Any PSR-11
+container that reads the `dependencies` key (Mezzio, laminas-servicemanager 3
+or 4) can use it, and `Contenir\Mail\Module` registers the same for
+laminas-mvc. The factory needs `psr/container`, which contenir-mail suggests
+rather than requires; every container installs it, and code that builds its
+transports itself never loads the factory.
 
 ```php
 return [

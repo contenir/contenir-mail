@@ -20,7 +20,7 @@ every contributor keeps their authorship in `git log` and `git blame`.
   `Testing\InMemoryConnection` for testing code that sends or reads mail.
 - **Storage:** read and write `Mbox` and `Maildir`, and read over `Imap` and `Pop3`.
 - **Container support:** optional PSR-11 factories and a `ConfigProvider`, for Mezzio, laminas-mvc
-  or any PSR-11 container. No container is required.
+  or any PSR-11 container. No container is required: `psr/container` is suggested, not required.
 
 ## Requirements
 

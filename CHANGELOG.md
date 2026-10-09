@@ -156,6 +156,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   within that many seconds. (#52)
 - The migration guide moved to `docs/book/migrating.md` and lists the silent
   changes first.
+- `psr/container` is suggested instead of required. Only
+  `Container\TransportFactory`, which `ConfigProvider` and `Module` register,
+  uses it, and every PSR-11 container installs it; code that builds its
+  transports itself no longer pulls it in. An application that type-hints
+  PSR-11 interfaces without a container must require `psr/container` itself.
 
 ### Deprecated
 

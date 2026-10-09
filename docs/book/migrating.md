@@ -36,6 +36,8 @@ the wrong thing.
 
 3. Register `Contenir\Mail\ConfigProvider` (Mezzio) or the `Contenir\Mail` module
    (laminas-mvc) in place of the Laminas ones. Neither is needed without a container.
+   The factories need `psr/container`, which every PSR-11 container installs;
+   contenir-mail only suggests it.
 
 4. Work through the [silent changes](#silent-changes-check-these-first). Search
    your code for each one; your tests may not catch them.
