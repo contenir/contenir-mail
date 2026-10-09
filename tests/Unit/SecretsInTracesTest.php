@@ -23,6 +23,7 @@ use Contenir\Mail\Tests\Unit\TestAsset\ArrayContainer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SensitiveParameterValue;
@@ -81,6 +82,7 @@ final class SecretsInTracesTest extends TestCase
      * @param list<string> $secrets
      */
     #[DataProvider('failureProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function keepsTheSecretOutOfTheTrace(Closure $fail, array $secrets): void
     {

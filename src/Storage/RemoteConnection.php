@@ -8,6 +8,7 @@ use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Security;
+use Deprecated;
 
 use function is_string;
 use function sprintf;
@@ -29,6 +30,8 @@ final class RemoteConnection
      * STARTTLS, and false is a plain connection.
      *
      * @throws InvalidArgumentException When a value has the wrong type or is unknown, or a setting is given under both its names.
+     *
+     * @mago-expect analysis:deprecated-method Reached only for the laminas-mail keys, so that PHP 8.4 and later report their use.
      */
     public static function fromReader(ConfigReader $reader, string $context): ConnectionConfig
     {
@@ -44,7 +47,7 @@ final class RemoteConnection
                 $reader->has('security') => $connection->security,
                 default => Security::StartTls,
             },
-            verifyPeer: ! $reader->bool('novalidatecert', default: ! $connection->verifyPeer),
+            verifyPeer: $reader->has('novalidatecert') ? self::legacyVerifyPeer($reader) : $connection->verifyPeer,
             timeout: $connection->timeout,
             tls: $connection->tls,
         );
@@ -56,7 +59,9 @@ final class RemoteConnection
      * "none" a plain connection.
      *
      * @throws InvalidArgumentException When the value is anything else.
+     * @deprecated since 0.3.0, the "ssl" setting; use "security".
      */
+    #[Deprecated('use "security" instead of the laminas-mail "ssl" setting', since: '0.3.0')]
     private static function legacySecurity(ConfigReader $reader, string $context): Security
     {
         $ssl = $reader->stringOrBool('ssl');
@@ -73,6 +78,18 @@ final class RemoteConnection
                 previous: $e,
             );
         }
+    }
+
+    /**
+     * The laminas-mail "novalidatecert" setting: true turns peer verification off.
+     *
+     * @throws InvalidArgumentException When the value is not a bool.
+     * @deprecated since 0.3.0, the "novalidatecert" setting; use "verify_peer".
+     */
+    #[Deprecated('use "verify_peer" instead of the laminas-mail "novalidatecert" setting', since: '0.3.0')]
+    private static function legacyVerifyPeer(ConfigReader $reader): bool
+    {
+        return ! $reader->bool('novalidatecert', default: false);
     }
 
     /**

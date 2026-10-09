@@ -7,6 +7,7 @@ namespace Contenir\Mail\Protocol;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Protocol\Smtp\Auth\AuthenticatorInterface;
 use Contenir\Mail\Protocol\Smtp\Auth\CallbackChannel;
+use Deprecated;
 use Override;
 use SensitiveParameter;
 
@@ -128,16 +129,22 @@ final class Smtp extends AbstractProtocol
      * array may also be given first, with "host" and "port" in it. Without "ssl" or
      * "security", STARTTLS is required.
      *
+     * The laminas-mail forms, a host name or a settings array in place of the ConnectionConfig,
+     * are deprecated since 0.3.0. $config stays for "use_complete_quit" and "allow_insecure_auth"
+     * beside a ConnectionConfig.
+     *
      * @param ConnectionConfig|string|array<array-key, mixed> $host
      * @param array<array-key, mixed>|null $config
      * @param ConnectionInterface|null $connection The connection to the server, a StreamConnection by default.
      * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
      * @throws Exception\RuntimeException When the host name is invalid.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
+     *
+     * @mago-expect analysis:deprecated-method Reached only for the laminas-mail form, so that PHP 8.4 and later report its use.
      */
     public function __construct(
         #[SensitiveParameter]
-        ConnectionConfig|string|array $host = '127.0.0.1',
+        ConnectionConfig|string|array $host = new ConnectionConfig(),
         ?int $port = null,
         #[SensitiveParameter]
         ?array $config = null,
@@ -152,7 +159,7 @@ final class Smtp extends AbstractProtocol
         $this->authenticator     = $authenticator;
         $this->useCompleteQuit   = $reader->bool('use_complete_quit', default: true);
         $this->allowInsecureAuth = $reader->bool('allow_insecure_auth', default: false);
-        $this->setNoValidateCert(! $settings->verifyPeer);
+        $this->novalidatecert    = ! $settings->verifyPeer;
 
         parent::__construct(
             $settings->host,
@@ -199,7 +206,7 @@ final class Smtp extends AbstractProtocol
     /**
      * Open the connection: TLS from the start for Security::Tls, otherwise plain until STARTTLS.
      *
-     * The peer is verified unless setNoValidateCert(true) or ConnectionConfig::$verifyPeer turned it off.
+     * The peer is verified unless ConnectionConfig::$verifyPeer, or the deprecated setNoValidateCert(true), turned it off.
      *
      * @throws Exception\RuntimeException When the connection fails.
      */
@@ -624,7 +631,7 @@ final class Smtp extends AbstractProtocol
     }
 
     /**
-     * The configured settings, with peer verification as setNoValidateCert() last left it.
+     * The configured settings, with peer verification as the deprecated setNoValidateCert() last left it.
      *
      * @throws \Contenir\Mail\Exception\InvalidArgumentException Never: the settings were checked when constructed.
      */
@@ -764,12 +771,19 @@ final class Smtp extends AbstractProtocol
     }
 
     /**
+     * Called only for the laminas-mail forms of the constructor, so PHP 8.4 and later report their use.
+     *
      * @param string|array<array-key, mixed> $host
      * @param array<array-key, mixed>|null $config
      * @return array{ConfigReader, ConnectionConfig}
      * @throws Exception\InvalidArgumentException When a setting is invalid or given twice.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
+     * @deprecated since 0.3.0, a host name or settings array in place of the ConnectionConfig.
      */
+    #[Deprecated(
+        'pass a ConnectionConfig to Protocol\\Smtp instead of a host name or settings array',
+        since: '0.3.0',
+    )]
     private static function readLegacySettings(
         #[SensitiveParameter]
         string|array $host,

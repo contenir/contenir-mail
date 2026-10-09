@@ -11,6 +11,7 @@ use Contenir\Mail\Protocol\Security;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -64,6 +65,7 @@ final class LegacyOptionsTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function buildsTheConnectionSettings(): void
     {
@@ -80,6 +82,7 @@ final class LegacyOptionsTest extends TestCase
     }
 
     #[DataProvider('defaultPortProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function leavesThePortToTheProtocolDefault(?int $port): void
     {

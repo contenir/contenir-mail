@@ -212,6 +212,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deprecated as well: its value, `multipart/relative`, is a type no RFC
   defines; RFC 2387 defines `multipart/related`. `MULTIPART_REPORT` stays, as
   no enum case replaces it.
+- The laminas-mail `ssl` and `novalidatecert` settings of `Storage\ImapConfig`
+  and `Storage\Pop3Config`, and `ssl` of `Transport\SmtpConfig`: use
+  `security` and `verify_peer`.
+- The laminas-mail arguments of `Protocol\Imap` and `Protocol\Pop3`: a host,
+  port and `ssl` given to the constructor or to `connect()`, read by
+  `Protocol\LegacyOptions`, and the constructor's `$novalidatecert`. Pass a
+  `ConnectionConfig`.
+- `setNoValidateCert()` on `Protocol\Imap`, `Protocol\Pop3` and
+  `Protocol\Smtp` (`ProtocolTrait`): set `ConnectionConfig::$verifyPeer` to
+  false.
+- The laminas-mail forms of `new Protocol\Smtp()`: a host name, or a settings
+  array, in place of the `ConnectionConfig`, with `ssl`, `novalidatecert` and
+  the connection keys in `$config`. Pass a `ConnectionConfig`; `$config` stays
+  for `use_complete_quit` and `allow_insecure_auth` beside it. Constructed
+  without arguments, `Protocol\Smtp` is unaffected: its first argument now
+  defaults to `new ConnectionConfig()`, which holds the same settings.
+- Each deprecated method, constant and form carries `#[\Deprecated]`, so PHP
+  8.4 and later report its use; PHP 8.3 ignores the attribute. A settings key
+  or argument form is reported through the private method that reads it.
+  Nothing in the library calls a deprecated API except to read a form the
+  caller gave.
 
 ### Removed
 

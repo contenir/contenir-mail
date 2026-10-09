@@ -12,6 +12,7 @@ use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\TlsServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -87,6 +88,7 @@ final class SmtpSocketTest extends TestCase
         $smtp->connect();
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToTalkWithoutConnection(): void
     {

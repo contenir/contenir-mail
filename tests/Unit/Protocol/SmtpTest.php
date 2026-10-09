@@ -14,6 +14,7 @@ use Contenir\Mail\Protocol\Smtp\Auth\Login;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -46,6 +47,7 @@ final class SmtpTest extends TestCase
         static::assertNull((new Smtp())->getAuthenticator());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function requiresStartTlsByDefault(): void
     {
@@ -85,6 +87,7 @@ final class SmtpTest extends TestCase
     }
 
     #[DataProvider('insecureAuthProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsInsecureAuthSetting(ConnectionConfig|string $host): void
     {
@@ -121,12 +124,14 @@ final class SmtpTest extends TestCase
      * @param array<string, mixed> $config
      */
     #[DataProvider('legacySecurityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsLegacySslSetting(array $config, Security $expected): void
     {
         static::assertSame($expected, (new Smtp('mail.example.com', null, $config))->getConnectionConfig()->security);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function rejectsUnsupportedLegacySsl(): void
     {
@@ -136,6 +141,7 @@ final class SmtpTest extends TestCase
         new Smtp('mail.example.com', null, ['ssl' => 'starttls']);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function rejectsLegacySslBesideSecurity(): void
     {
@@ -145,6 +151,7 @@ final class SmtpTest extends TestCase
         new Smtp('mail.example.com', null, ['ssl' => 'ssl', 'security' => 'tls']);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function rejectsNoValidateCertBesideVerifyPeer(): void
     {
@@ -154,18 +161,21 @@ final class SmtpTest extends TestCase
         new Smtp('mail.example.com', null, ['novalidatecert' => true, 'verify_peer' => true]);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function verifiesPeerByDefault(): void
     {
         static::assertTrue((new Smtp('mail.example.com'))->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function turnsPeerVerificationOffWithNoValidateCert(): void
     {
         static::assertFalse((new Smtp('mail.example.com', null, ['novalidatecert' => true]))->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function keepsLegacySecurityWhenOnlyNoValidateCertIsGiven(): void
     {
@@ -174,6 +184,7 @@ final class SmtpTest extends TestCase
         static::assertSame(Security::None, $smtp->getConnectionConfig()->security);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function keepsVerifyPeerWhenOnlySslIsGiven(): void
     {
@@ -182,6 +193,7 @@ final class SmtpTest extends TestCase
         static::assertFalse($smtp->getConnectionConfig()->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function keepsOtherConnectionSettingsWithLegacySsl(): void
     {
@@ -193,6 +205,7 @@ final class SmtpTest extends TestCase
         );
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function readsHostAndPortFromLeadingArray(): void
     {
@@ -204,6 +217,7 @@ final class SmtpTest extends TestCase
         );
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function letsPositionalHostWinOverConfigHost(): void
     {
@@ -212,12 +226,14 @@ final class SmtpTest extends TestCase
         static::assertSame('mail.example.com', $smtp->getConnectionConfig()->host);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function readsCompleteQuitFromLegacyConfig(): void
     {
         static::assertFalse((new Smtp('mail.example.com', null, ['use_complete_quit' => false]))->useCompleteQuit());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function rejectsUnknownLegacyKey(): void
     {
@@ -227,6 +243,7 @@ final class SmtpTest extends TestCase
         new Smtp('mail.example.com', null, ['username' => 'orders']);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function rejectsInvalidHostName(): void
     {

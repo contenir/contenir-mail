@@ -109,17 +109,20 @@ Envelope addresses are validated when the envelope is made.
 ## The protocol
 
 `Contenir\Mail\Protocol\Smtp` is the session underneath. It takes a
-`ConnectionConfig`, or the laminas-mail arguments:
+`ConnectionConfig`, with `use_complete_quit` and `allow_insecure_auth` in its
+`$config` array:
 
 ```php
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp;
 
 $smtp = new Smtp(new ConnectionConfig('smtp.example.com'), authenticator: $login);
-$smtp = new Smtp('smtp.example.com', 587, ['ssl' => 'tls']);   // laminas-mail form
+$smtp = new Smtp('smtp.example.com', 587, ['ssl' => 'tls']);   // laminas-mail form, deprecated
 ```
 
-In the laminas-mail form, `ssl` keeps its old meaning: `'ssl'` is TLS from the
-start, `'tls'` is STARTTLS, and `'none'`, `''` or `false` is a plain connection.
-Leaving `ssl` out now means STARTTLS. `novalidatecert` turns certificate
-verification off.
+The laminas-mail forms, a host name or a settings array in place of the
+`ConnectionConfig`, are deprecated. In them `ssl` keeps its old meaning:
+`'ssl'` is TLS from the start, `'tls'` is STARTTLS, and `'none'`, `''` or
+`false` is a plain connection. Leaving `ssl` out now means STARTTLS.
+`novalidatecert` turns certificate verification off, as does the deprecated
+`setNoValidateCert(true)`; set `verifyPeer` in the `ConnectionConfig` instead.

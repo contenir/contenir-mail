@@ -17,6 +17,7 @@ use Contenir\Mail\Storage\RemoteFolder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -41,6 +42,7 @@ final class RemoteConfigTest extends TestCase
      * @param array<string, mixed> $settings
      */
     #[DataProvider('securityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsSecurity(array $settings, Security $expected): void
     {
@@ -51,6 +53,7 @@ final class RemoteConfigTest extends TestCase
      * @param array<string, mixed> $settings
      */
     #[DataProvider('securityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsPop3SecurityAlike(array $settings, Security $expected): void
     {
@@ -58,6 +61,7 @@ final class RemoteConfigTest extends TestCase
     }
 
     #[DataProvider('unknownSslProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesUnknownSslValue(mixed $ssl, string $shown): void
     {
@@ -69,6 +73,7 @@ final class RemoteConfigTest extends TestCase
         ImapConfig::fromIterable(['user' => 'u', 'ssl' => $ssl]);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesSslOfTheWrongType(): void
     {
@@ -89,6 +94,7 @@ final class RemoteConfigTest extends TestCase
     }
 
     #[DataProvider('verifyPeerProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsPeerVerification(array $settings, bool $expected): void
     {

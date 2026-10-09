@@ -15,6 +15,7 @@ use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -32,6 +33,7 @@ final class ConnectTest extends TestCase
      * @param array{int, Security} $expected
      */
     #[DataProvider('legacyArgumentProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsTheLaminasPositionalArguments(?int $port, string|bool $ssl, array $expected): void
     {
@@ -92,6 +94,7 @@ final class ConnectTest extends TestCase
         static::assertFalse($pop3->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function verifiesTheCertificateWhenNotToldOtherwise(): void
     {
@@ -102,6 +105,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($server->openedWith()?->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function skipsCertificateVerificationOnlyWhenAsked(): void
     {
@@ -112,6 +116,7 @@ final class ConnectTest extends TestCase
         static::assertFalse($server->openedWith()?->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function usesTheProtocolTimeoutForLegacyArguments(): void
     {
@@ -148,6 +153,7 @@ final class ConnectTest extends TestCase
         static::assertEquals(ScriptedServer::plain(), $pop3->getConnectionConfig());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesAnUnknownSecuritySetting(): void
     {
@@ -157,6 +163,7 @@ final class ConnectTest extends TestCase
         new Pop3('pop.example.com', null, true, false, new InMemoryConnection());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function failsWhenTheGreetingIsAnError(): void
     {
@@ -173,6 +180,7 @@ final class ConnectTest extends TestCase
         );
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function usesStlsWhenNoSecurityIsGiven(): void
     {
@@ -183,6 +191,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($server->isTlsEnabled());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function usesStlsForTheLaminasTlsSetting(): void
     {
@@ -193,6 +202,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($server->isTlsEnabled());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function upgradesBeforeLoggingIn(): void
     {
@@ -209,6 +219,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('stlsNotOfferedProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToContinueInPlainTextWhenStlsIsNotOffered(string $capa): void
     {
@@ -232,6 +243,7 @@ final class ConnectTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToContinueInPlainTextWhenCapaIsNotSupported(): void
     {
@@ -243,6 +255,7 @@ final class ConnectTest extends TestCase
         new Pop3('pop.example.com', connection: $server);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToContinueInPlainTextWhenTheServerRefusesStls(): void
     {
@@ -259,6 +272,7 @@ final class ConnectTest extends TestCase
         new Pop3('pop.example.com', connection: $server);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function failsWhenTheTlsHandshakeFails(): void
     {
@@ -276,6 +290,7 @@ final class ConnectTest extends TestCase
         new Pop3('pop.example.com', connection: $server);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesResponsesInjectedBeforeTheTlsHandshake(): void
     {

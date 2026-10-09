@@ -401,6 +401,7 @@ be snake_case or camelCase, and strings from environment variables such as
 | `connection_class` with `connection_config` `username` and `password` | `auth`: an authenticator, or `['type' => 'login', 'username' => ..., 'password' => ...]` |
 | `connection_config['ssl']` = `'ssl'` / `'tls'` | `security` = `'tls'` / `'starttls'` (the default); `'none'` for a plain connection. See [above](#security-tls-means-tls-from-the-start-not-starttls) |
 | `connection_config['novalidatecert']` | `verify_peer` |
+| `new Protocol\Smtp($host, $port, $config)` | `new Protocol\Smtp(new ConnectionConfig(...))`; the laminas-mail form still works, deprecated |
 | `Protocol\Smtp\Auth\Plain`, `Login`, `Crammd5`, `Xoauth2` (subclasses of `Protocol\Smtp`) | `Protocol\Smtp\Auth\Plain`, `Login`, `CramMd5`, `XOAuth2`, implementing `AuthenticatorInterface` |
 | `Protocol\SmtpPluginManager`, `Transport\Smtp::setPluginManager()` / `plugin()` | Removed; implement `AuthenticatorInterface` for another mechanism |
 | `Transport\FileOptions` | `Transport\FileConfig` |
@@ -414,7 +415,8 @@ be snake_case or camelCase, and strings from environment variables such as
 
 | laminas-mail | contenir-mail |
 | --- | --- |
-| `new Protocol\Imap($host, $port, $ssl)`, the same for `Pop3` | The same, or a `ConnectionConfig`; an omitted `$ssl` now means STARTTLS |
+| `new Protocol\Imap($host, $port, $ssl)`, the same for `Pop3` | A `ConnectionConfig`. The laminas-mail arguments still work, deprecated; an omitted `$ssl` now means STARTTLS |
+| `setNoValidateCert(true)` | `ConnectionConfig::$verifyPeer` set to false; `setNoValidateCert()` still works, deprecated |
 | `$ssl = true` or an unknown string | Throws; use `'ssl'`, `'tls'`, `'none'` or `false` |
 | Folder names encoded to modified UTF-7 by the caller | UTF-8; see [above](#imap-folder-names-are-utf-8) |
 | Socket handling inside the protocol classes | `ConnectionInterface`, with `StreamConnection` and `Testing\InMemoryConnection` |

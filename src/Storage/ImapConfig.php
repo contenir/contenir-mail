@@ -15,7 +15,7 @@ use SensitiveParameter;
 /**
  * Settings of an IMAP mailbox: where to connect, who to log in as, and the folder to open.
  *
- * Connections use STARTTLS unless "security" (or the laminas-mail "ssl") says otherwise.
+ * Connections use STARTTLS unless "security" (or the deprecated laminas-mail "ssl") says otherwise.
  *
  * ```php
  * new ImapConfig(new ConnectionConfig(host: 'imap.example.com', security: Security::Tls), user: 'test', password: $secret);
@@ -29,7 +29,7 @@ use SensitiveParameter;
 final readonly class ImapConfig
 {
     /**
-     * The connection settings, the laminas-mail "ssl" and "novalidatecert", the TLS settings, the login, and
+     * The connection settings, the deprecated laminas-mail "ssl" and "novalidatecert", the TLS settings, the login, and
      * whether to prefer IMAP4rev2
      *
      * @var list<string>

@@ -15,6 +15,7 @@ use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -132,6 +133,7 @@ final class TlsConfigTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function readsTheSettingsForTheSmtpProtocol(): void
     {

@@ -26,6 +26,7 @@ use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -82,6 +83,7 @@ final class Pop3StorageTest extends TestCase
         static::assertTrue((new Pop3(['auth' => $auth], $protocol))->getCapabilities()['delete']);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function connectsWithSettings(): void
     {
@@ -119,6 +121,7 @@ final class Pop3StorageTest extends TestCase
         new Pop3(new Pop3Config(new ConnectionConfig(security: Security::Tls), 'u'), $protocol);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function turnsOffPeerVerificationWhenAsked(): void
     {
