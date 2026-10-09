@@ -53,6 +53,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
      * @param ImapConfig|Protocol\Imap|iterable<mixed, mixed> $config Settings to connect and log in with, or a
      *     protocol already connected and logged in.
      * @param Protocol\Imap|null $protocol A protocol to connect with the settings, such as a subclass; a new one when null.
+     *     The settings' preferImap4Rev2 applies to it.
      * @throws Exception\ExceptionInterface When logging in fails or the folder cannot be selected.
      * @throws Protocol\Exception\ExceptionInterface When the connection fails.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When a setting is unknown or has the wrong type.
@@ -79,6 +80,7 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
 
         $config         = is_iterable($config) ? ImapConfig::fromIterable($config) : $config;
         $this->protocol = $protocol ?? new Protocol\Imap();
+        $this->protocol->preferImap4Rev2($config->preferImap4Rev2);
         $this->protocol->connect($config->connection);
         $this->open = true;
         $this->signIn($config);

@@ -151,6 +151,28 @@ final class ImapStorageTest extends TestCase
         );
     }
 
+    #[DataProvider('imap4Rev2Provider')]
+    #[Test]
+    public function passesTheImap4Rev2PreferenceToTheProtocol(array $settings, bool $expected): void
+    {
+        $protocol = $this->protocol();
+        $protocol->expects($this->once())->method('preferImap4Rev2')->with($expected);
+        $protocol->method('login')->willReturn(true);
+
+        new Imap(['user' => 'u', ...$settings], $protocol);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, bool}>
+     */
+    public static function imap4Rev2Provider(): array
+    {
+        return [
+            'preferred by default' => [[], true],
+            'turned off'           => [['prefer_imap4_rev2' => false], false],
+        ];
+    }
+
     #[Test]
     public function connectsWithStartTlsByDefault(): void
     {

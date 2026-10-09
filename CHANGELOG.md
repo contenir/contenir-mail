@@ -139,6 +139,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
+- `Storage\ImapConfig` has a `prefer_imap4_rev2` setting (`$preferImap4Rev2`),
+  true by default, which `Storage\Imap` passes to
+  `Protocol\Imap::preferImap4Rev2()`, so a storage can keep the session
+  IMAP4rev1 without building the protocol itself. `Flag::Recent` is documented
+  as unreliable over IMAP, since IMAP4rev2 removed `\Recent`.
 
 ### Changed
 

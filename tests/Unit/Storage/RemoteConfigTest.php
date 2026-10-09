@@ -136,6 +136,24 @@ final class RemoteConfigTest extends TestCase
         static::assertSame(['', 'INBOX'], [$config->password, $config->folder]);
     }
 
+    /**
+     * @param array<string, mixed> $settings
+     */
+    #[DataProvider('imap4Rev2Provider')]
+    #[Test]
+    public function readsWhetherToPreferImap4Rev2(array $settings, bool $expected): void
+    {
+        static::assertSame($expected, ImapConfig::fromIterable(['user' => 'u', ...$settings])->preferImap4Rev2);
+    }
+
+    #[Test]
+    public function showsTheImap4Rev2PreferenceInDumps(): void
+    {
+        $config = new ImapConfig(new ConnectionConfig(), 'u', preferImap4Rev2: false);
+
+        static::assertFalse($config->__debugInfo()['preferImap4Rev2']);
+    }
+
     #[DataProvider('configProvider')]
     #[Test]
     public function readsAnAccessTokenInPlaceOfTheUser(string $class): void
@@ -349,6 +367,20 @@ final class RemoteConfigTest extends TestCase
             'verify peer off'      => [['verify_peer' => false], false],
             'novalidatecert true'  => [['novalidatecert' => true], false],
             'novalidatecert false' => [['novalidatecert' => 'false'], true],
+        ];
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, bool}>
+     */
+    public static function imap4Rev2Provider(): array
+    {
+        return [
+            'omitted'    => [[], true],
+            'off'        => [['prefer_imap4_rev2' => false], false],
+            'on'         => [['prefer_imap4_rev2' => true], true],
+            'string off' => [['prefer_imap4_rev2' => 'off'], false],
+            'camel case' => [['preferImap4Rev2' => false], false],
         ];
     }
 

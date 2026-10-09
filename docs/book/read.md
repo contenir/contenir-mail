@@ -48,7 +48,7 @@ Storage                          | Config                                   | Ke
 `Storage\Maildir`                | `Storage\MaildirConfig`                  | `dirname`
 `Storage\Folder\Maildir`         | `Storage\Folder\MaildirConfig`           | `dirname`, `delim`, `folder`
 `Storage\Writable\Maildir`       | `Storage\Writable\MaildirConfig`         | `dirname`, `delim`, `folder`, `create`, `directory_mode`, `file_mode`
-`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`, `auth`
+`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`, `auth`, `prefer_imap4_rev2`
 `Storage\Pop3`                   | `Storage\Pop3Config`                     | connection keys, `user`, `password`, `auth`
 
 Keys may be written in snake_case, camelCase or kebab-case. An unknown key, or
@@ -163,6 +163,11 @@ $mail = new Pop3([
 
 Passwords are marked `#[SensitiveParameter]`, so they do not appear in stack
 traces, and `var_dump()` of a config shows them masked.
+
+After signing in, `Storage\Imap` turns on IMAP4rev2 (RFC 9051) when the server
+offers it, or else UTF8=ACCEPT. Set `prefer_imap4_rev2` to `false`
+(`ImapConfig::$preferImap4Rev2`) to keep the session IMAP4rev1, as for a server
+whose IMAP4rev2 support is unreliable.
 
 ### Signing in with an access token (OAuth 2.0)
 
@@ -542,7 +547,7 @@ foreach ($mail as $message) {
         continue;
     }
 
-    echo ($message->hasFlag(Flag::Recent) ? '! ' : '  ') . $message->getSubject() . "\n";
+    echo ($message->hasFlag(Flag::Flagged) ? '! ' : '  ') . $message->getSubject() . "\n";
 }
 
 // IMAP names work too
@@ -555,6 +560,11 @@ $flagged = $mail->countMessages(Flag::Flagged);
 
 `getFlags()` lists a message's flags, cases and strings alike.
 
+`Recent` is unreliable over IMAP: IMAP4rev2 (RFC 9051) removed `\Recent`, so a
+server with IMAP4rev2 enabled never reports it, and IMAP4rev1 servers report
+it to one session only. To find new mail, look for messages without `Seen`,
+or compare `FolderStatus::$uidNext` with the value from the last check.
+
 ## Folders
 
 All storages but POP3 have folders. `getFolders()` returns the folder tree as
@@ -564,7 +574,7 @@ IMAP folder names are always given and returned as UTF-8, such as
 `Entwürfe` or `R&D`. The client writes them in modified UTF-7 for an
 IMAP4rev1 server, and as they are once IMAP4rev2 or UTF8=ACCEPT is enabled.
 That happens after signing in, when the server offers it. Turn it off with
-`Protocol\Imap::preferImap4Rev2(false)`.
+the `prefer_imap4_rev2` setting, or `Protocol\Imap::preferImap4Rev2(false)`.
 
 For local folders use `Storage\Folder\Mbox`, where each file in a directory
 tree is a folder, and `Storage\Folder\Maildir`, where each `.Name` maildir in

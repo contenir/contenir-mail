@@ -31,7 +31,13 @@ enum Flag: string
     /** Not finished */
     case Draft = '\Draft';
 
-    /** New since the mailbox was last opened; set by the storage, never by the client */
+    /**
+     * New since the mailbox was last opened; set by the storage, never by the client.
+     *
+     * Unreliable over IMAP: IMAP4rev2 (RFC 9051) removed \Recent, so a server with
+     * IMAP4rev2 enabled never reports it, and IMAP4rev1 servers report it to one
+     * session only. Look for messages without Seen to find new mail.
+     */
     case Recent = '\Recent';
 
     /** Forwarded, resent or bounced: Maildir "P", the IMAP keyword "$Forwarded" */
