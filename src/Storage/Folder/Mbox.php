@@ -49,8 +49,8 @@ final class Mbox extends Storage\Mbox implements FolderInterface
             throw new Exception\InvalidArgumentException("{$config->dirname} is not a directory");
         }
 
-        $this->format                                   = $config->format;
-        $this->rootdir                                  = rtrim($config->dirname, DIRECTORY_SEPARATOR)
+        $this->format  = $config->format;
+        $this->rootdir = rtrim($config->dirname, DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR;
         $this->has[Storage\Capability::Top->value]      = true;
         $this->has[Storage\Capability::UniqueId->value] = false;

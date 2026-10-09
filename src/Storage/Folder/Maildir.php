@@ -45,11 +45,12 @@ class Maildir extends Storage\Maildir implements FolderInterface
      */
     public function __construct(MaildirConfig|iterable $config)
     {
-        $config                                      = is_iterable($config)
+        $config = is_iterable($config)
             ? MaildirConfig::fromIterable($config)
             : $config;
-        $this->rootdir                               = rtrim($config->dirname, DIRECTORY_SEPARATOR)
-        . DIRECTORY_SEPARATOR;
+        $this->rootdir =
+            rtrim($config->dirname, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR;
         $this->delim                                 = $config->delim;
         $this->has[Storage\Capability::Top->value]   = true;
         $this->has[Storage\Capability::Flags->value] = true;

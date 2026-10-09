@@ -192,6 +192,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   spelled the American way (docs/book/conventions.md); the British spelling
   stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its
   use.
+- `Mime\Mime::ENCODING_*`, `DISPOSITION_*`, `MULTIPART_MIXED`,
+  `MULTIPART_ALTERNATIVE` and `MULTIPART_RELATED`: use the
+  `Mime\TransferEncoding`, `Mime\Disposition` and `Mime\MultipartType` enums,
+  such as `TransferEncoding::Base64->value` or
+  `MultipartType::Mixed->contentType()`. `Mime::MULTIPART_RELATIVE` is
+  deprecated as well: its value, `multipart/relative`, is a type no RFC
+  defines; RFC 2387 defines `multipart/related`. `MULTIPART_REPORT` stays, as
+  no enum case replaces it.
 
 ### Removed
 
