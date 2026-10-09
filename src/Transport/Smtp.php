@@ -18,10 +18,12 @@ use SensitiveParameter;
 use function array_unique;
 use function array_values;
 use function count;
+use function fclose;
+use function fopen;
+use function ftell;
 use function preg_grep;
 use function preg_match;
 use function sprintf;
-use function strlen;
 
 /**
  * Sends mail through an SMTP server with Protocol\Smtp, connecting on the first send
@@ -34,6 +36,7 @@ use function strlen;
  *
  * @mago-expect lint:too-many-methods The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  * @mago-expect lint:cyclomatic-complexity The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
+ * @mago-expect lint:kan-defect The laminas-mail transport API: envelope, connection and auto-disconnect accessors.
  */
 final class Smtp implements TransportInterface
 {
@@ -171,6 +174,9 @@ final class Smtp implements TransportInterface
     /**
      * Send the message, connecting first if there is no open session.
      *
+     * The message is written to a php://temp stream and sent from there, so an attachment
+     * read from a stream is never held in memory as a whole.
+     *
      * @throws Exception\RuntimeException When the message has no sender or recipient, or a header is unsafe.
      * @throws Protocol\Exception\ExceptionInterface When the server refuses the message.
      * @throws Mime\Exception\RuntimeException When the message body cannot be written.
@@ -182,10 +188,11 @@ final class Smtp implements TransportInterface
 
         $from       = $this->prepareFromAddress($message);
         $recipients = $this->prepareRecipients($message);
-        $data       = HeaderGuard::check($message->getHeaders()->without('Bcc'))->toString()
-        . Headers::EOL
-        . $message->getBodyText();
+        $headers    = HeaderGuard::check($message->getHeaders()->without('Bcc'))->toString() . Headers::EOL;
 
+        $data = self::temporaryStream();
+        Mime\StreamOutput::write($data, $headers);
+        $message->writeBodyTo($data);
         if (0 === count($recipients)) {
             throw new Exception\RuntimeException(sprintf(
                 '%s transport expects at least one recipient if the message has at least one header or body',
@@ -196,12 +203,48 @@ final class Smtp implements TransportInterface
         $connection->envelope(
             $from,
             $recipients,
-            strlen($data),
+            (int) ftell($data),
             smtpUtf8: [] !== preg_grep('/[\x80-\xFF]/', $recipients),
-            eightBit: 1 === preg_match('/[\x80-\xFF]/', $data),
+            eightBit: self::hasEightBitData($data),
         );
 
-        $connection->data($data);
+        $connection->dataFromStream($data);
+        fclose($data);
+    }
+
+    /**
+     * @return resource
+     * @throws Exception\RuntimeException Never: php://temp is always available.
+     */
+    private static function temporaryStream(): mixed
+    {
+        $stream = fopen('php://temp', mode: 'w+b');
+        if (false === $stream) {
+            // @codeCoverageIgnoreStart
+            // Unreachable: php://temp is always available
+            throw new Exception\RuntimeException('Cannot open a temporary stream');
+
+            // @codeCoverageIgnoreEnd
+        }
+
+        return $stream;
+    }
+
+    /**
+     * Whether the message has a byte outside ASCII, read from the start of the stream a chunk at a time.
+     *
+     * @param resource $stream
+     * @throws Protocol\Exception\RuntimeException Never: php://temp can always be read.
+     */
+    private static function hasEightBitData(mixed $stream): bool
+    {
+        foreach (Protocol\Smtp\Chunks::ofStream($stream) as $chunk) {
+            if (1 === preg_match('/[\x80-\xFF]/', $chunk)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -139,6 +139,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
+- Writing a message to a stream: `Message::writeTo($stream)` and
+  `writeBodyTo($stream)` write the bytes `toString()` and `getBodyText()`
+  return, and `Mime\PartWriter::write($part, $stream)` those of `body()`, a
+  piece at a time. `Mime\Part::encodedChunks()` gives a part's encoded
+  content in pieces, base64 of a stream a read at a time, so an attachment
+  read from a stream is never held in memory as a whole.
+  `Protocol\Smtp::dataFromStream($stream)` sends DATA from a seekable stream.
 
 ### Changed
 
@@ -156,6 +163,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   within that many seconds. (#52)
 - The migration guide moved to `docs/book/migrating.md` and lists the silent
   changes first.
+- The SMTP and File transports write the message as it is made instead of
+  building it as a string: SMTP to `php://temp`, sent from there, and File
+  straight to its file, which is removed if it cannot be finished. Sending a
+  28 MB message with a 20 MB attachment over SMTP took 5 s and 106 MB of
+  memory; it takes 0.3 s and 2.5 MB. File takes 0.15 s and 1.2 MB instead of
+  0.3 s and 84 MB, and `toString()` 80 ms and 56 MB instead of 180 ms and
+  84 MB. A file that cannot be written now throws
+  `Mime\Exception\RuntimeException`.
+- `Protocol\Smtp::data()` writes the message in 64 KiB chunks, with line
+  endings and leading dots fixed a chunk at a time, instead of one write and
+  one log entry per line. The log holds `[DATA n bytes]` in place of the
+  message text. Over-long lines are still refused before anything is sent.
+- `StreamConnection::write()` writes at most 64 KiB at a time and no longer
+  copies the rest of the data after each partial write.
+- Quoted-printable encoding replaces characters in one pass over the text
+  instead of a pass per character per line, three times faster for text.
 
 ### Deprecated
 

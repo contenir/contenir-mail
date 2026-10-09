@@ -7,6 +7,11 @@ namespace Contenir\Mail\Tests\Unit\Transport;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime\Attachment;
+use Contenir\Mail\Mime\Exception\RuntimeException as MimeRuntimeException;
+use Contenir\Mail\Mime\Multipart;
+use Contenir\Mail\Mime\MultipartType;
+use Contenir\Mail\Mime\Part;
+use Contenir\Mail\Mime\TransferEncoding;
 use Contenir\Mail\Tests\Unit\TestAsset\FixedClock;
 use Contenir\Mail\Tests\Unit\TestAsset\InjectingHeader;
 use Contenir\Mail\Transport\Exception\RuntimeException;
@@ -22,12 +27,15 @@ use PHPUnit\Framework\TestCase;
 use function basename;
 use function bin2hex;
 use function clearstatcache;
+use function count;
 use function error_clear_last;
 use function error_get_last;
 use function file_get_contents;
 use function file_put_contents;
 use function fileperms;
+use function get_resources;
 use function glob;
+use function is_file;
 use function is_link;
 use function mkdir;
 use function random_bytes;
@@ -86,6 +94,38 @@ final class FileTest extends TestCase
             "{$message->getHeaders()->toString()}\r\n{$message->getBodyText()}",
             file_get_contents((string) $transport->getLastFile()),
         );
+    }
+
+    #[Test]
+    public function removesFileWhoseBodyCannotBeWritten(): void
+    {
+        $transport = $this->transport(static fn(): string => 'mail.eml');
+        $message   = self::message()
+            ->setBody(new Multipart(
+                MultipartType::Mixed,
+                [new Part("--frontier\r\n", encoding: TransferEncoding::SevenBit)],
+                boundary: 'frontier',
+            ));
+
+        try {
+            $transport->send($message);
+        } catch (MimeRuntimeException) {
+            static::assertSame([false, null], [is_file("{$this->dir}/mail.eml"), $transport->getLastFile()]);
+            return;
+        }
+
+        static::fail('A part containing its boundary was written');
+    }
+
+    #[Test]
+    public function closesTheFileItWrites(): void
+    {
+        $transport = $this->transport();
+        $streams   = count(get_resources('stream'));
+
+        $transport->send(self::message());
+
+        static::assertCount($streams, get_resources('stream'));
     }
 
     #[Test]
