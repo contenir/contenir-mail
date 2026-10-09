@@ -117,11 +117,11 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(HeaderInterface $header): self
     {
-        $key      = self::normalise($header->getFieldName());
+        $key      = self::normalize($header->getFieldName());
         $headers  = [];
         $replaced = false;
         foreach ($this->headers as $existing) {
-            if (self::normalise($existing->getFieldName()) !== $key) {
+            if (self::normalize($existing->getFieldName()) !== $key) {
                 $headers[] = $existing;
                 continue;
             }
@@ -160,11 +160,11 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function without(string $name): self
     {
-        $key = self::normalise($name);
+        $key = self::normalize($name);
 
         return $this->derive(array_values(array_filter(
             $this->headers,
-            static fn(HeaderInterface $header): bool => self::normalise($header->getFieldName()) !== $key,
+            static fn(HeaderInterface $header): bool => self::normalize($header->getFieldName()) !== $key,
         )));
     }
 
@@ -183,11 +183,11 @@ final readonly class Headers implements Countable, IteratorAggregate
      */
     public function all(string $name): array
     {
-        $key = self::normalise($name);
+        $key = self::normalize($name);
 
         return array_values(array_filter(
             $this->headers,
-            static fn(HeaderInterface $header): bool => self::normalise($header->getFieldName()) === $key,
+            static fn(HeaderInterface $header): bool => self::normalize($header->getFieldName()) === $key,
         ));
     }
 
@@ -352,7 +352,7 @@ final readonly class Headers implements Countable, IteratorAggregate
         return $built;
     }
 
-    private static function normalise(string $name): string
+    private static function normalize(string $name): string
     {
         return str_replace(
             search: ['-', '_', ' ', '.'],

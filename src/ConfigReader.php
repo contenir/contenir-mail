@@ -81,7 +81,7 @@ final readonly class ConfigReader
                 ));
             }
 
-            $name = self::normalise($key);
+            $name = self::normalize($key);
             if (! in_array($name, $keys, strict: true)) {
                 throw new Exception\InvalidArgumentException(sprintf(
                     '%s: unknown option "%s"; expected one of %s',
@@ -375,7 +375,7 @@ final readonly class ConfigReader
         return is_object($value) && method_exists($value, method: '__invoke') ? $value->__invoke(...) : null;
     }
 
-    private static function normalise(string $key): string
+    private static function normalize(string $key): string
     {
         return strtolower(str_replace(
             search: '-',

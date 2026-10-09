@@ -81,7 +81,7 @@ final class MaildirName
     {
         $letters = [];
         foreach ($flags as $flag) {
-            $flag = Flag::normalise($flag);
+            $flag = Flag::normalize($flag);
             if (Flag::Recent === $flag) {
                 throw new Exception\InvalidArgumentException('The Recent flag may not be set');
             }

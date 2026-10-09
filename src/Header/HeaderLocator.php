@@ -43,12 +43,12 @@ final readonly class HeaderLocator implements HeaderLocatorInterface
      */
     public function __construct(array $classes = [])
     {
-        $normalised = self::DEFAULTS;
+        $normalized = self::DEFAULTS;
         foreach ($classes as $name => $class) {
-            $normalised[self::normalise($name)] = $class;
+            $normalized[self::normalize($name)] = $class;
         }
 
-        $this->classes = $normalised;
+        $this->classes = $normalized;
     }
 
     /**
@@ -57,25 +57,25 @@ final readonly class HeaderLocator implements HeaderLocatorInterface
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(string $name, string $class): self
     {
-        return new self([...$this->classes, self::normalise($name) => $class]);
+        return new self([...$this->classes, self::normalize($name) => $class]);
     }
 
     #[Override]
     public function get(string $name): ?string
     {
-        return $this->classes[self::normalise($name)] ?? null;
+        return $this->classes[self::normalize($name)] ?? null;
     }
 
     #[Override]
     public function has(string $name): bool
     {
-        return array_key_exists(self::normalise($name), $this->classes);
+        return array_key_exists(self::normalize($name), $this->classes);
     }
 
     /**
      * "Content-Type", "content_type" and "contenttype" all name the same header.
      */
-    private static function normalise(string $name): string
+    private static function normalize(string $name): string
     {
         return str_replace(
             search: ['-', '_', ' ', '.'],

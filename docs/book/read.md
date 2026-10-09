@@ -536,8 +536,11 @@ A read part can be attached directly, since it is a `PartInterface`.
 
 Maildir and IMAP keep flags for each message. The common ones are cases of
 the `Contenir\Mail\Storage\Flag` enum: `Seen`, `Answered`, `Flagged`,
-`Deleted`, `Draft`, `Recent` and `Passed` (forwarded). Keywords, such as IMAP
-`$Junk` or a Maildir keyword letter, stay strings.
+`Deleted`, `Draft`, `Recent` and `Passed`. `Passed`, Maildir's name, is the
+IMAP keyword `$Forwarded`, and `Flag::Forwarded` names the same case.
+Keywords, such as IMAP `$Junk` or a Maildir keyword letter, stay strings.
+`Flag::normalize()` turns an IMAP name into its case, and leaves a keyword as
+it is.
 
 ```php
 use Contenir\Mail\Storage\Flag;

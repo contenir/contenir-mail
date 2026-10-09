@@ -121,7 +121,7 @@ final class Utf8Test extends TestCase
 
     #[Test]
     #[DataProvider('validityProvider')]
-    public function recognisesWellFormedUtf8(string $value, bool $expected): void
+    public function recognizesWellFormedUtf8(string $value, bool $expected): void
     {
         static::assertSame($expected, Utf8::isValid($value));
     }

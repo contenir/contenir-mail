@@ -40,7 +40,7 @@ final readonly class ContentDisposition implements HeaderInterface
             ));
         }
 
-        $normalised = [];
+        $normalized = [];
         foreach ($parameters as $name => $value) {
             $name = MimeParameters::name($name, 'content-disposition');
 
@@ -51,11 +51,11 @@ final readonly class ContentDisposition implements HeaderInterface
                 );
             }
 
-            $normalised[$name] = MimeParameters::value($value);
+            $normalized[$name] = MimeParameters::value($value);
         }
 
         $this->disposition = strtolower($disposition);
-        $this->parameters  = $normalised;
+        $this->parameters  = $normalized;
     }
 
     /**

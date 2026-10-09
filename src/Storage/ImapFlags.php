@@ -80,7 +80,7 @@ final class ImapFlags
      */
     private static function name(Flag|string $flag): string
     {
-        $flag = Flag::normalise($flag);
+        $flag = Flag::normalize($flag);
         if ($flag instanceof Flag) {
             return $flag->value;
         }

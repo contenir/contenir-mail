@@ -8,6 +8,8 @@ use Contenir\Mail\Storage\Flag;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -25,13 +27,51 @@ final class FlagTest extends TestCase
     #[Test]
     public function keepsCaseAsItIs(): void
     {
-        static::assertSame(Flag::Draft, Flag::normalise(Flag::Draft));
+        static::assertSame(Flag::Draft, Flag::normalize(Flag::Draft));
     }
 
     #[Test]
-    public function normalisesImapName(): void
+    public function normalizesImapName(): void
     {
-        static::assertSame(Flag::Draft, Flag::normalise('\draft'));
+        static::assertSame(Flag::Draft, Flag::normalize('\draft'));
+    }
+
+    #[DataProvider('normalizeProvider')]
+    #[IgnoreDeprecations]
+    #[Test]
+    public function normalizesAlikeUnderTheBritishSpelling(Flag|string $flag, Flag|string $expected): void
+    {
+        static::assertSame($expected, Flag::normalise($flag));
+    }
+
+    #[IgnoreDeprecations]
+    #[RequiresPhp('>= 8.4')]
+    #[Test]
+    public function deprecatesTheBritishSpelling(): void
+    {
+        $this->expectUserDeprecationMessage(
+            'Method Contenir\Mail\Storage\Flag::normalise() is deprecated since 0.3.0, use Flag::normalize()',
+        );
+
+        Flag::normalise('\Seen');
+    }
+
+    #[Test]
+    public function namesPassedByItsImapKeyword(): void
+    {
+        static::assertSame(Flag::Passed, Flag::Forwarded);
+    }
+
+    /**
+     * @return array<string, array{Flag|string, Flag|string}>
+     */
+    public static function normalizeProvider(): array
+    {
+        return [
+            'case'      => [Flag::Draft, Flag::Draft],
+            'imap name' => ['\draft', Flag::Draft],
+            'keyword'   => ['$Junk', '$Junk'],
+        ];
     }
 
     #[DataProvider('maildirProvider')]

@@ -74,7 +74,7 @@ implemented. The gaps to close are listed at the end.
 | RFC 5321 §4.2 Reply parsing, multiline replies | Conforms | Strict parsing; at most 100 lines. `readsEveryLineOfMultilineReply`, `refusesMalformedReply`, `refusesReplyLongerThanLimit` |
 | RFC 5321 §4.1.2 MAIL and RCPT path syntax | Conforms | Controls, angle brackets and unquoted spaces refused. `refusesUnsafeSenderAgainstCommandInjection` |
 | RFC 5321 §4.5.2 Dot-stuffing | Conforms | `doublesLeadingDot` |
-| RFC 5321 §2.3.8 Lines end with CRLF; no bare CR or LF | Conforms | Normalised before dot-stuffing. `normalisesLineEndingsToCrlf`, `sendsNoEarlyEndOfDataAgainstSmtpSmuggling` |
+| RFC 5321 §2.3.8 Lines end with CRLF; no bare CR or LF | Conforms | Normalised before dot-stuffing. `normalizesLineEndingsToCrlf`, `sendsNoEarlyEndOfDataAgainstSmtpSmuggling` |
 | RFC 5321 §4.5.3.1.6 Text lines at most 1000 octets including CRLF | Conforms | Longer lines refused, never rewritten. `refusesLineLongerThanLimitRatherThanAlteringIt` |
 | RFC 5321 §4.5.3.1 Local part at most 64, domain at most 255 octets | Conforms | `EmailAddressValidatorTest` length cases |
 | RFC 3207 STARTTLS, with capabilities discarded after it | Conforms | Required by default. `refusesServerThatDoesNotOfferStartTls`, `discardsCapabilitiesFromBeforeStartTls` |
@@ -116,7 +116,7 @@ and rev2 servers accept rev1 clients.
 | Requirement | Verdict | Evidence and notes |
 | --- | --- | --- |
 | §4.3 Literals for strings a quoted string cannot carry | Conforms | `sendsStringsAQuotedStringCannotCarryAsLiterals`, `appendsAMessageAsALiteral` |
-| RFC 7888 LITERAL+ and LITERAL- | Conforms | A literal is sent without waiting for the server's `+` when LITERAL+ is offered, or LITERAL- or IMAP4rev2 and it is at most 4096 bytes; otherwise the client waits. Only capabilities already read are consulted. `NonSynchronisingLiteralTest`, and against Dovecot in `ImapTest` |
+| RFC 7888 LITERAL+ and LITERAL- | Conforms | A literal is sent without waiting for the server's `+` when LITERAL+ is offered, or LITERAL- or IMAP4rev2 and it is at most 4096 bytes; otherwise the client waits. Only capabilities already read are consulted. `NonSynchronizingLiteralTest`, and against Dovecot in `ImapTest` |
 | §9 Sequence sets, flags and atoms | Conforms | Validated before sending. `CommandInjectionTest` |
 | §6.2.1 STARTTLS, with capabilities re-read | Conforms | Required by default. `refusesToContinueInPlainTextWhenStartTlsIsNotOffered` |
 | §6.2.3 LOGIN refused when `LOGINDISABLED` is advertised | Conforms | Capabilities are read before LOGIN, and again after STARTTLS; no password is sent when LOGIN is disabled. `refusesToSendPasswordWhenLoginIsDisabled` |

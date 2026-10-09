@@ -144,6 +144,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Protocol\Imap::preferImap4Rev2()`, so a storage can keep the session
   IMAP4rev1 without building the protocol itself. `Flag::Recent` is documented
   as unreliable over IMAP, since IMAP4rev2 removed `\Recent`.
+- `Storage\Flag::Forwarded`, a constant naming `Flag::Passed` by its IMAP
+  keyword, `$Forwarded`.
+- `Storage\Flag::normalize()`, the American spelling of `Flag::normalise()`,
+  which is deprecated.
 
 ### Changed
 
@@ -169,7 +173,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Deprecated
 
-- Nothing.
+- `Storage\Flag::normalise()`: use `Flag::normalize()`. Identifiers are
+  spelled the American way (docs/book/conventions.md); the British spelling
+  stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its
+  use.
 
 ### Removed
 

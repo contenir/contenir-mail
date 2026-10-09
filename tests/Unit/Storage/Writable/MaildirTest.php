@@ -816,7 +816,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function initialisesMaildir(): void
+    public function initializesMaildir(): void
     {
         Maildir::initMaildir("{$this->root}/new");
 
@@ -828,7 +828,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function initialisesMaildirPrivately(): void
+    public function initializesMaildirPrivately(): void
     {
         Maildir::initMaildir("{$this->root}/new");
 
