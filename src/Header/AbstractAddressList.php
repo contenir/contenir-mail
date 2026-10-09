@@ -126,7 +126,7 @@ abstract readonly class AbstractAddressList implements HeaderInterface
         }
 
         $entries = $this->entries;
-        $emails  = $this->emails;
+        $emails  = $this->emails ?? (new static(...$entries))->emails;
         foreach ($entry instanceof AddressList ? $entry : [$entry] as $address) {
             $email = strtolower($address->getEmail());
             if (array_key_exists($email, $emails)) {
