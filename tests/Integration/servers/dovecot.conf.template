@@ -34,13 +34,21 @@ namespace inbox {
 }
 
 # Every test connects from the same address, and Postfix asks over one auth
-# connection, so the wrong-password tests would build up an auth penalty of up
-# to 15 seconds, and a 2-second delay on each failure, and outlast the Postfix
-# SASL timeout. Neither protects anything here.
+# connection. Dovecot's anvil keeps a penalty for each address that fails to
+# sign in, which delays its next requests from 2 up to 15 seconds, past the
+# Postfix SASL timeout; and each failed reply waits 2 seconds more. Neither
+# protects anything here, so the penalty listener is closed (mode 0 is the
+# documented way to turn the penalty off) and the failure delay set to 0.
 auth_failure_delay = 0
+service anvil {
+  unix_listener anvil-auth-penalty {
+    mode = 0
+  }
+}
+
 passdb {
   driver = static
-  args = password=${MAIL_PASSWORD} nopenalty
+  args = password=${MAIL_PASSWORD}
 }
 
 userdb {

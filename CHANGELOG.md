@@ -285,6 +285,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Protocol\Imap::search()` takes `$criteria` instead of `$params`. In
   `Protocol\Pop3`, `$msgno` becomes `$number` in `getList()`, `uniqueid()`,
   `top()`, `retrieve()` and `delete()`.
+- `psr/container` is suggested instead of required. Only
+  `Container\TransportFactory`, which `ConfigProvider` and `Module` register,
+  uses it, and every PSR-11 container installs it; code that builds its
+  transports itself no longer pulls it in. An application that type-hints
+  PSR-11 interfaces without a container must require `psr/container` itself.
 
 ### Deprecated
 
@@ -297,11 +302,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Auth `type` spellings other than the IANA names, such as `crammd5`,
   `cram_md5` and `scramsha256`: they still work, with an `E_USER_DEPRECATED`
   notice.
-- `psr/container` is suggested instead of required. Only
-  `Container\TransportFactory`, which `ConfigProvider` and `Module` register,
-  uses it, and every PSR-11 container installs it; code that builds its
-  transports itself no longer pulls it in. An application that type-hints
-  PSR-11 interfaces without a container must require `psr/container` itself.
 - `Storage\Flag::normalise()`: use `Flag::normalize()`. Identifiers are
   spelled the American way (docs/book/conventions.md); the British spelling
   stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its
