@@ -23,6 +23,8 @@ use SensitiveParameter;
  * ```
  *
  * @api
+ *
+ * @mago-expect lint:excessive-parameter-list Built with named arguments; only the connection and user are needed.
  */
 final readonly class ImapConfig
 {
