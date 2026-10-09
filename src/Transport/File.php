@@ -16,7 +16,6 @@ use function bin2hex;
 use function chmod;
 use function fclose;
 use function fopen;
-use function fwrite;
 use function get_debug_type;
 use function is_string;
 use function preg_match;
@@ -24,7 +23,7 @@ use function random_bytes;
 use function restore_error_handler;
 use function set_error_handler;
 use function sprintf;
-use function strlen;
+use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -61,9 +60,13 @@ final class File implements TransportInterface
     /**
      * Write the message to a new file in the configured directory.
      *
+     * The message is written to the file as it is made, so an attachment read from a stream is
+     * never held in memory as a whole; a file that cannot be finished is removed.
+     *
      * @throws Exception\RuntimeException When the file name is not a plain name, a header is unsafe,
-     *     or the file exists or cannot be written.
-     * @throws Mime\Exception\RuntimeException When the message body cannot be written.
+     *     the file exists or cannot be created, or the message cannot be written to it.
+     * @throws Mime\Exception\RuntimeException When the message cannot be composed, such as after
+     *     embed() without setHtml().
      * @throws RandomException When the system has no source of randomness for the default name.
      */
     #[Override]
@@ -79,8 +82,8 @@ final class File implements TransportInterface
             ));
         }
 
-        $email = HeaderGuard::check($message->getHeaders())->toString() . Headers::EOL . $message->getBodyText();
-        $file  = $this->config->path . DIRECTORY_SEPARATOR . $name;
+        $headers = HeaderGuard::check($message->getHeaders())->toString() . Headers::EOL;
+        $file    = $this->config->path . DIRECTORY_SEPARATOR . $name;
 
         $error = '';
         set_error_handler(static function (int $_number, string $text) use (&$error): bool {
@@ -95,15 +98,23 @@ final class File implements TransportInterface
         }
 
         chmod($file, permissions: 0o600);
-        $written = fwrite($handle, $email);
-        fclose($handle);
-        // @codeCoverageIgnoreStart
-        if (strlen($email) !== $written) {
-            /** Only a full disk or quota makes a write to a newly created local file fall short. */
-            throw new Exception\RuntimeException(sprintf('Unable to write all of mail file "%s"', $file));
+        $written = false;
+        try {
+            Mime\StreamOutput::write($handle, $headers);
+            $message->writeBodyTo($handle);
+            $written = true;
+        } catch (Mime\Exception\RuntimeException $e) {
+            throw new Exception\RuntimeException(
+                sprintf('Unable to write all of mail file "%s": %s', $file, $e->getMessage()),
+                previous: $e,
+            );
+        } finally {
+            fclose($handle);
+            if (! $written) {
+                unlink($file);
+            }
         }
 
-        // @codeCoverageIgnoreEnd
         $this->lastFile = $file;
     }
 

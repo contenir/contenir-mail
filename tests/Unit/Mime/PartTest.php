@@ -19,11 +19,13 @@ use RuntimeException;
 
 use function array_map;
 use function chr;
+use function count;
 use function fclose;
 use function fopen;
 use function fwrite;
 use function implode;
 use function intdiv;
+use function iterator_to_array;
 use function range;
 use function str_repeat;
 use function stream_context_create;
@@ -361,6 +363,39 @@ final class PartTest extends TestCase
         static::assertSame(
             str_repeat('YWJj', times: 18) . "\r\n" . str_repeat('YWJj', times: 18) . "\r\n" . 'YWJj',
             (new Part(self::temporaryStream($content)))->getEncodedContent(),
+        );
+    }
+
+    #[Test]
+    public function encodesStreamAsBase64AReadAtATime(): void
+    {
+        $content = self::bytes((54 * 1024 * 2) + 1);
+        $chunks  = iterator_to_array(
+            (new Part(self::temporaryStream($content)))->encodedChunks(),
+            preserve_keys: false,
+        );
+
+        static::assertSame(
+            [3, Mime::encode($content, TransferEncoding::Base64, "\r\n")],
+            [count($chunks), implode('', $chunks)],
+        );
+    }
+
+    #[Test]
+    public function encodesAnEmptyStreamAsNoChunks(): void
+    {
+        static::assertSame([], iterator_to_array((new Part(self::temporaryStream('')))->encodedChunks()));
+    }
+
+    #[DataProvider('everyEncodingProvider')]
+    #[Test]
+    public function encodesStringContentAsOneChunk(TransferEncoding $encoding): void
+    {
+        $part = new Part(self::bytes(200), encoding: $encoding);
+
+        static::assertSame(
+            [$part->getEncodedContent()],
+            iterator_to_array($part->encodedChunks(), preserve_keys: false),
         );
     }
 

@@ -88,11 +88,11 @@ final class TokenizerScalingTest extends TestCase
         $ratio = Growth::ratio(
             $line,
             static fn(string $input): int => count($imap->decode($input)),
-            size: 5_000,
-            factor: 8,
+            size: 2_500,
+            factor: 16,
         );
 
-        static::assertLessThan(24, $ratio, 'Decoding a line 8 times as long took over 24 times as long');
+        static::assertLessThan(64, $ratio, 'Decoding a line 16 times as long took over 64 times as long');
     }
 
     /**

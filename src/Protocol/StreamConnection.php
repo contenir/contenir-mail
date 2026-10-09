@@ -45,6 +45,9 @@ final class StreamConnection implements ConnectionInterface
     /** The TLS versions offered, for implicit TLS and for STARTTLS alike */
     public const int CRYPTO_METHOD = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
 
+    /** The most bytes handed to fwrite() at a time, so a large write never copies what is left of it */
+    private const int WRITE_CHUNK = 65_536;
+
     /** @var resource|null */
     private mixed $stream = null;
 
@@ -115,16 +118,21 @@ final class StreamConnection implements ConnectionInterface
     {
         $stream = $this->stream();
 
+        $length = strlen($data);
+        $offset = 0;
         stream_set_blocking($stream, enable: false);
         try {
-            while ('' !== $data) {
+            while ($offset < $length) {
                 $this->awaitWritable($stream);
-                [$written, $warning] = ErrorCapture::run(static fn(): int|false => fwrite($stream, $data));
+                [$written, $warning] = ErrorCapture::run(static fn(): int|false => fwrite(
+                    $stream,
+                    substr($data, $offset, self::WRITE_CHUNK),
+                ));
                 if (false === $written) {
                     throw new Exception\RuntimeException(sprintf('Cannot write to %s: %s', $this->peer, $warning));
                 }
 
-                $data = substr($data, $written);
+                $offset += $written;
             }
         } finally {
             stream_set_blocking($stream, enable: true);

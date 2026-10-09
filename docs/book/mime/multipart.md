@@ -71,6 +71,16 @@ Content-Transfer-Encoding: quoted-printable
 When a multipart is a message's body, `Message` writes a short preamble for
 mail clients that do not understand MIME before the first boundary.
 
+`PartWriter::write($part, $stream)` writes the same bytes to a stream as they
+are made, and `Part::encodedChunks()` gives a leaf's encoded content in
+pieces: base64 of a stream is encoded a read at a time, so a large attachment
+is never held in memory as a whole.
+
+```php
+$stream = fopen('php://temp', 'w+b');
+PartWriter::write($multipart, $stream);
+```
+
 ## Available methods
 
 - `getType()`: The `MultipartType`.
