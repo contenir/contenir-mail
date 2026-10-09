@@ -139,6 +139,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ConnectionInterface::waitUntilReadable()`, which `StreamConnection` and
   `Testing\InMemoryConnection` implement; a stall in an `InMemoryConnection`
   script ends a wait, and `waits()` lists how long the client waited. (#52)
+- `Storage\Part::saveTo($stream)`, and `Storage\Message::saveTo()`, write
+  the content, decoded as `getContent()` decodes it, to a stream a block at a
+  time and return the number of bytes written, so a large attachment can be
+  saved to a file without holding it in memory.
 
 ### Changed
 
@@ -205,6 +209,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `=?ISO_8859-1?Q?caf=E9?=` as ASCII.
 - A MIME boundary is now 128 random bits from `random_bytes()`, instead of a
   hash of `uniqid()`, which a sender could predict.
+- Each Maildir message held its file open for as long as it was held, so
+  holding 10,000 messages took 10,007 file descriptors, past the usual limit
+  of 1024. A message file is now opened only while it is read. A message
+  whose file is moved or removed after it was read throws when it is next
+  read, as `getMessage()` does.
+- Walking the parts of a large message read it line by line with a seek
+  before each line, which on a `php://temp` stream drops its read buffer.
+  Bodies are now read in 64 KB blocks and searched for the boundary, so
+  walking a 28 MB message takes 18 ms instead of 1 second.
+- Decoding a base64 part held four copies of it. Content is now decoded a
+  block at a time: a 20 MB attachment takes 20 MB instead of 81 MB to
+  decode, and 79 ms instead of 115 ms. Quoted-printable is decoded the same
+  way. The result is unchanged, stray characters in base64 included.
+- Decompressing TNEF RTF made method calls for each byte. Literals and
+  references are now copied whole, so RTF decompresses six to ten times as
+  fast: a hostile 7.5 MB `winmail.dat` whose RTF fills the 64 MB budget
+  takes 3 seconds instead of 28.
 
 ## 0.2.1 - TBD
 
