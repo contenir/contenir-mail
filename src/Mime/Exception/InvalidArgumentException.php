@@ -1,5 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Contenir\Mail\Mime\Exception;
 
-class InvalidArgumentException extends \InvalidArgumentException implements ExceptionInterface {}
+use Contenir\Mail\Exception;
+
+/**
+ * Exception for Contenir\Mail\Mime component.
+ *
+ * @final Released as extendable in 0.2; it will be final in 1.0.
+ * @api
+ */
+class InvalidArgumentException extends Exception\InvalidArgumentException implements ExceptionInterface {}

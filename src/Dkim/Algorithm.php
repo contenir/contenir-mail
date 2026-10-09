@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Dkim;
 
-use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 
 use function addcslashes;
 use function sprintf;

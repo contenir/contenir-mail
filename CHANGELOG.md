@@ -195,6 +195,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is refused. It is deprecated, as it is for IMAP and POP3.
 - When TLS from the start fails on port 25, 110, 143 or 587, where servers
   expect STARTTLS, the error suggests setting `security` to `starttls`.
+- DKIM signing has its own exceptions: `Dkim\Exception\ExceptionInterface`,
+  with `InvalidArgumentException`, `RuntimeException` and `LogicException`,
+  each extending the `Contenir\Mail\Exception` class of the same name. A
+  malformed DKIM-Signature line throws
+  `Dkim\Exception\InvalidArgumentException` rather than the header exception,
+  and a setting of the wrong type, read for every config alike, still throws
+  `Contenir\Mail\Exception\InvalidArgumentException`.
 
 ### Changed
 
@@ -250,6 +257,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - SMTP sends the empty response that ends an XOAUTH2 refusal, and SCRAM's
   answer to the server's proof, as secrets, so the session log shows
   `[credentials hidden]` for them.
+- `Protocol\AbstractProtocol`, `Protocol\Imap`, `Protocol\Pop3` and
+  `Transport\Smtp` refuse serialize and unserialize with the new
+  `Protocol\Exception\LogicException` and `Transport\Exception\LogicException`
+  instead of PHP's `LogicException`. They extend it through
+  `Contenir\Mail\Exception\LogicException`, so `catch (LogicException $e)`
+  still matches, and `catch (Contenir\Mail\Exception\ExceptionInterface $e)`
+  now does too.
+- `Mime\Exception\InvalidArgumentException` and `RuntimeException` extend
+  `Contenir\Mail\Exception\InvalidArgumentException` and `RuntimeException`,
+  as every other component's exceptions do, and so still extend PHP's. They
+  are marked `@final`: they stay extendable in 0.x and will be final in 1.0.
 
 ### Deprecated
 
@@ -311,6 +329,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or argument form is reported through the private method that reads it.
   Nothing in the library calls a deprecated API except to read a form the
   caller gave.
+- `Contenir\Mail\Exception\BadMethodCallException` and
+  `Transport\Exception\DomainException`: nothing in the library throws them.
+  Catch the component's `ExceptionInterface`. PHP cannot mark a class
+  `#[\Deprecated]`, so only their docblocks say so.
 
 ### Removed
 

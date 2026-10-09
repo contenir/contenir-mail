@@ -1,30 +1,6 @@
 variant = "loose"
 
 [[issues]]
-file = "src/Exception/ExceptionInterface.php"
-code = "missing-api-or-internal"
-message = 'Interface `Contenir\Mail\Exception\ExceptionInterface` is missing an `@api` or `@internal` annotation.'
-count = 1
-
-[[issues]]
-file = "src/Mime/Exception/ExceptionInterface.php"
-code = "missing-api-or-internal"
-message = 'Interface `Contenir\Mail\Mime\Exception\ExceptionInterface` is missing an `@api` or `@internal` annotation.'
-count = 1
-
-[[issues]]
-file = "src/Mime/Exception/InvalidArgumentException.php"
-code = "class-must-be-final"
-message = 'Class `Contenir\Mail\Mime\Exception\InvalidArgumentException` should be declared `final`.'
-count = 1
-
-[[issues]]
-file = "src/Mime/Exception/RuntimeException.php"
-code = "class-must-be-final"
-message = 'Class `Contenir\Mail\Mime\Exception\RuntimeException` should be declared `final`.'
-count = 1
-
-[[issues]]
 file = "src/Mime/Mime.php"
 code = "impossible-condition"
 message = "Redundant ternary operator: condition is always falsy."

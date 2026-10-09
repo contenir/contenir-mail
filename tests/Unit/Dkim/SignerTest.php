@@ -6,10 +6,10 @@ namespace Contenir\Mail\Tests\Unit\Dkim;
 
 use Contenir\Mail\Dkim\Canonicalization;
 use Contenir\Mail\Dkim\DkimConfig;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 use Contenir\Mail\Dkim\PrivateKey;
 use Contenir\Mail\Dkim\SignatureHeader;
 use Contenir\Mail\Dkim\Signer;
-use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\Date;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Headers;

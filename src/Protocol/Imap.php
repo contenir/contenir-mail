@@ -8,6 +8,7 @@ use Closure;
 use Contenir\Mail\Header\SafeText;
 use Contenir\Mail\Imap\NamespaceEntry;
 use Contenir\Mail\Imap\Namespaces;
+use Contenir\Mail\Protocol\Exception\LogicException;
 use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Sasl\Authentication;
@@ -15,7 +16,6 @@ use Contenir\Mail\Protocol\Sasl\MechanismInterface;
 use Contenir\Mail\Protocol\Sasl\Reply;
 use Contenir\Mail\SystemClock;
 use Generator;
-use LogicException;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;
 

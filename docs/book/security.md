@@ -192,7 +192,10 @@ Protocol and storage objects refuse to be unserialized, so a crafted payload
 never reaches a destructor that talks to a server (the gadget class of
 CVE-2021-3007 and CVE-2024-28859): `refusesToUnserializeSoACraftedPayloadNeverReachesTheDestructor`,
 `cannotBeUnserialized`. A protocol that never connected sends nothing when it is
-destroyed: `sendsNothingWhenDestroyedWithoutHavingConnected`.
+destroyed: `sendsNothingWhenDestroyedWithoutHavingConnected`. The refusal is
+an exception of the package, a `LogicException` from the component's
+`Exception` namespace, so `catch (Contenir\Mail\Exception\ExceptionInterface)`
+handles it like any other.
 
 ## Vulnerability history
 

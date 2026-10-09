@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Dkim;
 
-use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Exception\RuntimeException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\RuntimeException;
 use Contenir\Mail\Headers;
 use Contenir\Mail\Message;
 use Contenir\Mail\Mime;

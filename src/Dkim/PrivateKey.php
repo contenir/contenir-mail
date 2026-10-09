@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Dkim;
 
-use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Exception\RuntimeException;
-use LogicException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\LogicException;
+use Contenir\Mail\Dkim\Exception\RuntimeException;
 use OpenSSLAsymmetricKey;
 use SensitiveParameter;
 

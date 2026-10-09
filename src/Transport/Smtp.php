@@ -10,7 +10,7 @@ use Contenir\Mail\Message;
 use Contenir\Mail\Mime;
 use Contenir\Mail\Protocol;
 use Contenir\Mail\SystemClock;
-use LogicException;
+use Contenir\Mail\Transport\Exception\LogicException;
 use Override;
 use Psr\Clock\ClockInterface;
 use SensitiveParameter;

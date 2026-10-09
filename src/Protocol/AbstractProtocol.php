@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Contenir\Mail\Protocol\Exception\LogicException;
 use Contenir\Mail\Validator\HostnameValidator;
-use LogicException;
 use SensitiveParameter;
 
 use function array_map;

@@ -6,12 +6,12 @@ namespace Contenir\Mail\Tests\Unit\Protocol;
 
 use Contenir\Mail\Protocol\AbstractProtocol;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\Exception\LogicException;
 use Contenir\Mail\Protocol\Exception\RuntimeException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\StreamConnection;
 use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ExposedProtocol;
-use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

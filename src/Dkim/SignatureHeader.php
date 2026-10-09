@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Dkim;
 
-use Contenir\Mail\Header\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderValue;

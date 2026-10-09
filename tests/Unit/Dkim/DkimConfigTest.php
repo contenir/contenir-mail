@@ -7,8 +7,9 @@ namespace Contenir\Mail\Tests\Unit\Dkim;
 use Contenir\Mail\Dkim\Algorithm;
 use Contenir\Mail\Dkim\Canonicalization;
 use Contenir\Mail\Dkim\DkimConfig;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 use Contenir\Mail\Dkim\PrivateKey;
-use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Exception\InvalidArgumentException as MailInvalidArgumentException;
 use Contenir\Mail\Tests\Unit\TestAsset\DkimKeys;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -460,7 +461,7 @@ final class DkimConfigTest extends TestCase
     {
         $settings = ['domain' => 'example.com', 'selector' => 'mail', 'private_key' => DkimKeys::RFC8463_ED25519_SEED];
         unset($settings[$missing]);
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MailInvalidArgumentException::class);
         $this->expectExceptionMessage(DkimConfig::class . ": option \"{$missing}\" is required");
 
         DkimConfig::fromIterable($settings);

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Protocol\Exception\LogicException;
 use Contenir\Mail\Protocol\Pop3\Response;
 use Contenir\Mail\Protocol\Sasl\Authentication;
 use Contenir\Mail\Protocol\Sasl\MechanismInterface;
 use Contenir\Mail\Protocol\Sasl\Reply;
-use LogicException;
 use SensitiveParameter;
 
 use function array_map;

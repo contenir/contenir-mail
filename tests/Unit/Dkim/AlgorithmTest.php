@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Tests\Unit\Dkim;
 
 use Contenir\Mail\Dkim\Algorithm;
-use Contenir\Mail\Exception\InvalidArgumentException;
+use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
