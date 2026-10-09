@@ -121,6 +121,7 @@ Key           | Default        | Meaning
 `peer_name`         | the host       | The name the server's certificate must carry
 `allow_self_signed` | `false`        | Accept a self-signed certificate; weakens verification
 `local_cert`, `local_pk` | none     | A client certificate, and its key if in a separate file
+`passphrase`        | none           | The passphrase of an encrypted client key
 
 The TLS settings apply to TLS from the start and to STARTTLS. See the security
 page for their risks.

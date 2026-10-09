@@ -152,6 +152,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `AbstractStorage::supports(Capability $capability): ?bool`, which every
   storage has. It answers as `getCapabilities()` does, with null for a feature
   not yet known, such as TOP on a POP3 server before a message is read.
+- A `passphrase` TLS setting, `TlsConfig::$localPrivateKeyPassphrase`, for a
+  client key that is encrypted. It is passed to the stream as the ssl context
+  option of that name, needs `local_cert`, is marked `#[SensitiveParameter]`,
+  and `var_dump()` shows `TlsConfig::REDACTED` in its place.
+  `ConnectionConfig::fromIterable()` marks its settings
+  `#[SensitiveParameter]` too.
 
 ### Changed
 

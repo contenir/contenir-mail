@@ -15,6 +15,7 @@ use Contenir\Mail\Protocol\Pop3;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\Smtp\Auth\Plain;
+use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\Unit\Protocol\TestAsset\ScriptedServer;
@@ -188,6 +189,22 @@ final class SecretsInTracesTest extends TestCase
                     'user'     => 'bob',
                     'password' => [self::PASSWORD],
                 ]),
+                [self::PASSWORD],
+            ],
+            'TLS settings with a passphrase and an invalid file'              => [
+                static fn(): ConnectionConfig => ConnectionConfig::fromIterable([
+                    'cafile'     => '',
+                    'local_cert' => 'client.pem',
+                    'passphrase' => self::PASSWORD,
+                ]),
+                [self::PASSWORD],
+            ],
+            'a TLS passphrase given with an invalid file'                     => [
+                static fn(): TlsConfig => new TlsConfig(
+                    caFile: '',
+                    localCert: 'client.pem',
+                    localPrivateKeyPassphrase: self::PASSWORD,
+                ),
                 [self::PASSWORD],
             ],
             'a list holding an item of the wrong type'                        => [

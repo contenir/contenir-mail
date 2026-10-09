@@ -52,8 +52,9 @@ unique ID, as in `getMessage(number: 3)` and
 - What is shown in place of a secret is `REDACTED`.
 - Identifiers use American spelling; prose may use British.
 - Settings arrays keep the spelling of what they mirror: TLS settings are
-  read as `cafile`, `capath` and `local_pk`, PHP's ssl context options, while
-  `TlsConfig` names them `caFile`, `caPath` and `localPrivateKey`.
+  read as `cafile`, `capath`, `local_pk` and `passphrase`, PHP's ssl context
+  options, while `TlsConfig` names them `caFile`, `caPath`, `localPrivateKey`
+  and `localPrivateKeyPassphrase`.
 
 ## Errors
 
