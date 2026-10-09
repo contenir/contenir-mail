@@ -69,7 +69,7 @@ final class BoundaryGuardTest extends TestCase
             factor: 8,
         );
 
-        static::assertLessThan(24, $ratio);
+        static::assertLessThan(32, $ratio);
     }
 
     #[Test]

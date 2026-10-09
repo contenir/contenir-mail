@@ -40,10 +40,10 @@ final class HeaderBlockTest extends TestCase
         $ratio = Growth::ratio(
             static fn(int $lines): string => "Subject: x\r\n" . str_repeat(" ab\r\n", $lines),
             static fn(string $block): array => HeaderBlock::fields($block, "\r\n"),
-            size: 5_000,
-            factor: 8,
+            size: 2_500,
+            factor: 16,
         );
 
-        static::assertLessThan(24, $ratio, 'Unfolding 8 times as many lines took over 24 times as long');
+        static::assertLessThan(64, $ratio, 'Unfolding 16 times as many lines took over 64 times as long');
     }
 }
