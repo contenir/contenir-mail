@@ -448,6 +448,24 @@ foreach (new RecursiveIteratorIterator($message) as $part) {
 }
 ```
 
+`getContent()` returns the whole attachment as a string. To save a large one
+without holding it in memory, `saveTo()` writes the decoded content to an
+open stream a block at a time, and returns the number of bytes written:
+
+```php
+foreach (new RecursiveIteratorIterator($message) as $part) {
+    if (null !== $part->getFilename()) {
+        $file = fopen("/srv/attachments/{$part->getSafeFilename()}", 'wb');
+        $part->saveTo($file);
+        fclose($file);
+    }
+}
+```
+
+The content is the same as `getContent()` returns. Nothing is written for a
+multipart, and a stream that cannot be written throws a
+`Storage\Exception\RuntimeException`.
+
 Display names and comments are kept as written too. Pass them through
 `Contenir\Mail\Header\SafeText::addressList()` or `SafeText::display()` before
 showing them, to remove control and bidirectional characters.

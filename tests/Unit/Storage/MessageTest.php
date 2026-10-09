@@ -22,7 +22,10 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
+use function fopen;
 use function iterator_to_array;
+use function rewind;
+use function stream_get_contents;
 
 #[CoversClass(Message::class)]
 #[CoversClass(Part::class)]
@@ -117,6 +120,16 @@ final class MessageTest extends TestCase
     public function readsContent(): void
     {
         static::assertSame('Hello', Message::fromString(self::MESSAGE)->getContent());
+    }
+
+    #[Test]
+    public function savesContentToAStream(): void
+    {
+        $stream = fopen('php://memory', mode: 'w+b');
+        $count  = Message::fromString("Content-Transfer-Encoding: base64\r\n\r\nSGVsbG8=")->saveTo($stream);
+        rewind($stream);
+
+        static::assertSame([5, 'Hello'], [$count, stream_get_contents($stream)]);
     }
 
     #[Test]

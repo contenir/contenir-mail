@@ -11,8 +11,11 @@ use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Part;
 use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\Decoder;
+use Contenir\Mail\Storage\Part\Lines;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
+use Contenir\Mail\Storage\Part\Window;
 use Contenir\Mail\Storage\TreeIterator;
 use Contenir\Mail\Tests\Unit\Storage\TestAsset\Fixtures;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,16 +28,27 @@ use RecursiveIteratorIterator;
 use function array_keys;
 use function array_map;
 use function base64_encode;
+use function chunk_split;
 use function fclose;
 use function fopen;
 use function fwrite;
 use function iterator_to_array;
+use function memory_get_peak_usage;
+use function memory_get_usage;
+use function memory_reset_peak_usage;
+use function quoted_printable_encode;
+use function rewind;
 use function str_repeat;
+use function stream_get_contents;
+use function strlen;
 
 #[CoversClass(Part::class)]
 #[CoversClass(Content::class)]
+#[CoversClass(Decoder::class)]
+#[CoversClass(Lines::class)]
 #[CoversClass(MimeParser::class)]
 #[CoversClass(MultipartSplitter::class)]
+#[CoversClass(Window::class)]
 #[CoversClass(TreeIterator::class)]
 #[Group('unit')]
 final class PartTest extends TestCase
@@ -374,7 +388,7 @@ final class PartTest extends TestCase
     #[Test]
     public function readsLinesOnlyWithinTheRange(): void
     {
-        static::assertSame([0 => 'ab'], iterator_to_array(Content::fromString("ab\ncd")->slice(0, 2)->lines()));
+        static::assertSame([0 => 'ab'], iterator_to_array(Lines::of(Content::fromString("ab\ncd")->slice(0, 2))));
     }
 
     #[Test]
@@ -383,7 +397,7 @@ final class PartTest extends TestCase
         $stream = fopen('php://memory', mode: 'w+b');
         fwrite($stream, data: 'ab');
 
-        static::assertSame([0 => 'ab'], iterator_to_array(Content::fromStream($stream, start: 0, end: 5)->lines()));
+        static::assertSame([0 => 'ab'], iterator_to_array(Lines::of(Content::fromStream($stream, start: 0, end: 5))));
     }
 
     #[Test]
@@ -553,14 +567,14 @@ final class PartTest extends TestCase
     {
         static::assertSame(
             [0 => "a\n", 2 => "bc\n", 5 => 'd'],
-            iterator_to_array(Content::fromString("a\nbc\nd")->lines()),
+            iterator_to_array(Lines::of(Content::fromString("a\nbc\nd"))),
         );
     }
 
     #[Test]
     public function readsLongLinesInChunks(): void
     {
-        $pieces = iterator_to_array(Content::fromString(str_repeat('a', times: Content::CHUNK + 1))->lines());
+        $pieces = iterator_to_array(Lines::of(Content::fromString(str_repeat('a', times: Content::CHUNK + 1))));
 
         static::assertSame([0, Content::CHUNK], array_keys($pieces));
     }
@@ -568,7 +582,7 @@ final class PartTest extends TestCase
     #[Test]
     public function knowsWhetherAPieceEndsALine(): void
     {
-        static::assertSame([true, false], [Content::endsLine("a\n"), Content::endsLine('a')]);
+        static::assertSame([true, false], [Lines::endsLine("a\n"), Lines::endsLine('a')]);
     }
 
     #[Test]
@@ -625,6 +639,78 @@ final class PartTest extends TestCase
         $this->expectExceptionMessage('The storage this message was read from has been closed');
 
         $content->read();
+    }
+
+    #[DataProvider('saveProvider')]
+    #[Test]
+    public function savesTheContentGetContentReturns(string $raw): void
+    {
+        $part   = Part::fromString($raw);
+        $stream = fopen('php://memory', mode: 'w+b');
+        $count  = $part->saveTo($stream);
+        rewind($stream);
+
+        static::assertSame(
+            [strlen($part->getContent()), $part->getContent()],
+            [$count, stream_get_contents($stream)],
+        );
+    }
+
+    #[Test]
+    public function savesNothingOfAMultipart(): void
+    {
+        $stream = fopen('php://memory', mode: 'w+b');
+        $count  = Part::fromString(Fixtures::manyParts(2))->saveTo($stream);
+        rewind($stream);
+
+        static::assertSame([0, ''], [$count, stream_get_contents($stream)]);
+    }
+
+    #[Test]
+    public function refusesToSaveToAStreamThatCannotBeWritten(): void
+    {
+        $part = Part::fromString("Content-Transfer-Encoding: base64\r\n\r\nYWI=");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot write the content to the stream');
+
+        $part->saveTo(fopen('php://memory', mode: 'rb'));
+    }
+
+    /**
+     * A large attachment is decoded a block at a time, never held whole.
+     */
+    #[Test]
+    public function savesALargeAttachmentWithoutHoldingIt(): void
+    {
+        $part = Part::fromString(
+            "Content-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode(str_repeat('a', times: 4_000_000))),
+        );
+        $stream = fopen('php://temp/maxmemory:0', mode: 'w+b');
+        $before = memory_get_usage();
+        memory_reset_peak_usage();
+        $part->saveTo($stream);
+
+        static::assertLessThan(1_000_000, memory_get_peak_usage() - $before);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function saveProvider(): array
+    {
+        $binary = str_repeat("\x00\xFF binary \r\n", times: 5_000);
+        $text   = str_repeat("Grüße = tschüß\r\n", times: 5_000);
+
+        return [
+            'base64'           => ["Content-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($binary))],
+            'quoted-printable' => [
+                "Content-Transfer-Encoding: quoted-printable\r\n\r\n" . quoted_printable_encode($text),
+            ],
+            '7bit'             => ["Content-Transfer-Encoding: 7bit\r\n\r\n" . str_repeat("plain\r\n", times: 10_000)],
+            '8bit'             => ["Content-Transfer-Encoding: 8bit\r\n\r\n{$text}"],
+            'empty'            => ["Content-Transfer-Encoding: base64\r\n\r\n"],
+        ];
     }
 
     /**

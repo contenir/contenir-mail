@@ -6,41 +6,50 @@ namespace Contenir\Mail\Storage\Part;
 
 use Closure;
 use Contenir\Mail\Storage\Exception;
+use Contenir\Mail\Storage\FileSystem;
 use Generator;
 
-use function fgets;
+use function fclose;
 use function fopen;
+use function fread;
 use function fseek;
 use function fwrite;
 use function is_resource;
 use function max;
 use function min;
 use function preg_replace;
-use function str_ends_with;
-use function stream_get_contents;
 use function strlen;
 
 /**
- * Bytes of a stored message or part: a range of a stream, read only when asked for.
+ * Bytes of a stored message or part: a range of a stream or file, read only when asked for.
  *
  * Mbox and Maildir messages are ranges of their files, so a huge message
- * is never read whole just to list it or to reach one of its parts. Text
- * from a server, or from a string, goes into a php://temp stream, which
- * keeps up to 2 MB in memory and the rest on disk. A remote body is fetched
- * by a loader the first time it is needed.
+ * is never read whole just to list it or to reach one of its parts. A
+ * Maildir file is opened only while it is being read, so holding many
+ * messages holds no open files. Text from a server, or from a string, goes
+ * into a php://temp stream, which keeps up to 2 MB in memory and the rest
+ * on disk. A remote body is fetched by a loader the first time it is needed.
+ *
+ * @mago-expect lint:too-many-methods One constructor per source, and reading as a whole, in blocks and in slices.
+ * @mago-expect lint:kan-defect Three sources, a shared stream, a file and a loader, read the same ways.
  *
  * @internal Used by Storage\Part.
  */
 final class Content
 {
-    /** Bytes read at a time when scanning lines */
+    /** Most bytes in one piece from Lines::of() */
     public const int CHUNK = 8192;
+
+    /** Most bytes read from the stream at a time */
+    public const int BLOCK = 65_536;
 
     /** @var resource|null */
     private mixed $stream = null;
 
     /** @var (Closure(): string)|null */
     private ?Closure $loader;
+
+    private ?string $path = null;
 
     private int $start = 0;
 
@@ -78,6 +87,19 @@ final class Content
     }
 
     /**
+     * A range of a file, opened each time it is read and closed again, so holding it holds no open file.
+     */
+    public static function fromFile(string $path, int $start, int $end): self
+    {
+        $content        = new self(null, unquoteFrom: false);
+        $content->path  = $path;
+        $content->start = $start;
+        $content->end   = max($start, $end);
+
+        return $content;
+    }
+
+    /**
      * @param Closure(): string $loader Called once, the first time the bytes are needed.
      */
     public static function lazy(Closure $loader): self
@@ -92,23 +114,24 @@ final class Content
      */
     public function length(): int
     {
-        $this->load();
+        if (null === $this->path) {
+            $this->load();
+        }
 
         return $this->end - $this->start;
     }
 
     /**
-     * @throws Exception\RuntimeException When the storage has been closed.
+     * @throws Exception\RuntimeException When the storage has been closed, or the file cannot be opened.
      */
     public function read(): string
     {
-        $stream = $this->load();
-        fseek($stream, $this->start);
-        $bytes = (string) stream_get_contents($stream, $this->end - $this->start);
+        $bytes = '';
+        foreach ($this->chunks() as $chunk) {
+            $bytes .= $chunk;
+        }
 
-        return $this->unquoteFrom
-            ? (string) preg_replace('/^>(>*From )/m', replacement: '$1', subject: $bytes)
-            : $bytes;
+        return $bytes;
     }
 
     /**
@@ -118,50 +141,80 @@ final class Content
      */
     public function slice(int $from, int $to): self
     {
-        $stream = $this->load();
+        if (null === $this->path) {
+            $this->load();
+        }
 
-        return self::fromStream(
-            $stream,
-            min($this->start + $from, $this->end),
-            min($this->start + $to, $this->end),
-            $this->unquoteFrom,
-        );
+        $slice        = clone $this;
+        $slice->start = min($this->start + $from, $this->end);
+        $slice->end   = max($slice->start, min($this->start + $to, $this->end));
+
+        return $slice;
     }
 
     /**
-     * The content in pieces of at most CHUNK bytes, each ending at a line
-     * break or at the chunk size, keyed by their offset from the start.
+     * The bytes as stored, in blocks of at most BLOCK bytes, keyed by their offset from the start.
      *
-     * A piece starts a line when the piece before it ended with "\n". A
-     * stream that ends early, as a file cut short since it was read, ends
-     * the pieces there.
+     * The stream is sought before each block, so other ranges of a shared
+     * stream may be read between blocks; a file is opened for the blocks and
+     * closed after them. A stream that ends early, as a file cut short since
+     * it was read, ends the blocks there.
      *
      * @return Generator<int, string>
-     * @throws Exception\RuntimeException When the storage has been closed.
+     * @throws Exception\RuntimeException When the storage has been closed, or the file cannot be opened.
      */
-    public function lines(): Generator
+    public function blocks(): Generator
     {
-        $stream = $this->load();
-        $offset = $this->start;
-        while ($offset < $this->end) {
-            fseek($stream, $offset);
-            $line = (string) fgets($stream, min(self::CHUNK, $this->end - $offset) + 1);
-            if ('' === $line) {
-                return;
+        $path   = $this->path;
+        $stream = null === $path
+            ? $this->load()
+            : FileSystem::quietly(static fn(): mixed => fopen($path, mode: 'rb'));
+        if (! is_resource($stream)) {
+            throw new Exception\RuntimeException('Cannot open the message file; it may have been moved');
+        }
+
+        try {
+            $offset = $this->start;
+            while ($offset < $this->end) {
+                fseek($stream, $offset);
+                $block = (string) fread($stream, min(self::BLOCK, $this->end - $offset));
+                if ('' === $block) {
+                    return;
+                }
+
+                yield $offset - $this->start => $block;
+
+                $offset += strlen($block);
             }
-
-            yield $offset - $this->start => $line;
-
-            $offset += strlen($line);
+        } finally {
+            if (null !== $path) {
+                fclose($stream);
+            }
         }
     }
 
     /**
-     * Whether a piece from lines() ends a line.
+     * The bytes as read() returns them, in blocks.
+     *
+     * Blocks of an mboxrd range end at line breaks, so the quoting of each
+     * line is removed whole; other blocks are as blocks() reads them.
+     *
+     * @return Generator<int, string>
+     * @throws Exception\RuntimeException When the storage has been closed, or the file cannot be opened.
      */
-    public static function endsLine(string $piece): bool
+    public function chunks(): Generator
     {
-        return str_ends_with($piece, "\n");
+        if (! $this->unquoteFrom) {
+            foreach ($this->blocks() as $block) {
+                yield $block;
+            }
+
+            return;
+        }
+
+        foreach (Lines::whole($this->blocks()) as $lines) {
+            yield (string) preg_replace('/^>(>*From )/m', replacement: '$1', subject: $lines);
+        }
     }
 
     /**

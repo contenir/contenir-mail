@@ -18,6 +18,7 @@ use Contenir\Mail\Storage\MaildirFiles;
 use Contenir\Mail\Storage\Message;
 use Contenir\Mail\Storage\Part;
 use Contenir\Mail\Storage\Part\Content;
+use Contenir\Mail\Storage\Part\Lines;
 use Contenir\Mail\Storage\Part\MimeParser;
 use Contenir\Mail\Storage\Part\MultipartSplitter;
 use Contenir\Mail\Tests\Trait\UsesTemporaryDirectoryTrait;
@@ -29,7 +30,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function chmod;
+use function count;
 use function file_put_contents;
+use function get_resources;
 use function iterator_to_array;
 use function mkdir;
 use function rename;
@@ -46,6 +49,7 @@ use function unlink;
 #[CoversClass(Part::class)]
 #[CoversClass(Message::class)]
 #[CoversClass(Content::class)]
+#[CoversClass(Lines::class)]
 #[CoversClass(MimeParser::class)]
 #[CoversClass(MultipartSplitter::class)]
 #[CoversClass(AbstractStorage::class)]
@@ -211,6 +215,36 @@ final class MaildirTest extends TestCase
         $this->expectExceptionMessage('Maildir is read-only; use Writable\Maildir');
 
         $this->maildir()->removeMessage(1);
+    }
+
+    /**
+     * Each held message used to keep its file open, so holding a thousand messages ran out of file descriptors.
+     */
+    #[Test]
+    public function holdsNoOpenFilesForHeldMessages(): void
+    {
+        $maildir  = $this->maildir();
+        $before   = count(get_resources('stream'));
+        $messages = [];
+        foreach ($maildir as $number => $message) {
+            $message->getSubject();
+            $message->getContent();
+            $messages[$number] = $message;
+        }
+
+        static::assertSame([5, $before], [count($messages), count(get_resources('stream'))]);
+    }
+
+    #[Test]
+    public function reportsMessageFileThatHasGoneSinceItWasRead(): void
+    {
+        $message = $this->maildir()->getMessage(2);
+        unlink("{$this->directory}/cur/1000000001.P1.example.org:2,FS");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot open the message file; it may have been moved');
+
+        $message->getContent();
     }
 
     #[Test]
