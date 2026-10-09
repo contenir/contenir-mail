@@ -37,7 +37,6 @@ use function trim;
  */
 final class Mime
 {
-    // phpcs:disable Generic.Files.LineLength.TooLong
     public const string TYPE_OCTETSTREAM = 'application/octet-stream';
     public const string TYPE_TEXT        = 'text/plain';
     public const string TYPE_HTML        = 'text/html';
@@ -102,8 +101,6 @@ final class Mime
     public const string MESSAGE_RFC822          = 'message/rfc822';
     public const string MESSAGE_DELIVERY_STATUS = 'message/delivery-status';
     public const string CHARSET_REGEX           = '#=\?(?P<charset>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<encoding>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<text>[\x21-\x3e\x40-\x7e]+)#';
-
-    // phpcs:enable
 
     /**
      * @codeCoverageIgnore Never called: it only stops the class of static methods being instantiated.
@@ -280,10 +277,7 @@ final class Mime
         "\xFF" => '=FF',
     ];
 
-    // @codingStandardsIgnoreStart
     private const string QP_KEYS_STRING = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xB0\xB1\xB2\xB3\xB4\xB5\xB6\xB7\xB8\xB9\xBA\xBB\xBC\xBD\xBE\xBF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF";
-
-    // @codingStandardsIgnoreEnd
 
     /**
      * Check if the given string is "printable"
@@ -387,10 +381,8 @@ final class Mime
      * @param  string $str
      * @return string
      */
-    // @codingStandardsIgnoreStart
     private static function encodeQuotedPrintableCharacters(string $str): string
     {
-        // @codingStandardsIgnoreEnd
         return strtr($str, self::QP_MAP);
     }
 
@@ -540,8 +532,6 @@ final class Mime
         $lineLength -= $lineLength % 4;
         return rtrim(chunk_split(base64_encode($str), $lineLength, $lineEnd));
     }
-
-    // phpcs:disable WebimpressCodingStandard.NamingConventions.ValidVariableName.NotCamelCaps
 
     /**
      * Apply a Content-Transfer-Encoding; 7bit, 8bit and binary content is returned as it is.

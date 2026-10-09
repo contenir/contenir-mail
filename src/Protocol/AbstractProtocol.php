@@ -226,7 +226,6 @@ abstract class AbstractProtocol
      *
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _addLog($value)
     {
         if ($this->maximumLog >= 0 && count($this->log) >= $this->maximumLog) {
@@ -252,7 +251,6 @@ abstract class AbstractProtocol
      *
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _disconnect()
     {
         $this->connection?->close();
@@ -267,7 +265,6 @@ abstract class AbstractProtocol
      *
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _send(#[SensitiveParameter] $request)
     {
         return $this->sendAndLog($request, Redaction::redact($request));
@@ -287,18 +284,16 @@ abstract class AbstractProtocol
     /**
      * Get a line from the stream.
      *
-     * @param  int|null $timeout Per-request timeout value if applicable
+     * @param  int|null $timeout Per-request timeout value if applicable, for adapters that give a command
+     *     the timeout its RFC sets
      * @throws Exception\RuntimeException
      * @return string
      *
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _receive($timeout = null)
     {
         $connection = $this->connection();
-
-        // Adapters may wish to supply per-commend timeouts according to appropriate RFC
         if (null !== $timeout) {
             $connection->setTimeout((int) $timeout);
         }
@@ -330,7 +325,6 @@ abstract class AbstractProtocol
      * @mago-expect lint:method-name The protected name Protocol\Smtp calls.
      * @mago-expect analysis:unreachable-match-arm The analyser does not carry $errMsg into the next iteration of the loop.
      */
-    // @codingStandardsIgnoreLine PSR2.Methods.MethodDeclaration.Underscore
     protected function _expect($code, $timeout = null)
     {
         $this->response = [];

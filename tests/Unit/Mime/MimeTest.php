@@ -183,7 +183,6 @@ final class MimeTest extends TestCase
      */
     public static function quotedPrintableHeaderProvider(): array
     {
-        // phpcs:disable Generic.Files.LineLength.TooLong
         return [
             'umlauts'                   => ['äöü', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
             'trailing space'            => ['äöü ', 'UTF-8', '=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?='],
@@ -215,8 +214,6 @@ final class MimeTest extends TestCase
                 '=?UTF-8?Q?=C3=A4=20=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?=',
             ],
         ];
-
-        // phpcs:enable
     }
 
     #[DataProvider('quotedPrintableHeaderWithNameProvider')]
@@ -285,7 +282,6 @@ final class MimeTest extends TestCase
      */
     public static function base64HeaderProvider(): array
     {
-        // phpcs:disable Generic.Files.LineLength.TooLong
         return [
             'umlauts'       => ['äöü', 'UTF-8', '=?UTF-8?B?w6TDtsO8?='],
             'long sentence' => [
@@ -294,8 +290,6 @@ final class MimeTest extends TestCase
                 "=?UTF-8?B?QWxsZSBtZWluZSBFbnRjaGVuIHNjaHdpbW1lbiBpbiBkZW0gU2VlLCBzY2h3?=\n =?UTF-8?B?aW1tZW4gaW4gZGVtIFNlZSwgS8O2cGZjaGVuIGluIGRhcyBXYXNzZXIsIFNj?=\n =?UTF-8?B?aHfDpG56Y2hlbiBpbiBkaWUgSMO2aCE=?=",
             ],
         ];
-
-        // phpcs:enable
     }
 
     /**

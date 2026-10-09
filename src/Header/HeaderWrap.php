@@ -19,9 +19,7 @@ use function wordwrap;
 /**
  * Utility class used for creating wrapped or MIME-encoded versions of header
  * values.
- */
-// phpcs:ignore WebimpressCodingStandard.NamingConventions.AbstractClass.Prefix
-/**
+ *
  * @api
  */
 final class HeaderWrap
