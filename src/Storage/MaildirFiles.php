@@ -61,7 +61,7 @@ final class MaildirFiles
     public static function hasFlags(array $have, array $wanted): bool
     {
         foreach ($wanted as $flag) {
-            if (! in_array(Flag::normalise($flag), $have, strict: true)) {
+            if (! in_array(Flag::normalize($flag), $have, strict: true)) {
                 return false;
             }
         }

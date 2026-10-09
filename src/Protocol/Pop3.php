@@ -67,6 +67,9 @@ class Pop3
     /**
      * Public constructor
      *
+     * A host name, port, "ssl" and $novalidatecert are the laminas-mail form, deprecated since 0.3.0:
+     * pass a ConnectionConfig, or none and call connect() with one.
+     *
      * @param string|ConnectionConfig $host hostname or IP address of POP3 server, or its settings; if given connect() is called
      * @param int|null $port port of POP3 server, null for default (110 or 995 for ssl)
      * @param string|bool|Security|null $ssl null for STLS, 'ssl' for TLS, 'tls' for STLS, false for plain text
@@ -82,10 +85,10 @@ class Pop3
         bool $novalidatecert = false,
         ?ConnectionInterface $connection = null,
     ) {
-        $this->config     = new ConnectionConfig(security: Security::StartTls);
-        $this->connection = $connection ?? new StreamConnection();
-        $this->limits     = new ResponseLimits();
-        $this->setNoValidateCert($novalidatecert);
+        $this->config         = new ConnectionConfig(security: Security::StartTls);
+        $this->connection     = $connection ?? new StreamConnection();
+        $this->limits         = new ResponseLimits();
+        $this->novalidatecert = $novalidatecert;
 
         if ($host instanceof ConnectionConfig || '' !== $host) {
             $this->connect($host, $port, $ssl);
@@ -143,6 +146,8 @@ class Pop3
     /**
      * Open connection to POP3 server
      *
+     * A host, port and "ssl" are the laminas-mail form, deprecated since 0.3.0: pass a ConnectionConfig.
+     *
      * @param string|ConnectionConfig $host hostname or IP address of POP3 server, or its settings
      * @param int|null $port of POP3 server, default is 110 (995 for ssl); ignored with a ConnectionConfig
      * @param string|bool|Security|null $ssl null for STLS, 'ssl' for TLS, 'tls' for STLS, false for plain text; ignored with a ConnectionConfig
@@ -150,6 +155,8 @@ class Pop3
      * @throws Exception\InvalidArgumentException When $ssl is not a recognised setting.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
      * @return string welcome message
+     *
+     * @mago-expect analysis:deprecated-method Reached only for the laminas-mail form, so that PHP 8.4 and later report its use.
      */
     public function connect(
         string|ConnectionConfig $host,
@@ -159,7 +166,7 @@ class Pop3
         $this->config = $host instanceof ConnectionConfig
             ? $host
             : LegacyOptions::config($host, $port, $ssl, $this->validateCert(), self::TIMEOUT_CONNECTION);
-        $this->setNoValidateCert(! $this->config->verifyPeer);
+        $this->novalidatecert = ! $this->config->verifyPeer;
 
         $this->connection = LoggingConnection::decorate($this->connection, $this->config->logger);
         $this->connection->open($this->config, $this->config->portOr(110, 995));

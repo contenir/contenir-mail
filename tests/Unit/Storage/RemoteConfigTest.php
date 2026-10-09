@@ -20,6 +20,7 @@ use Contenir\Mail\Tests\Unit\TestAsset\RecordingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -45,6 +46,7 @@ final class RemoteConfigTest extends TestCase
      * @param array<string, mixed> $settings
      */
     #[DataProvider('securityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsSecurity(array $settings, Security $expected): void
     {
@@ -55,6 +57,7 @@ final class RemoteConfigTest extends TestCase
      * @param array<string, mixed> $settings
      */
     #[DataProvider('securityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsPop3SecurityAlike(array $settings, Security $expected): void
     {
@@ -62,6 +65,7 @@ final class RemoteConfigTest extends TestCase
     }
 
     #[DataProvider('unknownSslProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesUnknownSslValue(mixed $ssl, string $shown): void
     {
@@ -73,6 +77,7 @@ final class RemoteConfigTest extends TestCase
         ImapConfig::fromIterable(['user' => 'u', 'ssl' => $ssl]);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesSslOfTheWrongType(): void
     {
@@ -93,6 +98,7 @@ final class RemoteConfigTest extends TestCase
     }
 
     #[DataProvider('verifyPeerProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsPeerVerification(array $settings, bool $expected): void
     {
@@ -138,6 +144,30 @@ final class RemoteConfigTest extends TestCase
         $config = ImapConfig::fromIterable(['user' => 'u']);
 
         static::assertSame(['', 'INBOX'], [$config->password, $config->folder]);
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    #[DataProvider('imap4Rev2Provider')]
+    #[Test]
+    public function readsWhetherToPreferImap4Rev2(array $settings, bool $expected): void
+    {
+        static::assertSame($expected, ImapConfig::fromIterable(['user' => 'u', ...$settings])->preferImap4Rev2);
+    }
+
+    #[Test]
+    public function prefersImap4Rev2ByDefault(): void
+    {
+        static::assertTrue((new ImapConfig(new ConnectionConfig(), 'u'))->preferImap4Rev2);
+    }
+
+    #[Test]
+    public function showsTheImap4Rev2PreferenceInDumps(): void
+    {
+        $config = new ImapConfig(new ConnectionConfig(), 'u', preferImap4Rev2: false);
+
+        static::assertFalse($config->__debugInfo()['preferImap4Rev2']);
     }
 
     #[DataProvider('configProvider')]
@@ -377,6 +407,20 @@ final class RemoteConfigTest extends TestCase
             'verify peer off'      => [['verify_peer' => false], false],
             'novalidatecert true'  => [['novalidatecert' => true], false],
             'novalidatecert false' => [['novalidatecert' => 'false'], true],
+        ];
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, bool}>
+     */
+    public static function imap4Rev2Provider(): array
+    {
+        return [
+            'omitted'    => [[], true],
+            'off'        => [['prefer_imap4_rev2' => false], false],
+            'on'         => [['prefer_imap4_rev2' => true], true],
+            'string off' => [['prefer_imap4_rev2' => 'off'], false],
+            'camel case' => [['preferImap4Rev2' => false], false],
         ];
     }
 

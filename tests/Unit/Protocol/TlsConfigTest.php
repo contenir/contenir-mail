@@ -15,8 +15,11 @@ use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+
+use function print_r;
 
 /**
  * TLS settings beyond peer verification (contenir/contenir-mail#16).
@@ -35,6 +38,7 @@ final class TlsConfigTest extends TestCase
         'allow_self_signed' => true,
         'local_cert'        => '/etc/ssl/client.pem',
         'local_pk'          => '/etc/ssl/client.key',
+        'passphrase'        => 'unlocks the key',
     ];
 
     #[Test]
@@ -47,6 +51,50 @@ final class TlsConfigTest extends TestCase
     public function givesEverySettingAsItsContextOption(): void
     {
         static::assertEquals(self::SETTINGS, ConnectionConfig::fromIterable(self::SETTINGS)->tls->contextOptions());
+    }
+
+    #[Test]
+    public function redactsThePassphraseInDumps(): void
+    {
+        $tls = new TlsConfig(
+            caFile: '/etc/ssl/internal-ca.pem',
+            caPath: '/etc/ssl/certs',
+            peerName: 'mail.internal',
+            allowSelfSigned: true,
+            localCert: '/etc/ssl/client.pem',
+            localPrivateKey: '/etc/ssl/client.key',
+            localPrivateKeyPassphrase: 'unlocks the key',
+        );
+
+        static::assertSame(
+            [
+                'caFile'                    => '/etc/ssl/internal-ca.pem',
+                'caPath'                    => '/etc/ssl/certs',
+                'peerName'                  => 'mail.internal',
+                'allowSelfSigned'           => true,
+                'localCert'                 => '/etc/ssl/client.pem',
+                'localPrivateKey'           => '/etc/ssl/client.key',
+                'localPrivateKeyPassphrase' => TlsConfig::REDACTED,
+            ],
+            $tls->__debugInfo(),
+        );
+    }
+
+    #[Test]
+    public function keepsThePassphraseOutOfANestedDump(): void
+    {
+        $config = new ConnectionConfig(tls: new TlsConfig(
+            localCert: 'c.pem',
+            localPrivateKeyPassphrase: 'unlocks',
+        ));
+
+        static::assertStringNotContainsString('unlocks', print_r($config, return: true));
+    }
+
+    #[Test]
+    public function showsNoPassphraseWhenNoneIsSet(): void
+    {
+        static::assertNull((new TlsConfig())->__debugInfo()['localPrivateKeyPassphrase']);
     }
 
     #[Test]
@@ -85,6 +133,7 @@ final class TlsConfigTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function readsTheSettingsForTheSmtpProtocol(): void
     {
@@ -118,22 +167,29 @@ final class TlsConfigTest extends TestCase
         $controls = 'must not be empty or contain control characters';
 
         return [
-            'empty cafile'                => [['cafile' => ''], "TLS setting \"cafile\" {$controls}"],
-            'NUL in capath'               => [['capath' => "/etc\0/ssl"], "TLS setting \"capath\" {$controls}"],
-            'line feed in peer name'      => [
+            'empty cafile'                     => [['cafile' => ''], "TLS setting \"cafile\" {$controls}"],
+            'NUL in capath'                    => [['capath' => "/etc\0/ssl"], "TLS setting \"capath\" {$controls}"],
+            'line feed in peer name'           => [
                 ['peer_name' => "mail\n.internal"],
                 "TLS setting \"peer_name\" {$controls}",
             ],
-            'DEL in certificate'          => [['local_cert' => "a\x7Fb"], "TLS setting \"local_cert\" {$controls}"],
-            'empty key'                   => [
+            'DEL in certificate'               => [
+                ['local_cert' => "a\x7Fb"],
+                "TLS setting \"local_cert\" {$controls}",
+            ],
+            'empty key'                        => [
                 ['local_cert' => 'c.pem', 'local_pk' => ''],
                 "TLS setting \"local_pk\" {$controls}",
             ],
-            'key without its certificate' => [
+            'key without its certificate'      => [
                 ['local_pk' => 'c.key'],
                 'A TLS private key (local_pk) needs its certificate (local_cert)',
             ],
-            'misspelt setting'            => [['ca_file' => 'x'], 'ca_file'],
+            'passphrase without a certificate' => [
+                ['passphrase' => 'unlocks the key'],
+                'A TLS passphrase needs the certificate it unlocks (local_cert)',
+            ],
+            'misspelt setting'                 => [['ca_file' => 'x'], 'ca_file'],
         ];
     }
 }

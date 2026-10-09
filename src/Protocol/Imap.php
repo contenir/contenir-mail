@@ -6,6 +6,8 @@ namespace Contenir\Mail\Protocol;
 
 use Closure;
 use Contenir\Mail\Header\SafeText;
+use Contenir\Mail\Imap\NamespaceEntry;
+use Contenir\Mail\Imap\Namespaces;
 use Contenir\Mail\Protocol\Imap\MailboxName;
 use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Sasl\Authentication;
@@ -142,6 +144,9 @@ class Imap
     /**
      * Public constructor
      *
+     * A host name, port, "ssl" and $novalidatecert are the laminas-mail form, deprecated since 0.3.0:
+     * pass a ConnectionConfig, or none and call connect() with one.
+     *
      * @param string|ConnectionConfig $host hostname or IP address of IMAP server, or its settings; if given connect() is called
      * @param int|null $port port of IMAP server, null for default (143 or 993 for ssl)
      * @param string|bool|Security|null $ssl null for STARTTLS, 'ssl' for TLS, 'tls' for STARTTLS, false for plain text
@@ -157,10 +162,10 @@ class Imap
         bool $novalidatecert = false,
         ?ConnectionInterface $connection = null,
     ) {
-        $this->config     = new ConnectionConfig(security: Security::StartTls);
-        $this->connection = $connection ?? new StreamConnection();
-        $this->limits     = new ResponseLimits();
-        $this->setNoValidateCert($novalidatecert);
+        $this->config         = new ConnectionConfig(security: Security::StartTls);
+        $this->connection     = $connection ?? new StreamConnection();
+        $this->limits         = new ResponseLimits();
+        $this->novalidatecert = $novalidatecert;
 
         if ($host instanceof ConnectionConfig || '' !== $host) {
             $this->connect($host, $port, $ssl);
@@ -218,12 +223,16 @@ class Imap
     /**
      * Open connection to IMAP server
      *
+     * A host, port and "ssl" are the laminas-mail form, deprecated since 0.3.0: pass a ConnectionConfig.
+     *
      * @param string|ConnectionConfig $host hostname or IP address of IMAP server, or its settings
      * @param int|null $port of IMAP server, default is 143 (993 for ssl); ignored with a ConnectionConfig
      * @param string|bool|Security|null $ssl null for STARTTLS, 'ssl' for TLS, 'tls' for STARTTLS, false for plain text; ignored with a ConnectionConfig
      * @throws Exception\ExceptionInterface When the server cannot be reached, does not greet, or TLS cannot be negotiated.
      * @throws Exception\InvalidArgumentException When $ssl is not a recognised setting.
      * @throws \Contenir\Mail\Exception\InvalidArgumentException When the port is out of range.
+     *
+     * @mago-expect analysis:deprecated-method Reached only for the laminas-mail form, so that PHP 8.4 and later report its use.
      */
     public function connect(
         string|ConnectionConfig $host,
@@ -233,7 +242,7 @@ class Imap
         $this->config = $host instanceof ConnectionConfig
             ? $host
             : LegacyOptions::config($host, $port, $ssl, $this->validateCert(), self::TIMEOUT_CONNECTION);
-        $this->setNoValidateCert(! $this->config->verifyPeer);
+        $this->novalidatecert = ! $this->config->verifyPeer;
 
         $this->responseBytes = 0;
         $this->connection    = LoggingConnection::decorate($this->connection, $this->config->logger);
@@ -1142,7 +1151,7 @@ class Imap
      * @throws Exception\RuntimeException When the server refuses or its response is malformed.
      * @throws Exception\ExceptionInterface When the server cannot be asked.
      */
-    public function namespace(): ?Imap\Namespaces
+    public function namespace(): ?Namespaces
     {
         if (! $this->imap4Rev2 && ! $this->hasCapability('NAMESPACE') && ! $this->hasCapability('IMAP4rev2')) {
             return null;
@@ -1155,7 +1164,7 @@ class Imap
 
         foreach (is_array($response) ? $response : [] as $tokens) {
             if ('NAMESPACE' === strtoupper(is_string($tokens[0] ?? null) ? $tokens[0] : '')) {
-                return new Imap\Namespaces(
+                return new Namespaces(
                     personal: $this->namespaceEntries($tokens[1] ?? null),
                     otherUsers: $this->namespaceEntries($tokens[2] ?? null),
                     shared: $this->namespaceEntries($tokens[3] ?? null),
@@ -1169,7 +1178,7 @@ class Imap
     /**
      * The namespaces of one kind: NIL for none, or a list of namespaces.
      *
-     * @return list<Imap\NamespaceEntry>
+     * @return list<NamespaceEntry>
      * @throws Exception\RuntimeException When the namespaces are malformed.
      */
     private function namespaceEntries(mixed $namespaces): array
@@ -1190,7 +1199,7 @@ class Imap
      *
      * @throws Exception\RuntimeException When the namespace is malformed.
      */
-    private function namespaceEntry(mixed $entry): Imap\NamespaceEntry
+    private function namespaceEntry(mixed $entry): NamespaceEntry
     {
         $prefix    = is_array($entry) ? $entry[0] ?? null : null;
         $delimiter = is_array($entry) ? $entry[1] ?? null : null;
@@ -1205,7 +1214,7 @@ class Imap
             throw new Exception\RuntimeException('The server sent a malformed NAMESPACE response');
         }
 
-        return new Imap\NamespaceEntry(
+        return new NamespaceEntry(
             prefix: $this->utf8Mailboxes ? $prefix : MailboxName::decode($prefix),
             delimiter: 1 === strlen($delimiter) ? $delimiter : null,
         );
@@ -1868,20 +1877,20 @@ class Imap
     /**
      * do a search request
      *
-     * The parameters are sent as they are, apart from the checks every
+     * The criteria are sent as they are, apart from the checks every
      * request gets: pass any string from outside through escapeString().
      *
      * An IMAP4rev2 server answers with ESEARCH (RFC 4731, RFC 9051) rather than
      * SEARCH; its ALL sequence set is expanded to the same list of ids, up to
      * MAX_SEARCH_RESULTS, so a server cannot make the client build an endless list.
      *
-     * @param array<mixed> $params
+     * @param array<mixed> $criteria The search keys, such as ['UNSEEN'] or ['FROM', $imap->escapeString($from)].
      * @return array<mixed>|false message ids, or false on failure
      * @throws Exception\ExceptionInterface When the server cannot be asked, or an ESEARCH result is malformed or too long.
      */
-    public function search(array $params): array|false
+    public function search(array $criteria): array|false
     {
-        $response = $this->requestAndResponse('SEARCH', $params);
+        $response = $this->requestAndResponse('SEARCH', $criteria);
         if (null === $response || false === $response) {
             return false;
         }

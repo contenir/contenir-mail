@@ -84,7 +84,8 @@ SMTP, IMAP and POP3 connections share these settings:
 - `cafile` and `capath`: certificate authorities to trust, in place of the system's;
 - `peer_name`: the name the certificate must carry;
 - `allow_self_signed`;
-- `local_cert` and `local_pk`: a client certificate.
+- `local_cert` and `local_pk`: a client certificate;
+- `passphrase`: the passphrase of the certificate's private key, when it is encrypted.
 
 They're typed fields of `TlsConfig`. There's no pass-through for other `ssl` context options, so nothing else reaches the stream context.
 
@@ -92,6 +93,7 @@ They're typed fields of `TlsConfig`. There's no pass-through for other `ssl` con
 | --- | --- |
 | Peer verification and name checking stay on unless `verify_peer` is set to false. No TLS setting changes `verify_peer` or `verify_peer_name`, because they're written after the TLS settings | `TlsConfigTest`, `StreamConnection::open()` |
 | `allow_self_signed` is the only setting that weakens verification, and it's off unless set to true. Even then, the certificate's name is still checked | `leavesSelfSignedCertificatesRefusedUnlessAllowed`, `stillChecksThePeerNameOfASelfSignedCertificate` |
+| The passphrase is marked `#[SensitiveParameter]`, and `var_dump()` of a `TlsConfig`, or of a config that holds one, shows `TlsConfig::REDACTED` in its place | `redactsThePassphraseInDumps`, `SecretsInTracesTest` |
 | Misspelt or unknown setting names are refused, not ignored, so a typo can't silently leave a CA untrusted | `refusesAnInvalidSetting` (misspelt setting) |
 | Paths and names that are empty or hold a control character are refused, and so is a private key without its certificate | `refusesAnInvalidSetting` |
 | The settings reach the handshake for TLS from the start and for STARTTLS | `acceptsASelfSignedCertificateForTheNamedPeerWhenAllowed`, `trustsTheCertificateAuthorityGiven` |

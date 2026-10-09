@@ -13,6 +13,7 @@ use Contenir\Mail\Storage\Flag;
 use Contenir\Mail\Storage\Imap;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
@@ -143,6 +144,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_IMAP_SSL')) {
@@ -154,6 +156,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectTLS(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_IMAP_TLS')) {
@@ -165,6 +168,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectSelfSignedSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_IMAP_SSL')) {
@@ -205,6 +209,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function withInstanceConstruction(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -223,6 +228,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function withNotLoggedInstance(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -661,6 +667,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function unselectLeavesTheFolderWithoutExpunging(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -714,6 +721,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function capability(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -724,6 +732,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function select(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -734,6 +743,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function examine(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -744,6 +754,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function closedSocketNewlineToken(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -770,6 +781,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function fetch(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -793,6 +805,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function fetchByUid(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);
@@ -806,6 +819,7 @@ final class ImapTest extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function store(): void
     {
         $protocol = new Protocol\Imap($this->params['host']);

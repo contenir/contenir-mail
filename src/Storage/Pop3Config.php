@@ -14,7 +14,7 @@ use SensitiveParameter;
 /**
  * Settings of a POP3 mailbox: where to connect and who to log in as.
  *
- * Connections use STARTTLS (STLS) unless "security" (or the laminas-mail "ssl") says otherwise.
+ * Connections use STARTTLS (STLS) unless "security" (or the deprecated laminas-mail "ssl") says otherwise.
  *
  * ```php
  * new Pop3Config(new ConnectionConfig(host: 'pop.example.com', security: Security::Tls), user: 'test', password: $secret);
@@ -26,7 +26,7 @@ use SensitiveParameter;
 final readonly class Pop3Config
 {
     /**
-     * The connection settings, the laminas-mail "ssl" and "novalidatecert", the TLS settings, and the login
+     * The connection settings, the deprecated laminas-mail "ssl" and "novalidatecert", the TLS settings, and the login
      *
      * @var list<string>
      */

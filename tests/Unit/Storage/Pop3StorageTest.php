@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
 use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Flag;
@@ -25,6 +26,7 @@ use Contenir\Mail\Testing\InMemoryConnection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -81,6 +83,7 @@ final class Pop3StorageTest extends TestCase
         static::assertTrue((new Pop3(['auth' => $auth], $protocol))->getCapabilities()['delete']);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function connectsWithSettings(): void
     {
@@ -118,6 +121,7 @@ final class Pop3StorageTest extends TestCase
         new Pop3(new Pop3Config(new ConnectionConfig(security: Security::Tls), 'u'), $protocol);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function turnsOffPeerVerificationWhenAsked(): void
     {
@@ -398,7 +402,22 @@ final class Pop3StorageTest extends TestCase
         $protocol = $this->protocol();
         $protocol->method('uniqueid')->willReturn([1 => 'abc', 2 => 'def']);
 
-        static::assertSame(2, $this->pop3($protocol)->getNumberByUniqueId('def'));
+        static::assertSame(2, $this->pop3($protocol)->getNumberByUniqueId(uniqueId: 'def'));
+    }
+
+    /**
+     * "1e1" == "10" in PHP; a unique ID must match exactly.
+     */
+    #[Test]
+    public function refusesUniqueIdThatOnlyLooselyEqualsOne(): void
+    {
+        $protocol = $this->protocol();
+        $protocol->method('uniqueid')->willReturn([1 => '10']);
+
+        $this->expectException(OutOfBoundsException::class);
+        $this->expectExceptionMessage('Unique ID not found');
+
+        $this->pop3($protocol)->getNumberByUniqueId('1e1');
     }
 
     #[Test]
@@ -508,6 +527,12 @@ final class Pop3StorageTest extends TestCase
         $protocol->expects($this->never())->method('top');
 
         static::assertNull($this->pop3($protocol)->getCapabilities()['top']);
+    }
+
+    #[Test]
+    public function doesNotYetKnowWhetherAnEmptyMailboxSupportsTop(): void
+    {
+        static::assertNull($this->pop3($this->protocolWithMessages(0))->supports(Capability::Top));
     }
 
     #[Test]

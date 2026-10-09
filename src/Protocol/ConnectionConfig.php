@@ -7,6 +7,7 @@ namespace Contenir\Mail\Protocol;
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
+use SensitiveParameter;
 
 /**
  * Where and how to connect to a mail server, shared by SMTP, IMAP and POP3.
@@ -57,7 +58,7 @@ final readonly class ConnectionConfig
      * @param iterable<mixed, mixed> $config
      * @throws InvalidArgumentException When a key is unknown or a value has the wrong type.
      */
-    public static function fromIterable(iterable $config): self
+    public static function fromIterable(#[SensitiveParameter] iterable $config): self
     {
         return self::fromReader(ConfigReader::read(self::class, $config, self::KEYS));
     }

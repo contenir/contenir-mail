@@ -48,7 +48,7 @@ Storage                          | Config                                   | Ke
 `Storage\Maildir`                | `Storage\MaildirConfig`                  | `dirname`
 `Storage\Folder\Maildir`         | `Storage\Folder\MaildirConfig`           | `dirname`, `delim`, `folder`
 `Storage\Writable\Maildir`       | `Storage\Writable\MaildirConfig`         | `dirname`, `delim`, `folder`, `create`, `directory_mode`, `file_mode`
-`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`, `auth`
+`Storage\Imap`                   | `Storage\ImapConfig`                     | connection keys, `user`, `password`, `folder`, `auth`, `prefer_imap4_rev2`
 `Storage\Pop3`                   | `Storage\Pop3Config`                     | connection keys, `user`, `password`, `auth`
 
 Keys may be written in snake_case, camelCase or kebab-case. An unknown key, or
@@ -121,15 +121,17 @@ Key           | Default        | Meaning
 `peer_name`         | the host       | The name the server's certificate must carry
 `allow_self_signed` | `false`        | Accept a self-signed certificate; weakens verification
 `local_cert`, `local_pk` | none     | A client certificate, and its key if in a separate file
+`passphrase`        | none           | The passphrase of an encrypted client key
 
 The TLS settings apply to TLS from the start and to STARTTLS. See the security
 page for their risks.
 
 Connections use STARTTLS unless told otherwise. The laminas-mail keys still
-work: `ssl` set to `SSL` means `tls`, `TLS` means `starttls`, and `false` or
-`none` means a plain connection; any other value is refused. `novalidatecert`
-set to `true` turns peer verification off. Give each setting under one name
-only.
+work, and are deprecated: `ssl` set to `SSL` means `tls`, `TLS` means
+`starttls`, and `false` or `none` means a plain connection; any other value is
+refused. `novalidatecert` set to `true` turns peer verification off. Use
+`security` and `verify_peer` instead, and give each setting under one name
+only. PHP 8.4 and later report the laminas-mail keys as deprecated.
 
 ```php
 use Contenir\Mail\Protocol\ConnectionConfig;
@@ -163,6 +165,11 @@ $mail = new Pop3([
 
 Passwords are marked `#[SensitiveParameter]`, so they do not appear in stack
 traces, and `var_dump()` of a config shows them masked.
+
+After signing in, `Storage\Imap` turns on IMAP4rev2 (RFC 9051) when the server
+offers it, or else UTF8=ACCEPT. Set `prefer_imap4_rev2` to `false`
+(`ImapConfig::$preferImap4Rev2`) to keep the session IMAP4rev1, as for a server
+whose IMAP4rev2 support is unreliable.
 
 ### Signing in with an access token (OAuth 2.0)
 
@@ -289,8 +296,8 @@ Numbers change when messages are removed. Unique IDs do not, so use them to
 refer to a message across requests:
 
 ```php
-$id     = $mail->getUniqueId($number);
-$number = $mail->getNumberByUniqueId($id);
+$uniqueId = $mail->getUniqueId($number);
+$number   = $mail->getNumberByUniqueId($uniqueId);
 $mail->removeMessage($number);
 ```
 
@@ -298,7 +305,21 @@ $mail->removeMessage($number);
 IDs, so their numbers serve; a POP3 server without UIDL does the same.
 
 `getRawHeader()` and `getRawContent()` return a message's header block and
-body as stored. `getCapabilities()` lists what the storage supports.
+body as stored.
+
+`supports()` says whether the storage has a feature, a case of
+`Storage\Capability`: `UniqueId`, `Delete`, `Create`, `Top`, `FetchPart` or
+`Flags`. It returns null while the answer is not yet known, as for TOP on a
+POP3 server until a message has been read. `getCapabilities()` lists them all,
+keyed by each case's value.
+
+```php
+use Contenir\Mail\Storage\Capability;
+
+if ($mail->supports(Capability::Flags)) {
+    $mail->setFlags($number, [Flag::Seen]);
+}
+```
 
 ### Paging through a large IMAP folder
 
@@ -585,8 +606,11 @@ A read part can be attached directly, since it is a `PartInterface`.
 
 Maildir and IMAP keep flags for each message. The common ones are cases of
 the `Contenir\Mail\Storage\Flag` enum: `Seen`, `Answered`, `Flagged`,
-`Deleted`, `Draft`, `Recent` and `Passed` (forwarded). Keywords, such as IMAP
-`$Junk` or a Maildir keyword letter, stay strings.
+`Deleted`, `Draft`, `Recent` and `Passed`. `Passed`, Maildir's name, is the
+IMAP keyword `$Forwarded`, and `Flag::Forwarded` names the same case.
+Keywords, such as IMAP `$Junk` or a Maildir keyword letter, stay strings.
+`Flag::normalize()` turns an IMAP name into its case, and leaves a keyword as
+it is.
 
 ```php
 use Contenir\Mail\Storage\Flag;
@@ -596,7 +620,7 @@ foreach ($mail as $message) {
         continue;
     }
 
-    echo ($message->hasFlag(Flag::Recent) ? '! ' : '  ') . $message->getSubject() . "\n";
+    echo ($message->hasFlag(Flag::Flagged) ? '! ' : '  ') . $message->getSubject() . "\n";
 }
 
 // IMAP names work too
@@ -609,6 +633,11 @@ $flagged = $mail->countMessages(Flag::Flagged);
 
 `getFlags()` lists a message's flags, cases and strings alike.
 
+`Recent` is unreliable over IMAP: IMAP4rev2 (RFC 9051) removed `\Recent`, so a
+server with IMAP4rev2 enabled never reports it, and IMAP4rev1 servers report
+it to one session only. To find new mail, look for messages without `Seen`,
+or compare `FolderStatus::$uidNext` with the value from the last check.
+
 ## Folders
 
 All storages but POP3 have folders. `getFolders()` returns the folder tree as
@@ -618,7 +647,7 @@ IMAP folder names are always given and returned as UTF-8, such as
 `Entwürfe` or `R&D`. The client writes them in modified UTF-7 for an
 IMAP4rev1 server, and as they are once IMAP4rev2 or UTF8=ACCEPT is enabled.
 That happens after signing in, when the server offers it. Turn it off with
-`Protocol\Imap::preferImap4Rev2(false)`.
+the `prefer_imap4_rev2` setting, or `Protocol\Imap::preferImap4Rev2(false)`.
 
 For local folders use `Storage\Folder\Mbox`, where each file in a directory
 tree is a folder, and `Storage\Folder\Maildir`, where each `.Name` maildir in
@@ -683,11 +712,13 @@ if (null !== $sent) {
 }
 ```
 
-`getNamespaces()` returns the server's namespaces (RFC 2342), or null when
-the server doesn't offer NAMESPACE. Each of `personal`, `otherUsers` and
-`shared` is a list of `Protocol\Imap\NamespaceEntry` with a `prefix`, such as
-`INBOX.` or `#shared/`, and a `delimiter`, which is null for a flat namespace.
-New folders belong under the first personal prefix on servers that have one.
+`getNamespaces()` returns the server's namespaces (RFC 2342) as a
+`Contenir\Mail\Imap\Namespaces`, or null when the server doesn't offer
+NAMESPACE. Each of `personal`, `otherUsers` and `shared` is a list of
+`Imap\NamespaceEntry` with a `prefix`, such as `INBOX.` or `#shared/`, and a
+`delimiter`, which is null for a flat namespace. New folders belong under the
+first personal prefix on servers that have one. `Protocol\Imap::namespace()`
+returns the same classes.
 
 `getFolderStatus()` reads a folder's message count, unseen count, UIDNEXT
 and UIDVALIDITY without selecting it. It also reads the folder's size in octets

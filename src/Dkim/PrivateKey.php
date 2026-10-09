@@ -168,7 +168,7 @@ final readonly class PrivateKey
 
         $exported = '';
         openssl_pkey_export($key, $exported);
-        $der = (string) base64_decode(self::unarmour($exported), strict: true);
+        $der = (string) base64_decode(self::unarmor($exported), strict: true);
         if (! str_starts_with($der, self::ED25519_PKCS8_PREFIX)) {
             throw new InvalidArgumentException('The DKIM private key must be an RSA or an Ed25519 key');
         }
@@ -229,7 +229,7 @@ final readonly class PrivateKey
         if ($this->key instanceof OpenSSLAsymmetricKey) {
             $public = openssl_pkey_get_details($this->key)['key'] ?? '';
 
-            return 'v=DKIM1; k=rsa; p=' . self::unarmour($public);
+            return 'v=DKIM1; k=rsa; p=' . self::unarmor($public);
         }
 
         return 'v=DKIM1; k=ed25519; p=' . base64_encode(sodium_crypto_sign_publickey_from_secretkey($this->key));
@@ -282,7 +282,7 @@ final readonly class PrivateKey
     /**
      * The base64 inside a PEM block, without its armour lines and line breaks.
      */
-    private static function unarmour(#[SensitiveParameter] string $pem): string
+    private static function unarmor(#[SensitiveParameter] string $pem): string
     {
         return (string) preg_replace('/-----[^-]+-----|\s+/', replacement: '', subject: $pem);
     }

@@ -66,9 +66,17 @@ leaf's encoded content, or each child of a multipart between its boundaries.
   quoted-printable.
 
 Its constants name common types (`TYPE_TEXT`, `TYPE_HTML`, `TYPE_OCTETSTREAM`,
-`TYPE_ENRICHED`, `TYPE_XML`, `MULTIPART_*`, `MESSAGE_RFC822`,
-`MESSAGE_DELIVERY_STATUS`), encodings (`ENCODING_*`) and dispositions
-(`DISPOSITION_*`).
+`TYPE_ENRICHED`, `TYPE_XML`, `MULTIPART_REPORT`, `MESSAGE_RFC822`,
+`MESSAGE_DELIVERY_STATUS`).
+
+The constants for encodings (`ENCODING_*`), dispositions (`DISPOSITION_*`)
+and the other multipart types (`MULTIPART_MIXED`, `MULTIPART_ALTERNATIVE`,
+`MULTIPART_RELATED`) are deprecated in favour of the `TransferEncoding`,
+`Disposition` and `MultipartType` enums, such as
+`TransferEncoding::Base64->value` and `MultipartType::Mixed->contentType()`.
+`MULTIPART_RELATIVE` is deprecated too: it names `multipart/relative`, which
+no RFC defines; RFC 2387 defines `multipart/related`. PHP 8.4 and later
+report their use.
 
 ## Contenir\\Mail\\Mime\\Decode
 

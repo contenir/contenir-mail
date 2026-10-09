@@ -33,13 +33,21 @@ Key                     | Argument              | Default        | Meaning
 `security`              | `security`            | `starttls`     | `starttls`: upgrade a plain connection, and refuse a server that cannot. `tls`: TLS from the start. `none`: no encryption.
 `verify_peer`           | `verifyPeer`          | `true`         | Verify the server's certificate and name. Turn it off only for a test server.
 `timeout`               | `timeout`             | `30`           | Seconds to wait for the connection.
-`cafile`, `capath`, `peer_name`, `allow_self_signed`, `local_cert`, `local_pk` | `tls: new TlsConfig(…)` | none | Trust a private certificate authority, check another name, or present a client certificate; see [Reading and Storing Mail](../read.md) and the security page.
+`cafile`, `capath`, `peer_name`, `allow_self_signed`, `local_cert`, `local_pk`, `passphrase` | `tls: new TlsConfig(…)` | none | Trust a private certificate authority, check another name, or present a client certificate; see [Reading and Storing Mail](../read.md) and the security page.
 `name`                  | `name`                | `localhost`    | The client's own host name, sent with EHLO.
 `auth`                  | `auth`                | none           | An authenticator, or settings such as `['type' => 'login', 'username' => ..., 'password' => ...]`. See [SMTP authentication](smtp-authentication.md).
 `allow_insecure_auth`   | `allowInsecureAuth`   | `false`        | Allow `auth` with `security` set to `none`.
 `connection_time_limit` | `connectionTimeLimit` | none           | Seconds after which the transport opens a new connection rather than reusing it; QUIT is then not sent.
 `use_complete_quit`     | `useCompleteQuit`     | `true`         | Send QUIT before closing the connection.
 `logger`                | `logger`              | none           | A PSR-3 logger for the session, at debug level, credentials redacted. See [logging the session](smtp-authentication.md#logging-the-session).
+
+The laminas-mail `ssl` setting is read too, as IMAP and POP3 read it: `ssl`
+means `tls` (TLS from the start), `tls` means `starttls`, and `false` or `none`
+means a plain connection. It is deprecated: use `security`, and don't give
+both.
+
+When TLS from the start fails on port 25, 110, 143 or 587, where servers expect
+STARTTLS, the error says so and suggests `security: 'starttls'`.
 
 The connection settings are also available on their own as
 `SmtpConfig::$connection`, a `Contenir\Mail\Protocol\ConnectionConfig`.
@@ -102,17 +110,20 @@ Envelope addresses are validated when the envelope is made.
 ## The protocol
 
 `Contenir\Mail\Protocol\Smtp` is the session underneath. It takes a
-`ConnectionConfig`, or the laminas-mail arguments:
+`ConnectionConfig`, with `use_complete_quit` and `allow_insecure_auth` in its
+`$config` array:
 
 ```php
 use Contenir\Mail\Protocol\ConnectionConfig;
 use Contenir\Mail\Protocol\Smtp;
 
 $smtp = new Smtp(new ConnectionConfig('smtp.example.com'), authenticator: $login);
-$smtp = new Smtp('smtp.example.com', 587, ['ssl' => 'tls']);   // laminas-mail form
+$smtp = new Smtp('smtp.example.com', 587, ['ssl' => 'tls']);   // laminas-mail form, deprecated
 ```
 
-In the laminas-mail form, `ssl` keeps its old meaning: `'ssl'` is TLS from the
-start, `'tls'` is STARTTLS, and `'none'`, `''` or `false` is a plain connection.
-Leaving `ssl` out now means STARTTLS. `novalidatecert` turns certificate
-verification off.
+The laminas-mail forms, a host name or a settings array in place of the
+`ConnectionConfig`, are deprecated. In them `ssl` keeps its old meaning:
+`'ssl'` is TLS from the start, `'tls'` is STARTTLS, and `'none'`, `''` or
+`false` is a plain connection. Leaving `ssl` out now means STARTTLS.
+`novalidatecert` turns certificate verification off, as does the deprecated
+`setNoValidateCert(true)`; set `verifyPeer` in the `ConnectionConfig` instead.

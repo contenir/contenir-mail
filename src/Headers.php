@@ -126,7 +126,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function with(HeaderInterface $header): self
     {
-        $key   = self::normalise($header->getFieldName());
+        $key   = self::normalize($header->getFieldName());
         $found = $this->byName[$key] ?? [];
         if ([] === $found) {
             return $this->appending($header, $key);
@@ -155,7 +155,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function withAdded(HeaderInterface $header): self
     {
-        return $this->appending($header, self::normalise($header->getFieldName()));
+        return $this->appending($header, self::normalize($header->getFieldName()));
     }
 
     /**
@@ -172,7 +172,7 @@ final readonly class Headers implements Countable, IteratorAggregate
     #[NoDiscard('The object is immutable: this returns a changed copy and leaves it as it was')]
     public function without(string $name): self
     {
-        $found = $this->byName[self::normalise($name)] ?? [];
+        $found = $this->byName[self::normalize($name)] ?? [];
 
         return self::dropping($this->headers, array_keys($found), $this->wireTextWithout($found));
     }
@@ -192,12 +192,12 @@ final readonly class Headers implements Countable, IteratorAggregate
      */
     public function all(string $name): array
     {
-        return array_values($this->byName[self::normalise($name)] ?? []);
+        return array_values($this->byName[self::normalize($name)] ?? []);
     }
 
     public function has(string $name): bool
     {
-        return array_key_exists(self::normalise($name), $this->byName);
+        return array_key_exists(self::normalize($name), $this->byName);
     }
 
     /**
@@ -409,13 +409,13 @@ final readonly class Headers implements Countable, IteratorAggregate
     {
         $byName = [];
         foreach ($headers as $position => $header) {
-            $byName[self::normalise($header->getFieldName())][$position] = $header;
+            $byName[self::normalize($header->getFieldName())][$position] = $header;
         }
 
         return $byName;
     }
 
-    private static function normalise(string $name): string
+    private static function normalize(string $name): string
     {
         return str_replace(
             search: ['-', '_', ' ', '.'],

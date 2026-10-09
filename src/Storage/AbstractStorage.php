@@ -31,17 +31,17 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     protected bool $open = false;
 
     /**
-     * Features the storage supports: true, false, or null when not yet known.
+     * Features the storage supports, keyed by Capability value: true, false, or null when not yet known.
      *
      * @var array<string, bool|null>
      */
     protected array $has = [
-        'uniqueid'  => true,
-        'delete'    => false,
-        'create'    => false,
-        'top'       => false,
-        'fetchPart' => true,
-        'flags'     => false,
+        Capability::UniqueId->value  => true,
+        Capability::Delete->value    => false,
+        Capability::Create->value    => false,
+        Capability::Top->value       => false,
+        Capability::FetchPart->value => true,
+        Capability::Flags->value     => false,
     ];
 
     /**
@@ -56,7 +56,7 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
      *
      * @throws Exception\ExceptionInterface When there is no such message.
      */
-    abstract public function getSize(int $id): int;
+    abstract public function getSize(int $number): int;
 
     /**
      * The size of every message in bytes, by message number.
@@ -69,21 +69,21 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     /**
      * @throws Exception\ExceptionInterface When there is no such message, or it cannot be read.
      */
-    abstract public function getMessage(int $id): Message;
+    abstract public function getMessage(int $number): Message;
 
     /**
      * The header block of a message, as stored.
      *
      * @throws Exception\ExceptionInterface When there is no such message.
      */
-    abstract public function getRawHeader(int $id): string;
+    abstract public function getRawHeader(int $number): string;
 
     /**
      * The body of a message, as stored.
      *
      * @throws Exception\ExceptionInterface When there is no such message.
      */
-    abstract public function getRawContent(int $id): string;
+    abstract public function getRawContent(int $number): string;
 
     /**
      * Release the file or connection; the destructor calls it. Messages read from
@@ -102,14 +102,14 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     /**
      * @throws Exception\ExceptionInterface When there is no such message, or the storage is read-only.
      */
-    abstract public function removeMessage(int $id): void;
+    abstract public function removeMessage(int $number): void;
 
     /**
      * A message's unique ID; its number when the storage has none.
      *
      * @throws Exception\ExceptionInterface When there is no such message.
      */
-    abstract public function getUniqueId(int $id): string;
+    abstract public function getUniqueId(int $number): string;
 
     /**
      * Every message's unique ID, by message number.
@@ -122,14 +122,27 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     /**
      * @throws Exception\ExceptionInterface When no message has that unique ID.
      */
-    abstract public function getNumberByUniqueId(string $id): int;
+    abstract public function getNumberByUniqueId(string $uniqueId): int;
 
     /**
+     * Every feature, keyed by its Capability value; supports() asks about one by its case.
+     *
      * @return array<string, bool|null> Feature name to true, false, or null when not yet known.
      */
     public function getCapabilities(): array
     {
         return $this->has;
+    }
+
+    /**
+     * Whether the storage supports a feature: null when it is not yet known, as whether a
+     * POP3 server has TOP is until a message has been read, or when the storage does not say.
+     *
+     * @throws Exception\ExceptionInterface When the storage must ask the server and cannot.
+     */
+    public function supports(Capability $capability): ?bool
+    {
+        return $this->getCapabilities()[$capability->value] ?? null;
     }
 
     /**
@@ -151,8 +164,8 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     public function getIterator(): Generator
     {
         $count = $this->countMessages();
-        for ($id = 1; $id <= $count; ++$id) {
-            yield $id => $this->getMessage($id);
+        for ($number = 1; $number <= $count; ++$number) {
+            yield $number => $this->getMessage($number);
         }
     }
 
@@ -188,12 +201,12 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     /**
      * @throws Exception\OutOfBoundsException When the number is below 1 or, given a count, above it.
      */
-    protected static function checkNumber(int $id, ?int $count = null): int
+    protected static function checkNumber(int $number, ?int $count = null): int
     {
-        if ($id < 1 || (null !== $count && $id > $count)) {
-            throw new Exception\OutOfBoundsException("There is no message {$id}");
+        if ($number < 1 || (null !== $count && $number > $count)) {
+            throw new Exception\OutOfBoundsException("There is no message {$number}");
         }
 
-        return $id;
+        return $number;
     }
 }

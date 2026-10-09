@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Protocol\Imap;
+namespace Contenir\Mail\Imap;
 
 /**
  * The namespaces a server offers (RFC 2342): the user's own mailboxes, other
  * users' mailboxes and shared mailboxes. A kind of namespace the server does
  * not have is an empty list.
+ *
+ * Returned by Protocol\Imap::namespace() and Storage\Imap::getNamespaces(),
+ * so it belongs to neither layer.
  *
  * @api
  */

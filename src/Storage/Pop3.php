@@ -10,6 +10,7 @@ use Contenir\Mail\Storage\Part\MimeParser;
 use Override;
 use SensitiveParameter;
 
+use function array_search;
 use function is_array;
 use function is_int;
 use function is_iterable;
@@ -30,6 +31,20 @@ use function is_string;
  */
 final class Pop3 extends AbstractStorage
 {
+    /**
+     * Messages can be removed but not fetched in parts; TOP and UIDL are unknown until asked.
+     *
+     * @var array<string, bool|null>
+     */
+    protected array $has = [
+        Capability::UniqueId->value  => null,
+        Capability::Delete->value    => true,
+        Capability::Create->value    => false,
+        Capability::Top->value       => null,
+        Capability::FetchPart->value => false,
+        Capability::Flags->value     => false,
+    ];
+
     private Protocol\Pop3 $protocol;
 
     /** Whether the server has UIDL; null until asked */
@@ -47,10 +62,6 @@ final class Pop3 extends AbstractStorage
         Pop3Config|Protocol\Pop3|iterable $config,
         ?Protocol\Pop3 $protocol = null,
     ) {
-        $this->has['fetchPart'] = false;
-        $this->has['top']       = null;
-        $this->has['uniqueid']  = null;
-        $this->has['delete']    = true;
         if ($config instanceof Protocol\Pop3) {
             $this->protocol = $config;
             $this->open     = true;
@@ -62,6 +73,16 @@ final class Pop3 extends AbstractStorage
         $this->protocol = $protocol ?? new Protocol\Pop3();
         $this->protocol->connect($config->connection);
         $this->open = true;
+        $this->signIn($config);
+    }
+
+    /**
+     * Sign in with the authenticator when there is one, and the password otherwise.
+     *
+     * @throws Protocol\Exception\ExceptionInterface When the server refuses or cannot be asked.
+     */
+    private function signIn(Pop3Config $config): void
+    {
         if (null !== $config->auth) {
             $this->protocol->authenticate($config->auth);
 
@@ -94,9 +115,9 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getSize(int $id): int
+    public function getSize(int $number): int
     {
-        $size = $this->protocol->getList(self::checkNumber($id));
+        $size = $this->protocol->getList(self::checkNumber($number));
 
         return is_int($size) ? $size : 0;
     }
@@ -121,12 +142,12 @@ final class Pop3 extends AbstractStorage
      * @mago-expect analysis:unhandled-thrown-type The body loader throws to whoever first reads the body.
      */
     #[Override]
-    public function getMessage(int $id): Message
+    public function getMessage(int $number): Message
     {
-        $id = self::checkNumber($id);
-        [$headers, $body] = MimeParser::split(Content::fromString($this->protocol->top($id, 0, true)));
+        $number = self::checkNumber($number);
+        [$headers, $body] = MimeParser::split(Content::fromString($this->protocol->top($number, 0, true)));
         if (0 === $body->length()) {
-            $body = Content::lazy(fn(): string => $this->retrieveBody($id));
+            $body = Content::lazy(fn(): string => $this->retrieveBody($number));
         }
 
         return new Message(new Part($headers, $body));
@@ -137,9 +158,9 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getRawHeader(int $id): string
+    public function getRawHeader(int $number): string
     {
-        $raw = Content::fromString($this->protocol->top(self::checkNumber($id), 0, true));
+        $raw = Content::fromString($this->protocol->top(self::checkNumber($number), 0, true));
         [, $body] = MimeParser::split($raw);
 
         return $raw->slice(0, $raw->length() - $body->length())->read();
@@ -150,9 +171,9 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getRawContent(int $id): string
+    public function getRawContent(int $number): string
     {
-        return $this->retrieveBody(self::checkNumber($id));
+        return $this->retrieveBody(self::checkNumber($number));
     }
 
     /**
@@ -171,7 +192,7 @@ final class Pop3 extends AbstractStorage
             $this->probeTop();
         }
 
-        $this->has['top'] = $this->protocol->hasTop;
+        $this->has[Capability::Top->value] = $this->protocol->hasTop;
 
         return parent::getCapabilities();
     }
@@ -203,9 +224,9 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server refuses.
      */
     #[Override]
-    public function removeMessage(int $id): void
+    public function removeMessage(int $number): void
     {
-        $this->protocol->delete(self::checkNumber($id));
+        $this->protocol->delete(self::checkNumber($number));
     }
 
     /**
@@ -213,14 +234,14 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getUniqueId(int $id): string
+    public function getUniqueId(int $number): string
     {
-        $id = self::checkNumber($id);
+        $number = self::checkNumber($number);
         if (! $this->supportsUniqueIds()) {
-            return (string) $id;
+            return (string) $number;
         }
 
-        $uid = $this->protocol->uniqueid($id);
+        $uid = $this->protocol->uniqueid($number);
 
         return is_string($uid) ? $uid : '';
     }
@@ -234,8 +255,8 @@ final class Pop3 extends AbstractStorage
     {
         $ids = [];
         if (! $this->supportsUniqueIds()) {
-            for ($id = 1, $count = $this->countMessages(); $id <= $count; ++$id) {
-                $ids[$id] = (string) $id;
+            for ($number = 1, $count = $this->countMessages(); $number <= $count; ++$number) {
+                $ids[$number] = (string) $number;
             }
 
             return $ids;
@@ -251,24 +272,20 @@ final class Pop3 extends AbstractStorage
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
     #[Override]
-    public function getNumberByUniqueId(string $id): int
+    public function getNumberByUniqueId(string $uniqueId): int
     {
-        foreach ($this->getUniqueIds() as $number => $uid) {
-            if ($uid === $id) {
-                return $number;
-            }
-        }
+        $number = array_search($uniqueId, $this->getUniqueIds(), strict: true);
 
-        throw new Exception\OutOfBoundsException('Unique ID not found');
+        return false === $number ? throw new Exception\OutOfBoundsException('Unique ID not found') : $number;
     }
 
     /**
      * @throws Exception\RuntimeException When the message cannot be read.
      * @throws Protocol\Exception\ExceptionInterface When the server cannot be asked.
      */
-    private function retrieveBody(int $id): string
+    private function retrieveBody(int $number): string
     {
-        return MimeParser::split(Content::fromString($this->protocol->retrieve($id)))[1]->read();
+        return MimeParser::split(Content::fromString($this->protocol->retrieve($number)))[1]->read();
     }
 
     /**
@@ -277,8 +294,8 @@ final class Pop3 extends AbstractStorage
     private function supportsUniqueIds(): bool
     {
         if (null === $this->uniqueIds) {
-            $this->uniqueIds       = $this->probeUniqueIds();
-            $this->has['uniqueid'] = $this->uniqueIds;
+            $this->uniqueIds                        = $this->probeUniqueIds();
+            $this->has[Capability::UniqueId->value] = $this->uniqueIds;
         }
 
         return $this->uniqueIds;

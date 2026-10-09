@@ -21,7 +21,7 @@ use function str_repeat;
  */
 #[CoversClass(Imap::class)]
 #[Group('unit')]
-final class NonSynchronisingLiteralTest extends TestCase
+final class NonSynchronizingLiteralTest extends TestCase
 {
     /**
      * A message of $size bytes that a quoted string cannot carry.
@@ -49,9 +49,9 @@ final class NonSynchronisingLiteralTest extends TestCase
         return $imap;
     }
 
-    #[DataProvider('nonSynchronisingProvider')]
+    #[DataProvider('nonSynchronizingProvider')]
     #[Test]
-    public function sendsANonSynchronisingLiteralWhenTheServerOffersIt(string $capabilities, int $size): void
+    public function sendsANonSynchronizingLiteralWhenTheServerOffersIt(string $capabilities, int $size): void
     {
         $message = self::message($size);
         $server  = self::server($capabilities)
@@ -66,7 +66,7 @@ final class NonSynchronisingLiteralTest extends TestCase
     /**
      * @return array<string, array{string, int}>
      */
-    public static function nonSynchronisingProvider(): array
+    public static function nonSynchronizingProvider(): array
     {
         return [
             'LITERAL+ at any size'      => ['LITERAL+', 10_000],
@@ -76,7 +76,7 @@ final class NonSynchronisingLiteralTest extends TestCase
         ];
     }
 
-    #[DataProvider('synchronisingProvider')]
+    #[DataProvider('synchronizingProvider')]
     #[Test]
     public function waitsForTheServerOtherwise(string $capabilities, int $size): void
     {
@@ -94,7 +94,7 @@ final class NonSynchronisingLiteralTest extends TestCase
     /**
      * @return array<string, array{string, int}>
      */
-    public static function synchronisingProvider(): array
+    public static function synchronizingProvider(): array
     {
         return [
             'no LITERAL extension'     => ['MOVE', 3],
@@ -103,7 +103,7 @@ final class NonSynchronisingLiteralTest extends TestCase
     }
 
     #[Test]
-    public function sendsANonSynchronisingLiteralOfUpTo4096BytesWithImap4Rev2Enabled(): void
+    public function sendsANonSynchronizingLiteralOfUpTo4096BytesWithImap4Rev2Enabled(): void
     {
         $small  = self::message(4096);
         $large  = self::message(4097);
@@ -129,7 +129,7 @@ final class NonSynchronisingLiteralTest extends TestCase
     }
 
     #[Test]
-    public function sendsAPasswordAsANonSynchronisingLiteralWhenTheServerOffersLiteralPlus(): void
+    public function sendsAPasswordAsANonSynchronizingLiteralWhenTheServerOffersLiteralPlus(): void
     {
         $server = self::server('LITERAL+')
             ->expect("TAG2 LOGIN \"jo\" {5+}\r\n")

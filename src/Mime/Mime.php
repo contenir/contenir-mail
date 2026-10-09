@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Mime;
 
 use Contenir\Mail\Utf8;
+use Deprecated;
 
 use function array_map;
 use function base64_encode;
@@ -36,27 +37,70 @@ use function trim;
 final class Mime
 {
     // phpcs:disable Generic.Files.LineLength.TooLong
-    public const string TYPE_OCTETSTREAM         = 'application/octet-stream';
-    public const string TYPE_TEXT                = 'text/plain';
-    public const string TYPE_HTML                = 'text/html';
-    public const string TYPE_ENRICHED            = 'text/enriched';
-    public const string TYPE_XML                 = 'text/xml';
-    public const string ENCODING_7BIT            = '7bit';
-    public const string ENCODING_8BIT            = '8bit';
+    public const string TYPE_OCTETSTREAM = 'application/octet-stream';
+    public const string TYPE_TEXT        = 'text/plain';
+    public const string TYPE_HTML        = 'text/html';
+    public const string TYPE_ENRICHED    = 'text/enriched';
+    public const string TYPE_XML         = 'text/xml';
+    /**
+     * @deprecated since 0.3.0, use TransferEncoding::SevenBit->value.
+     */
+    #[Deprecated('use TransferEncoding::SevenBit->value', since: '0.3.0')]
+    public const string ENCODING_7BIT = '7bit';
+    /**
+     * @deprecated since 0.3.0, use TransferEncoding::EightBit->value.
+     */
+    #[Deprecated('use TransferEncoding::EightBit->value', since: '0.3.0')]
+    public const string ENCODING_8BIT = '8bit';
+    /**
+     * @deprecated since 0.3.0, use TransferEncoding::QuotedPrintable->value.
+     */
+    #[Deprecated('use TransferEncoding::QuotedPrintable->value', since: '0.3.0')]
     public const string ENCODING_QUOTEDPRINTABLE = 'quoted-printable';
-    public const string ENCODING_BASE64          = 'base64';
-    public const string DISPOSITION_ATTACHMENT   = 'attachment';
-    public const string DISPOSITION_INLINE       = 'inline';
-    public const int LINELENGTH               = 72;
-    public const string LINEEND                  = "\n";
-    public const string MULTIPART_ALTERNATIVE    = 'multipart/alternative';
-    public const string MULTIPART_MIXED          = 'multipart/mixed';
-    public const string MULTIPART_RELATED        = 'multipart/related';
-    public const string MULTIPART_RELATIVE       = 'multipart/relative';
-    public const string MULTIPART_REPORT         = 'multipart/report';
-    public const string MESSAGE_RFC822           = 'message/rfc822';
-    public const string MESSAGE_DELIVERY_STATUS  = 'message/delivery-status';
-    public const string CHARSET_REGEX            = '#=\?(?P<charset>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<encoding>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<text>[\x21-\x3e\x40-\x7e]+)#';
+    /**
+     * @deprecated since 0.3.0, use TransferEncoding::Base64->value.
+     */
+    #[Deprecated('use TransferEncoding::Base64->value', since: '0.3.0')]
+    public const string ENCODING_BASE64 = 'base64';
+    /**
+     * @deprecated since 0.3.0, use Disposition::Attachment->value.
+     */
+    #[Deprecated('use Disposition::Attachment->value', since: '0.3.0')]
+    public const string DISPOSITION_ATTACHMENT = 'attachment';
+    /**
+     * @deprecated since 0.3.0, use Disposition::Inline->value.
+     */
+    #[Deprecated('use Disposition::Inline->value', since: '0.3.0')]
+    public const string DISPOSITION_INLINE = 'inline';
+    public const int LINELENGTH         = 72;
+    public const string LINEEND            = "\n";
+    /**
+     * @deprecated since 0.3.0, use MultipartType::Alternative->contentType().
+     */
+    #[Deprecated('use MultipartType::Alternative->contentType()', since: '0.3.0')]
+    public const string MULTIPART_ALTERNATIVE = 'multipart/alternative';
+    /**
+     * @deprecated since 0.3.0, use MultipartType::Mixed->contentType().
+     */
+    #[Deprecated('use MultipartType::Mixed->contentType()', since: '0.3.0')]
+    public const string MULTIPART_MIXED = 'multipart/mixed';
+    /**
+     * @deprecated since 0.3.0, use MultipartType::Related->contentType().
+     */
+    #[Deprecated('use MultipartType::Related->contentType()', since: '0.3.0')]
+    public const string MULTIPART_RELATED = 'multipart/related';
+    /**
+     * @deprecated since 0.3.0, use MultipartType::Related->contentType(); no RFC defines multipart/relative, and RFC 2387 names multipart/related.
+     */
+    #[Deprecated(
+        'use MultipartType::Related->contentType(); no RFC defines multipart/relative, and RFC 2387 names multipart/related',
+        since: '0.3.0',
+    )]
+    public const string MULTIPART_RELATIVE      = 'multipart/relative';
+    public const string MULTIPART_REPORT        = 'multipart/report';
+    public const string MESSAGE_RFC822          = 'message/rfc822';
+    public const string MESSAGE_DELIVERY_STATUS = 'message/delivery-status';
+    public const string CHARSET_REGEX           = '#=\?(?P<charset>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<encoding>[\x21\x23-\x26\x2a\x2b\x2d\x5e\x5f\x60\x7b-\x7ea-zA-Z0-9]+)\?(?P<text>[\x21-\x3e\x40-\x7e]+)#';
 
     // phpcs:enable
 

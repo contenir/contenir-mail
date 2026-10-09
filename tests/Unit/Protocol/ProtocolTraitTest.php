@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Protocol;
 use Contenir\Mail\Protocol\ProtocolTrait;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -42,12 +43,14 @@ final class ProtocolTraitTest extends TestCase
         static::assertTrue(self::protocol()->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function skipsCertificateValidationWhenAsked(): void
     {
         static::assertFalse(self::protocol()->setNoValidateCert(true)->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function validatesCertificatesAgainWhenAsked(): void
     {

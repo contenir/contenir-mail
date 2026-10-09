@@ -19,6 +19,7 @@ use Contenir\Mail\Tests\Unit\TestAsset\SmtpServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SensitiveParameter;
@@ -68,6 +69,7 @@ final class SmtpSessionTest extends TestCase
     /**
      * The laminas-mail form without "ssl" requires STARTTLS, so it uses the submission port.
      */
+    #[IgnoreDeprecations]
     #[Test]
     public function connectsToSubmissionPortWithoutPortOrSecurity(): void
     {
@@ -108,6 +110,7 @@ final class SmtpSessionTest extends TestCase
         static::assertFalse($server->openedWith()?->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function skipsCertificateVerificationWhenToldAfterConstruction(): void
     {

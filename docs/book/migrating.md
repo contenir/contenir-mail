@@ -36,6 +36,8 @@ the wrong thing.
 
 3. Register `Contenir\Mail\ConfigProvider` (Mezzio) or the `Contenir\Mail` module
    (laminas-mvc) in place of the Laminas ones. Neither is needed without a container.
+   The factories need `psr/container`, which every PSR-11 container installs;
+   contenir-mail only suggests it.
 
 4. Work through the [silent changes](#silent-changes-check-these-first). Search
    your code for each one; your tests may not catch them.
@@ -302,7 +304,7 @@ returns the whole message's header block or body.
 **Fix:** read the part from the message.
 
 ```php
-$body = $mail->getMessage($id)->getPart(2)->getEncodedContent();
+$body = $mail->getMessage($number)->getPart(2)->getEncodedContent();
 ```
 
 ### Class names whose case changed
@@ -420,6 +422,7 @@ be snake_case or camelCase, and strings from environment variables such as
 | `connection_class` with `connection_config` `username` and `password` | `auth`: an authenticator, or `['type' => 'login', 'username' => ..., 'password' => ...]` |
 | `connection_config['ssl']` = `'ssl'` / `'tls'` | `security` = `'tls'` / `'starttls'` (the default); `'none'` for a plain connection. See [above](#security-tls-means-tls-from-the-start-not-starttls) |
 | `connection_config['novalidatecert']` | `verify_peer` |
+| `new Protocol\Smtp($host, $port, $config)` | `new Protocol\Smtp(new ConnectionConfig(...))`; the laminas-mail form still works, deprecated |
 | `Protocol\Smtp\Auth\Plain`, `Login`, `Crammd5` (subclasses of `Protocol\Smtp`) | `Protocol\Smtp\Auth\Plain`, `Login`, `CramMd5`, implementing `AuthenticatorInterface` |
 | `Protocol\Smtp\Auth\Xoauth2` (a subclass of `Protocol\Smtp`) | `Protocol\Sasl\Xoauth2`, a SASL mechanism for SMTP, IMAP and POP3 |
 | `Protocol\SmtpPluginManager`, `Transport\Smtp::setPluginManager()` / `plugin()` | Removed; implement `AuthenticatorInterface` for another mechanism |
@@ -434,7 +437,8 @@ be snake_case or camelCase, and strings from environment variables such as
 
 | laminas-mail | contenir-mail |
 | --- | --- |
-| `new Protocol\Imap($host, $port, $ssl)`, the same for `Pop3` | The same, or a `ConnectionConfig`; an omitted `$ssl` now means STARTTLS |
+| `new Protocol\Imap($host, $port, $ssl)`, the same for `Pop3` | A `ConnectionConfig`. The laminas-mail arguments still work, deprecated; an omitted `$ssl` now means STARTTLS |
+| `setNoValidateCert(true)` | `ConnectionConfig::$verifyPeer` set to false; `setNoValidateCert()` still works, deprecated |
 | `$ssl = true` or an unknown string | Throws; use `'ssl'`, `'tls'`, `'none'` or `false` |
 | Folder names encoded to modified UTF-7 by the caller | UTF-8; see [above](#imap-folder-names-are-utf-8) |
 | Socket handling inside the protocol classes | `ConnectionInterface`, with `StreamConnection` and `Testing\InMemoryConnection` |
@@ -469,7 +473,7 @@ be snake_case or camelCase, and strings from environment variables such as
 | `protected $messageClass` in a storage subclass | Removed; see [Extending](#extending) |
 | `$folders->INBOX->Archive` | `$mail->getFolders()->getFolder('INBOX')->getFolder('Archive')` |
 | `getSize()` and `getUniqueId()` without a number, returning every message | `getSizes()` and `getUniqueIds()` |
-| `hasTop`, `hasFlags` and the other `has*` properties | `getCapabilities()`, such as `getCapabilities()['top']` |
+| `hasTop`, `hasFlags` and the other `has*` properties | `supports()`, such as `supports(Capability::Top)`, or `getCapabilities()` |
 | `messageEOL` setting | Not needed: line breaks are detected |
 | `serialize($mbox)` to cache a storage | Not supported: storages hold open files and connections |
 | `getTopLines()`, `Storage::FLAG_UNSEEN` | Removed |

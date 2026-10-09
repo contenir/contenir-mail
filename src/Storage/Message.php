@@ -44,15 +44,15 @@ final class Message implements PartInterface, IteratorAggregate
         private readonly Part $part,
         iterable $flags = [],
     ) {
-        $normalised = [];
+        $normalized = [];
         foreach ($flags as $flag) {
-            $flag = Flag::normalise($flag);
-            if (! in_array($flag, $normalised, strict: true)) {
-                $normalised[] = $flag;
+            $flag = Flag::normalize($flag);
+            if (! in_array($flag, $normalized, strict: true)) {
+                $normalized[] = $flag;
             }
         }
 
-        $this->flags = $normalised;
+        $this->flags = $normalized;
     }
 
     /**
@@ -144,7 +144,7 @@ final class Message implements PartInterface, IteratorAggregate
      */
     public function hasFlag(Flag|string $flag): bool
     {
-        return in_array(Flag::normalise($flag), $this->flags, strict: true);
+        return in_array(Flag::normalize($flag), $this->flags, strict: true);
     }
 
     public function getContentType(): string

@@ -42,13 +42,13 @@ final readonly class ContentType implements HeaderInterface
             ));
         }
 
-        $normalised = [];
+        $normalized = [];
         foreach ($parameters as $name => $value) {
-            $normalised[MimeParameters::name($name, 'content-type')] = MimeParameters::value($value);
+            $normalized[MimeParameters::name($name, 'content-type')] = MimeParameters::value($value);
         }
 
         $this->type       = $type;
-        $this->parameters = $normalised;
+        $this->parameters = $normalized;
     }
 
     /**

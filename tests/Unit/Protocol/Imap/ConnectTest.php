@@ -17,6 +17,7 @@ use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -45,6 +46,7 @@ final class ConnectTest extends TestCase
      * @param array{string, int, Security} $expected
      */
     #[DataProvider('legacyArgumentProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function readsTheLaminasPositionalArguments(?int $port, string|bool|Security $ssl, array $expected): void
     {
@@ -73,6 +75,7 @@ final class ConnectTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function usesStartTlsWhenNoSecurityIsGiven(): void
     {
@@ -84,6 +87,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('startTlsSettingProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function usesStartTlsForItsLegacyNames(string $ssl): void
     {
@@ -107,6 +111,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('unknownSecurityProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesSecuritySettingsThatWouldSilentlyMeanPlainText(string|bool $ssl): void
     {
@@ -128,6 +133,7 @@ final class ConnectTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function verifiesTheCertificateByDefault(): void
     {
@@ -138,6 +144,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($server->openedWith()?->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function verifiesTheCertificateWhenNotToldOtherwise(): void
     {
@@ -148,6 +155,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($server->openedWith()?->verifyPeer);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function skipsCertificateVerificationOnlyWhenAsked(): void
     {
@@ -188,6 +196,7 @@ final class ConnectTest extends TestCase
         static::assertFalse($imap->validateCert());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function usesTheProtocolTimeoutForLegacyArguments(): void
     {
@@ -224,6 +233,7 @@ final class ConnectTest extends TestCase
         static::assertEquals(ScriptedServer::plain(), $imap->getConnectionConfig());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesAPortOutOfRange(): void
     {
@@ -233,6 +243,7 @@ final class ConnectTest extends TestCase
         new Imap('imap.example.com', 70_000, false, false, new InMemoryConnection());
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function failsWhenTheServerRefusesTheConnection(): void
     {
@@ -243,6 +254,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('unwelcomeGreetingProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function failsWhenTheServerDoesNotGreetWithOk(string $greeting): void
     {
@@ -271,6 +283,7 @@ final class ConnectTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function upgradesWithStartTlsBeforeAnyOtherCommand(): void
     {
@@ -285,6 +298,7 @@ final class ConnectTest extends TestCase
         static::assertTrue($imap->login('user', 'secret'));
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function acceptsStartTlsAdvertisedInLowerCase(): void
     {
@@ -302,6 +316,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('startTlsNotOfferedProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToContinueInPlainTextWhenStartTlsIsNotOffered(string $capabilityResponse): void
     {
@@ -331,6 +346,7 @@ final class ConnectTest extends TestCase
     }
 
     #[DataProvider('startTlsRefusedProvider')]
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesToContinueInPlainTextWhenTheServerRefusesStartTls(string $reply): void
     {
@@ -359,6 +375,7 @@ final class ConnectTest extends TestCase
         ];
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function failsWhenTheTlsHandshakeFails(): void
     {
@@ -376,6 +393,7 @@ final class ConnectTest extends TestCase
         new Imap('imap.example.com', connection: $server);
     }
 
+    #[IgnoreDeprecations]
     #[Test]
     public function refusesResponsesInjectedBeforeTheTlsHandshake(): void
     {

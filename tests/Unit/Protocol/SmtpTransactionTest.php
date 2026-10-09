@@ -339,7 +339,7 @@ final class SmtpTransactionTest extends TestCase
      */
     #[DataProvider('lineEndingProvider')]
     #[Test]
-    public function normalisesLineEndingsToCrlf(string $data, array $expected): void
+    public function normalizesLineEndingsToCrlf(string $data, array $expected): void
     {
         $server = new SmtpServer();
         $smtp   = self::open($server);

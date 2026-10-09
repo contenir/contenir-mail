@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Protocol\Imap;
+namespace Contenir\Mail\Imap;
 
 /**
  * One namespace a server offers (RFC 2342): the prefix its mailbox names

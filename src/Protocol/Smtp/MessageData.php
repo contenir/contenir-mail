@@ -40,7 +40,7 @@ final class MessageData
         $lineStart = true;
         $heldBreak = false;
         $sent      = false;
-        foreach (self::normalise($chunks) as $chunk) {
+        foreach (self::normalize($chunks) as $chunk) {
             $stuffed = str_replace(
                 search: "\n.",
                 replace: "\n..",
@@ -75,7 +75,7 @@ final class MessageData
      * @param iterable<string> $chunks
      * @return Generator<int, string>
      */
-    public static function normalise(iterable $chunks): Generator
+    public static function normalize(iterable $chunks): Generator
     {
         $carriageReturn = false;
         foreach ($chunks as $chunk) {

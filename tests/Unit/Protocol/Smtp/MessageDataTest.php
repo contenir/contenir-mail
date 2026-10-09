@@ -39,7 +39,7 @@ final class MessageDataTest extends TestCase
     #[Test]
     public function writesEveryLineBreakAsCrlf(array $chunks, array $expected): void
     {
-        static::assertSame($expected, iterator_to_array(MessageData::normalise($chunks), preserve_keys: false));
+        static::assertSame($expected, iterator_to_array(MessageData::normalize($chunks), preserve_keys: false));
     }
 
     #[Test]

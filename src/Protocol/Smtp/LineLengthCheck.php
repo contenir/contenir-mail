@@ -39,11 +39,11 @@ final class LineLengthCheck
         $tooLong    = '/^[^\r\n]{' . ($limit + 1) . '}/m';
         $lines      = 0;
         $line       = '';
-        $normalised = MessageData::normalise($chunks);
-        foreach ($normalised as $chunk) {
+        $normalized = MessageData::normalize($chunks);
+        foreach ($normalized as $chunk) {
             $text = $line . $chunk;
             if (1 === preg_match($tooLong, $text)) {
-                throw self::lineTooLong($text, $lines, $normalised, $limit);
+                throw self::lineTooLong($text, $lines, $normalized, $limit);
             }
 
             $lines += substr_count($chunk, needle: "\n");

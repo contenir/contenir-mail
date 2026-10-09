@@ -12,6 +12,7 @@ use function fgets;
 use function fread;
 use function fwrite;
 use function get_resource_type;
+use function in_array;
 use function is_resource;
 use function sprintf;
 use function str_contains;
@@ -44,6 +45,9 @@ final class StreamConnection implements ConnectionInterface
 {
     /** The TLS versions offered, for implicit TLS and for STARTTLS alike */
     public const int CRYPTO_METHOD = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+
+    /** Ports where servers expect a plain connection upgraded with STARTTLS: SMTP, POP3, IMAP and submission */
+    private const array STARTTLS_PORTS = [25, 110, 143, 587];
 
     /** The most bytes handed to fwrite() at a time, so a large write never copies what is left of it */
     private const int WRITE_CHUNK = 65_536;
@@ -99,7 +103,9 @@ final class StreamConnection implements ConnectionInterface
             context: $context,
         ));
         if (! is_resource($stream)) {
-            throw new Exception\RuntimeException("Cannot connect to {$this->peer}: {$warning}");
+            throw new Exception\RuntimeException(
+                "Cannot connect to {$this->peer}: {$warning}" . self::startTlsHint($config, $port),
+            );
         }
 
         stream_set_timeout($stream, $config->timeout);
@@ -276,6 +282,19 @@ final class StreamConnection implements ConnectionInterface
         if (0 === $ready) {
             throw new Exception\TimeoutException("{$this->peer} has timed out");
         }
+    }
+
+    /**
+     * A hint for TLS from the start that failed on a port where servers expect STARTTLS,
+     * the commonest cause of a failed handshake there; empty otherwise.
+     */
+    private static function startTlsHint(ConnectionConfig $config, int $port): string
+    {
+        if (Security::Tls !== $config->security || ! in_array($port, self::STARTTLS_PORTS, strict: true)) {
+            return '';
+        }
+
+        return "; port {$port} usually expects STARTTLS: if this server does, set security to \"starttls\"";
     }
 
     /**

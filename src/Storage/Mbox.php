@@ -47,10 +47,10 @@ class Mbox extends AbstractStorage
      */
     public function __construct(MboxConfig|iterable $config)
     {
-        $config                = is_iterable($config) ? MboxConfig::fromIterable($config) : $config;
-        $this->format          = $config->format;
-        $this->has['top']      = true;
-        $this->has['uniqueid'] = false;
+        $config                                 = is_iterable($config) ? MboxConfig::fromIterable($config) : $config;
+        $this->format                           = $config->format;
+        $this->has[Capability::Top->value]      = true;
+        $this->has[Capability::UniqueId->value] = false;
         $this->openMboxFile($config->filename);
     }
 
@@ -67,9 +67,9 @@ class Mbox extends AbstractStorage
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
     #[Override]
-    public function getSize(int $id): int
+    public function getSize(int $number): int
     {
-        [$start, $end] = $this->position($id);
+        [$start, $end] = $this->position($number);
 
         return $end - $start;
     }
@@ -90,9 +90,9 @@ class Mbox extends AbstractStorage
      * @throws Exception\RuntimeException When its headers cannot be read.
      */
     #[Override]
-    public function getMessage(int $id): Message
+    public function getMessage(int $number): Message
     {
-        [$headers, $body] = MimeParser::split($this->content($id));
+        [$headers, $body] = MimeParser::split($this->content($number));
 
         return new Message(new Part($headers, $body));
     }
@@ -102,9 +102,9 @@ class Mbox extends AbstractStorage
      * @throws Exception\RuntimeException When its headers cannot be read.
      */
     #[Override]
-    public function getRawHeader(int $id): string
+    public function getRawHeader(int $number): string
     {
-        $content = $this->content($id);
+        $content = $this->content($number);
         [, $body] = MimeParser::split($content);
 
         return $content->slice(0, $content->length() - $body->length())->read();
@@ -115,9 +115,9 @@ class Mbox extends AbstractStorage
      * @throws Exception\RuntimeException When its headers cannot be read.
      */
     #[Override]
-    public function getRawContent(int $id): string
+    public function getRawContent(int $number): string
     {
-        return MimeParser::split($this->content($id))[1]->read();
+        return MimeParser::split($this->content($number))[1]->read();
     }
 
     /**
@@ -139,7 +139,7 @@ class Mbox extends AbstractStorage
      * @throws Exception\RuntimeException Always: mbox files are read-only here.
      */
     #[Override]
-    public function removeMessage(int $id): void
+    public function removeMessage(int $number): void
     {
         throw new Exception\RuntimeException('mbox is read-only');
     }
@@ -150,9 +150,9 @@ class Mbox extends AbstractStorage
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
     #[Override]
-    public function getUniqueId(int $id): string
+    public function getUniqueId(int $number): string
     {
-        return (string) self::checkNumber($id, count($this->positions));
+        return (string) self::checkNumber($number, count($this->positions));
     }
 
     #[Override]
@@ -170,13 +170,13 @@ class Mbox extends AbstractStorage
      * @throws Exception\OutOfBoundsException When no message has that number.
      */
     #[Override]
-    public function getNumberByUniqueId(string $id): int
+    public function getNumberByUniqueId(string $uniqueId): int
     {
-        if (! ctype_digit($id)) {
-            throw new Exception\OutOfBoundsException("There is no message {$id}");
+        if (! ctype_digit($uniqueId)) {
+            throw new Exception\OutOfBoundsException("There is no message {$uniqueId}");
         }
 
-        return self::checkNumber((int) $id, count($this->positions));
+        return self::checkNumber((int) $uniqueId, count($this->positions));
     }
 
     /**
@@ -214,18 +214,18 @@ class Mbox extends AbstractStorage
      * @return array{int, int}
      * @throws Exception\OutOfBoundsException When there is no such message.
      */
-    private function position(int $id): array
+    private function position(int $number): array
     {
-        return $this->positions[self::checkNumber($id, count($this->positions)) - 1] ?? [0, 0];
+        return $this->positions[self::checkNumber($number, count($this->positions)) - 1] ?? [0, 0];
     }
 
     /**
      * @throws Exception\OutOfBoundsException When there is no such message.
      * @throws Exception\RuntimeException When the storage has been closed.
      */
-    private function content(int $id): Content
+    private function content(int $number): Content
     {
-        [$start, $end] = $this->position($id);
+        [$start, $end] = $this->position($number);
 
         /** @var resource $fh Open while there are positions: close() clears both. */
         $fh = $this->fh;

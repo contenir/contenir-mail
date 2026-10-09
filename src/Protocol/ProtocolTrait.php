@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Contenir\Mail\Protocol;
 
+use Deprecated;
+
 /**
  * Certificate verification settings shared by the protocols.
  *
@@ -29,7 +31,9 @@ trait ProtocolTrait
      * validation anyone on the network path can read and change the session.
      *
      * @param bool $novalidatecert Set to true to disable certificate validation
+     * @deprecated since 0.3.0, set ConnectionConfig::$verifyPeer, which the connection then uses.
      */
+    #[Deprecated('set verifyPeer in the ConnectionConfig instead', since: '0.3.0')]
     public function setNoValidateCert(bool $novalidatecert): static
     {
         $this->novalidatecert = $novalidatecert;

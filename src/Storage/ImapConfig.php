@@ -14,7 +14,7 @@ use SensitiveParameter;
 /**
  * Settings of an IMAP mailbox: where to connect, who to log in as, and the folder to open.
  *
- * Connections use STARTTLS unless "security" (or the laminas-mail "ssl") says otherwise.
+ * Connections use STARTTLS unless "security" (or the deprecated laminas-mail "ssl") says otherwise.
  *
  * ```php
  * new ImapConfig(new ConnectionConfig(host: 'imap.example.com', security: Security::Tls), user: 'test', password: $secret);
@@ -22,11 +22,14 @@ use SensitiveParameter;
  * ```
  *
  * @api
+ *
+ * @mago-expect lint:excessive-parameter-list Built with named arguments; only the connection and user are needed.
  */
 final readonly class ImapConfig
 {
     /**
-     * The connection settings, the laminas-mail "ssl" and "novalidatecert", the TLS settings, and the login
+     * The connection settings, the deprecated laminas-mail "ssl" and "novalidatecert", the TLS settings, the login, and
+     * whether to prefer IMAP4rev2
      *
      * @var list<string>
      */
@@ -44,6 +47,7 @@ final readonly class ImapConfig
         'password',
         'folder',
         'auth',
+        'prefer_imap4_rev2',
     ];
 
     /** Shown instead of the password */
@@ -53,6 +57,8 @@ final readonly class ImapConfig
      * @param string $folder The folder selected after logging in.
      * @param MechanismInterface|null $auth How to sign in with SASL instead of the password, such as
      *     Sasl\Xoauth2 for an OAuth 2.0 access token, or Sasl\ScramSha256 for a password proved without sending it.
+     * @param bool $preferImap4Rev2 Whether to turn on IMAP4rev2 (RFC 9051), or else UTF8=ACCEPT, after signing in
+     *     when the server offers it, as Protocol\Imap::preferImap4Rev2() does. False keeps the session IMAP4rev1.
      * @throws Exception\InvalidArgumentException When the folder name holds a line break or NUL.
      */
     public function __construct(
@@ -62,6 +68,7 @@ final readonly class ImapConfig
         public string $password = '',
         public string $folder = 'INBOX',
         public ?MechanismInterface $auth = null,
+        public bool $preferImap4Rev2 = true,
     ) {
         RemoteFolder::check($folder);
     }
@@ -83,6 +90,7 @@ final readonly class ImapConfig
             password: $reader->string('password', default: ''),
             folder: $reader->string('folder', default: 'INBOX'),
             auth: $auth,
+            preferImap4Rev2: $reader->bool('prefer_imap4_rev2', default: true),
         );
     }
 
@@ -94,11 +102,12 @@ final readonly class ImapConfig
     public function __debugInfo(): array
     {
         return [
-            'connection' => $this->connection,
-            'user'       => $this->user,
-            'password'   => self::MASK,
-            'folder'     => $this->folder,
-            'auth'       => $this->auth,
+            'connection'      => $this->connection,
+            'user'            => $this->user,
+            'password'        => self::MASK,
+            'folder'          => $this->folder,
+            'auth'            => $this->auth,
+            'preferImap4Rev2' => $this->preferImap4Rev2,
         ];
     }
 }

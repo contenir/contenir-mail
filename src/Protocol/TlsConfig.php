@@ -6,6 +6,7 @@ namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
+use SensitiveParameter;
 
 use function array_filter;
 use function preg_match;
@@ -13,7 +14,8 @@ use function sprintf;
 
 /**
  * TLS settings beyond peer verification: which certificate authorities to trust,
- * the name the certificate must carry, and a client certificate.
+ * the name the certificate must carry, and a client certificate with its key
+ * and the key's passphrase.
  *
  * Every setting is off unless given, so the defaults stay those of PHP and the
  * system: the system's certificate authorities, and the host name as the peer
@@ -37,7 +39,18 @@ final readonly class TlsConfig
      *
      * @var list<string>
      */
-    public const array KEYS = ['cafile', 'capath', 'peer_name', 'allow_self_signed', 'local_cert', 'local_pk'];
+    public const array KEYS = [
+        'cafile',
+        'capath',
+        'peer_name',
+        'allow_self_signed',
+        'local_cert',
+        'local_pk',
+        'passphrase',
+    ];
+
+    /** Shown in place of the passphrase */
+    public const string REDACTED = '[redacted]';
 
     /** C0 controls, DEL, and NUL: a path or name holding one is refused */
     private const string CONTROLS = '/[\x00-\x1F\x7F]/';
@@ -49,8 +62,9 @@ final readonly class TlsConfig
      * @param bool $allowSelfSigned Accept a certificate that signs itself. Weakens verification; off by default.
      * @param string|null $localCert A client certificate to present, in PEM, which may hold its private key.
      * @param string|null $localPrivateKey The client certificate's private key, when it is in a file of its own.
+     * @param string|null $localPrivateKeyPassphrase The passphrase the private key is encrypted with, if it is.
      * @throws InvalidArgumentException When a value is empty or holds a control character,
-     *     or a private key is given without a certificate.
+     *     or a private key or passphrase is given without a certificate.
      */
     public function __construct(
         public ?string $caFile = null,
@@ -59,6 +73,8 @@ final readonly class TlsConfig
         public bool $allowSelfSigned = false,
         public ?string $localCert = null,
         public ?string $localPrivateKey = null,
+        #[SensitiveParameter]
+        public ?string $localPrivateKeyPassphrase = null,
     ) {
         self::check('cafile', $caFile);
         self::check('capath', $caPath);
@@ -67,6 +83,10 @@ final readonly class TlsConfig
         self::check('local_pk', $localPrivateKey);
         if (null !== $localPrivateKey && null === $localCert) {
             throw new InvalidArgumentException('A TLS private key (local_pk) needs its certificate (local_cert)');
+        }
+
+        if (null !== $localPrivateKeyPassphrase && null === $localCert) {
+            throw new InvalidArgumentException('A TLS passphrase needs the certificate it unlocks (local_cert)');
         }
     }
 
@@ -85,6 +105,7 @@ final readonly class TlsConfig
             allowSelfSigned: $reader->bool('allow_self_signed', default: false),
             localCert: $reader->nullableString('local_cert'),
             localPrivateKey: $reader->nullableString('local_pk'),
+            localPrivateKeyPassphrase: $reader->nullableString('passphrase'),
         );
     }
 
@@ -101,6 +122,7 @@ final readonly class TlsConfig
             'peer_name'  => $this->peerName,
             'local_cert' => $this->localCert,
             'local_pk'   => $this->localPrivateKey,
+            'passphrase' => $this->localPrivateKeyPassphrase,
         ];
         $options = array_filter($options, static fn(?string $value): bool => null !== $value);
         if ($this->allowSelfSigned) {
@@ -108,6 +130,24 @@ final readonly class TlsConfig
         }
 
         return $options;
+    }
+
+    /**
+     * Shown by var_dump() and print_r(), with the passphrase redacted.
+     *
+     * @return array<string, string|bool|null>
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'caFile'                    => $this->caFile,
+            'caPath'                    => $this->caPath,
+            'peerName'                  => $this->peerName,
+            'allowSelfSigned'           => $this->allowSelfSigned,
+            'localCert'                 => $this->localCert,
+            'localPrivateKey'           => $this->localPrivateKey,
+            'localPrivateKeyPassphrase' => null === $this->localPrivateKeyPassphrase ? null : self::REDACTED,
+        ];
     }
 
     /**

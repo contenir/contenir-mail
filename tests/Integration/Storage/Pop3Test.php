@@ -12,6 +12,7 @@ use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\Pop3;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -140,6 +141,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_SSL')) {
@@ -152,6 +154,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectTLS(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_TLS')) {
@@ -164,6 +167,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function connectSelfSignedSSL(): void
     {
         if (! getenv('TESTS_CONTENIR_MAIL_POP3_SSL')) {
@@ -289,6 +293,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function withInstanceConstruction(): void
     {
         $protocol = new Protocol\Pop3($this->params['host']);
@@ -312,6 +317,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function serverCapa(): void
     {
         $mail = new Protocol\Pop3($this->params['host']);
@@ -319,6 +325,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function serverUidl(): void
     {
         $mail = new Protocol\Pop3($this->params['host']);
@@ -374,6 +381,7 @@ final class Pop3Test extends TestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function readAfterClose(): void
     {
         $protocol = new Protocol\Pop3($this->params['host']);

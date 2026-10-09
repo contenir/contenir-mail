@@ -114,7 +114,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `SpecialUse::Sent`, and `Storage\Imap::getSpecialFolder()` finds the folder
   with a use. NAMESPACE (RFC 2342): `Protocol\Imap::namespace()` and
   `Storage\Imap::getNamespaces()` return the personal, other users' and shared
-  namespaces as `Protocol\Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
+  namespaces as `Imap\Namespaces`. STATUS: `Protocol\Imap::status()`
   reads a mailbox's status without selecting it. `Storage\Imap::getFolderStatus()`
   returns a `Storage\FolderStatus` with its `messageCount`, `unseenCount`,
   `uidNext` and `uidValidity`, the last to store with any UID kept.
@@ -170,6 +170,31 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the content, decoded as `getContent()` decodes it, to a stream a block at a
   time and return the number of bytes written, so a large attachment can be
   saved to a file without holding it in memory.
+- `Storage\ImapConfig` has a `prefer_imap4_rev2` setting (`$preferImap4Rev2`),
+  true by default, which `Storage\Imap` passes to
+  `Protocol\Imap::preferImap4Rev2()`, so a storage can keep the session
+  IMAP4rev1 without building the protocol itself. `Flag::Recent` is documented
+  as unreliable over IMAP, since IMAP4rev2 removed `\Recent`.
+- `Storage\Flag::Forwarded`, a constant naming `Flag::Passed` by its IMAP
+  keyword, `$Forwarded`.
+- `Storage\Flag::normalize()`, the American spelling of `Flag::normalise()`,
+  which is deprecated.
+- `Storage\Capability`, an enum of the features a storage may support, and
+  `AbstractStorage::supports(Capability $capability): ?bool`, which every
+  storage has. It answers as `getCapabilities()` does, with null for a feature
+  not yet known, such as TOP on a POP3 server before a message is read.
+- A `passphrase` TLS setting, `TlsConfig::$localPrivateKeyPassphrase`, for a
+  client key that is encrypted. It is passed to the stream as the ssl context
+  option of that name, needs `local_cert`, is marked `#[SensitiveParameter]`,
+  and `var_dump()` shows `TlsConfig::REDACTED` in its place.
+  `ConnectionConfig::fromIterable()` marks its settings
+  `#[SensitiveParameter]` too.
+- `Transport\SmtpConfig` accepts the laminas-mail `ssl` setting, as
+  `ImapConfig` and `Pop3Config` do: `ssl` is TLS from the start, `tls` is
+  STARTTLS, and false or `none` a plain connection. Giving it with `security`
+  is refused. It is deprecated, as it is for IMAP and POP3.
+- When TLS from the start fails on port 25, 110, 143 or 587, where servers
+  expect STARTTLS, the error suggests setting `security` to `starttls`.
 
 ### Changed
 
@@ -237,6 +262,55 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Auth `type` spellings other than the IANA names, such as `crammd5`,
   `cram_md5` and `scramsha256`: they still work, with an `E_USER_DEPRECATED`
   notice.
+- `psr/container` is suggested instead of required. Only
+  `Container\TransportFactory`, which `ConfigProvider` and `Module` register,
+  uses it, and every PSR-11 container installs it; code that builds its
+  transports itself no longer pulls it in. An application that type-hints
+  PSR-11 interfaces without a container must require `psr/container` itself.
+- Parameters are renamed to the words in docs/book/conventions.md, which
+  breaks calls that pass them by name. Positional calls are unaffected. In
+  `Storage\AbstractStorage` and every storage, `$id` becomes `$number` in
+  `getSize()`, `getMessage()`, `getRawHeader()`, `getRawContent()`,
+  `removeMessage()`, `getUniqueId()` and the protected `checkNumber()`, and
+  `$uniqueId` in `getNumberByUniqueId()`. In
+  `Storage\Writable\WritableInterface`, `Storage\Imap` and
+  `Storage\Writable\Maildir`, `$id` becomes `$number` in `copyMessage()`,
+  `moveMessage()` and `setFlags()`, and in `Storage\Imap` also `addFlags()`
+  and `removeFlags()`. `Storage\Maildir::file()`, protected, takes `$number`.
+  `Protocol\Imap::search()` takes `$criteria` instead of `$params`.
+- `Storage\Flag::normalise()`: use `Flag::normalize()`. Identifiers are
+  spelled the American way (docs/book/conventions.md); the British spelling
+  stays as an alias, marked `#[\Deprecated]`, so PHP 8.4 and later report its
+  use.
+- `Mime\Mime::ENCODING_*`, `DISPOSITION_*`, `MULTIPART_MIXED`,
+  `MULTIPART_ALTERNATIVE` and `MULTIPART_RELATED`: use the
+  `Mime\TransferEncoding`, `Mime\Disposition` and `Mime\MultipartType` enums,
+  such as `TransferEncoding::Base64->value` or
+  `MultipartType::Mixed->contentType()`. `Mime::MULTIPART_RELATIVE` is
+  deprecated as well: its value, `multipart/relative`, is a type no RFC
+  defines; RFC 2387 defines `multipart/related`. `MULTIPART_REPORT` stays, as
+  no enum case replaces it.
+- The laminas-mail `ssl` and `novalidatecert` settings of `Storage\ImapConfig`
+  and `Storage\Pop3Config`, and `ssl` of `Transport\SmtpConfig`: use
+  `security` and `verify_peer`.
+- The laminas-mail arguments of `Protocol\Imap` and `Protocol\Pop3`: a host,
+  port and `ssl` given to the constructor or to `connect()`, read by
+  `Protocol\LegacyOptions`, and the constructor's `$novalidatecert`. Pass a
+  `ConnectionConfig`.
+- `setNoValidateCert()` on `Protocol\Imap`, `Protocol\Pop3` and
+  `Protocol\Smtp` (`ProtocolTrait`): set `ConnectionConfig::$verifyPeer` to
+  false.
+- The laminas-mail forms of `new Protocol\Smtp()`: a host name, or a settings
+  array, in place of the `ConnectionConfig`, with `ssl`, `novalidatecert` and
+  the connection keys in `$config`. Pass a `ConnectionConfig`; `$config` stays
+  for `use_complete_quit` and `allow_insecure_auth` beside it. Constructed
+  without arguments, `Protocol\Smtp` is unaffected: its first argument now
+  defaults to `new ConnectionConfig()`, which holds the same settings.
+- Each deprecated method, constant and form carries `#[\Deprecated]`, so PHP
+  8.4 and later report its use; PHP 8.3 ignores the attribute. A settings key
+  or argument form is reported through the private method that reads it.
+  Nothing in the library calls a deprecated API except to read a form the
+  caller gave.
 
 ### Removed
 

@@ -12,6 +12,7 @@ use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Sasl\ScramSha256;
 use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -39,6 +40,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
+use function array_keys;
 use function array_map;
 use function fopen;
 use function fwrite;
@@ -149,6 +151,28 @@ final class ImapStorageTest extends TestCase
             ['host' => 'imap.example.com', 'port' => 993, 'security' => 'tls', 'timeout' => 5, 'user' => 'u'],
             $protocol,
         );
+    }
+
+    #[DataProvider('imap4Rev2Provider')]
+    #[Test]
+    public function passesTheImap4Rev2PreferenceToTheProtocol(array $settings, bool $expected): void
+    {
+        $protocol = $this->protocol();
+        $protocol->expects($this->once())->method('preferImap4Rev2')->with($expected);
+        $protocol->method('login')->willReturn(true);
+
+        new Imap(['user' => 'u', ...$settings], $protocol);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, bool}>
+     */
+    public static function imap4Rev2Provider(): array
+    {
+        return [
+            'preferred by default' => [[], true],
+            'turned off'           => [['prefer_imap4_rev2' => false], false],
+        ];
     }
 
     #[Test]
@@ -400,7 +424,7 @@ final class ImapStorageTest extends TestCase
                 'FLAGS'         => ['\Seen', '$Junk'],
                 'RFC822.HEADER' => self::HEADER,
             ]);
-        $message = $this->imap($protocol)->getMessage(3);
+        $message = $this->imap($protocol)->getMessage(number: 3);
 
         static::assertSame(['Hello', [Flag::Seen, '$Junk']], [$message->getSubject(), $message->getFlags()]);
     }
@@ -415,7 +439,7 @@ final class ImapStorageTest extends TestCase
                 [['FLAGS', 'RFC822.HEADER'], 3, null, false, ['FLAGS' => [], 'RFC822.HEADER' => self::HEADER]],
                 ['RFC822.TEXT', 3, null, false, 'body'],
             ]);
-        $message = $this->imap($protocol)->getMessage(3);
+        $message = $this->imap($protocol)->getMessage(number: 3);
         $message->getContent();
 
         static::assertSame('body', $message->getContent());
@@ -1037,6 +1061,20 @@ final class ImapStorageTest extends TestCase
     public static function flagMethodProvider(): array
     {
         return ['add' => ['addFlags'], 'remove' => ['removeFlags']];
+    }
+
+    #[Test]
+    public function supportsFlags(): void
+    {
+        static::assertTrue($this->imap()->supports(Capability::Flags));
+    }
+
+    #[Test]
+    public function namesACapabilityForEveryFeatureItLists(): void
+    {
+        $values = array_map(static fn(Capability $capability): string => $capability->value, Capability::cases());
+
+        static::assertEqualsCanonicalizing(array_keys($this->imap()->getCapabilities()), $values);
     }
 
     #[Test]
