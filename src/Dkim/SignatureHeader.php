@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Contenir\Mail\Dkim;
 
 use Contenir\Mail\Dkim\Exception\InvalidArgumentException;
+use Contenir\Mail\Header\Exception\InvalidArgumentException as HeaderInvalidArgumentException;
 use Contenir\Mail\Header\GenericHeader;
 use Contenir\Mail\Header\HeaderInterface;
 use Contenir\Mail\Header\HeaderValue;
@@ -30,6 +31,7 @@ final readonly class SignatureHeader implements HeaderInterface
     ) {}
 
     /**
+     * @throws HeaderInvalidArgumentException When the line is not `name: value`.
      * @throws InvalidArgumentException When the line is not a DKIM-Signature header of printable US-ASCII, folded with CRLF.
      */
     #[Override]

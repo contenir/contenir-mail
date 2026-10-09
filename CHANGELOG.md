@@ -197,11 +197,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   expect STARTTLS, the error suggests setting `security` to `starttls`.
 - DKIM signing has its own exceptions: `Dkim\Exception\ExceptionInterface`,
   with `InvalidArgumentException`, `RuntimeException` and `LogicException`,
-  each extending the `Contenir\Mail\Exception` class of the same name. A
-  malformed DKIM-Signature line throws
-  `Dkim\Exception\InvalidArgumentException` rather than the header exception,
-  and a setting of the wrong type, read for every config alike, still throws
-  `Contenir\Mail\Exception\InvalidArgumentException`.
+  each extending the `Contenir\Mail\Exception` class of the same name.
+  `Dkim\SignatureHeader::fromString()` throws the DKIM one for a line that is
+  not a valid DKIM-Signature header, and the header one only for a line that
+  is not `name: value`. A setting of the wrong type, read as for every config,
+  throws `Contenir\Mail\Exception\InvalidArgumentException`.
 
 ### Changed
 
