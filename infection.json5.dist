@@ -152,9 +152,15 @@
             "ignore": ["Contenir\\Mail\\Protocol\\Imap::nextFrom"]
         },
         "Coalesce": {
-            // Scrubbing by character gives the same result as scrubbing by run, only slower,
-            // which is why it is the fallback; Utf8ScrubTest checks both paths.
-            "ignore": ["Contenir\\Mail\\Utf8::scrub"]
+            "ignore": [
+                // Scrubbing by character gives the same result as scrubbing by run, only slower,
+                // which is why it is the fallback; Utf8ScrubTest checks both paths.
+                "Contenir\\Mail\\Utf8::scrub",
+                // The held address set is the one the constructor builds from the same entries,
+                // so building it again gives the same set, only slower; it is built only for a
+                // header unserialized from 0.2.x, which has none (SerializedBeforeV030Test).
+                "Contenir\\Mail\\Header\\AbstractAddressList::withAdded"
+            ]
         }
     },
     "staticAnalysisTool": "mago"
