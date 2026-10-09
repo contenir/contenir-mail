@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Contenir\Mail\Storage;
+namespace Contenir\Mail\Protocol;
 
 use Contenir\Mail\ConfigReader;
 use Contenir\Mail\Exception\InvalidArgumentException;
-use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Security;
 use Deprecated;
 
 use function is_string;
 use function sprintf;
 
 /**
- * Reads the connection settings of ImapConfig, Pop3Config and Transport\SmtpConfig,
- * with the laminas-mail "ssl" and "novalidatecert" keys where the config accepts them.
+ * Reads the connection settings of Storage\ImapConfig, Storage\Pop3Config and
+ * Transport\SmtpConfig, with the laminas-mail "ssl" and "novalidatecert" keys
+ * where the config accepts them. It lives with ConnectionConfig so that neither
+ * Storage nor Transport depends on the other for it.
  *
  * @internal
  */
-final class RemoteConnection
+final class ConnectionSettings
 {
     /** Connection keys besides ConnectionConfig::KEYS, kept from laminas-mail */
     public const array LEGACY_KEYS = ['ssl', 'novalidatecert'];

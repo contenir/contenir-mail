@@ -6,11 +6,11 @@ namespace Contenir\Mail\Tests\Unit\Protocol;
 
 use Contenir\Mail\Exception\InvalidArgumentException;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Protocol\TlsConfig;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3Config;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Transport\SmtpConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -27,7 +27,7 @@ use function print_r;
 #[CoversClass(TlsConfig::class)]
 #[CoversClass(ConnectionConfig::class)]
 #[CoversClass(SmtpConfig::class)]
-#[CoversClass(RemoteConnection::class)]
+#[CoversClass(ConnectionSettings::class)]
 #[Group('unit')]
 final class TlsConfigTest extends TestCase
 {

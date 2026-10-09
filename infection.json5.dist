@@ -95,7 +95,7 @@
                 // As for FunctionCallRemoval above: a blocking write is bounded by the timeout on Linux too.
                 "Contenir\\Mail\\Protocol\\StreamConnection::write",
                 // Read only when "novalidatecert" is given, so its default never applies.
-                "Contenir\\Mail\\Storage\\RemoteConnection::legacyVerifyPeer"
+                "Contenir\\Mail\\Protocol\\ConnectionSettings::legacyVerifyPeer"
             ]
         },
         "LessThan": {

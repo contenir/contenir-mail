@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit;
 
 use Closure;
 use Contenir\Mail\Protocol\ConnectionConfig;
+use Contenir\Mail\Protocol\ConnectionSettings;
 use Contenir\Mail\Protocol\Imap;
 use Contenir\Mail\Protocol\LegacyOptions;
 use Contenir\Mail\Protocol\Pop3;
@@ -14,7 +15,6 @@ use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp;
 use Contenir\Mail\Storage\ImapConfig;
 use Contenir\Mail\Storage\Pop3Config;
-use Contenir\Mail\Storage\RemoteConnection;
 use Contenir\Mail\Testing\InMemoryConnection;
 use Contenir\Mail\Tests\TestAsset\Protocol\ScriptedServer;
 use Contenir\Mail\Transport\SmtpConfig;
@@ -34,7 +34,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Imap::class)]
 #[CoversClass(LegacyOptions::class)]
 #[CoversClass(Pop3::class)]
-#[CoversClass(RemoteConnection::class)]
+#[CoversClass(ConnectionSettings::class)]
 #[CoversClass(Smtp::class)]
 #[CoversClass(SmtpConfig::class)]
 #[CoversTrait(ProtocolTrait::class)]
@@ -67,11 +67,11 @@ final class LegacyDeprecationsTest extends TestCase
             . self::SINCE
             . 'pass a ConnectionConfig to Protocol\Imap or Protocol\Pop3 instead of a host, port and "ssl"';
         $ssl =
-            'Method Contenir\Mail\Storage\RemoteConnection::legacySecurity()'
+            'Method Contenir\Mail\Protocol\ConnectionSettings::legacySecurity()'
             . self::SINCE
             . 'use "security" instead of the laminas-mail "ssl" setting';
         $noValidate =
-            'Method Contenir\Mail\Storage\RemoteConnection::legacyVerifyPeer()'
+            'Method Contenir\Mail\Protocol\ConnectionSettings::legacyVerifyPeer()'
             . self::SINCE
             . 'use "verify_peer" instead of the laminas-mail "novalidatecert" setting';
         $smtp =
