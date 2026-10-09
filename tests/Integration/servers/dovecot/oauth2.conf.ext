@@ -1,0 +1,7 @@
+# Dovecot posts each token to the stub endpoint (RFC 7662), which says whether
+# it is active and whose it is.
+introspection_mode = post
+introspection_url = http://oauth:8080/introspect
+username_attribute = username
+active_attribute = active
+active_value = true

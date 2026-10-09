@@ -8,7 +8,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Nothing.
+- More of the integration suite runs against real servers in CI: GreenMail as
+  a second implementation of SMTP, IMAP and POP3; a Dovecot that refuses
+  passwords before TLS and checks access tokens with a token introspection
+  endpoint; certificates that are expired, self-signed or for another host;
+  and messages with UTF-8 headers, groups, binary attachments, long lines,
+  8-bit bodies, SMTPUTF8 addresses and more than the server's SIZE, sent
+  through Postfix and read back from Dovecot.
 
 ### Changed
 

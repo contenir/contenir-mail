@@ -1,8 +1,12 @@
 # Real mail servers for the integration suite. start.sh prepares the
-# certificates, the Dovecot configuration and the mail directory first.
+# certificates, the Dovecot configuration and the mail directories first;
+# tests/Integration/TestAsset/Servers.php lists the ports.
+x-dovecot: &dovecot
+  image: dovecot/dovecot:2.3.21
+
 services:
   dovecot:
-    image: dovecot/dovecot:2.3.21
+    <<: *dovecot
     ports:
       - "143:143"
       - "993:993"
@@ -10,15 +14,65 @@ services:
       - "995:995"
     volumes:
       - ./var/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./var/dovecot-password.conf:/etc/dovecot/instance.conf:ro
       - ./var/certs:/certs:ro
       - ./var/mail:/srv/mail
+
+  # No password before TLS, and access tokens checked by the introspection endpoint.
+  dovecot-strict:
+    <<: *dovecot
+    depends_on:
+      - oauth
+    ports:
+      - "1143:143"
+      - "1993:993"
+      - "1110:110"
+      - "1995:995"
+    volumes:
+      - ./var/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./var/dovecot-strict.conf:/etc/dovecot/instance.conf:ro
+      - ./dovecot/oauth2.conf.ext:/etc/dovecot/oauth2.conf.ext:ro
+      - ./var/certs:/certs:ro
+      - ./var/mail-strict:/srv/mail
+
+  # A certificate from the trusted CA that expired.
+  dovecot-expired:
+    <<: *dovecot
+    ports:
+      - "2143:143"
+      - "2993:993"
+    volumes:
+      - ./var/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./var/dovecot-password.conf:/etc/dovecot/instance.conf:ro
+      - ./var/certs/expired:/certs:ro
+      - ./var/mail-untrusted:/srv/mail
+
+  # A certificate that signs itself, so no CA vouches for it.
+  dovecot-self-signed:
+    <<: *dovecot
+    ports:
+      - "4143:143"
+      - "4993:993"
+    volumes:
+      - ./var/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./var/dovecot-password.conf:/etc/dovecot/instance.conf:ro
+      - ./var/certs/self-signed:/certs:ro
+      - ./var/mail-untrusted:/srv/mail
+
+  oauth:
+    image: python:3.13-alpine
+    command: ["python", "/srv/introspect.py"]
+    volumes:
+      - ./oauth/introspect.py:/srv/introspect.py:ro
 
   postfix:
     build: ./postfix
     depends_on:
       - dovecot
+      - dovecot-strict
     ports:
       - "587:587"
+      - "2587:2587"
     volumes:
       - ./var/certs:/certs:ro
 
@@ -32,5 +86,23 @@ services:
       MP_SMTP_TLS_KEY: /certs/server.key
       MP_SMTP_REQUIRE_STARTTLS: "true"
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
+    volumes:
+      - ./var/certs:/certs:ro
+
+  # A second opinion: SMTP, IMAP and POP3 from another implementation, over TLS from the start.
+  greenmail:
+    image: greenmail/standalone:2.1.14
+    ports:
+      - "3143:3143"
+      - "3465:3465"
+      - "3993:3993"
+      - "3995:3995"
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.users=test:${MAIL_PASSWORD:-secret}@example.org
+        -Dgreenmail.tls.keystore.file=/certs/greenmail.p12
+        -Dgreenmail.tls.keystore.password=greenmail
     volumes:
       - ./var/certs:/certs:ro

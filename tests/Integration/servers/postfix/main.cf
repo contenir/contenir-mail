@@ -5,6 +5,9 @@ myhostname = localhost
 mydestination =
 inet_interfaces = all
 inet_protocols = ipv4
+# Small, so a test can exceed it without sending megabytes.
+message_size_limit = 1048576
+smtputf8_enable = yes
 
 smtpd_tls_cert_file = /certs/server.crt
 smtpd_tls_key_file = /certs/server.key
