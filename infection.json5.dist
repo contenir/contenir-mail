@@ -79,8 +79,12 @@
             ]
         },
         "FalseValue": {
-            // As for FunctionCallRemoval above: a blocking write is bounded by the timeout on Linux too.
-            "ignore": ["Contenir\\Mail\\Protocol\\StreamConnection::write"]
+            "ignore": [
+                // As for FunctionCallRemoval above: a blocking write is bounded by the timeout on Linux too.
+                "Contenir\\Mail\\Protocol\\StreamConnection::write",
+                // Read only when "novalidatecert" is given, so its default never applies.
+                "Contenir\\Mail\\Storage\\RemoteConnection::legacyVerifyPeer"
+            ]
         },
         "LessThan": {
             // Stopping at the deadline or one poll later cannot be told apart.

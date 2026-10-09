@@ -153,6 +153,12 @@ final class RemoteConfigTest extends TestCase
     }
 
     #[Test]
+    public function prefersImap4Rev2ByDefault(): void
+    {
+        static::assertTrue((new ImapConfig(new ConnectionConfig(), 'u'))->preferImap4Rev2);
+    }
+
+    #[Test]
     public function showsTheImap4Rev2PreferenceInDumps(): void
     {
         $config = new ImapConfig(new ConnectionConfig(), 'u', preferImap4Rev2: false);

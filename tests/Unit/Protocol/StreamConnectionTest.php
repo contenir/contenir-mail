@@ -436,8 +436,9 @@ final class StreamConnectionTest extends TestCase
     public function suggestsStartTlsWhenTlsFromTheStartFailsOnAStartTlsPort(int $port): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(
-            "; port {$port} usually expects STARTTLS: if this server does, set security to \"starttls\"",
+        $this->expectExceptionMessageMatches(
+            "/^Cannot connect to 127\\.0\\.0\\.1:{$port}: .+; port {$port} usually expects STARTTLS: "
+                . 'if this server does, set security to "starttls"$/s',
         );
 
         (new StreamConnection())->open(new ConnectionConfig(
