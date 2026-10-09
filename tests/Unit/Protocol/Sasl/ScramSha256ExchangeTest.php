@@ -95,7 +95,7 @@ final class ScramSha256ExchangeTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('intl')]
-    public function normalisesTheUsername(): void
+    public function normalizesTheUsername(): void
     {
         $scram = new ScramSha256Exchange("\u{2168}", 'secret', 'nonce');
 
@@ -104,7 +104,7 @@ final class ScramSha256ExchangeTest extends TestCase
 
     #[Test]
     #[RequiresPhpExtension('intl')]
-    public function normalisesThePassword(): void
+    public function normalizesThePassword(): void
     {
         $plain       = new ScramSha256Exchange(ScramVector::USER, 'IX', ScramVector::CLIENT_NONCE);
         $compatible  = new ScramSha256Exchange(ScramVector::USER, "\u{2168}", ScramVector::CLIENT_NONCE);

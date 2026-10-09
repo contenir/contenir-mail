@@ -167,7 +167,7 @@ which escapes them again for a shell.
 | --- | --- |
 | Paths must be local; stream wrappers are refused | `refusesPathThatIsNotLocal`, `refusesDirnameThatIsNotLocal` |
 | Folder names cannot leave the mailbox tree | `refusesFolderOutsideTheTree`, `refusesFolderNameWithLineBreak` |
-| Symlinked folders and files are refused | `refusesToInitialiseOverLink`, `refusesToRemoveLinkedFolderDirectory` |
+| Symlinked folders and files are refused | `refusesToInitializeOverLink`, `refusesToRemoveLinkedFolderDirectory` |
 | Maildir deliveries are created exclusively with mode 0600, synced, then linked | `refusesToDeliverOverExistingFile`, `hasPrivateModesByDefault`, `createsFilesWithConfiguredMode` |
 | Unique names escape the host name | `escapesHostInUniqueName` |
 | Message numbers must be positive integers | `refusesMessageNumberBelowOne` |

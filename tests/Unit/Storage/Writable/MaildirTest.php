@@ -871,7 +871,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function refusesToInitialiseOverFile(): void
+    public function refusesToInitializeOverFile(): void
     {
         touch("{$this->root}/file");
 
@@ -882,7 +882,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function refusesToInitialiseOverLink(): void
+    public function refusesToInitializeOverLink(): void
     {
         mkdir("{$this->root}/elsewhere");
         symlink("{$this->root}/elsewhere", "{$this->root}/link");
@@ -894,7 +894,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function refusesToInitialiseWithoutParent(): void
+    public function refusesToInitializeWithoutParent(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The parent of the maildir does not exist');
@@ -903,7 +903,7 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
-    public function refusesToInitialiseOverLinkedSubdirectory(): void
+    public function refusesToInitializeOverLinkedSubdirectory(): void
     {
         mkdir("{$this->root}/new");
         mkdir("{$this->root}/elsewhere");
