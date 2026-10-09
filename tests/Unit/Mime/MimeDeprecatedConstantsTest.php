@@ -48,7 +48,7 @@ final class MimeDeprecatedConstantsTest extends TestCase
     public function reportsItsUse(string $name, string $message): void
     {
         $this->expectUserDeprecationMessage(
-            'Constant Contenir\Mail\Mime\Mime::' . $name . ' is deprecated since 0.3.0, ' . $message,
+            "Constant Contenir\\Mail\\Mime\\Mime::{$name} is deprecated since 0.3.0, {$message}",
         );
 
         constant(Mime::class . '::' . $name);

@@ -31,6 +31,20 @@ use function is_string;
  */
 final class Pop3 extends AbstractStorage
 {
+    /**
+     * Messages can be removed but not fetched in parts; TOP and UIDL are unknown until asked.
+     *
+     * @var array<string, bool|null>
+     */
+    protected array $has = [
+        Capability::UniqueId->value  => null,
+        Capability::Delete->value    => true,
+        Capability::Create->value    => false,
+        Capability::Top->value       => null,
+        Capability::FetchPart->value => false,
+        Capability::Flags->value     => false,
+    ];
+
     private Protocol\Pop3 $protocol;
 
     /** Whether the server has UIDL; null until asked */
@@ -48,10 +62,6 @@ final class Pop3 extends AbstractStorage
         Pop3Config|Protocol\Pop3|iterable $config,
         ?Protocol\Pop3 $protocol = null,
     ) {
-        $this->has[Capability::FetchPart->value] = false;
-        $this->has[Capability::Top->value]       = null;
-        $this->has[Capability::UniqueId->value]  = null;
-        $this->has[Capability::Delete->value]    = true;
         if ($config instanceof Protocol\Pop3) {
             $this->protocol = $config;
             $this->open     = true;
@@ -63,6 +73,16 @@ final class Pop3 extends AbstractStorage
         $this->protocol = $protocol ?? new Protocol\Pop3();
         $this->protocol->connect($config->connection);
         $this->open = true;
+        $this->signIn($config);
+    }
+
+    /**
+     * Sign in with the authenticator when there is one, and the password otherwise.
+     *
+     * @throws Protocol\Exception\ExceptionInterface When the server refuses or cannot be asked.
+     */
+    private function signIn(Pop3Config $config): void
+    {
         if (null !== $config->auth) {
             $this->protocol->authenticate($config->auth);
 

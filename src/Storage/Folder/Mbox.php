@@ -31,6 +31,20 @@ final class Mbox extends Storage\Mbox implements FolderInterface
     /** Deepest directory read when building the folder tree */
     public const int MAX_DEPTH = 32;
 
+    /**
+     * The headers can be read alone, and messages have no unique IDs.
+     *
+     * @var array<string, bool|null>
+     */
+    protected array $has = [
+        Storage\Capability::UniqueId->value  => false,
+        Storage\Capability::Delete->value    => false,
+        Storage\Capability::Create->value    => false,
+        Storage\Capability::Top->value       => true,
+        Storage\Capability::FetchPart->value => true,
+        Storage\Capability::Flags->value     => false,
+    ];
+
     private Storage\Folder $rootFolder;
 
     private string $rootdir;
@@ -52,9 +66,7 @@ final class Mbox extends Storage\Mbox implements FolderInterface
         $this->format  = $config->format;
         $this->rootdir = rtrim($config->dirname, DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR;
-        $this->has[Storage\Capability::Top->value]      = true;
-        $this->has[Storage\Capability::UniqueId->value] = false;
-        $this->rootFolder                               = $this->buildFolderTree();
+        $this->rootFolder = $this->buildFolderTree();
         $this->selectFolder($config->folder);
     }
 
