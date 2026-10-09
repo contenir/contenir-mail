@@ -139,7 +139,7 @@ final class PostfixEndToEndTest extends TestCase
     #[Test]
     public function preservesBinaryAttachmentAndUtf8FileName(): void
     {
-        $bytes    = str_repeat(implode('', array_map(chr(...), range(
+        $bytes = str_repeat(implode('', array_map(chr(...), range(
             start: 0,
             end: 255,
         ))), times: 64);
