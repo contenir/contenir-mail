@@ -263,6 +263,20 @@ final class MaildirTest extends TestCase
     }
 
     #[Test]
+    public function reportsMessageFileThatHasGoneFromAMaildirWithoutNew(): void
+    {
+        $message = $this->maildir()->getMessage(1);
+        unlink("{$this->directory}/cur/1000000000.P1.example.org:2,S");
+        unlink("{$this->directory}/new/1000000004.P1.example.org");
+        rmdir("{$this->directory}/new");
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot open the message file; it may have been moved');
+
+        $message->getContent();
+    }
+
+    #[Test]
     public function reportsMessageFileThatHasGoneSinceItWasRead(): void
     {
         $message = $this->maildir()->getMessage(2);
