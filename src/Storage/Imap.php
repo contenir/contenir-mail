@@ -64,9 +64,9 @@ final class Imap extends AbstractStorage implements Folder\FolderInterface, Writ
         ImapConfig|Protocol\Imap|iterable $config,
         ?Protocol\Imap $protocol = null,
     ) {
-        $this->has['flags']  = true;
-        $this->has['create'] = true;
-        $this->has['delete'] = true;
+        $this->has[Capability::Flags->value]  = true;
+        $this->has[Capability::Create->value] = true;
+        $this->has[Capability::Delete->value] = true;
         if ($config instanceof Protocol\Imap) {
             $this->protocol = $config;
             $this->open     = true;

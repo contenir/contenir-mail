@@ -148,6 +148,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keyword, `$Forwarded`.
 - `Storage\Flag::normalize()`, the American spelling of `Flag::normalise()`,
   which is deprecated.
+- `Storage\Capability`, an enum of the features a storage may support, and
+  `AbstractStorage::supports(Capability $capability): ?bool`, which every
+  storage has. It answers as `getCapabilities()` does, with null for a feature
+  not yet known, such as TOP on a POP3 server before a message is read.
 
 ### Changed
 

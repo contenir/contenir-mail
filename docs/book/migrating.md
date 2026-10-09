@@ -448,7 +448,7 @@ be snake_case or camelCase, and strings from environment variables such as
 | `protected $messageClass` in a storage subclass | Removed; see [Extending](#extending) |
 | `$folders->INBOX->Archive` | `$mail->getFolders()->getFolder('INBOX')->getFolder('Archive')` |
 | `getSize()` and `getUniqueId()` without a number, returning every message | `getSizes()` and `getUniqueIds()` |
-| `hasTop`, `hasFlags` and the other `has*` properties | `getCapabilities()`, such as `getCapabilities()['top']` |
+| `hasTop`, `hasFlags` and the other `has*` properties | `supports()`, such as `supports(Capability::Top)`, or `getCapabilities()` |
 | `messageEOL` setting | Not needed: line breaks are detected |
 | `serialize($mbox)` to cache a storage | Not supported: storages hold open files and connections |
 | `getTopLines()`, `Storage::FLAG_UNSEEN` | Removed |

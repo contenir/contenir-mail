@@ -6,6 +6,7 @@ namespace Contenir\Mail\Storage\Writable;
 
 use Contenir\Mail\Message as ComposedMessage;
 use Contenir\Mail\Mime\Exception\RuntimeException as MimeException;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception;
 use Contenir\Mail\Storage\FileSystem;
 use Contenir\Mail\Storage\Flag;
@@ -82,8 +83,8 @@ final class Maildir extends Folder\Maildir implements WritableInterface
         }
 
         parent::__construct($config->folderConfig());
-        $this->has['create'] = true;
-        $this->has['delete'] = true;
+        $this->has[Capability::Create->value] = true;
+        $this->has[Capability::Delete->value] = true;
     }
 
     /**

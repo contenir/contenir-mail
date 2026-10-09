@@ -48,10 +48,10 @@ final class Pop3 extends AbstractStorage
         Pop3Config|Protocol\Pop3|iterable $config,
         ?Protocol\Pop3 $protocol = null,
     ) {
-        $this->has['fetchPart'] = false;
-        $this->has['top']       = null;
-        $this->has['uniqueid']  = null;
-        $this->has['delete']    = true;
+        $this->has[Capability::FetchPart->value] = false;
+        $this->has[Capability::Top->value]       = null;
+        $this->has[Capability::UniqueId->value]  = null;
+        $this->has[Capability::Delete->value]    = true;
         if ($config instanceof Protocol\Pop3) {
             $this->protocol = $config;
             $this->open     = true;
@@ -172,7 +172,7 @@ final class Pop3 extends AbstractStorage
             $this->probeTop();
         }
 
-        $this->has['top'] = $this->protocol->hasTop;
+        $this->has[Capability::Top->value] = $this->protocol->hasTop;
 
         return parent::getCapabilities();
     }
@@ -274,8 +274,8 @@ final class Pop3 extends AbstractStorage
     private function supportsUniqueIds(): bool
     {
         if (null === $this->uniqueIds) {
-            $this->uniqueIds       = $this->probeUniqueIds();
-            $this->has['uniqueid'] = $this->uniqueIds;
+            $this->uniqueIds                        = $this->probeUniqueIds();
+            $this->has[Capability::UniqueId->value] = $this->uniqueIds;
         }
 
         return $this->uniqueIds;

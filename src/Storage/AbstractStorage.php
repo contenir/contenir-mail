@@ -31,17 +31,17 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     protected bool $open = false;
 
     /**
-     * Features the storage supports: true, false, or null when not yet known.
+     * Features the storage supports, keyed by Capability value: true, false, or null when not yet known.
      *
      * @var array<string, bool|null>
      */
     protected array $has = [
-        'uniqueid'  => true,
-        'delete'    => false,
-        'create'    => false,
-        'top'       => false,
-        'fetchPart' => true,
-        'flags'     => false,
+        Capability::UniqueId->value  => true,
+        Capability::Delete->value    => false,
+        Capability::Create->value    => false,
+        Capability::Top->value       => false,
+        Capability::FetchPart->value => true,
+        Capability::Flags->value     => false,
     ];
 
     /**
@@ -125,11 +125,24 @@ abstract class AbstractStorage implements Countable, IteratorAggregate
     abstract public function getNumberByUniqueId(string $uniqueId): int;
 
     /**
+     * Every feature, keyed by its Capability value; supports() asks about one by its case.
+     *
      * @return array<string, bool|null> Feature name to true, false, or null when not yet known.
      */
     public function getCapabilities(): array
     {
         return $this->has;
+    }
+
+    /**
+     * Whether the storage supports a feature: null when it is not yet known, as whether a
+     * POP3 server has TOP is until a message has been read, or when the storage does not say.
+     *
+     * @throws Exception\ExceptionInterface When the storage must ask the server and cannot.
+     */
+    public function supports(Capability $capability): ?bool
+    {
+        return $this->getCapabilities()[$capability->value] ?? null;
     }
 
     /**

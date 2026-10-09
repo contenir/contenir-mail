@@ -47,10 +47,10 @@ class Mbox extends AbstractStorage
      */
     public function __construct(MboxConfig|iterable $config)
     {
-        $config                = is_iterable($config) ? MboxConfig::fromIterable($config) : $config;
-        $this->format          = $config->format;
-        $this->has['top']      = true;
-        $this->has['uniqueid'] = false;
+        $config                                 = is_iterable($config) ? MboxConfig::fromIterable($config) : $config;
+        $this->format                           = $config->format;
+        $this->has[Capability::Top->value]      = true;
+        $this->has[Capability::UniqueId->value] = false;
         $this->openMboxFile($config->filename);
     }
 

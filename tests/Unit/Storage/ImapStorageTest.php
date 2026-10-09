@@ -12,6 +12,7 @@ use Contenir\Mail\Protocol\Imap\UidMapping;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -39,6 +40,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 
+use function array_keys;
 use function array_map;
 use function fopen;
 use function fwrite;
@@ -1059,6 +1061,20 @@ final class ImapStorageTest extends TestCase
     public static function flagMethodProvider(): array
     {
         return ['add' => ['addFlags'], 'remove' => ['removeFlags']];
+    }
+
+    #[Test]
+    public function supportsFlags(): void
+    {
+        static::assertTrue($this->imap()->supports(Capability::Flags));
+    }
+
+    #[Test]
+    public function namesACapabilityForEveryFeatureItLists(): void
+    {
+        $values = array_map(static fn(Capability $capability): string => $capability->value, Capability::cases());
+
+        static::assertEqualsCanonicalizing(array_keys($this->imap()->getCapabilities()), $values);
     }
 
     #[Test]

@@ -40,9 +40,9 @@ class Maildir extends AbstractStorage
      */
     public function __construct(MaildirConfig|iterable $config)
     {
-        $config             = is_iterable($config) ? MaildirConfig::fromIterable($config) : $config;
-        $this->has['top']   = true;
-        $this->has['flags'] = true;
+        $config                              = is_iterable($config) ? MaildirConfig::fromIterable($config) : $config;
+        $this->has[Capability::Top->value]   = true;
+        $this->has[Capability::Flags->value] = true;
         $this->openMaildir(rtrim($config->dirname, DIRECTORY_SEPARATOR));
     }
 

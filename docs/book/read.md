@@ -267,7 +267,21 @@ $mail->removeMessage($number);
 IDs, so their numbers serve; a POP3 server without UIDL does the same.
 
 `getRawHeader()` and `getRawContent()` return a message's header block and
-body as stored. `getCapabilities()` lists what the storage supports.
+body as stored.
+
+`supports()` says whether the storage has a feature, a case of
+`Storage\Capability`: `UniqueId`, `Delete`, `Create`, `Top`, `FetchPart` or
+`Flags`. It returns null while the answer is not yet known, as for TOP on a
+POP3 server until a message has been read. `getCapabilities()` lists them all,
+keyed by each case's value.
+
+```php
+use Contenir\Mail\Storage\Capability;
+
+if ($mail->supports(Capability::Flags)) {
+    $mail->setFlags($number, [Flag::Seen]);
+}
+```
 
 ### Paging through a large IMAP folder
 

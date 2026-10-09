@@ -7,6 +7,7 @@ namespace Contenir\Mail\Tests\Unit\Storage;
 use ArrayIterator;
 use Contenir\Mail\Exception\InvalidArgumentException as ConfigException;
 use Contenir\Mail\Storage\AbstractStorage;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception\InvalidArgumentException;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
@@ -247,6 +248,12 @@ final class MboxTest extends TestCase
         $capabilities = $this->mbox()->getCapabilities();
 
         static::assertSame([true, false], [$capabilities['top'], $capabilities['uniqueid']]);
+    }
+
+    #[Test]
+    public function doesNotSupportUniqueIds(): void
+    {
+        static::assertFalse($this->mbox()->supports(Capability::UniqueId));
     }
 
     #[Test]

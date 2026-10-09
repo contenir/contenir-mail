@@ -10,6 +10,7 @@ use Contenir\Mail\Protocol\Exception\RuntimeException as ProtocolException;
 use Contenir\Mail\Protocol\Security;
 use Contenir\Mail\Protocol\Smtp\Auth\ScramSha256;
 use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Storage\Capability;
 use Contenir\Mail\Storage\Exception\OutOfBoundsException;
 use Contenir\Mail\Storage\Exception\RuntimeException;
 use Contenir\Mail\Storage\Flag;
@@ -523,6 +524,12 @@ final class Pop3StorageTest extends TestCase
         $protocol->expects($this->never())->method('top');
 
         static::assertNull($this->pop3($protocol)->getCapabilities()['top']);
+    }
+
+    #[Test]
+    public function doesNotYetKnowWhetherAnEmptyMailboxSupportsTop(): void
+    {
+        static::assertNull($this->pop3($this->protocolWithMessages(0))->supports(Capability::Top));
     }
 
     #[Test]
