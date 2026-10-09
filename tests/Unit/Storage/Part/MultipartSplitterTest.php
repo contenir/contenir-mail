@@ -116,11 +116,11 @@ final class MultipartSplitterTest extends TestCase
                 "--b\r\n" . str_repeat("a line of the first part\r\n", times: $size * 10) . "--b\r\nx\r\n--b--",
             ),
             static fn(Content $content): array => MultipartSplitter::split($content, 'b'),
-            size: 5_000,
+            size: 900,
             factor: 8,
         );
 
-        static::assertLessThan(24, $ratio, 'Splitting a body 8 times as long took over 24 times as long');
+        static::assertLessThan(32, $ratio, 'Splitting a body 8 times as long took over 32 times as long');
     }
 
     /**

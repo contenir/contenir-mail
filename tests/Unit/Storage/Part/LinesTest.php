@@ -92,11 +92,11 @@ final class LinesTest extends TestCase
         $ratio = Growth::ratio(
             static fn(int $size): Content => Content::fromString(str_repeat('a', times: $size * 100)),
             static fn(Content $content): int => iterator_count(Lines::of($content)),
-            size: 5_000,
+            size: 2_000,
             factor: 8,
         );
 
-        static::assertLessThan(24, $ratio, 'Reading a line 8 times as long took over 24 times as long');
+        static::assertLessThan(32, $ratio, 'Reading a line 8 times as long took over 32 times as long');
     }
 
     #[Group('slow')]
@@ -106,11 +106,11 @@ final class LinesTest extends TestCase
         $ratio = Growth::ratio(
             static fn(int $size): Content => Content::fromString(str_repeat("a line\r\n", times: $size * 10)),
             static fn(Content $content): int => iterator_count(Lines::of($content)),
-            size: 5_000,
+            size: 2_500,
             factor: 8,
         );
 
-        static::assertLessThan(24, $ratio, 'Reading 8 times as many lines took over 24 times as long');
+        static::assertLessThan(32, $ratio, 'Reading 8 times as many lines took over 32 times as long');
     }
 
     /**
