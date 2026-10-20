@@ -7,9 +7,10 @@ namespace Contenir\Mail\Tests\Integration\Protocol;
 use Contenir\Mail\Exception\ExceptionInterface;
 use Contenir\Mail\Message;
 use Contenir\Mail\Protocol\ConnectionConfig;
-use Contenir\Mail\Protocol\Pop3\Xoauth2\Microsoft;
+use Contenir\Mail\Protocol\Pop3;
+use Contenir\Mail\Protocol\Sasl\Xoauth2;
 use Contenir\Mail\Protocol\Security;
-use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2;
+use Contenir\Mail\Protocol\Smtp\Auth\XOAuth2 as SmtpXoauth2;
 use Contenir\Mail\Tests\TestAsset\Protocol\Mailbox;
 use Contenir\Mail\Tests\TestAsset\Protocol\RecordingConnection;
 use Contenir\Mail\Tests\TestAsset\Protocol\Servers;
@@ -30,8 +31,9 @@ use function random_bytes;
  * endpoint (RFC 7662) whether the token is active and whose it is, as a
  * production server asks its identity provider.
  */
-#[CoversClass(Microsoft::class)]
-#[CoversClass(XOAuth2::class)]
+#[CoversClass(Pop3::class)]
+#[CoversClass(Xoauth2::class)]
+#[CoversClass(SmtpXoauth2::class)]
 #[Group('integration')]
 final class OAuthIntrospectionTest extends TestCase
 {
@@ -65,8 +67,8 @@ final class OAuthIntrospectionTest extends TestCase
     #[Test]
     public function pop3LogsInWithActiveToken(): void
     {
-        $pop3 = new Microsoft(self::pop3Config());
-        $pop3->login(Servers::USER, Servers::ACCESS_TOKEN);
+        $pop3 = new Pop3(self::pop3Config());
+        $pop3->authenticate(new Xoauth2(Servers::USER, Servers::ACCESS_TOKEN));
 
         static::assertSame([], $pop3->getList());
     }
@@ -78,11 +80,11 @@ final class OAuthIntrospectionTest extends TestCase
     public function pop3FinishesExchangeWhenTokenIsInactive(): void
     {
         $connection = new RecordingConnection();
-        $pop3       = new Microsoft(connection: $connection);
+        $pop3       = new Pop3(connection: $connection);
         $pop3->connect(self::pop3Config());
 
         try {
-            $pop3->login(Servers::USER, 'revoked-token');
+            $pop3->authenticate(new Xoauth2(Servers::USER, 'revoked-token'));
             static::fail('The inactive token was accepted');
         } catch (ExceptionInterface) {
             $transcript = $connection->transcript();
