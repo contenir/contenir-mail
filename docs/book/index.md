@@ -6,7 +6,7 @@ Compose, parse, store and send text and MIME-compliant multipart e-mail messages
 $ composer require contenir/contenir-mail
 ```
 
-- [Introduction](intro.md)
+- [Introduction](intro.md): what the package covers, and where it sits alongside other PHP mail libraries
 - [Migrating from laminas-mail and laminas-mime](migrating.md): the silent changes first, then the full API mapping
 - Messages: [intro and usage](message/intro.md), [attachments](message/attachments.md),
   [character sets](message/character-sets.md), [DKIM signing](message/dkim.md)

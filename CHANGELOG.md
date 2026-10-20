@@ -4,15 +4,26 @@ All notable changes to this project are documented in this file, in the
 format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.3.1 - TBD
+## 0.3.1 - 2026-10-20
 
 ### Added
 
-- Nothing.
+- More of the integration suite runs against real servers in CI: GreenMail as
+  a second implementation of SMTP, IMAP and POP3; a Dovecot that refuses
+  passwords before TLS and checks access tokens with a token introspection
+  endpoint; certificates that are expired, self-signed or for another host;
+  and messages with UTF-8 headers, groups, binary attachments, long lines,
+  8-bit bodies, SMTPUTF8 addresses and more than the server's SIZE, sent
+  through Postfix and read back from Dovecot.
 
 ### Changed
 
-- Nothing.
+- Only the newest minor release receives fixes before 1.0, security fixes
+  included. The 0.1 and 0.2 lines are no longer maintained; upgrade to 0.3.
+- The README and documentation say where the package fits among PHP mail
+  libraries, why PHP 8.3 is the minimum, how versions and support work before
+  1.0, and that the package has not had an independent security audit.
+  `CONTRIBUTING.md` describes how to report problems and propose changes.
 
 ### Deprecated
 
@@ -24,7 +35,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Nothing.
+- `docs/book/security.md` no longer says real servers are tested only through
+  scripted conversations.
 
 ## 0.3.0 - 2026-10-09
 
@@ -396,28 +408,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fast: a hostile 7.5 MB `winmail.dat` whose RTF fills the 64 MB budget
   takes 3 seconds instead of 28.
 
-## 0.2.1 - TBD
-
-### Added
-
-- Nothing.
-
-### Changed
-
-- Nothing.
-
-### Deprecated
-
-- Nothing.
-
-### Removed
-
-- Nothing.
-
-### Fixed
-
-- Nothing.
-
 ## 0.2.0 - 2026-10-08
 
 ### Added
@@ -438,28 +428,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Protocol\Imap::authenticate()` uses SASL-IR when the server offers it.
   `Protocol\Pop3::authenticate()` takes the place of `Pop3\Xoauth2\Microsoft`,
   which still works. `XOAuth2::initialResponse()` gives the SASL response. (#32)
-
-### Changed
-
-- Nothing.
-
-### Deprecated
-
-- Nothing.
-
-### Removed
-
-- Nothing.
-
-### Fixed
-
-- Nothing.
-
-## 0.1.2 - TBD
-
-### Added
-
-- Nothing.
 
 ### Changed
 

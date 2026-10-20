@@ -22,11 +22,26 @@ every contributor keeps their authorship in `git log` and `git blame`.
 - **Container support:** optional PSR-11 factories and a `ConfigProvider`, for Mezzio, laminas-mvc
   or any PSR-11 container. No container is required: `psr/container` is suggested, not required.
 
+## Where it fits
+
+PHP has several good mail libraries, and contenir-mail is one more choice among
+them. It is a natural fit if you know the Zend Framework or Laminas way of
+working: typed configuration objects, PSR-11 factories, and the same `Message`,
+`Headers`, transport and storage vocabulary, now on a modern PHP 8.3 API.
+
+It covers both sending and reading mail in one package, in pure PHP, with no
+dependency on `ext-imap`. The [introduction](docs/book/intro.md) sets out what
+it does alongside other PHP mail libraries.
+
 ## Requirements
 
 - PHP 8.3, 8.4 or 8.5
 - `ext-iconv`
 - `ext-openssl` for TLS connections, and `ext-fileinfo` to detect attachment types
+
+PHP 8.3 is the minimum because the code relies on its typed class constants and
+`#[Override]` throughout. New PHP releases are added to the CI matrix as they
+are released.
 
 ext-mbstring is not needed. The only other dependencies are the PSR clock and
 container interfaces and the Symfony IDN polyfill; install ext-intl for faster
@@ -129,6 +144,19 @@ test that proves it and to the published vulnerabilities it guards against, and
 lists open findings. [Standards](docs/book/standards.md) covers RFC conformance.
 Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
+The package has not had an independent security audit. The evidence for these
+claims is the regression tests, mutation testing and the integration suite run
+against real mail servers, all of which are public. Outside review is welcome.
+
+## Versioning and support
+
+The project follows [Semantic Versioning](https://semver.org/). Before 1.0:
+
+- a minor release (0.3 to 0.4) may change the public API, and every change is
+  listed in the [changelog](CHANGELOG.md) with migration notes;
+- a patch release (0.3.0 to 0.3.1) only fixes bugs and never breaks the API;
+- only the newest minor release receives fixes, security fixes included.
+
 ## Coming from laminas-mail and laminas-mime
 
 contenir-mail keeps the Zend_Mail and laminas-mail vocabulary: `Message`,
@@ -182,8 +210,13 @@ Findings inherited from laminas-mail and laminas-mime are recorded in
 `mago-lint-baseline.toml` and `mago-analyze-baseline.toml`. Many can only be fixed
 by breaking the public API. New code is held to the full standard.
 
-Tests that need a live IMAP, POP3 or SMTP server are skipped unless enabled through
-the `TESTS_CONTENIR_MAIL_*` variables documented in `phpunit.xml.dist`.
+The unit suite runs on PHP 8.3, 8.4 and 8.5. The [integration suite](tests/Integration/README.md)
+runs on every pull request against real Dovecot (IMAP, POP3), Postfix (SMTP
+submission) and Mailpit servers in Docker, over plain connections, STARTTLS and
+implicit TLS, with password, SCRAM and XOAUTH2 sign-in. Run locally, those tests
+are skipped unless the `TESTS_CONTENIR_MAIL_*` variables are set.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) to propose a change.
 
 ## License
 
