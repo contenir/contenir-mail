@@ -77,9 +77,6 @@
         }
     },
     "extra": {
-        "branch-alias": {
-            "dev-main": "0.3.x-dev"
-        },
         "laminas": {
             "component": "Contenir\\Mail",
             "config-provider": "Contenir\\Mail\\ConfigProvider"
