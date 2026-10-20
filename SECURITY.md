@@ -12,7 +12,15 @@ five working days.
 
 ## Supported versions
 
-Until 1.0 is released, fixes are made on the latest development branch only.
+Until 1.0 is released, only the newest minor release receives fixes, security
+fixes included. That is currently 0.3. The 0.1 and 0.2 lines are no longer
+maintained; upgrade to 0.3, using the migration notes in the
+[changelog](CHANGELOG.md).
+
+| Version | Supported |
+| --- | --- |
+| 0.3.x | Yes |
+| 0.2.x and earlier | No |
 
 ## How security is handled
 
@@ -21,3 +29,6 @@ known open findings are documented in
 [docs/book/security.md](docs/book/security.md). Every protection has a regression
 test, and CI fails if mutation testing finds a test that no longer guards its
 code.
+
+The package has not had an independent security audit. If you review it, we
+would like to hear what you find, including what you found to be sound.

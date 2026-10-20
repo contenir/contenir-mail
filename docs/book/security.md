@@ -13,6 +13,10 @@ protection below has a regression test, named in the tables, and the suite runs
 under mutation testing at 100% covered-code MSI, so a test that stopped guarding
 its protection would fail CI.
 
+The package has not had an independent security audit. The claims here rest on
+the tests named against them, which anyone can read and run; outside review is
+welcome.
+
 This document describes the state of the code reviewed on 8 October 2026
 (commit `1ad388a3`) and the fixes made after that review. To report a vulnerability, see
 [SECURITY.md](../../SECURITY.md).
@@ -246,8 +250,10 @@ There are no known open findings.
 
 - No fuzzing campaign has been run; the parsers are covered by unit, boundary and
   mutation tests and by hand-written hostile inputs.
-- Behaviour against real servers (Postfix, Exim, Dovecot, Gmail, Microsoft 365) is
-  tested only through scripted conversations and a local TLS server.
+- CI tests against real Dovecot (IMAP, POP3), Postfix (SMTP submission) and
+  Mailpit servers, as described in the [integration suite](../../tests/Integration/README.md).
+  Exim, Gmail and Microsoft 365 are tested only through scripted conversations;
+  their OAuth tokens need their own accounts.
 - S/MIME and OpenPGP are not implemented, so not assessed. DKIM signatures are
   checked against the RFC 8463 examples and a test verifier, not against
   receiving servers.
