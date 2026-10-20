@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file, in the
 format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.3.1 - TBD
+## 0.3.1 - 2026-10-20
 
 ### Added
 
@@ -18,7 +18,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Nothing.
+- Only the newest minor release receives fixes before 1.0, security fixes
+  included. The 0.1 and 0.2 lines are no longer maintained; upgrade to 0.3.
+- The README and documentation say where the package fits among PHP mail
+  libraries, why PHP 8.3 is the minimum, how versions and support work before
+  1.0, and that the package has not had an independent security audit.
+  `CONTRIBUTING.md` describes how to report problems and propose changes.
 
 ### Deprecated
 
@@ -30,7 +35,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Nothing.
+- `docs/book/security.md` no longer says real servers are tested only through
+  scripted conversations.
 
 ## 0.3.0 - 2026-10-09
 
