@@ -402,28 +402,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fast: a hostile 7.5 MB `winmail.dat` whose RTF fills the 64 MB budget
   takes 3 seconds instead of 28.
 
-## 0.2.1 - TBD
-
-### Added
-
-- Nothing.
-
-### Changed
-
-- Nothing.
-
-### Deprecated
-
-- Nothing.
-
-### Removed
-
-- Nothing.
-
-### Fixed
-
-- Nothing.
-
 ## 0.2.0 - 2026-10-08
 
 ### Added
@@ -444,28 +422,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Protocol\Imap::authenticate()` uses SASL-IR when the server offers it.
   `Protocol\Pop3::authenticate()` takes the place of `Pop3\Xoauth2\Microsoft`,
   which still works. `XOAuth2::initialResponse()` gives the SASL response. (#32)
-
-### Changed
-
-- Nothing.
-
-### Deprecated
-
-- Nothing.
-
-### Removed
-
-- Nothing.
-
-### Fixed
-
-- Nothing.
-
-## 0.1.2 - TBD
-
-### Added
-
-- Nothing.
 
 ### Changed
 

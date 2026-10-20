@@ -6,6 +6,45 @@ of the Sendmail, SMTP, or file-based transports it defines.  You can also
 implement your own transport by implementing the
 `Contenir\Mail\Transport\TransportInterface`.
 
+It also reads mail: it parses messages, fetches them over IMAP and POP3, and
+reads and writes Mbox and Maildir mailboxes.
+
+## Alongside other mail libraries
+
+PHP has several well-established mail libraries, and each suits a different way
+of working. Symfony Mailer fits naturally into a Symfony application and its
+tooling; PHPMailer is a long-lived, self-contained library for sending.
+contenir-mail continues the Zend Framework and Laminas approach, so it will feel
+familiar if you have worked that way: typed configuration, PSR-11 factories for
+Mezzio, laminas-mvc or any other container, and the `Message`, `Headers`,
+transport and storage vocabulary of laminas-mail.
+
+| | contenir-mail | Symfony Mailer | PHPMailer |
+| --- | --- | --- | --- |
+| Compose text, HTML and attachments | Yes | Yes | Yes |
+| SMTP and sendmail | Yes | Yes | Yes |
+| HTTP API transports for mail providers | No | Yes | No |
+| DKIM signing | Yes | Yes | Yes |
+| S/MIME | No | Yes | Signing |
+| Parse a received message | Yes | No | No |
+| Read over IMAP and POP3 | Yes | No | No |
+| Mbox and Maildir | Read and write | No | No |
+
+Sending and reading live in the same package, so the same `Message` and MIME
+classes are used whether you compose a message or parse one you received. All
+of it is pure PHP and does not depend on `ext-imap`, which was removed from PHP
+core in 8.4. If you are coming from laminas-mail or Zend Mail, see
+[migrating](migrating.md).
+
+## What is maintained
+
+Every part of the package listed above is maintained and tested: messages and
+MIME, the SMTP, sendmail, file and in-memory transports, the IMAP, POP3 and SMTP
+protocol clients, and Mbox and Maildir storage. The protocol clients are tested
+against scripted conversations in the unit suite and against real Dovecot,
+Postfix and Mailpit servers in the integration suite. [Standards](standards.md)
+lists how closely each RFC is followed, including the known gaps.
+
 ## Basic email
 
 A basic email consists of one or more recipients, a subject, a body and a
