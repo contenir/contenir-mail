@@ -140,6 +140,17 @@ The `MIME-Version` and `Content-Type` headers are added for you. Read
 [Adding Attachments](attachments.md) for attachments, inline images and custom
 MIME structures.
 
+HTML sent without text reads as nothing in mail clients that show text. Rather
+than write the message twice, read the text from the HTML with
+[`Mime\HtmlToText`](../mime/html-to-text.md):
+
+```php
+use Contenir\Mail\Mime\HtmlToText;
+
+$message->setHtml($html);
+$message->setText((new HtmlToText())->convert($html));
+```
+
 If you want a string representation of your email, you can get that:
 
 ```php

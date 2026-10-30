@@ -6,6 +6,7 @@ namespace Contenir\Mail\Tests\Unit\Mime;
 
 use Contenir\Mail\Headers;
 use Contenir\Mail\Mime\Exception\InvalidArgumentException;
+use Contenir\Mail\Mime\HtmlToText;
 use Contenir\Mail\Mime\Multipart;
 use Contenir\Mail\Mime\MultipartType;
 use Contenir\Mail\Mime\Part;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function str_repeat;
 
 #[CoversClass(Multipart::class)]
@@ -224,5 +226,60 @@ final class MultipartTest extends TestCase
             'multipart/mixed; boundary="b"',
             $mixed->getHeaders()->get('Content-Type')?->getFieldValue(),
         );
+    }
+
+    #[Test]
+    public function offersTheHtmlWithTextReadFromIt(): void
+    {
+        $alternative = Multipart::alternative('<span class="preheader">Hidden</span><p>Hello <b>there</b></p>');
+
+        static::assertSame(
+            [
+                MultipartType::Alternative,
+                [
+                    "Content-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+                    'Hello there',
+                ],
+                [
+                    "Content-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n",
+                    '<span class="preheader">Hidden</span><p>Hello <b>there</b></p>',
+                ],
+            ],
+            [
+                $alternative->getType(),
+                ...array_map(
+                    static fn(PartInterface $part): array => [$part->getHeaders()->toString(), $part->getContent()],
+                    $alternative->getParts(),
+                ),
+            ],
+        );
+    }
+
+    #[Test]
+    public function offersTheHtmlWithTheTextGiven(): void
+    {
+        $alternative = Multipart::alternative('<p>Hello</p>', text: 'Hi there');
+
+        static::assertSame(
+            ['Hi there', '<p>Hello</p>'],
+            array_map(static fn(PartInterface $part): string => $part->getContent(), $alternative->getParts()),
+        );
+    }
+
+    #[Test]
+    public function readsTheTextWithTheConverterGiven(): void
+    {
+        $alternative = Multipart::alternative(
+            '<span class="preheader">Shown</span><p>Hello</p>',
+            converter: new HtmlToText(droppedClasses: []),
+        );
+
+        static::assertSame("Shown\n\nHello", $alternative->getParts()[0]->getContent());
+    }
+
+    #[Test]
+    public function offersTheAlternativesWithTheBoundaryGiven(): void
+    {
+        static::assertSame('frontier', Multipart::alternative('<p>Hello</p>', boundary: 'frontier')->getBoundary());
     }
 }

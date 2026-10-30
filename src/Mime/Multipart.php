@@ -54,6 +54,26 @@ final readonly class Multipart implements PartInterface
     }
 
     /**
+     * Text and HTML as alternatives, the text read from the HTML by HtmlToText when none is given,
+     * so mail readers that show text get the words rather than nothing. Both parts are UTF-8.
+     *
+     * @throws Exception\InvalidArgumentException When the boundary is not valid.
+     * @throws Exception\RuntimeException When no boundary is given and the system has no source of randomness.
+     */
+    public static function alternative(
+        string $html,
+        ?string $text = null,
+        HtmlToText $converter = new HtmlToText(),
+        ?string $boundary = null,
+    ): self {
+        return new self(
+            MultipartType::Alternative,
+            [Part::text($text ?? $converter->convert($html)), Part::html($html)],
+            $boundary,
+        );
+    }
+
+    /**
      * "=_" and 32 random hex digits: "=_" cannot appear in quoted-printable or base64 content,
      * so the boundary never collides with an encoded part, and a sender cannot predict it to
      * end a part early in content it does not encode.
