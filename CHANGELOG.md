@@ -8,6 +8,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 0.4.0 - 2026-10-30
+### Added
+
 - `Mime\HtmlToText` reads an HTML body as plain text, for the `text/plain`
   half of a `multipart/alternative` message: headings, paragraphs and list
   items on lines of their own, table cells side by side, a link's address in
