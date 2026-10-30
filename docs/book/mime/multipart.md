@@ -25,6 +25,19 @@ Type | Meaning
 A multipart needs at least one part; an empty list throws a
 `Contenir\Mail\Mime\Exception\InvalidArgumentException`.
 
+## Text and HTML from the HTML alone
+
+`Multipart::alternative()` builds the `multipart/alternative` pair above from
+the HTML, reading the text from it with
+[`HtmlToText`](html-to-text.md) when none is given. Both parts are UTF-8.
+
+```php
+Multipart::alternative($html);
+Multipart::alternative($html, text: $text);
+Multipart::alternative($html, converter: new HtmlToText(droppedClasses: []));
+Multipart::alternative($html, boundary: 'report-boundary');
+```
+
 ## Boundaries
 
 Each multipart has a boundary that separates its parts. One is generated when
@@ -83,6 +96,8 @@ PartWriter::write($multipart, $stream);
 
 ## Available methods
 
+- `Multipart::alternative(string $html, ?string $text = null, HtmlToText $converter = new HtmlToText(), ?string $boundary = null)`:
+  Text and HTML as alternatives, the text read from the HTML when none is given.
 - `getType()`: The `MultipartType`.
 - `getBoundary()`: The boundary.
 - `getParts()`: The parts, in order.

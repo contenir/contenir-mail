@@ -13,7 +13,8 @@ The complete history of both repositories, back to 2009, is preserved here, so
 every contributor keeps their authorship in `git log` and `git blame`.
 
 - **Messages:** `Message`, `Headers` and the `Header\*` classes, `Address` and `AddressList`.
-- **MIME:** `Mime\Part`, `Mime\Multipart`, `Mime\Attachment`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime.
+- **MIME:** `Mime\Part`, `Mime\Multipart`, `Mime\Attachment`, `Mime\Mime` and `Mime\Decode`, formerly laminas-mime,
+  and `Mime\HtmlToText` to read a text alternative from the HTML.
 - **Transports:** `Smtp`, `Sendmail`, `File` and `InMemory`, each configured with a typed `*Config`,
   and `Failover` to try several in turn.
 - **Protocols:** SMTP, IMAP and POP3 clients over a small connection layer, with a scripted

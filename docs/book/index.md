@@ -15,7 +15,8 @@ $ composer require contenir/contenir-mail
   [SMTP authentication](transport/smtp-authentication.md),
   [file transport options](transport/file-options.md)
 - [Reading and storing mail](read.md)
-- MIME: [introduction](mime/intro.md), [parts](mime/part.md), [multiparts](mime/multipart.md)
+- MIME: [introduction](mime/intro.md), [parts](mime/part.md), [multiparts](mime/multipart.md),
+  [text from HTML](mime/html-to-text.md)
 - [Security](security.md): threat model, protections and their tests, vulnerability history
 - [Standards](standards.md): the RFCs implemented and how closely each is followed
 - [laminas-mail issues](laminas-issues.md): the issues reported against laminas-mail, and how each one affects contenir-mail

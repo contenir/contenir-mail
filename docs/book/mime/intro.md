@@ -10,6 +10,9 @@ A MIME body is a tree. Every node implements `Contenir\Mail\Mime\PartInterface`:
 - [`Multipart`](multipart.md) groups other nodes as `multipart/mixed`,
   `multipart/alternative` or `multipart/related`.
 
+[`HtmlToText`](html-to-text.md) reads an HTML body as plain text, so the
+`text/plain` alternative can be derived from the HTML rather than written twice.
+
 Both are immutable values. Nothing is encoded until the body is written, and
 content is never stored encoded.
 
