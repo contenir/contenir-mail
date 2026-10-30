@@ -27,7 +27,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Nothing.
 
 ## 0.4.0 - 2026-10-30
-
 ### Added
 
 - `Mime\HtmlToText` reads an HTML body as plain text, for the `text/plain`
@@ -38,6 +37,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `preheader` line dropped. `new HtmlToText(droppedClasses: [...])` names the
   classes to drop. `Mime\Multipart::alternative($html)` builds the text and
   HTML pair from the HTML alone, the text read from it when none is given.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
 
 ## 0.3.1 - 2026-10-20
 
