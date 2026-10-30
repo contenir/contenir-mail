@@ -8,14 +8,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `Mime\HtmlToText` reads an HTML body as plain text, for the `text/plain`
-  half of a `multipart/alternative` message: headings, paragraphs and list
-  items on lines of their own, table cells side by side, a link's address in
-  brackets after its words unless the words are the address, an image's alt
-  text in its place, and the head, styles, scripts, comments and the hidden
-  `preheader` line dropped. `new HtmlToText(droppedClasses: [...])` names the
-  classes to drop. `Mime\Multipart::alternative($html)` builds the text and
-  HTML pair from the HTML alone, the text read from it when none is given.
+- Nothing.
 
 ### Changed
 
@@ -32,6 +25,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Nothing.
+
+## 0.4.0 - 2026-10-30
+
+### Added
+
+- `Mime\HtmlToText` reads an HTML body as plain text, for the `text/plain`
+  half of a `multipart/alternative` message: headings, paragraphs and list
+  items on lines of their own, table cells side by side, a link's address in
+  brackets after its words unless the words are the address, an image's alt
+  text in its place, and the head, styles, scripts, comments and the hidden
+  `preheader` line dropped. `new HtmlToText(droppedClasses: [...])` names the
+  classes to drop. `Mime\Multipart::alternative($html)` builds the text and
+  HTML pair from the HTML alone, the text read from it when none is given.
 
 ## 0.3.1 - 2026-10-20
 
