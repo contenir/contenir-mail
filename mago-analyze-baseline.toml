@@ -1,6 +1,12 @@
 variant = "loose"
 
 [[issues]]
+file = "src/Header/EncodedWordDecoder.php"
+code = "redundant-cast"
+message = "Redundant cast to `(string)`: the expression already has this type."
+count = 1
+
+[[issues]]
 file = "src/Mime/Mime.php"
 code = "impossible-condition"
 message = "Redundant ternary operator: condition is always falsy."
@@ -34,4 +40,46 @@ count = 2
 file = "src/Mime/Mime.php"
 code = "redundant-comparison"
 message = "Redundant `===` comparison: left-hand side is never identical to right-hand side."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Imap.php"
+code = "mixed-array-index"
+message = "Invalid index type `mixed` used in array assignment on `array<array-key, mixed>`."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Imap.php"
+code = "mixed-array-index"
+message = "Invalid index type `nonnull` used in array assignment on `array<array-key, nonnull>`."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Redaction.php"
+code = "reference-to-undefined-variable"
+message = "Reference created from a previously undefined variable `$matches`."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/AuthenticatorFactory.php"
+code = "mixed-array-index"
+message = "Invalid index type `mixed` used in array assignment on `array<array-key, mixed>`."
+count = 1
+
+[[issues]]
+file = "src/Protocol/Smtp/Auth/XOAuth2.php"
+code = "unfulfilled-expect"
+message = "This pragma was not used and may be removed."
+count = 2
+
+[[issues]]
+file = "src/Storage/Part/Decoder.php"
+code = "redundant-cast"
+message = "Redundant cast to `(string)`: the expression already has this type."
+count = 2
+
+[[issues]]
+file = "src/Storage/RemoteAuth.php"
+code = "mixed-array-index"
+message = "Invalid index type `mixed` used in array assignment on `array<array-key, mixed>`."
 count = 1
